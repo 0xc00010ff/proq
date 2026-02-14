@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [chatLog, setChatLog] = useState<ChatLogEntry[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabOption>('project');
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
   const [isChatView, setIsChatView] = useState(false);
@@ -42,13 +43,15 @@ export default function Dashboard() {
         if (data.length > 0 && !activeProjectId) {
           setActiveProjectId(data[0].id);
         }
-        data.forEach((p) => {
-          fetch(`/api/projects/${p.id}/tasks`)
-            .then((r) => r.json())
-            .then((tasks: Task[]) => {
-              setTasksByProject((prev) => ({ ...prev, [p.id]: tasks }));
-            });
-        });
+        Promise.all(
+          data.map((p) =>
+            fetch(`/api/projects/${p.id}/tasks`)
+              .then((r) => r.json())
+              .then((tasks: Task[]) => {
+                setTasksByProject((prev) => ({ ...prev, [p.id]: tasks }));
+              })
+          )
+        ).then(() => setInitialLoadDone(true));
       });
   }, [activeProjectId]);
 
@@ -199,7 +202,7 @@ export default function Dashboard() {
         (mainChatMessages[mainChatMessages.length - 1].message.length > 60 ? '\u2026' : '')
       : undefined;
 
-  if (!activeProject && projects.length === 0) {
+  if (!initialLoadDone) {
     return (
       <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 items-center justify-center">
         <div className="text-zinc-500 text-sm">Loading...</div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -114,6 +114,16 @@ export function KanbanBoard({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [localTasks, setLocalTasks] = useState<Task[] | null>(null);
+  const pendingCommitRef = useRef<Task[] | null>(null);
+
+  // Clear localTasks once the parent props reflect the committed drag result
+  useEffect(() => {
+    if (pendingCommitRef.current && localTasks) {
+      // Parent props updated after our commit — safe to drop local override
+      pendingCommitRef.current = null;
+      setLocalTasks(null);
+    }
+  }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const workingTasks = localTasks ?? tasks;
 
@@ -231,9 +241,10 @@ export function KanbanBoard({
       return t;
     });
 
-    // Commit to parent
+    // Keep localTasks as optimistic state until parent props catch up
+    setLocalTasks(finalTasks);
+    pendingCommitRef.current = finalTasks;
     onReorderTasks(finalTasks);
-    setLocalTasks(null);
   }
 
   function handleDragCancel() {

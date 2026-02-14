@@ -67,6 +67,13 @@ export default function Dashboard() {
       });
   }, [activeProjectId]);
 
+  // Auto-refresh tasks every 5 seconds
+  useEffect(() => {
+    if (!activeProjectId) return;
+    const interval = setInterval(refreshTasks, 5000);
+    return () => clearInterval(interval);
+  }, [activeProjectId, refreshTasks]);
+
   // Fetch chat for active project
   useEffect(() => {
     if (!activeProjectId) return;

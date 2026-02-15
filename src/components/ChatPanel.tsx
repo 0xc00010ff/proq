@@ -39,16 +39,16 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
 
   return (
     <div
-      className="w-full flex flex-col bg-black/40 flex-shrink-0 font-mono"
+      className="w-full flex flex-col bg-zinc-50 dark:bg-black/40 flex-shrink-0 font-mono"
       style={{ minHeight: 0, ...style }}
     >
       {/* Terminal Header */}
-      <div className="h-10 flex items-center justify-between px-4 border-b border-zinc-800/60 bg-zinc-900/20">
+      <div className="h-10 flex items-center justify-between px-4 border-b border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100/20 dark:bg-zinc-900/20">
         <div className="flex items-center gap-2 text-zinc-500">
           <TerminalIcon className="w-3.5 h-3.5" />
           <span className="text-xs tracking-wide">activity</span>
         </div>
-        <span className="text-[10px] text-zinc-600">{messages.length} events</span>
+        <span className="text-[10px] text-zinc-400 dark:text-zinc-600">{messages.length} events</span>
       </div>
 
       {/* Terminal Output */}
@@ -57,36 +57,36 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
           <div key={idx} className="group">
             <div className="flex items-baseline gap-2">
               <span
-                className={`text-xs font-bold ${msg.role === 'twin' ? 'text-blue-400' : 'text-green-400'}`}
+                className={`text-xs font-bold ${msg.role === 'twin' ? 'text-blue-400' : 'text-green-500 dark:text-green-400'}`}
               >
                 {msg.role === 'twin' ? '\u25C6' : '\u276F'}
               </span>
               <span
-                className={`text-xs font-semibold ${msg.role === 'twin' ? 'text-blue-400' : 'text-green-400'}`}
+                className={`text-xs font-semibold ${msg.role === 'twin' ? 'text-blue-400' : 'text-green-500 dark:text-green-400'}`}
               >
                 {msg.role === 'twin' ? 'Twin' : 'Brian'}
               </span>
-              <span className="text-[10px] text-zinc-700 ml-auto opacity-0 group-hover:opacity-100">
+              <span className="text-[10px] text-zinc-300 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100">
                 {formatTimestamp(msg.timestamp)}
               </span>
             </div>
 
             <div className="pl-5 mt-0.5">
               {msg.role === 'twin' && msg.toolCalls && msg.toolCalls.length > 0 && (
-                <div className="mb-2 space-y-0.5 border-l border-zinc-800 ml-0.5 pl-3">
+                <div className="mb-2 space-y-0.5 border-l border-zinc-200 dark:border-zinc-800 ml-0.5 pl-3">
                   {msg.toolCalls.map((tc, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-1.5 text-[11px] text-zinc-600 leading-snug"
+                      className="flex items-start gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-600 leading-snug"
                     >
-                      <span className="text-zinc-700 mt-px shrink-0">{'\u23BF'}</span>
+                      <span className="text-zinc-300 dark:text-zinc-700 mt-px shrink-0">{'\u23BF'}</span>
                       <span>{tc.action ? `${tc.action} ${tc.detail}` : tc.detail}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <p className="text-[13px] leading-relaxed text-zinc-400">{msg.message}</p>
+              <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">{msg.message}</p>
             </div>
           </div>
         ))}
@@ -94,20 +94,20 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
       </div>
 
       {/* Terminal Input */}
-      <div className="px-4 py-5 border-t border-zinc-800/60 bg-black/20">
+      <div className="px-4 py-5 border-t border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100/20 dark:bg-black/20">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <span className="text-green-400 text-sm font-bold select-none">{'\u276F'}</span>
+          <span className="text-green-500 dark:text-green-400 text-sm font-bold select-none">{'\u276F'}</span>
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="message..."
-            className="flex-1 bg-transparent text-[13px] text-zinc-200 placeholder:text-zinc-700 focus:outline-none caret-green-400"
+            className="flex-1 bg-transparent text-[13px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-700 focus:outline-none caret-green-500 dark:caret-green-400"
           />
           <button
             type="submit"
             disabled={!inputValue.trim()}
-            className="text-zinc-600 hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <CornerDownLeftIcon className="w-3.5 h-3.5" />
           </button>

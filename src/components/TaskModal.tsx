@@ -157,14 +157,14 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-blue-500/50' : 'border-zinc-800'}`}
+        className={`relative w-full max-w-2xl bg-white dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-blue-500/50' : 'border-zinc-200 dark:border-zinc-800'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 text-zinc-600 hover:text-zinc-300 transition-colors p-1 z-10"
+          className="absolute top-3 right-3 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 z-10"
         >
           <XIcon className="w-4 h-4" />
         </button>
@@ -176,13 +176,13 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
             type="text"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
-            className="w-full bg-transparent text-xl font-semibold text-zinc-100 placeholder-zinc-700 focus:outline-none mb-4 pr-8"
+            className="w-full bg-transparent text-xl font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
             placeholder="Untitled"
           />
           <textarea
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
-            className="w-full min-h-[280px] bg-transparent text-sm text-zinc-400 placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
+            className="w-full min-h-[280px] bg-transparent text-sm text-zinc-600 dark:text-zinc-400 placeholder-zinc-400 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
             placeholder="Write something..."
           />
         </div>
@@ -197,7 +197,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
         )}
 
         {/* Attachment Footer */}
-        <div className="border-t border-zinc-800/60 px-4 py-3 flex flex-col gap-2.5">
+        <div className="border-t border-zinc-200/60 dark:border-zinc-800/60 px-4 py-3 flex flex-col gap-2.5">
           {/* Attachment list */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -206,7 +206,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
                 return isImage && att.dataUrl ? (
                   <div
                     key={att.id}
-                    className="relative group rounded-md overflow-hidden border border-zinc-700/50 bg-zinc-800/60"
+                    className="relative group rounded-md overflow-hidden border border-zinc-300/50 dark:border-zinc-700/50 bg-zinc-100/60 dark:bg-zinc-800/60"
                   >
                     <img
                       src={att.dataUrl}
@@ -230,11 +230,11 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
                 ) : (
                   <div
                     key={att.id}
-                    className="flex items-center gap-2 bg-zinc-800/60 border border-zinc-700/50 rounded-md px-3 py-2.5 group"
+                    className="flex items-center gap-2 bg-zinc-100/60 dark:bg-zinc-800/60 border border-zinc-300/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group"
                   >
                     <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] text-zinc-300 truncate max-w-[140px] leading-tight">
+                      <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px] leading-tight">
                         {att.name}
                       </span>
                       <span className="text-[10px] text-zinc-600 leading-tight">
@@ -256,7 +256,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
           {/* Add attachment button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-400 transition-colors text-xs w-fit"
+            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs w-fit"
           >
             <PaperclipIcon className="w-3.5 h-3.5" />
             <span>Attach file</span>

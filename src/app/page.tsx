@@ -11,6 +11,7 @@ import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { AddProjectModal } from '@/components/AddProjectModal';
 import { TaskModal } from '@/components/TaskModal';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Project, Task, ChatLogEntry } from '@/lib/types';
 
 export default function Dashboard() {
@@ -206,14 +207,14 @@ export default function Dashboard() {
 
   if (!initialLoadDone) {
     return (
-      <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 items-center justify-center">
+      <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 items-center justify-center">
         <div className="text-zinc-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
       <Sidebar
         projects={projects}
         tasksByProject={tasksByProject}
@@ -228,11 +229,12 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
         {isChatView ? (
           <>
-            <header className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center px-6 flex-shrink-0">
+            <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between px-6 flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <TerminalIcon className="w-5 h-5 text-zinc-400" />
-                <h1 className="text-lg font-semibold text-zinc-100 leading-tight">Chat</h1>
+                <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">Chat</h1>
               </div>
+              <ThemeToggle />
             </header>
             <main className="flex-1 flex flex-col overflow-hidden">
               <ChatPanel
@@ -265,8 +267,8 @@ export default function Dashboard() {
 
                   <div
                     onMouseDown={handleMouseDown}
-                    className={`w-full h-0 border-t border-zinc-800 hover:border-zinc-600 cursor-row-resize relative z-10 ${
-                      isDragging ? 'border-zinc-600' : ''
+                    className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-row-resize relative z-10 ${
+                      isDragging ? 'border-zinc-400 dark:border-zinc-600' : ''
                     }`}
                     style={{ margin: '-2px 0', padding: '2px 0' }}
                   />

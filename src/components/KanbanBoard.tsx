@@ -40,7 +40,7 @@ interface KanbanBoardProps {
 }
 
 const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
-  { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-zinc-500" /> },
+  { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" /> },
   { id: 'in-progress', label: 'In Progress', icon: <RefreshCwIcon className="w-3.5 h-3.5 text-blue-400" /> },
   { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-amber-400" /> },
   { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-green-400" /> },
@@ -61,7 +61,7 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={`flex-1 flex flex-col min-w-[240px] rounded-lg transition-colors ${
-        isOver ? 'bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
+        isOver ? 'bg-zinc-100/50 dark:bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
       }`}
     >
       {children}
@@ -267,7 +267,7 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="flex-1 h-full overflow-x-auto bg-zinc-950">
+    <div className="flex-1 h-full overflow-x-auto bg-zinc-50 dark:bg-zinc-950">
       <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}
@@ -289,9 +289,9 @@ export function KanbanBoard({
                 <div className="flex items-center justify-between mb-4 px-1">
                   <div className="flex items-center gap-2">
                     {column.icon}
-                    <h3 className="text-sm font-medium text-zinc-400">{column.label}</h3>
+                    <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{column.label}</h3>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-500 font-mono">
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 font-mono">
                     {colTasks.length}
                   </span>
                 </div>
@@ -308,15 +308,15 @@ export function KanbanBoard({
                     ))}
 
                     {colTasks.length === 0 && (
-                      <div className="h-24 border-2 border-dashed border-zinc-900 rounded-lg flex items-center justify-center">
-                        <span className="text-xs text-zinc-700">Empty</span>
+                      <div className="h-24 border-2 border-dashed border-zinc-200 dark:border-zinc-900 rounded-lg flex items-center justify-center">
+                        <span className="text-xs text-zinc-400 dark:text-zinc-700">Empty</span>
                       </div>
                     )}
 
                     {column.id === 'todo' && onAddTask && (
                       <button
                         onClick={onAddTask}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-zinc-800/30 border border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700 text-zinc-500 hover:text-zinc-300 text-xs"
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-zinc-100 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 text-xs"
                       >
                         <PlusIcon className="w-3.5 h-3.5" />
                         <span>Add</span>

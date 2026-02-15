@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 interface TerminalTab {
   id: string;
   label: string;
-  type: 'default' | 'shell' | 'task';
+  type: 'shell' | 'task';
   status?: 'running' | 'done';
 }
 
@@ -37,7 +37,7 @@ interface TerminalInstance {
 const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
   function TerminalPanel({ style }, ref) {
     const [tabs, setTabs] = useState<TerminalTab[]>([
-      { id: 'default', label: '\u25C6 Claude', type: 'default' },
+      { id: 'default', label: '\u25C6 Claude', type: 'shell' },
     ]);
     const [activeTabId, setActiveTabId] = useState('default');
     const instancesRef = useRef<Map<string, TerminalInstance>>(new Map());
@@ -236,8 +236,6 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
     }, [tabs]);
 
     const removeTab = useCallback(async (tabId: string) => {
-      if (tabId === 'default') return;
-
       // Kill PTY
       await fetch(`/api/terminal/${tabId}`, { method: 'DELETE' });
 
@@ -252,9 +250,21 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
 
       setTabs((prev) => {
         const filtered = prev.filter((t) => t.id !== tabId);
+        if (filtered.length === 0) {
+          // All tabs closed — open a fresh shell tab
+          const newId = `shell-${uuidv4().slice(0, 8)}`;
+          const newTab: TerminalTab = { id: newId, label: 'Terminal 1', type: 'shell' };
+          fetch('/api/terminal/spawn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tabId: newId }),
+          });
+          setActiveTabId(newId);
+          return [newTab];
+        }
+        setActiveTabId((active) => active === tabId ? filtered[0].id : active);
         return filtered;
       });
-      setActiveTabId((prev) => (prev === tabId ? 'default' : prev));
     }, []);
 
     // Expose methods to parent
@@ -286,27 +296,26 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
     );
 
     const tabAccentColor = (tab: TerminalTab) => {
-      if (tab.type === 'default') return 'text-blue-400';
-      if (tab.type === 'shell') return 'text-green-400';
-      return 'text-blue-400';
+      if (tab.type === 'task') return 'text-blue-400';
+      return 'text-green-400';
     };
 
     return (
       <div
         ref={panelRef}
-        className="w-full flex flex-col bg-black/40 flex-shrink-0 font-mono"
+        className="w-full flex flex-col bg-zinc-100 dark:bg-black/40 flex-shrink-0 font-mono"
         style={{ minHeight: 0, ...style }}
       >
         {/* Tab Bar */}
-        <div className="h-10 flex items-center border-b border-zinc-800/60 bg-zinc-900/20 px-1 overflow-x-auto">
+        <div className="h-10 flex items-center border-b border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-200/20 dark:bg-zinc-900/20 px-1 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTabId(tab.id)}
               className={`flex items-center gap-1.5 px-3 h-8 text-xs rounded-md transition-colors shrink-0 ${
                 activeTabId === tab.id
-                  ? 'bg-zinc-800/60 ' + tabAccentColor(tab)
-                  : 'text-zinc-500 hover:text-zinc-400 hover:bg-zinc-800/30'
+                  ? 'bg-zinc-200/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
+                  : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30'
               }`}
             >
               <TerminalIcon className="w-3 h-3" />
@@ -314,23 +323,21 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
                 {tab.status === 'done' ? '\u2705 ' : ''}
                 {tab.label}
               </span>
-              {tab.type !== 'default' && (
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeTab(tab.id);
-                  }}
-                  className="ml-1 text-zinc-600 hover:text-zinc-300 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </span>
-              )}
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTab(tab.id);
+                }}
+                className="ml-1 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </span>
             </button>
           ))}
 
           <button
             onClick={addShellTab}
-            className="flex items-center justify-center w-7 h-7 text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/30 rounded-md ml-1 shrink-0"
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 shrink-0"
             title="New terminal"
           >
             <Plus className="w-3.5 h-3.5" />

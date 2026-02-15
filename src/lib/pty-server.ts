@@ -57,10 +57,6 @@ export function spawnPty(tabId: string, cmd?: string, cwd?: string): PtyEntry {
 
     activePtys.delete(tabId);
 
-    // Respawn default tab only on clean exit
-    if (tabId === "default" && exitCode === 0) {
-      setTimeout(() => spawnPty("default"), 500);
-    }
   });
 
   return entry;
@@ -102,9 +98,7 @@ export function detachWs(tabId: string): void {
 
   entry.ws = undefined;
 
-  // Start cleanup timer (60s), except default which should persist
-  if (tabId === "default") return;
-
+  // Start cleanup timer (60s)
   entry.disconnectTimer = setTimeout(() => {
     killPty(tabId);
   }, 60_000);

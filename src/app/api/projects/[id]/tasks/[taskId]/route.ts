@@ -18,12 +18,14 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
+  let terminalTabId: string | undefined;
+
   // Dispatch/abort on status change
   if (prevTask && body.status && prevTask.status !== body.status) {
     if (body.status === "in-progress" && prevTask.status !== "in-progress") {
       await updateTask(params.id, params.taskId, { locked: true });
       updated.locked = true;
-      dispatchTask(params.id, params.taskId, updated.title, updated.description);
+      terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description);
     } else if (prevTask.status === "in-progress" && body.status === "todo") {
       await updateTask(params.id, params.taskId, { locked: false });
       updated.locked = false;
@@ -42,7 +44,7 @@ export async function PATCH(request: Request, { params }: Params) {
     }
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ ...updated, terminalTabId });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

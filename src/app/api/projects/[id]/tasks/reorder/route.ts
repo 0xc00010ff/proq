@@ -29,6 +29,8 @@ export async function PUT(request: Request, { params }: Params) {
   await reorderTasks(params.id, items);
 
   // Detect status transitions and fire dispatch/abort
+  const dispatched: { taskId: string; terminalTabId: string; title: string }[] = [];
+
   for (const item of items) {
     const prevStatus = prevStatusMap.get(item.id);
     const newStatus = item.status;
@@ -37,12 +39,15 @@ export async function PUT(request: Request, { params }: Params) {
     if (newStatus === "in-progress" && prevStatus !== "in-progress") {
       const task = previousTasks.find((t) => t.id === item.id);
       await updateTask(params.id, item.id, { locked: true });
-      dispatchTask(params.id, item.id, task?.title ?? "", task?.description ?? "");
+      const terminalTabId = await dispatchTask(params.id, item.id, task?.title ?? "", task?.description ?? "");
+      if (terminalTabId) {
+        dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
+      }
     } else if (prevStatus === "in-progress" && newStatus === "todo") {
       await updateTask(params.id, item.id, { locked: false });
       abortTask(params.id, item.id);
     }
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, dispatched });
 }

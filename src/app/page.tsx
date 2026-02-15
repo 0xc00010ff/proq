@@ -5,6 +5,7 @@ import { TerminalIcon } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { TopBar, type TabOption } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
+import TerminalPanel, { type TerminalPanelHandle } from '@/components/TerminalPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
@@ -15,7 +16,6 @@ import type { Project, Task, ChatLogEntry } from '@/lib/types';
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
-  const [chatLog, setChatLog] = useState<ChatLogEntry[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
@@ -32,6 +32,7 @@ export default function Dashboard() {
     },
   ]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<TerminalPanelHandle>(null);
 
   const fetchProjects = useCallback(() => {
     fetch('/api/projects')
@@ -75,13 +76,6 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [activeProjectId, refreshTasks]);
 
-  // Fetch chat for active project
-  useEffect(() => {
-    if (!activeProjectId) return;
-    fetch(`/api/projects/${activeProjectId}/chat`)
-      .then((r) => r.json())
-      .then((log: ChatLogEntry[]) => setChatLog(log));
-  }, [activeProjectId]);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const activeTasks = tasksByProject[activeProjectId] || [];
@@ -110,11 +104,20 @@ export default function Dashboard() {
       status: t.status,
     }));
 
-    await fetch(`/api/projects/${activeProjectId}/tasks/reorder`, {
+    const res = await fetch(`/api/projects/${activeProjectId}/tasks/reorder`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items }),
     });
+
+    try {
+      const data = await res.json();
+      if (data.dispatched && terminalRef.current) {
+        for (const d of data.dispatched) {
+          terminalRef.current.openTab(d.terminalTabId, d.title);
+        }
+      }
+    } catch {}
   };
 
   const updateTask = async (taskId: string, data: Partial<Task>) => {
@@ -135,20 +138,6 @@ export default function Dashboard() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    });
-  };
-
-  const sendMessage = async (content: string) => {
-    const entry: ChatLogEntry = {
-      role: 'brian',
-      message: content,
-      timestamp: new Date().toISOString(),
-    };
-    setChatLog((prev) => [...prev, entry]);
-    await fetch(`/api/projects/${activeProjectId}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'brian', message: content }),
     });
   };
 
@@ -282,9 +271,8 @@ export default function Dashboard() {
                     style={{ margin: '-2px 0', padding: '2px 0' }}
                   />
 
-                  <ChatPanel
-                    messages={chatLog}
-                    onSendMessage={sendMessage}
+                  <TerminalPanel
+                    ref={terminalRef}
                     style={{ flexBasis: `${chatPercent}%` }}
                   />
                 </>

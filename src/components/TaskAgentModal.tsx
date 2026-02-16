@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   XIcon,
   AlertTriangleIcon,
@@ -29,6 +29,35 @@ export function TaskAgentModal({ task, onClose, onComplete }: TaskAgentModalProp
   const isLocked = task.status === 'in-progress' && task.locked;
   const showTerminal = task.status === 'in-progress' || task.status === 'verify';
   const [copied, setCopied] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(30); // percentage
+  const isDragging = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Resize drag handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pct = ((rect.right - e.clientX) / rect.width) * 100;
+      setSidebarWidth(Math.min(60, Math.max(15, pct)));
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, []);
 
   // Load xterm CSS
   useEffect(() => {
@@ -61,18 +90,30 @@ export function TaskAgentModal({ task, onClose, onComplete }: TaskAgentModalProp
 
       {/* Modal */}
       <div
+        ref={containerRef}
         className="relative w-full max-w-7xl h-[90vh] flex flex-row rounded-lg border border-[#222] bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Left panel: terminal (70%) ── */}
+        {/* ── Left panel: terminal ── */}
         {showTerminal && (
           <div className="flex-1 relative min-h-0">
             <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
           </div>
         )}
 
-        {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div className={`${showTerminal ? 'w-[30%] border-l border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
+        {/* ── Resize handle ── */}
+        {showTerminal && (
+          <div
+            onMouseDown={handleResizeStart}
+            className="w-1 shrink-0 cursor-col-resize bg-zinc-800 hover:bg-blue-500/50 active:bg-blue-500/70 transition-colors"
+          />
+        )}
+
+        {/* ── Right panel: task details ── */}
+        <div
+          className={`${showTerminal ? 'border-l-0' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}
+          style={showTerminal ? { width: `${sidebarWidth}%` } : undefined}
+        >
           {/* Close button */}
           <button
             onClick={onClose}

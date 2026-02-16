@@ -228,6 +228,8 @@ export default function ProjectPage() {
       {agentModalTask && (
         <TaskAgentModal
           task={agentModalTask}
+          projectId={projectId}
+          isQueued={agentModalTask.status === 'in-progress' && agentModalTask.locked && dispatchedTaskIds.size > 0 && !dispatchedTaskIds.has(agentModalTask.id)}
           onClose={() => setAgentModalTask(null)}
           onComplete={async (taskId) => {
             const doneTasks = tasks.filter(t => t.status === 'done');

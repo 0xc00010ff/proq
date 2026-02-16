@@ -11,25 +11,28 @@ import {
   CheckIcon,
   CheckCircle2Icon,
   ClockIcon,
+  PlayIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { TerminalPane } from './TerminalPane';
 
 interface TaskAgentModalProps {
   task: Task;
+  projectId: string;
+  isQueued?: boolean;
   onClose: () => void;
   onComplete?: (taskId: string) => void;
 }
 
-export function TaskAgentModal({ task, onClose, onComplete }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = task.humanSteps?.split('\n').filter(Boolean) || [];
   const findings = task.findings?.split('\n').filter(Boolean) || [];
   const isLocked = task.status === 'in-progress' && task.locked;
-  const showTerminal = task.status === 'in-progress' || task.status === 'verify';
+  const showTerminal = (task.status === 'in-progress' || task.status === 'verify') && !isQueued;
+  const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
-
   // Load xterm CSS
   useEffect(() => {
     const linkId = 'xterm-css';
@@ -64,15 +67,45 @@ export function TaskAgentModal({ task, onClose, onComplete }: TaskAgentModalProp
         className="relative w-full max-w-7xl h-[90vh] flex flex-row rounded-lg border border-[#222] bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Left panel: terminal (70%) ── */}
-        {showTerminal && (
+        {/* ── Left panel: terminal or queued state (70%) ── */}
+        {isQueued ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
+            <ClockIcon className="w-8 h-8 text-zinc-600" />
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Queued</p>
+              <p className="text-xs text-zinc-600 mt-1">
+                Waiting for the current task to finish before starting.
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                setDispatching(true);
+                try {
+                  await fetch(`/api/projects/${projectId}/tasks/${task.id}/dispatch`, { method: 'POST' });
+                  onClose();
+                } catch {
+                  setDispatching(false);
+                }
+              }}
+              disabled={dispatching}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 border border-blue-500/30 rounded-md hover:bg-blue-500/10 transition-colors disabled:opacity-50"
+            >
+              {dispatching ? (
+                <Loader2Icon className="w-3 h-3 animate-spin" />
+              ) : (
+                <PlayIcon className="w-3 h-3" />
+              )}
+              Start Now
+            </button>
+          </div>
+        ) : showTerminal ? (
           <div className="flex-1 relative min-h-0">
             <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
           </div>
-        )}
+        ) : null}
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div className={`${showTerminal ? 'w-[30%] border-l border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${showTerminal || isQueued ? 'w-[30%] border-l border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -85,7 +118,12 @@ export function TaskAgentModal({ task, onClose, onComplete }: TaskAgentModalProp
           <div className="flex-1 overflow-y-auto p-5 pt-12 space-y-4">
             {/* Status badge */}
             <div className="flex items-center gap-1.5">
-              {isLocked ? (
+              {isQueued ? (
+                <span className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">
+                  <ClockIcon className="w-3 h-3" />
+                  Queued
+                </span>
+              ) : isLocked ? (
                 <span className="flex items-center gap-1.5 text-xs text-blue-400 font-medium uppercase tracking-wide">
                   <Loader2Icon className="w-3 h-3 animate-spin" />
                   Agent working

@@ -340,7 +340,7 @@ export function Sidebar({ onAddProject }: SidebarProps) {
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 py-[11px]">
+      <div className="h-14 flex items-center px-3 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
         <button
           onClick={onAddProject}
           className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-sm"

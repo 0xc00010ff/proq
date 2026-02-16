@@ -70,7 +70,7 @@ export default function TerminalPanel({ projectId, style, collapsed, onToggleCol
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar */}
-      <div className="h-10 flex items-center border-b border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-200/20 dark:bg-zinc-900/20 px-1 overflow-x-auto">
+      <div className="h-14 flex items-center border-t border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-200/20 dark:bg-zinc-900/20 px-1 overflow-x-auto shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}

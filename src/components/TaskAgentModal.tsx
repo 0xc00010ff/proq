@@ -16,9 +16,10 @@ import { TerminalPane } from './TerminalPane';
 interface TaskAgentModalProps {
   task: Task;
   onClose: () => void;
+  onComplete?: (taskId: string) => void;
 }
 
-export function TaskAgentModal({ task, onClose }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, onClose, onComplete }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = task.humanSteps?.split('\n').filter(Boolean) || [];
@@ -107,6 +108,17 @@ export function TaskAgentModal({ task, onClose }: TaskAgentModalProps) {
               <p className="text-xs text-zinc-400 leading-relaxed font-mono whitespace-pre-wrap">
                 {task.description}
               </p>
+            )}
+
+            {/* Complete button for verify status */}
+            {task.status === 'verify' && onComplete && (
+              <button
+                onClick={() => onComplete(task.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-400 border border-green-500/30 rounded-md hover:bg-green-500/10 transition-colors w-fit"
+              >
+                <CheckCircle2Icon className="w-3.5 h-3.5" />
+                Complete
+              </button>
             )}
 
             {/* Human steps banner */}

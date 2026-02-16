@@ -178,6 +178,10 @@ export default function ProjectPage() {
         <TaskAgentModal
           task={agentModalTask}
           onClose={() => setAgentModalTask(null)}
+          onComplete={async (taskId) => {
+            await updateTask(taskId, { status: 'done' });
+            setAgentModalTask(null);
+          }}
         />
       )}
 

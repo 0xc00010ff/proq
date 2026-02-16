@@ -310,7 +310,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 ) : (
                   <PlayIcon className="w-3 h-3" />
                 )}
-                {dispatching ? 'Moving to In Progress...' : 'Move to In Progress'}
+                {dispatching ? 'Starting...' : 'Start Now'}
               </button>
             )}
           </div>

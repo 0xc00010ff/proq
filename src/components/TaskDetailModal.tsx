@@ -85,7 +85,7 @@ export function TaskDetailModal({ task, onClose, onUpdate }: TaskDetailModalProp
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
 
       {/* Modal */}
       <div

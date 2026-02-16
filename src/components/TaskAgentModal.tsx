@@ -7,6 +7,8 @@ import {
   Loader2Icon,
   FileTextIcon,
   ClipboardListIcon,
+  CheckCircle2Icon,
+  ClockIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { TerminalPane } from './TerminalPane';
@@ -22,6 +24,7 @@ export function TaskAgentModal({ task, onClose }: TaskAgentModalProps) {
   const steps = task.humanSteps?.split('\n').filter(Boolean) || [];
   const findings = task.findings?.split('\n').filter(Boolean) || [];
   const isLocked = task.status === 'in-progress' && task.locked;
+  const showTerminal = task.status === 'in-progress' || task.status === 'verify';
 
   // Load xterm CSS
   useEffect(() => {
@@ -57,8 +60,8 @@ export function TaskAgentModal({ task, onClose }: TaskAgentModalProps) {
         className="relative w-full max-w-7xl h-[90vh] flex flex-row rounded-lg border border-[#222] bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Left panel: task details (30%) ── */}
-        <div className="w-[30%] shrink-0 flex flex-col border-r border-zinc-800 overflow-hidden">
+        {/* ── Left panel: task details (30% with terminal, full width without) ── */}
+        <div className={`${showTerminal ? 'w-[30%] border-r border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -69,11 +72,28 @@ export function TaskAgentModal({ task, onClose }: TaskAgentModalProps) {
 
           {/* Top half: title, status, description */}
           <div className="flex-1 overflow-y-auto p-5 pt-12 space-y-4">
-            {/* ID badge */}
+            {/* Status badge */}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
-                {task.status}
-              </span>
+              {isLocked ? (
+                <span className="flex items-center gap-1.5 text-xs text-blue-400 font-medium uppercase tracking-wide">
+                  <Loader2Icon className="w-3 h-3 animate-spin" />
+                  Agent working
+                </span>
+              ) : task.status === 'verify' ? (
+                <span className="flex items-center gap-1.5 text-xs text-amber-400 font-medium uppercase tracking-wide">
+                  <ClockIcon className="w-3 h-3" />
+                  Awaiting review
+                </span>
+              ) : task.status === 'done' ? (
+                <span className="flex items-center gap-1.5 text-xs text-green-400 font-medium uppercase tracking-wide">
+                  <CheckCircle2Icon className="w-3 h-3" />
+                  Completed
+                </span>
+              ) : (
+                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
+                  {task.status}
+                </span>
+              )}
               <span className="ml-auto text-[10px] text-zinc-600 font-mono">{shortId}</span>
             </div>
 
@@ -165,9 +185,11 @@ export function TaskAgentModal({ task, onClose }: TaskAgentModalProps) {
         </div>
 
         {/* ── Right panel: terminal (70%) ── */}
-        <div className="flex-1 relative min-h-0">
-          <TerminalPane tabId={terminalTabId} visible={true} />
-        </div>
+        {showTerminal && (
+          <div className="flex-1 relative min-h-0">
+            <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
+          </div>
+        )}
       </div>
     </div>
   );

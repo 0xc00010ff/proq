@@ -135,10 +135,10 @@ export default function ProjectPage() {
                 onAddTask={handleAddTask}
                 onDeleteTask={deleteTask}
                 onClickTask={(task) => {
-                  if (task.status === 'in-progress' && task.locked) {
-                    setAgentModalTask(task);
-                  } else {
+                  if (task.status === 'todo') {
                     setModalTask(task);
+                  } else {
+                    setAgentModalTask(task);
                   }
                 }}
                 onRefreshTasks={refresh}

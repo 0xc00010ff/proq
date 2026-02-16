@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 interface TerminalInstance {
   terminal: import('@xterm/xterm').Terminal;
@@ -136,24 +136,97 @@ export function useTerminal(
     observer.observe(container);
     return () => observer.disconnect();
   }, [visible, containerRef, tabId]);
+
+  /** Send raw data to the terminal's PTY (as if typed) */
+  const sendData = useCallback((data: string) => {
+    const inst = instanceRef.current;
+    if (inst && inst.ws.readyState === WebSocket.OPEN) {
+      inst.ws.send(data);
+    }
+  }, []);
+
+  return { sendData };
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Individual terminal pane (one per tab, mounts its own xterm)               */
 /* -------------------------------------------------------------------------- */
 
-export function TerminalPane({ tabId, visible }: { tabId: string; visible: boolean }) {
+export function TerminalPane({
+  tabId,
+  visible,
+  enableDrop,
+}: {
+  tabId: string;
+  visible: boolean;
+  enableDrop?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useTerminal(tabId, containerRef, visible);
+  const { sendData } = useTerminal(tabId, containerRef, visible);
+  const [dropping, setDropping] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!enableDrop) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDropping(true);
+  }, [enableDrop]);
+
+  const handleDragLeave = useCallback(() => {
+    setDropping(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    if (!enableDrop) return;
+    e.preventDefault();
+    setDropping(false);
+
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith('image/')
+    );
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      const form = new FormData();
+      form.append('file', file);
+
+      try {
+        const res = await fetch('/api/terminal/upload', {
+          method: 'POST',
+          body: form,
+        });
+        const { path } = await res.json();
+        if (path) {
+          sendData(path + ' ');
+        }
+      } catch (err) {
+        console.error('[TerminalPane] image upload failed:', err);
+      }
+    }
+  }, [enableDrop, sendData]);
 
   return (
     <div
-      ref={containerRef}
       className="absolute inset-0"
       style={{
         display: visible ? 'block' : 'none',
-        padding: '4px 0 0 4px',
       }}
-    />
+    >
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{ padding: '4px 0 0 4px' }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      />
+      {dropping && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-500/10 border-2 border-dashed border-blue-500/40 rounded-md pointer-events-none">
+          <span className="text-sm text-blue-400 font-medium">
+            Drop image to paste path
+          </span>
+        </div>
+      )}
+    </div>
   );
 }

@@ -9,7 +9,7 @@ export async function dispatchTask(
   projectId: string,
   taskId: string,
   taskTitle: string,
-  taskDescription: string
+  taskDescription: string,
 ): Promise<string | undefined> {
   // Look up project path
   const projects = await getAllProjects();
@@ -26,11 +26,13 @@ export async function dispatchTask(
   const tmuxSession = `mc-${shortId}`;
 
   // Build the agent prompt
-  const prompt = `${taskDescription}
+  const prompt = `# ${taskTitle}
 
-When completely finished:
-1. git add -A && git commit -m "<descriptive message>"
-2. Run this to update the task board (replace the placeholder values):
+${taskDescription}
+
+When completely finished, commit and signal complete:
+1. If code was changed, stage and commit the changes with a descriptive message.
+2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
 curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
   -H 'Content-Type: application/json' \\
   -d '{"status":"verify","locked":false,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
@@ -44,14 +46,14 @@ curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
   try {
     execSync(tmuxCmd, { timeout: 10_000 });
     console.log(
-      `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`
+      `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`,
     );
 
     // Notify Slack
     try {
       execSync(
         `${OPENCLAW} message send --channel slack --target C0AEY4GBCGM --message "🚀 *${taskTitle.replace(/"/g, '\\"')}* dispatched"`,
-        { timeout: 10_000 }
+        { timeout: 10_000 },
       );
     } catch (e) {
       console.error(`[agent-dispatch] slack notify failed:`, e);
@@ -61,7 +63,7 @@ curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
   } catch (err) {
     console.error(
       `[agent-dispatch] failed to launch tmux session for ${taskId}:`,
-      err
+      err,
     );
     return undefined;
   }
@@ -76,7 +78,7 @@ export function abortTask(projectId: string, taskId: string) {
   } catch (err) {
     console.error(
       `[agent-dispatch] failed to kill tmux session ${tmuxSession}:`,
-      err
+      err,
     );
   }
 }

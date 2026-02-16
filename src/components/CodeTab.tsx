@@ -173,7 +173,7 @@ export function CodeTab({ project }: CodeTabProps) {
       </div>
 
       {/* Main content: file tree + editor */}
-      <PanelGroup direction="horizontal" className="flex-1 min-h-0">
+      <PanelGroup orientation="horizontal" className="flex-1 min-h-0">
         <Panel defaultSize={25} minSize={15} maxSize={50}>
           <div className="h-full overflow-hidden border-r border-warm-300 dark:border-zinc-800 bg-warm-50 dark:bg-zinc-900/50">
             <div className="h-full overflow-y-auto">
@@ -186,9 +186,9 @@ export function CodeTab({ project }: CodeTabProps) {
           </div>
         </Panel>
 
-        <PanelResizeHandle className="w-[3px] bg-warm-200 dark:bg-zinc-800 hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors cursor-col-resize" />
+        <PanelResizeHandle style={{ width: 6, cursor: 'col-resize' }} className="bg-warm-200 dark:bg-zinc-800 hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors" />
 
-        <Panel minSize={40}>
+        <Panel minSize={30}>
           <div className="h-full overflow-hidden">
             {!selectedPath ? (
               <div className="flex-1 h-full flex items-center justify-center text-zinc-500 text-sm">

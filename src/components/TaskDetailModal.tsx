@@ -6,8 +6,6 @@ import {
   AlertTriangleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  ClipboardCopyIcon,
-  CheckIcon,
 } from 'lucide-react';
 import type { Task, TaskStatus } from '@/lib/types';
 
@@ -29,7 +27,6 @@ export function TaskDetailModal({ task, onClose, onUpdate }: TaskDetailModalProp
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [isFindingsOpen, setIsFindingsOpen] = useState(true);
-  const [copiedFindings, setCopiedFindings] = useState(false);
   const descRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync state when task prop changes
@@ -164,36 +161,19 @@ export function TaskDetailModal({ task, onClose, onUpdate }: TaskDetailModalProp
           {/* Findings */}
           {findings.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <button
-                  onClick={() => setIsFindingsOpen(!isFindingsOpen)}
-                  className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  {isFindingsOpen ? (
-                    <ChevronDownIcon className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRightIcon className="w-3.5 h-3.5" />
-                  )}
-                  <span className="font-mono uppercase tracking-wider text-[10px]">
-                    Findings ({findings.length})
-                  </span>
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(task.findings || '');
-                    setCopiedFindings(true);
-                    setTimeout(() => setCopiedFindings(false), 2000);
-                  }}
-                  className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5"
-                  title="Copy findings to clipboard"
-                >
-                  {copiedFindings ? (
-                    <CheckIcon className="w-3.5 h-3.5 text-green-400" />
-                  ) : (
-                    <ClipboardCopyIcon className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={() => setIsFindingsOpen(!isFindingsOpen)}
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 mb-2 transition-colors"
+              >
+                {isFindingsOpen ? (
+                  <ChevronDownIcon className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronRightIcon className="w-3.5 h-3.5" />
+                )}
+                <span className="font-mono uppercase tracking-wider text-[10px]">
+                  Findings ({findings.length})
+                </span>
+              </button>
 
               {isFindingsOpen && (
                 <ul className="space-y-1.5 pl-1">

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { parseLines } from '@/lib/utils';
 import {
   XIcon,
   AlertTriangleIcon,
@@ -27,8 +29,8 @@ interface TaskAgentModalProps {
 export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
-  const steps = task.humanSteps?.split('\n').filter(Boolean) || [];
-  const findings = task.findings?.split('\n').filter(Boolean) || [];
+  const steps = parseLines(task.humanSteps);
+  const findings = parseLines(task.findings);
   const isLocked = task.status === 'in-progress' && task.locked;
   const showTerminal = (task.status === 'in-progress' || task.status === 'verify') && !isQueued;
   const [dispatching, setDispatching] = useState(false);
@@ -84,13 +86,7 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
   }, []);
 
   // Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  useEscapeKey(onClose);
 
   return (
     <div

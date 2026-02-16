@@ -8,6 +8,7 @@ import {
   ClockIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
+import { parseLines } from '@/lib/utils';
 
 interface TaskCardProps {
   task: Task;
@@ -18,7 +19,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: TaskCardProps) {
-  const steps = task.humanSteps?.split('\n').filter(Boolean) || [];
+  const steps = parseLines(task.humanSteps);
   const isLocked = task.status === 'in-progress' && task.locked;
 
   return (

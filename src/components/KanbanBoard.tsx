@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   DndContext,
   DragEndEvent,
@@ -135,16 +136,7 @@ export function KanbanBoard({
   const modeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
-  useEffect(() => {
-    if (!modeDropdownOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (modeDropdownRef.current && !modeDropdownRef.current.contains(e.target as Node)) {
-        setModeDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [modeDropdownOpen]);
+  useClickOutside(modeDropdownRef, () => setModeDropdownOpen(false), modeDropdownOpen);
 
   // Clear localTasks once the parent props reflect the committed drag result
   useEffect(() => {

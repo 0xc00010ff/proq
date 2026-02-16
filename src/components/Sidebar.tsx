@@ -1,6 +1,7 @@
 "use client";
 
-import React, { Fragment, useState, useRef, useEffect, useCallback } from "react";
+import React, { Fragment, useState, useRef, useCallback } from "react";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -99,16 +100,7 @@ function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  useClickOutside(menuRef, () => setOpen(false), open);
 
   return (
     <div ref={menuRef} className="relative">
@@ -236,7 +228,7 @@ export function Sidebar({ onAddProject }: SidebarProps) {
   const { projects, tasksByProject, refreshProjects } = useProjects();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   const isChatActive = pathname === "/chat";

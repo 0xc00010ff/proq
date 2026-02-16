@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 
@@ -70,19 +71,16 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     onClose();
   }, [task.id, title, description, attachments, onSave, onClose]);
 
+  useEscapeKey(handleClose, isOpen);
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
-    };
     if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
     }
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, handleClose]);
+  }, [isOpen]);
 
   useEffect(() => {
     return () => {

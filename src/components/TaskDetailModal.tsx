@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { parseLines } from '@/lib/utils';
 import {
   XIcon,
   AlertTriangleIcon,
@@ -45,13 +47,7 @@ export function TaskDetailModal({ task, onClose, onUpdate }: TaskDetailModalProp
   }, [description]);
 
   // Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  useEscapeKey(onClose);
 
   const handleTitleBlur = useCallback(() => {
     if (title !== task.title && title.trim()) {
@@ -73,8 +69,8 @@ export function TaskDetailModal({ task, onClose, onUpdate }: TaskDetailModalProp
     [task.id, onUpdate]
   );
 
-  const steps = task.humanSteps?.split('\n').filter(Boolean) || [];
-  const findings = task.findings?.split('\n').filter(Boolean) || [];
+  const steps = parseLines(task.humanSteps);
+  const findings = parseLines(task.findings);
 
   return (
     <div

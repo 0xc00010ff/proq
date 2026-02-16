@@ -303,7 +303,7 @@ export function KanbanBoard({
                         key={task.id}
                         task={task}
                         onDelete={onDeleteTask}
-                        onClick={task.status === 'in-progress' && task.locked ? undefined : onClickTask}
+                        onClick={onClickTask}
                       />
                     ))}
 

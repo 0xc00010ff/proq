@@ -8,20 +8,20 @@ import TerminalPanel from '@/components/TerminalPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { TaskModal } from '@/components/TaskModal';
+import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { useProjects } from '@/components/ProjectsProvider';
-import { useTerminalTabs } from '@/components/TerminalTabsProvider';
 import type { Task } from '@/lib/types';
 
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const { projects, tasksByProject, refreshTasks } = useProjects();
-  const { openTab } = useTerminalTabs();
 
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
   const [modalTask, setModalTask] = useState<Task | null>(null);
+  const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const project = projects.find((p) => p.id === projectId);
@@ -38,19 +38,6 @@ export default function ProjectPage() {
     return () => clearInterval(interval);
   }, [projectId, refresh]);
 
-  // On mount (and when tasks change), ensure locked tasks have terminal tabs open
-  useEffect(() => {
-    for (const task of tasks) {
-      if (task.locked && task.status === 'in-progress') {
-        const shortId = task.id.slice(0, 8);
-        const terminalTabId = `task-${shortId}`;
-        openTab(projectId, terminalTabId, task.title || 'Agent', 'task');
-      }
-    }
-    // Only run when tasks array identity changes (from refresh)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks]);
-
   const deleteTask = async (taskId: string) => {
     await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
       method: 'DELETE',
@@ -65,20 +52,11 @@ export default function ProjectPage() {
       status: t.status,
     }));
 
-    const res = await fetch(`/api/projects/${projectId}/tasks/reorder`, {
+    await fetch(`/api/projects/${projectId}/tasks/reorder`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items }),
     });
-
-    try {
-      const data = await res.json();
-      if (data.dispatched) {
-        for (const d of data.dispatched) {
-          openTab(projectId, d.terminalTabId, d.title, 'task');
-        }
-      }
-    } catch {}
 
     refresh();
   };
@@ -156,7 +134,13 @@ export default function ProjectPage() {
                 onReorderTasks={reorderTasks}
                 onAddTask={handleAddTask}
                 onDeleteTask={deleteTask}
-                onClickTask={setModalTask}
+                onClickTask={(task) => {
+                  if (task.status === 'in-progress' && task.locked) {
+                    setAgentModalTask(task);
+                  } else {
+                    setModalTask(task);
+                  }
+                }}
                 onRefreshTasks={refresh}
               />
             </div>
@@ -181,6 +165,13 @@ export default function ProjectPage() {
       </main>
 
       {isDragging && <div className="fixed inset-0 z-50 cursor-row-resize" />}
+
+      {agentModalTask && (
+        <TaskAgentModal
+          task={agentModalTask}
+          onClose={() => setAgentModalTask(null)}
+        />
+      )}
 
       {modalTask && (
         <TaskModal

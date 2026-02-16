@@ -39,7 +39,7 @@ When completely finished:
   const escapedPrompt = prompt.replace(/'/g, "'\\''");
 
   // Launch via tmux — session survives server restarts
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' ${CLAUDE} --dangerously-skip-permissions '${escapedPrompt}'`;
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' env -u CLAUDECODE ${CLAUDE} --dangerously-skip-permissions '${escapedPrompt}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });

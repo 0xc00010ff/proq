@@ -85,7 +85,13 @@ export function attachWs(tabId: string, ws: WebSocket): void {
   let entry = activePtys.get(tabId);
 
   if (!entry) {
-    entry = spawnPty(tabId);
+    // For task tabs, attach to the durable tmux session instead of a bare shell
+    if (tabId.startsWith('task-')) {
+      const shortId = tabId.slice(5); // strip "task-" prefix
+      entry = spawnPty(tabId, `tmux attach -t mc-${shortId}`);
+    } else {
+      entry = spawnPty(tabId);
+    }
   }
 
   // Clear disconnect timer

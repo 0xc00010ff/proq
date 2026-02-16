@@ -1,30 +1,16 @@
 'use client';
 
 import React, {
-  useState,
   useEffect,
   useRef,
   useCallback,
-  useImperativeHandle,
-  forwardRef,
 } from 'react';
 import { Plus, X, TerminalIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-
-interface TerminalTab {
-  id: string;
-  label: string;
-  type: 'shell' | 'task';
-  status?: 'running' | 'done';
-}
-
-export interface TerminalPanelHandle {
-  openTab: (tabId: string, label: string) => void;
-  closeTab: (tabId: string) => void;
-  markTabDone: (tabId: string) => void;
-}
+import { useTerminalTabs, type TerminalTab } from './TerminalTabsProvider';
 
 interface TerminalPanelProps {
+  projectId: string;
   style?: React.CSSProperties;
 }
 
@@ -188,140 +174,98 @@ function TerminalPane({ tabId, visible }: { tabId: string; visible: boolean }) {
 /*  Panel component                                                            */
 /* -------------------------------------------------------------------------- */
 
-const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
-  function TerminalPanel({ style }, ref) {
-    const [tabs, setTabs] = useState<TerminalTab[]>([
-      { id: 'default', label: 'Terminal', type: 'shell' },
-    ]);
-    const [activeTabId, setActiveTabId] = useState('default');
-    const panelRef = useRef<HTMLDivElement>(null);
+export default function TerminalPanel({ projectId, style }: TerminalPanelProps) {
+  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab } = useTerminalTabs();
+  const panelRef = useRef<HTMLDivElement>(null);
 
-    // Load xterm CSS once
-    useEffect(() => {
-      const linkId = 'xterm-css';
-      if (!document.getElementById(linkId)) {
-        const link = document.createElement('link');
-        link.id = linkId;
-        link.rel = 'stylesheet';
-        link.href = '/xterm.css';
-        document.head.appendChild(link);
-      }
-    }, []);
+  const tabs = getTabs(projectId);
+  const activeTabId = getActiveTabId(projectId);
 
-    const addShellTab = useCallback(async () => {
-      const id = `shell-${uuidv4().slice(0, 8)}`;
-      const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
-      const newTab: TerminalTab = { id, label: `Terminal ${shellCount}`, type: 'shell' };
+  // Load xterm CSS once
+  useEffect(() => {
+    const linkId = 'xterm-css';
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = '/xterm.css';
+      document.head.appendChild(link);
+    }
+  }, []);
 
-      await fetch('/api/terminal/spawn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tabId: id }),
-      });
+  const addShellTab = useCallback(async () => {
+    const id = `shell-${uuidv4().slice(0, 8)}`;
+    const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
 
-      setTabs((prev) => [...prev, newTab]);
-      setActiveTabId(id);
-    }, [tabs]);
+    await fetch('/api/terminal/spawn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tabId: id }),
+    });
 
-    const removeTab = useCallback(async (tabId: string) => {
-      await fetch(`/api/terminal/${tabId}`, { method: 'DELETE' });
+    openTab(projectId, id, `Terminal ${shellCount}`, 'shell');
+  }, [tabs, openTab, projectId]);
 
-      setTabs((prev) => {
-        const filtered = prev.filter((t) => t.id !== tabId);
-        if (filtered.length === 0) {
-          const newId = `shell-${uuidv4().slice(0, 8)}`;
-          const newTab: TerminalTab = { id: newId, label: 'Terminal 1', type: 'shell' };
-          fetch('/api/terminal/spawn', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tabId: newId }),
-          });
-          setActiveTabId(newId);
-          return [newTab];
-        }
-        setActiveTabId((active) => (active === tabId ? filtered[0].id : active));
-        return filtered;
-      });
-    }, []);
+  const removeTab = useCallback(
+    (tabId: string) => {
+      closeTab(projectId, tabId);
+    },
+    [closeTab, projectId]
+  );
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        openTab(tabId: string, label: string) {
-          setTabs((prev) => {
-            if (prev.find((t) => t.id === tabId)) return prev;
-            return [...prev, { id: tabId, label, type: 'task' as const, status: 'running' as const }];
-          });
-          setActiveTabId(tabId);
-        },
-        closeTab(tabId: string) {
-          removeTab(tabId);
-        },
-        markTabDone(tabId: string) {
-          setTabs((prev) =>
-            prev.map((t) => (t.id === tabId ? { ...t, status: 'done' as const } : t))
-          );
-        },
-      }),
-      [removeTab]
-    );
+  const tabAccentColor = (tab: TerminalTab) =>
+    tab.type === 'task' ? 'text-blue-400' : 'text-green-400';
 
-    const tabAccentColor = (tab: TerminalTab) =>
-      tab.type === 'task' ? 'text-blue-400' : 'text-green-400';
-
-    return (
-      <div
-        ref={panelRef}
-        className="w-full flex flex-col bg-zinc-100 dark:bg-black/40 flex-shrink-0 font-mono"
-        style={{ minHeight: 0, ...style }}
-      >
-        {/* Tab Bar */}
-        <div className="h-10 flex items-center border-b border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-200/20 dark:bg-zinc-900/20 px-1 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTabId(tab.id)}
-              className={`flex items-center gap-1.5 px-3 h-8 text-xs rounded-md transition-colors shrink-0 ${
-                activeTabId === tab.id
-                  ? 'bg-zinc-200/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
-                  : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30'
-              }`}
-            >
-              <TerminalIcon className="w-3 h-3" />
-              <span className="max-w-[120px] truncate">
-                {tab.status === 'done' ? '\u2705 ' : ''}
-                {tab.label}
-              </span>
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeTab(tab.id);
-                }}
-                className="ml-1 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-              </span>
-            </button>
-          ))}
-
+  return (
+    <div
+      ref={panelRef}
+      className="w-full flex flex-col bg-zinc-100 dark:bg-black/40 flex-shrink-0 font-mono"
+      style={{ minHeight: 0, ...style }}
+    >
+      {/* Tab Bar */}
+      <div className="h-10 flex items-center border-b border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-200/20 dark:bg-zinc-900/20 px-1 overflow-x-auto">
+        {tabs.map((tab) => (
           <button
-            onClick={addShellTab}
-            className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 shrink-0"
-            title="New terminal"
+            key={tab.id}
+            onClick={() => setActiveTabId(projectId, tab.id)}
+            className={`flex items-center gap-1.5 px-3 h-8 text-xs rounded-md transition-colors shrink-0 ${
+              activeTabId === tab.id
+                ? 'bg-zinc-200/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
+                : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30'
+            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
+            <TerminalIcon className="w-3 h-3" />
+            <span className="max-w-[120px] truncate">
+              {tab.status === 'done' ? '\u2705 ' : ''}
+              {tab.label}
+            </span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTab(tab.id);
+              }}
+              className="ml-1 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+            </span>
           </button>
-        </div>
+        ))}
 
-        {/* Terminal Panes — each manages its own xterm lifecycle */}
-        <div className="flex-1 relative" style={{ minHeight: 0 }}>
-          {tabs.map((tab) => (
-            <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} />
-          ))}
-        </div>
+        <button
+          onClick={addShellTab}
+          className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 shrink-0"
+          title="New terminal"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
       </div>
-    );
-  }
-);
 
-export default TerminalPanel;
+      {/* Terminal Panes — each manages its own xterm lifecycle */}
+      <div className="flex-1 relative" style={{ minHeight: 0 }}>
+        {tabs.map((tab) => (
+          <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} />
+        ))}
+      </div>
+    </div>
+  );
+}

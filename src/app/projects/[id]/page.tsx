@@ -4,24 +4,25 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { TopBar, type TabOption } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import TerminalPanel, { type TerminalPanelHandle } from '@/components/TerminalPanel';
+import TerminalPanel from '@/components/TerminalPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { TaskModal } from '@/components/TaskModal';
 import { useProjects } from '@/components/ProjectsProvider';
+import { useTerminalTabs } from '@/components/TerminalTabsProvider';
 import type { Task } from '@/lib/types';
 
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const { projects, tasksByProject, refreshTasks } = useProjects();
+  const { openTab } = useTerminalTabs();
 
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<TerminalPanelHandle>(null);
 
   const project = projects.find((p) => p.id === projectId);
   const tasks = tasksByProject[projectId] || [];
@@ -36,6 +37,19 @@ export default function ProjectPage() {
     const interval = setInterval(refresh, 5000);
     return () => clearInterval(interval);
   }, [projectId, refresh]);
+
+  // On mount (and when tasks change), ensure locked tasks have terminal tabs open
+  useEffect(() => {
+    for (const task of tasks) {
+      if (task.locked && task.status === 'in-progress') {
+        const shortId = task.id.slice(0, 8);
+        const terminalTabId = `task-${shortId}`;
+        openTab(projectId, terminalTabId, task.title || 'Agent', 'task');
+      }
+    }
+    // Only run when tasks array identity changes (from refresh)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks]);
 
   const deleteTask = async (taskId: string) => {
     await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
@@ -59,9 +73,9 @@ export default function ProjectPage() {
 
     try {
       const data = await res.json();
-      if (data.dispatched && terminalRef.current) {
+      if (data.dispatched) {
         for (const d of data.dispatched) {
-          terminalRef.current.openTab(d.terminalTabId, d.title);
+          openTab(projectId, d.terminalTabId, d.title, 'task');
         }
       }
     } catch {}
@@ -156,7 +170,7 @@ export default function ProjectPage() {
             />
 
             <TerminalPanel
-              ref={terminalRef}
+              projectId={projectId}
               style={{ flexBasis: `${chatPercent}%` }}
             />
           </>

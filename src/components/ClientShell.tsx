@@ -2,6 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { ProjectsProvider } from './ProjectsProvider';
+import { TerminalTabsProvider } from './TerminalTabsProvider';
 import { Sidebar } from './Sidebar';
 import { useProjects } from './ProjectsProvider';
 
@@ -42,7 +43,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <ProjectsProvider>
-      <ShellInner>{children}</ShellInner>
+      <TerminalTabsProvider>
+        <ShellInner>{children}</ShellInner>
+      </TerminalTabsProvider>
     </ProjectsProvider>
   );
 }

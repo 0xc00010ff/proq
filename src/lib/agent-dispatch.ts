@@ -1,6 +1,5 @@
 import { execSync } from "child_process";
 import { getAllProjects } from "./db";
-import { spawnPty, killPty } from "./pty-server";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
 const MC_API = "http://localhost:7331";
@@ -24,6 +23,7 @@ export async function dispatchTask(
   const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
   const shortId = taskId.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
+  const tmuxSession = `mc-${shortId}`;
 
   // Build the callback curl that the agent runs when done
   const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} -H 'Content-Type: application/json' -d '{"status":"verify","locked":false}'`;
@@ -38,13 +38,13 @@ When completely finished:
   // Escape for shell
   const escapedPrompt = prompt.replace(/'/g, "'\\''");
 
-  // Build command for PTY
-  const cmd = `${CLAUDE} --dangerously-skip-permissions '${escapedPrompt}'`;
+  // Launch via tmux — session survives server restarts
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' ${CLAUDE} --dangerously-skip-permissions '${escapedPrompt}'`;
 
   try {
-    spawnPty(terminalTabId, cmd, projectPath);
+    execSync(tmuxCmd, { timeout: 10_000 });
     console.log(
-      `[agent-dispatch] launched terminal ${terminalTabId} for task ${taskId}`
+      `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`
     );
 
     // Notify Slack
@@ -60,7 +60,7 @@ When completely finished:
     return terminalTabId;
   } catch (err) {
     console.error(
-      `[agent-dispatch] failed to launch terminal for ${taskId}:`,
+      `[agent-dispatch] failed to launch tmux session for ${taskId}:`,
       err
     );
     return undefined;
@@ -69,13 +69,13 @@ When completely finished:
 
 export function abortTask(projectId: string, taskId: string) {
   const shortId = taskId.slice(0, 8);
-  const terminalTabId = `task-${shortId}`;
+  const tmuxSession = `mc-${shortId}`;
   try {
-    killPty(terminalTabId);
-    console.log(`[agent-dispatch] killed terminal ${terminalTabId}`);
+    execSync(`tmux kill-session -t '${tmuxSession}'`, { timeout: 5_000 });
+    console.log(`[agent-dispatch] killed tmux session ${tmuxSession}`);
   } catch (err) {
     console.error(
-      `[agent-dispatch] failed to kill terminal ${terminalTabId}:`,
+      `[agent-dispatch] failed to kill tmux session ${tmuxSession}:`,
       err
     );
   }

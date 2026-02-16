@@ -125,6 +125,7 @@ export function KanbanBoard({
   dispatchedTaskIds,
 }: KanbanBoardProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [localTasks, setLocalTasks] = useState<Task[] | null>(null);
   const pendingCommitRef = useRef<Task[] | null>(null);
@@ -178,6 +179,10 @@ export function KanbanBoard({
 
   function handleDragStart(event: DragStartEvent) {
     setActiveDragId(event.active.id as string);
+    const node = event.active.rect.current.initial;
+    if (node) {
+      setDragWidth(node.width);
+    }
     setLocalTasks([...tasks]);
   }
 
@@ -241,6 +246,7 @@ export function KanbanBoard({
     const { active } = event;
     setActiveDragId(null);
     setOverColumnId(null);
+    setDragWidth(null);
 
     if (!localTasks) {
       setLocalTasks(null);
@@ -302,6 +308,7 @@ export function KanbanBoard({
   function handleDragCancel() {
     setActiveDragId(null);
     setOverColumnId(null);
+    setDragWidth(null);
     setLocalTasks(null);
   }
 
@@ -408,7 +415,7 @@ export function KanbanBoard({
 
         <DragOverlay>
           {activeDragTask ? (
-            <div className="w-[240px]">
+            <div style={dragWidth ? { width: dragWidth } : undefined}>
               <TaskCard task={activeDragTask} isDragOverlay />
             </div>
           ) : null}

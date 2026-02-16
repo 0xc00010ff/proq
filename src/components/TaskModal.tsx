@@ -20,7 +20,7 @@ function formatSize(bytes: number): string {
 export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
-  const [mode, setMode] = useState<TaskMode | undefined>(task.mode);
+  const [mode, setMode] = useState<TaskMode>(task.mode || 'code');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -32,7 +32,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   useEffect(() => {
     setTitle(task.title);
     setDescription(task.description);
-    setMode(task.mode);
+    setMode(task.mode || 'code');
     setAttachments(task.attachments || []);
   }, [task]);
 
@@ -101,9 +101,8 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   };
 
   const handleModeChange = (newMode: TaskMode) => {
-    const val = newMode === mode ? undefined : newMode;
-    setMode(val);
-    autosave(title, description, attachments, val);
+    setMode(newMode);
+    autosave(title, description, attachments, newMode);
   };
 
   const addFiles = (files: FileList | File[]) => {

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { Fragment } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   PlusIcon,
   LayoutGridIcon,
@@ -8,17 +10,11 @@ import {
   RefreshCwIcon,
   CheckCircle2Icon,
 } from "lucide-react";
-import type { Project, Task, TaskStatus } from "@/lib/types";
+import type { Task, TaskStatus } from "@/lib/types";
+import { useProjects } from "./ProjectsProvider";
 
 interface SidebarProps {
-  projects: Project[];
-  tasksByProject: Record<string, Task[]>;
-  activeProjectId: string;
-  onSelectProject: (id: string) => void;
   onAddProject: () => void;
-  isChatActive: boolean;
-  onSelectChat: () => void;
-  chatPreview?: string;
 }
 
 
@@ -70,16 +66,12 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
   );
 }
 
-export function Sidebar({
-  projects,
-  tasksByProject,
-  activeProjectId,
-  onSelectProject,
-  onAddProject,
-  isChatActive,
-  onSelectChat,
-  chatPreview,
-}: SidebarProps) {
+export function Sidebar({ onAddProject }: SidebarProps) {
+  const pathname = usePathname();
+  const { projects, tasksByProject } = useProjects();
+
+  const isChatActive = pathname === "/chat";
+
   return (
     <aside className="w-[260px] h-full bg-zinc-100/50 dark:bg-zinc-800/30 border-r border-zinc-200 dark:border-zinc-800 flex flex-col flex-shrink-0">
       {/* Header */}
@@ -91,9 +83,9 @@ export function Sidebar({
       </div>
 
       {/* Main Chat Item */}
-      <button
-        onClick={onSelectChat}
-        className={`w-full text-left p-3 px-4 relative group py-4 border-b border-zinc-200/60 dark:border-zinc-800/60
+      <Link
+        href="/chat"
+        className={`w-full text-left p-3 px-4 relative group py-4 border-b border-zinc-200/60 dark:border-zinc-800/60 block
           ${isChatActive ? "bg-zinc-200 dark:bg-zinc-800" : "hover:bg-zinc-200/60 dark:hover:bg-zinc-800/40"}`}
       >
         {isChatActive && (
@@ -109,12 +101,7 @@ export function Sidebar({
             Big Claude
           </span>
         </div>
-        {chatPreview && (
-          <div className="text-[11px] text-zinc-400 dark:text-zinc-600 mt-1 truncate pl-[26px]">
-            {chatPreview}
-          </div>
-        )}
-      </button>
+      </Link>
 
       {/* Project List */}
       <div className="flex-1 overflow-y-auto">
@@ -122,13 +109,13 @@ export function Sidebar({
           Projects
         </div>
         {projects.map((project, index) => {
-          const isActive = !isChatActive && project.id === activeProjectId;
+          const isActive = pathname === `/projects/${project.id}`;
           const tasks = tasksByProject[project.id] || [];
           return (
-            <button
+            <Link
               key={project.id}
-              onClick={() => onSelectProject(project.id)}
-              className={`w-full text-left p-3 px-4 relative group
+              href={`/projects/${project.id}`}
+              className={`w-full text-left p-3 px-4 relative group block
                 ${isActive ? "bg-zinc-200 dark:bg-zinc-800" : "hover:bg-zinc-200/60 dark:hover:bg-zinc-800/40"}
                 ${index > 0 ? "border-t border-zinc-200/60 dark:border-zinc-800/60" : ""}
                 py-4`}
@@ -152,7 +139,7 @@ export function Sidebar({
               <div className="mt-2.5 text-[11px]">
                 <TaskStatusSummary tasks={tasks} />
               </div>
-            </button>
+            </Link>
           );
         })}
       </div>

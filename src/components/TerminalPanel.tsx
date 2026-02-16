@@ -34,176 +34,169 @@ interface TerminalInstance {
   fitAddon: import('@xterm/addon-fit').FitAddon;
 }
 
-const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
-  function TerminalPanel({ style }, ref) {
-    const [tabs, setTabs] = useState<TerminalTab[]>([
-      { id: 'default', label: '\u25C6 Claude', type: 'shell' },
-    ]);
-    const [activeTabId, setActiveTabId] = useState('default');
-    const instancesRef = useRef<Map<string, TerminalInstance>>(new Map());
-    const containersRef = useRef<Map<string, HTMLDivElement>>(new Map());
-    const panelRef = useRef<HTMLDivElement>(null);
-    const xtermModulesRef = useRef<{
-      Terminal: typeof import('@xterm/xterm').Terminal;
-      FitAddon: typeof import('@xterm/addon-fit').FitAddon;
-      WebLinksAddon: typeof import('@xterm/addon-web-links').WebLinksAddon;
-    } | null>(null);
+/* -------------------------------------------------------------------------- */
+/*  Single-terminal mounting hook                                              */
+/* -------------------------------------------------------------------------- */
 
-    // Dynamic import of xterm modules
-    const loadXtermModules = useCallback(async () => {
-      if (xtermModulesRef.current) return xtermModulesRef.current;
+function useTerminal(
+  tabId: string,
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  visible: boolean
+) {
+  const instanceRef = useRef<TerminalInstance | null>(null);
 
+  // Mount / unmount the terminal instance
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let cancelled = false;
+    let instance: TerminalInstance | null = null;
+
+    (async () => {
       const [xtermMod, fitMod, linksMod] = await Promise.all([
         import('@xterm/xterm'),
         import('@xterm/addon-fit'),
         import('@xterm/addon-web-links'),
       ]);
 
-      xtermModulesRef.current = {
-        Terminal: xtermMod.Terminal,
-        FitAddon: fitMod.FitAddon,
-        WebLinksAddon: linksMod.WebLinksAddon,
+      if (cancelled) return;
+
+      const terminal = new xtermMod.Terminal({
+        theme: {
+          background: '#000000',
+          foreground: '#a1a1aa',
+          cursor: '#a1a1aa',
+          selectionBackground: '#3f3f46',
+        },
+        fontFamily: 'Geist Mono, monospace',
+        fontSize: 13,
+        cursorBlink: true,
+        convertEol: true,
+        allowProposedApi: true,
+      });
+
+      const fitAddon = new fitMod.FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.loadAddon(new linksMod.WebLinksAddon());
+      terminal.open(container);
+
+      requestAnimationFrame(() => {
+        try { fitAddon.fit(); } catch {}
+      });
+
+      // Connect WS — server auto-spawns the PTY if needed and replays scrollback
+      const ws = new WebSocket(
+        `ws://${window.location.hostname}:42069/ws/terminal?id=${encodeURIComponent(tabId)}`
+      );
+
+      ws.onopen = () => {
+        const dims = fitAddon.proposeDimensions();
+        if (dims) {
+          ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+        }
       };
 
-      return xtermModulesRef.current;
-    }, []);
-
-    const createTerminalInstance = useCallback(
-      async (tabId: string, container: HTMLDivElement) => {
-        if (instancesRef.current.has(tabId)) return;
-
-        const modules = await loadXtermModules();
-        const { Terminal, FitAddon, WebLinksAddon } = modules;
-
-        const terminal = new Terminal({
-          theme: {
-            background: '#000000',
-            foreground: '#a1a1aa',
-            cursor: '#a1a1aa',
-            selectionBackground: '#3f3f46',
-          },
-          fontFamily: 'Geist Mono, monospace',
-          fontSize: 13,
-          cursorBlink: true,
-          convertEol: true,
-          allowProposedApi: true,
-        });
-
-        const fitAddon = new FitAddon();
-        terminal.loadAddon(fitAddon);
-        terminal.loadAddon(new WebLinksAddon());
-
-        terminal.open(container);
-
-        // Initial fit
-        requestAnimationFrame(() => {
-          try {
-            fitAddon.fit();
-          } catch {}
-        });
-
-        // Connect WebSocket
-        const ws = new WebSocket(
-          `ws://${window.location.hostname}:42069/ws/terminal?id=${encodeURIComponent(tabId)}`
-        );
-
-        ws.onopen = () => {
-          // Send initial size
-          const dims = fitAddon.proposeDimensions();
-          if (dims) {
-            ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+      ws.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed.type === 'exit') {
+            terminal.writeln(`\r\n\x1b[90m[Process exited with code ${parsed.code}]\x1b[0m`);
+            return;
           }
-        };
-
-        ws.onmessage = (event) => {
-          const data = event.data;
-          // Check for exit message
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.type === 'exit') {
-              terminal.writeln(`\r\n\x1b[90m[Process exited with code ${parsed.code}]\x1b[0m`);
-              return;
-            }
-          } catch {
-            // Not JSON — raw terminal data
-          }
-          terminal.write(data);
-        };
-
-        ws.onclose = () => {
-          terminal.writeln('\r\n\x1b[90m[Disconnected]\x1b[0m');
-        };
-
-        // Forward terminal input to WS
-        terminal.onData((data) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(data);
-          }
-        });
-
-        instancesRef.current.set(tabId, { terminal, ws, fitAddon });
-      },
-      [loadXtermModules]
-    );
-
-    // Initialize terminal for a tab when its container mounts
-    const setContainerRef = useCallback(
-      (tabId: string) => (el: HTMLDivElement | null) => {
-        if (el && !containersRef.current.has(tabId)) {
-          containersRef.current.set(tabId, el);
-          createTerminalInstance(tabId, el);
+        } catch {
+          // Not JSON — raw terminal data
         }
-      },
-      [createTerminalInstance]
-    );
+        terminal.write(event.data);
+      };
 
-    // Fit terminal on tab switch and resize
-    useEffect(() => {
-      const instance = instancesRef.current.get(activeTabId);
-      if (instance) {
-        requestAnimationFrame(() => {
-          try {
-            instance.fitAddon.fit();
-            if (instance.ws.readyState === WebSocket.OPEN) {
-              const dims = instance.fitAddon.proposeDimensions();
-              if (dims) {
-                instance.ws.send(
-                  JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows })
-                );
-              }
-            }
-          } catch {}
-        });
-      }
-    }, [activeTabId]);
+      ws.onclose = () => {
+        terminal.writeln('\r\n\x1b[90m[Disconnected]\x1b[0m');
+      };
 
-    // ResizeObserver on the panel
-    useEffect(() => {
-      const panel = panelRef.current;
-      if (!panel) return;
-
-      const observer = new ResizeObserver(() => {
-        const instance = instancesRef.current.get(activeTabId);
-        if (instance) {
-          try {
-            instance.fitAddon.fit();
-            if (instance.ws.readyState === WebSocket.OPEN) {
-              const dims = instance.fitAddon.proposeDimensions();
-              if (dims) {
-                instance.ws.send(
-                  JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows })
-                );
-              }
-            }
-          } catch {}
+      terminal.onData((data) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(data);
         }
       });
 
-      observer.observe(panel);
-      return () => observer.disconnect();
-    }, [activeTabId]);
+      instance = { terminal, ws, fitAddon };
+      instanceRef.current = instance;
+    })();
 
-    // Load xterm CSS
+    return () => {
+      cancelled = true;
+      if (instance) {
+        try { instance.ws.close(); } catch {}
+        try { instance.terminal.dispose(); } catch {}
+      }
+      instanceRef.current = null;
+    };
+    // Only re-run if tabId changes (container ref is stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId]);
+
+  // Fit on visibility change + resize observer
+  useEffect(() => {
+    const inst = instanceRef.current;
+    if (!visible || !inst) return;
+
+    const fit = () => {
+      try {
+        inst.fitAddon.fit();
+        if (inst.ws.readyState === WebSocket.OPEN) {
+          const dims = inst.fitAddon.proposeDimensions();
+          if (dims) {
+            inst.ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+          }
+        }
+      } catch {}
+    };
+
+    requestAnimationFrame(fit);
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(fit);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [visible, containerRef, tabId]);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Individual terminal pane (one per tab, mounts its own xterm)               */
+/* -------------------------------------------------------------------------- */
+
+function TerminalPane({ tabId, visible }: { tabId: string; visible: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useTerminal(tabId, containerRef, visible);
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0"
+      style={{
+        display: visible ? 'block' : 'none',
+        padding: '4px 0 0 4px',
+      }}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Panel component                                                            */
+/* -------------------------------------------------------------------------- */
+
+const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
+  function TerminalPanel({ style }, ref) {
+    const [tabs, setTabs] = useState<TerminalTab[]>([
+      { id: 'default', label: 'Terminal', type: 'shell' },
+    ]);
+    const [activeTabId, setActiveTabId] = useState('default');
+    const panelRef = useRef<HTMLDivElement>(null);
+
+    // Load xterm CSS once
     useEffect(() => {
       const linkId = 'xterm-css';
       if (!document.getElementById(linkId)) {
@@ -218,13 +211,8 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
     const addShellTab = useCallback(async () => {
       const id = `shell-${uuidv4().slice(0, 8)}`;
       const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
-      const newTab: TerminalTab = {
-        id,
-        label: `Terminal ${shellCount}`,
-        type: 'shell',
-      };
+      const newTab: TerminalTab = { id, label: `Terminal ${shellCount}`, type: 'shell' };
 
-      // Spawn PTY via API
       await fetch('/api/terminal/spawn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,22 +224,11 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
     }, [tabs]);
 
     const removeTab = useCallback(async (tabId: string) => {
-      // Kill PTY
       await fetch(`/api/terminal/${tabId}`, { method: 'DELETE' });
-
-      // Cleanup instance
-      const instance = instancesRef.current.get(tabId);
-      if (instance) {
-        instance.ws.close();
-        instance.terminal.dispose();
-        instancesRef.current.delete(tabId);
-      }
-      containersRef.current.delete(tabId);
 
       setTabs((prev) => {
         const filtered = prev.filter((t) => t.id !== tabId);
         if (filtered.length === 0) {
-          // All tabs closed — open a fresh shell tab
           const newId = `shell-${uuidv4().slice(0, 8)}`;
           const newTab: TerminalTab = { id: newId, label: 'Terminal 1', type: 'shell' };
           fetch('/api/terminal/spawn', {
@@ -262,21 +239,17 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
           setActiveTabId(newId);
           return [newTab];
         }
-        setActiveTabId((active) => active === tabId ? filtered[0].id : active);
+        setActiveTabId((active) => (active === tabId ? filtered[0].id : active));
         return filtered;
       });
     }, []);
 
-    // Expose methods to parent
     useImperativeHandle(
       ref,
       () => ({
         openTab(tabId: string, label: string) {
           setTabs((prev) => {
-            if (prev.find((t) => t.id === tabId)) {
-              // Already exists, just switch to it
-              return prev;
-            }
+            if (prev.find((t) => t.id === tabId)) return prev;
             return [...prev, { id: tabId, label, type: 'task' as const, status: 'running' as const }];
           });
           setActiveTabId(tabId);
@@ -286,19 +259,15 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
         },
         markTabDone(tabId: string) {
           setTabs((prev) =>
-            prev.map((t) =>
-              t.id === tabId ? { ...t, status: 'done' as const } : t
-            )
+            prev.map((t) => (t.id === tabId ? { ...t, status: 'done' as const } : t))
           );
         },
       }),
       [removeTab]
     );
 
-    const tabAccentColor = (tab: TerminalTab) => {
-      if (tab.type === 'task') return 'text-blue-400';
-      return 'text-green-400';
-    };
+    const tabAccentColor = (tab: TerminalTab) =>
+      tab.type === 'task' ? 'text-blue-400' : 'text-green-400';
 
     return (
       <div
@@ -344,18 +313,10 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
           </button>
         </div>
 
-        {/* Terminal Containers */}
+        {/* Terminal Panes — each manages its own xterm lifecycle */}
         <div className="flex-1 relative" style={{ minHeight: 0 }}>
           {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              ref={setContainerRef(tab.id)}
-              className="absolute inset-0"
-              style={{
-                display: activeTabId === tab.id ? 'block' : 'none',
-                padding: '4px 0 0 4px',
-              }}
-            />
+            <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} />
           ))}
         </div>
       </div>

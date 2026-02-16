@@ -1,6 +1,5 @@
 import { execSync } from "child_process";
 import { getAllProjects, getAllTasks, getExecutionMode } from "./db";
-import { isGitRepo, createWorktree, removeWorktree } from "./git-worktree";
 import type { TaskMode } from "./types";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
@@ -28,6 +27,12 @@ export async function dispatchTask(
   const terminalTabId = `task-${shortId}`;
   const tmuxSession = `mc-${shortId}`;
 
+  // Check if running in parallel mode
+  const executionMode = await getExecutionMode(projectId);
+  const parallelWarning = executionMode === "parallel"
+    ? `\nNOTE: Multiple agents may be running on this project in parallel. When committing, only stage the specific files you changed — do not use "git add -A" or "git add .".\n`
+    : "";
+
   // Build the agent prompt
   const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
   -H 'Content-Type: application/json' \\
@@ -39,7 +44,7 @@ export async function dispatchTask(
   if (mode === "plan") {
     prompt = `\
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.
-
+${parallelWarning}
 # ${taskTitle}
 
 ${taskDescription}
@@ -57,7 +62,7 @@ cd ${projectPath}`;
 ${taskDescription}
 
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.
-
+${parallelWarning}
 When completely finished, signal complete:
 ${callbackCurl}
 
@@ -68,7 +73,7 @@ cd ${projectPath}`;
     prompt = `# ${taskTitle}
 
 ${taskDescription}
-
+${parallelWarning}
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
 2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
@@ -81,14 +86,8 @@ cd ${projectPath}`;
   // Escape for shell
   const escapedPrompt = prompt.replace(/'/g, "'\\''");
 
-  // Create isolated worktree for this agent (falls back to projectPath if not a git repo or on failure)
-  const worktree = isGitRepo(projectPath)
-    ? createWorktree(projectPath, shortId)
-    : null;
-  const workingDir = worktree ?? projectPath;
-
   // Launch via tmux — session survives server restarts
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${workingDir}' env -u CLAUDECODE ${CLAUDE} ${claudeFlags} '${escapedPrompt}'`;
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' env -u CLAUDECODE ${CLAUDE} ${claudeFlags} '${escapedPrompt}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });
@@ -127,16 +126,6 @@ export async function abortTask(projectId: string, taskId: string) {
       `[agent-dispatch] failed to kill tmux session ${tmuxSession}:`,
       err,
     );
-  }
-
-  // Clean up worktree (only if project is a git repo)
-  const projects = await getAllProjects();
-  const project = projects.find((p) => p.id === projectId);
-  if (project) {
-    const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
-    if (isGitRepo(projectPath)) {
-      removeWorktree(projectPath, shortId);
-    }
   }
 }
 

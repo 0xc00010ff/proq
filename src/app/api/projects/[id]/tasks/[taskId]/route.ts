@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import { getTask, updateTask, deleteTask, getProject } from "@/lib/db";
 import { dispatchTask, abortTask, shouldDispatch, dispatchNextQueued } from "@/lib/agent-dispatch";
-import { worktreeExists, mergeBranch, removeWorktree } from "@/lib/git-worktree";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
 
@@ -40,27 +39,6 @@ export async function PATCH(request: Request, { params }: Params) {
         );
       }
     } else if (prevTask.status === "in-progress" && (body.status === "verify" || body.status === "done")) {
-      // Merge worktree branch into main before verify/done
-      const shortId = params.taskId.slice(0, 8);
-      if (worktreeExists(shortId)) {
-        const project = await getProject(params.id);
-        if (project) {
-          const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
-          const result = mergeBranch(projectPath, shortId);
-          if (!result.merged && result.conflictMsg) {
-            const existingFindings = updated.findings || "";
-            const newFindings = existingFindings
-              ? `${existingFindings}\n${result.conflictMsg}`
-              : result.conflictMsg;
-            await updateTask(params.id, params.taskId, { findings: newFindings });
-            updated.findings = newFindings;
-          }
-          if (result.merged) {
-            removeWorktree(projectPath, shortId);
-          }
-        }
-      }
-
       // Agent completed — notify Slack
       try {
         const title = updated.title.replace(/"/g, '\\"');
@@ -75,16 +53,6 @@ export async function PATCH(request: Request, { params }: Params) {
       dispatchNextQueued(params.id).catch(e =>
         console.error(`[task-patch] auto-dispatch next failed:`, e)
       );
-    } else if (body.status === "done") {
-      // Safety-net: clean up any lingering worktree on done transition
-      const shortId = params.taskId.slice(0, 8);
-      if (worktreeExists(shortId)) {
-        const project = await getProject(params.id);
-        if (project) {
-          const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
-          removeWorktree(projectPath, shortId);
-        }
-      }
     }
   }
 
@@ -92,16 +60,6 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  // Clean up any worktree before deleting
-  const shortId = params.taskId.slice(0, 8);
-  if (worktreeExists(shortId)) {
-    const project = await getProject(params.id);
-    if (project) {
-      const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
-      removeWorktree(projectPath, shortId);
-    }
-  }
-
   const deleted = await deleteTask(params.id, params.taskId);
   if (!deleted) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });

@@ -143,7 +143,7 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
         ) : null}
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[30%] border-l border-warm-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
+        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[30%] border-l border-warm-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-warm-50 dark:bg-[#141414]`}>
           {/* Close button */}
           <button
             onClick={onClose}

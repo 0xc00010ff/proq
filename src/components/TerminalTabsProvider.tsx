@@ -25,13 +25,16 @@ interface TerminalTabsContextValue {
 
 const TerminalTabsContext = createContext<TerminalTabsContextValue | null>(null);
 
-const DEFAULT_TAB: TerminalTab = { id: 'default', label: 'Terminal', type: 'shell' };
+function defaultTab(projectId: string): TerminalTab {
+  return { id: `default-${projectId}`, label: 'Terminal', type: 'shell' };
+}
 
 function getOrCreate(
   state: Record<string, ProjectTerminalState>,
   projectId: string
 ): ProjectTerminalState {
-  return state[projectId] || { tabs: [DEFAULT_TAB], activeTabId: 'default' };
+  const dt = defaultTab(projectId);
+  return state[projectId] || { tabs: [dt], activeTabId: dt.id };
 }
 
 export function TerminalTabsProvider({ children }: { children: React.ReactNode }) {
@@ -87,9 +90,10 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
       const ps = getOrCreate(prev, projectId);
       const filtered = ps.tabs.filter((t) => t.id !== tabId);
       if (filtered.length === 0) {
+        const dt = defaultTab(projectId);
         return {
           ...prev,
-          [projectId]: { tabs: [DEFAULT_TAB], activeTabId: 'default' },
+          [projectId]: { tabs: [dt], activeTabId: dt.id },
         };
       }
       const activeTabId = ps.activeTabId === tabId ? filtered[0].id : ps.activeTabId;

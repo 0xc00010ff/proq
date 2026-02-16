@@ -1,4 +1,5 @@
 import * as pty from "node-pty";
+import { homedir } from "os";
 import type { WebSocket } from "ws";
 
 const SCROLLBACK_LIMIT = 50 * 1024; // 50 KB ring buffer per PTY
@@ -23,7 +24,8 @@ export function spawnPty(tabId: string, cmd?: string, cwd?: string): PtyEntry {
   if (existing) return existing;
 
   const resolvedCmd = cmd || defaultShell();
-  const resolvedCwd = cwd || process.cwd();
+  const rawCwd = cwd || process.cwd();
+  const resolvedCwd = rawCwd.startsWith("~") ? rawCwd.replace("~", homedir()) : rawCwd;
 
   // Parse command: first token is the program, rest are args
   const parts = resolvedCmd.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [resolvedCmd];

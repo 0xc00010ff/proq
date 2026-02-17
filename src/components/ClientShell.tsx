@@ -26,10 +26,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   }, [refreshProjects]);
 
   const handleRelocate = useCallback(async (project: Project, newPath: string) => {
+    const newName = newPath.split('/').pop() || project.name;
     await fetch(`/api/projects/${project.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: newPath }),
+      body: JSON.stringify({ name: newName, path: newPath }),
     });
     setMissingProject(null);
     await refreshProjects();

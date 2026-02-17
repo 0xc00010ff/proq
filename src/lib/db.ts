@@ -187,7 +187,7 @@ export async function reorderTasks(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "order" | "findings" | "humanSteps" | "agentLog" | "locked" | "attachments">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "order" | "findings" | "humanSteps" | "agentLog" | "locked" | "attachments" | "mode">>
 ): Promise<Task | null> {
   return withWriteLock(`state:${projectId}`, async () => {
     const db = await getStateDb(projectId);

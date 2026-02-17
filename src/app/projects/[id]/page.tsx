@@ -257,9 +257,19 @@ export default function ProjectPage() {
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
             const taskData = tasks.find((t) => t.id === taskId) || modalTask!;
-            await updateTask(taskId, { ...currentData, status: 'in-progress' });
+            // Call PATCH directly (not through updateTask) so we can await
+            // fetchExecutionMode before opening the agent modal — otherwise
+            // dispatchedTaskIds is stale and isQueued evaluates incorrectly.
+            await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...currentData, status: 'in-progress' }),
+            });
+            // Refresh dispatch state so the isQueued prop is accurate
+            await fetchExecutionMode();
             setModalTask(null);
             setAgentModalTask({ ...taskData, ...currentData, status: 'in-progress', locked: true });
+            refreshTasks(projectId);
           }}
         />
       )}

@@ -1,11 +1,82 @@
 import { execSync } from "child_process";
 import { existsSync } from "fs";
-import { getAllProjects, getAllTasks, getExecutionMode } from "./db";
+import { getAllProjects, getAllTasks, getExecutionMode, updateTask } from "./db";
+import { stripAnsi } from "./utils";
 import type { TaskMode } from "./types";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
 const MC_API = "http://localhost:7331";
 const CLAUDE = process.env.CLAUDE_BIN || "/Users/brian/.local/bin/claude";
+const CLEANUP_DELAY_MS = 60 * 60 * 1000; // 1 hour
+
+// Track scheduled cleanup timers for completed agent sessions
+const cleanupTimers = new Map<string, { timer: NodeJS.Timeout; expiresAt: number }>();
+
+export function scheduleCleanup(projectId: string, taskId: string) {
+  // Cancel any existing timer for this task
+  cancelCleanup(taskId);
+
+  const expiresAt = Date.now() + CLEANUP_DELAY_MS;
+  const shortId = taskId.slice(0, 8);
+  const tmuxSession = `mc-${shortId}`;
+
+  const timer = setTimeout(async () => {
+    try {
+      // Capture terminal scrollback before killing
+      let output = "";
+      try {
+        output = execSync(
+          `tmux capture-pane -t '${tmuxSession}' -p -S -200`,
+          { timeout: 5_000, encoding: "utf-8" }
+        );
+        output = stripAnsi(output);
+      } catch {
+        // Session may already be gone
+      }
+
+      // Save to agentLog
+      if (output.trim()) {
+        await updateTask(projectId, taskId, { agentLog: output.trim() });
+      }
+
+      // Kill the tmux session
+      try {
+        execSync(`tmux kill-session -t '${tmuxSession}'`, { timeout: 5_000 });
+        console.log(`[agent-cleanup] killed tmux session ${tmuxSession}`);
+      } catch {
+        // Already gone
+      }
+    } catch (err) {
+      console.error(`[agent-cleanup] failed for ${taskId}:`, err);
+    } finally {
+      cleanupTimers.delete(taskId);
+    }
+  }, CLEANUP_DELAY_MS);
+
+  cleanupTimers.set(taskId, { timer, expiresAt });
+  console.log(`[agent-cleanup] scheduled cleanup for ${tmuxSession} in 1 hour`);
+}
+
+export function cancelCleanup(taskId: string) {
+  const entry = cleanupTimers.get(taskId);
+  if (entry) {
+    clearTimeout(entry.timer);
+    cleanupTimers.delete(taskId);
+    console.log(`[agent-cleanup] cancelled cleanup for task ${taskId.slice(0, 8)}`);
+  }
+}
+
+export function getCleanupExpiresAt(taskId: string): number | null {
+  return cleanupTimers.get(taskId)?.expiresAt ?? null;
+}
+
+export function getAllCleanupTimes(): Record<string, number> {
+  const result: Record<string, number> = {};
+  cleanupTimers.forEach((entry, taskId) => {
+    result[taskId] = entry.expiresAt;
+  });
+  return result;
+}
 
 export async function dispatchTask(
   projectId: string,

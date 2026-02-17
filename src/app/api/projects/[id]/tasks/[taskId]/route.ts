@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import { getTask, updateTask, deleteTask } from "@/lib/db";
-import { dispatchTask, abortTask, shouldDispatch, dispatchNextQueued } from "@/lib/agent-dispatch";
+import { dispatchTask, abortTask, shouldDispatch, dispatchNextQueued, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
 
@@ -23,12 +23,14 @@ export async function PATCH(request: Request, { params }: Params) {
   // Dispatch/abort on status change
   if (prevTask && body.status && prevTask.status !== body.status) {
     if (body.status === "in-progress" && prevTask.status !== "in-progress") {
+      cancelCleanup(params.taskId);
       await updateTask(params.id, params.taskId, { locked: true });
       updated.locked = true;
       if (await shouldDispatch(params.id)) {
         terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description, updated.mode);
       }
     } else if (body.status === "todo" && prevTask.status !== "todo") {
+      cancelCleanup(params.taskId);
       // Reset session data when moved back to todo from any status
       const resetFields = { locked: false, findings: "", humanSteps: "", agentLog: "" };
       await updateTask(params.id, params.taskId, resetFields);
@@ -39,6 +41,7 @@ export async function PATCH(request: Request, { params }: Params) {
         );
       }
     } else if (prevTask.status === "in-progress" && (body.status === "verify" || body.status === "done")) {
+      scheduleCleanup(params.id, params.taskId);
       // Agent completed — notify Slack
       try {
         const title = updated.title.replace(/"/g, '\\"');

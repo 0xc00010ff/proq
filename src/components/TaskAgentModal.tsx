@@ -22,17 +22,22 @@ interface TaskAgentModalProps {
   task: Task;
   projectId: string;
   isQueued?: boolean;
+  cleanupExpiresAt?: number;
   onClose: () => void;
   onComplete?: (taskId: string) => void;
 }
 
-export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, onClose, onComplete }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
   const findings = parseLines(task.findings);
   const isLocked = task.status === 'in-progress' && task.locked;
-  const showTerminal = (task.status === 'in-progress' || task.status === 'verify') && !isQueued;
+  // Show terminal for done tasks too (while session is still alive)
+  const sessionCleanedUp = task.status === 'done' && !cleanupExpiresAt;
+  const showTerminal = (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !sessionCleanedUp)) && !isQueued;
+  const showStaticLog = sessionCleanedUp && !!task.agentLog;
+  const [countdownText, setCountdownText] = useState('');
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [topPanelPercent, setTopPanelPercent] = useState(30);
@@ -72,6 +77,22 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
       bottomPanelRef.current.scrollTop = bottomPanelRef.current.scrollHeight;
     }
   }, []);
+
+  // Countdown timer for cleanup
+  useEffect(() => {
+    if (!cleanupExpiresAt) {
+      setCountdownText('');
+      return;
+    }
+    const update = () => {
+      const remaining = Math.max(0, cleanupExpiresAt - Date.now());
+      const minutes = Math.ceil(remaining / 60_000);
+      setCountdownText(remaining > 0 ? `Session will be cleared in ${minutes}m` : 'Session ended');
+    };
+    update();
+    const interval = setInterval(update, 30_000);
+    return () => clearInterval(interval);
+  }, [cleanupExpiresAt]);
 
   // Load xterm CSS
   useEffect(() => {
@@ -133,8 +154,24 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
             </button>
           </div>
         ) : showTerminal ? (
-          <div className="flex-1 relative min-h-0">
-            <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
+          <div className="flex-1 relative min-h-0 flex flex-col">
+            <div className="flex-1 min-h-0">
+              <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
+            </div>
+            {countdownText && (
+              <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800 bg-[#0a0a0a]">
+                {countdownText}
+              </div>
+            )}
+          </div>
+        ) : showStaticLog ? (
+          <div className="flex-1 relative min-h-0 flex flex-col bg-black">
+            <pre className="flex-1 min-h-0 overflow-y-auto p-4 text-[12px] font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed">
+              {task.agentLog}
+            </pre>
+            <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800">
+              Session ended
+            </div>
           </div>
         ) : null}
 

@@ -8,3 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 export function parseLines(str: string | undefined | null): string[] {
   return str?.split('\n').filter(Boolean) || [];
 }
+
+export function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07)/g, '');
+}

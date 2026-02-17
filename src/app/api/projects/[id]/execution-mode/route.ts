@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getExecutionMode, setExecutionMode, getAllTasks } from "@/lib/db";
-import { dispatchTask, isTaskDispatched } from "@/lib/agent-dispatch";
+import { dispatchTask, isTaskDispatched, getAllCleanupTimes } from "@/lib/agent-dispatch";
 import type { ExecutionMode } from "@/lib/types";
 
 type Params = { params: { id: string } };
@@ -11,7 +11,8 @@ export async function GET(_request: Request, { params }: Params) {
   const dispatchedTaskIds = tasks
     .filter((t) => t.status === "in-progress" && t.locked && isTaskDispatched(t.id))
     .map((t) => t.id);
-  return NextResponse.json({ mode, dispatchedTaskIds });
+  const cleanupTimes = getAllCleanupTimes();
+  return NextResponse.json({ mode, dispatchedTaskIds, cleanupTimes });
 }
 
 export async function PATCH(request: Request, { params }: Params) {

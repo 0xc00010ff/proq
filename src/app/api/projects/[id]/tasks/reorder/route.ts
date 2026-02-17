@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { reorderTasks, getProject, getAllTasks, updateTask } from "@/lib/db";
-import { dispatchTask, abortTask, shouldDispatch } from "@/lib/agent-dispatch";
+import { dispatchTask, abortTask, shouldDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 
 type Params = { params: { id: string } };
 
@@ -37,6 +37,7 @@ export async function PUT(request: Request, { params }: Params) {
     if (!newStatus || prevStatus === newStatus) continue;
 
     if (newStatus === "in-progress" && prevStatus !== "in-progress") {
+      cancelCleanup(item.id);
       const task = previousTasks.find((t) => t.id === item.id);
       await updateTask(params.id, item.id, { locked: true });
       if (await shouldDispatch(params.id)) {
@@ -46,12 +47,17 @@ export async function PUT(request: Request, { params }: Params) {
         }
       }
     } else if (newStatus === "todo" && prevStatus !== "todo") {
+      cancelCleanup(item.id);
       // Reset session data when moved back to todo from any status
       await updateTask(params.id, item.id, { locked: false, findings: "", humanSteps: "", agentLog: "" });
       if (prevStatus === "in-progress") {
         abortTask(params.id, item.id).catch((e) =>
           console.error(`[reorder] abortTask failed for ${item.id}:`, e)
         );
+      }
+    } else if (newStatus === "verify" || newStatus === "done") {
+      if (prevStatus === "in-progress") {
+        scheduleCleanup(params.id, item.id);
       }
     }
   }

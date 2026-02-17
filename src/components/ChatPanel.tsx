@@ -57,12 +57,12 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
           <div key={idx} className="group">
             <div className="flex items-baseline gap-2">
               <span
-                className={`text-xs font-bold ${msg.role === 'twin' ? 'text-blue-400' : 'text-green-500 dark:text-green-400'}`}
+                className={`text-xs font-bold ${msg.role === 'twin' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
               >
                 {msg.role === 'twin' ? '\u25C6' : '\u276F'}
               </span>
               <span
-                className={`text-xs font-semibold ${msg.role === 'twin' ? 'text-blue-400' : 'text-green-500 dark:text-green-400'}`}
+                className={`text-xs font-semibold ${msg.role === 'twin' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
               >
                 {msg.role === 'twin' ? 'Twin' : 'Brian'}
               </span>
@@ -96,13 +96,13 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
       {/* Terminal Input */}
       <div className="px-4 py-5 border-t border-gunmetal-300/60 dark:border-zinc-800/60 bg-gunmetal-200/20 dark:bg-black/20">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <span className="text-green-500 dark:text-green-400 text-sm font-bold select-none">{'\u276F'}</span>
+          <span className="text-patina-dark dark:text-patina text-sm font-bold select-none">{'\u276F'}</span>
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="message..."
-            className="flex-1 bg-transparent text-[13px] text-gunmetal-800 dark:text-zinc-200 placeholder:text-gunmetal-500 dark:placeholder:text-zinc-700 focus:outline-none caret-green-500 dark:caret-green-400"
+            className="flex-1 bg-transparent text-[13px] text-gunmetal-800 dark:text-zinc-200 placeholder:text-gunmetal-500 dark:placeholder:text-zinc-700 focus:outline-none caret-patina-dark dark:caret-patina"
           />
           <button
             type="submit"

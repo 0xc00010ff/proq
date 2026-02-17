@@ -45,7 +45,7 @@ export function LiveTab({ project }: LiveTabProps) {
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
-            className="flex-1 bg-gunmetal-200 dark:bg-zinc-900 border border-gunmetal-300 dark:border-zinc-800 rounded-md px-3 py-2 text-sm text-gunmetal-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            className="flex-1 bg-gunmetal-200 dark:bg-zinc-900 border border-gunmetal-300 dark:border-zinc-800 rounded-md px-3 py-2 text-sm text-gunmetal-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-steel/50"
           />
           <button
             onClick={handleConnect}
@@ -62,9 +62,9 @@ export function LiveTab({ project }: LiveTabProps) {
     <div className="flex-1 h-full flex flex-col bg-gunmetal-100 dark:bg-zinc-950">
       <div className="h-10 bg-gunmetal-200 dark:bg-zinc-900 border-b border-gunmetal-300 dark:border-zinc-800 flex items-center px-4 space-x-4">
         <div className="flex space-x-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-          <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
+          <div className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50" />
+          <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50" />
+          <div className="w-3 h-3 rounded-full bg-patina/20 border border-patina/50" />
         </div>
         <div className="flex-1 flex justify-center">
           <div className="bg-gunmetal-50 dark:bg-zinc-950 border border-gunmetal-300 dark:border-zinc-800 rounded px-3 py-1 text-xs text-zinc-500 dark:text-zinc-400 flex items-center space-x-2 min-w-[300px]">

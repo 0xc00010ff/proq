@@ -22,6 +22,27 @@ const config: Config = {
   				800: '#3a342e',
   				900: '#2a2520',
   			},
+  			// Action accents — warm, muted, imperial
+  			steel: {
+  				DEFAULT: '#6b8aad',
+  				light: '#7d9bbc',
+  				dark: '#5a7a9e',
+  			},
+  			gold: {
+  				DEFAULT: '#c9a84c',
+  				light: '#d4b85e',
+  				dark: '#b8953d',
+  			},
+  			patina: {
+  				DEFAULT: '#7a9a6d',
+  				light: '#8baa7e',
+  				dark: '#6a8a5d',
+  			},
+  			crimson: {
+  				DEFAULT: '#b35a5a',
+  				light: '#c06b6b',
+  				dark: '#a04a4a',
+  			},
   			// Semantic design tokens — light/dark handled via CSS variables
   			'surface-base': 'var(--surface-base)',
   			'surface-primary': 'var(--surface-primary)',

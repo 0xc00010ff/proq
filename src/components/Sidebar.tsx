@@ -52,7 +52,7 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
   if (counts["in-progress"]) {
     segments.push(
       <span key="ip" className="flex items-center gap-1">
-        <RefreshCwIcon className="w-3 h-3 text-blue-400 animate-[spin_3s_linear_infinite]" />
+        <RefreshCwIcon className="w-3 h-3 text-steel animate-[spin_3s_linear_infinite]" />
         <span className="text-zinc-500 dark:text-zinc-400">{counts["in-progress"]} in progress</span>
       </span>
     );
@@ -60,7 +60,7 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
   if (counts["verify"]) {
     segments.push(
       <span key="v" className="flex items-center gap-1">
-        <CheckCircle2Icon className="w-2.5 h-2.5 text-amber-500 dark:text-yellow-400" />
+        <CheckCircle2Icon className="w-2.5 h-2.5 text-gold dark:text-gold" />
         <span className="text-zinc-500 dark:text-zinc-400">{counts["verify"]} to verify</span>
       </span>
     );
@@ -124,7 +124,7 @@ function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
               setOpen(false);
               onDelete(project);
             }}
-            className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+            className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
           >
             <Trash2Icon className="w-3.5 h-3.5" />
             Delete
@@ -187,14 +187,14 @@ function SortableProject({
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
         )}
         {pathInvalid && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-red-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-crimson" />
         )}
 
         {/* Top row: name + menu */}
         <div className="flex items-center gap-1">
           <div className="flex-1 min-w-0">
             <div
-              className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-red-500 dark:text-red-400" : isActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
+              className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-crimson dark:text-crimson" : isActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
             >
               {folderName(project)}
             </div>
@@ -203,7 +203,7 @@ function SortableProject({
           {pathInvalid && (
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMissingPath?.(project); }}
-              className="p-1 text-red-400 hover:text-red-300 transition-colors"
+              className="p-1 text-crimson hover:text-crimson-light transition-colors"
               title="Project folder not found"
             >
               <AlertTriangleIcon className="w-4 h-4" />
@@ -217,14 +217,14 @@ function SortableProject({
         </div>
 
         {/* Path */}
-        <div className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-red-400/60 dark:text-red-500/50" : "text-zinc-400 dark:text-zinc-600"}`}>
+        <div className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-crimson/60 dark:text-crimson/50" : "text-zinc-400 dark:text-zinc-600"}`}>
           {project.path}
         </div>
 
         {/* Task Summary */}
         <div className="mt-1.5 text-[11px]">
           {pathInvalid ? (
-            <span className="text-red-400 dark:text-red-500 text-[11px]">Folder not found</span>
+            <span className="text-crimson dark:text-crimson text-[11px]">Folder not found</span>
           ) : (
             <TaskStatusSummary tasks={tasks} />
           )}
@@ -303,7 +303,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
         )}
         <div className="flex items-center gap-2.5">
           <MessageSquareIcon
-            className={`w-4 h-4 ${isChatActive ? "text-blue-400" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
+            className={`w-4 h-4 ${isChatActive ? "text-steel" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
           />
           <span
             className={`text-sm font-medium ${isChatActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}

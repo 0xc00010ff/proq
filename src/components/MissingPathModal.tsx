@@ -53,8 +53,8 @@ export function MissingPathModal({ project, onClose, onRelocate, onRemove }: Mis
 
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
-              <FolderSearchIcon className="w-5 h-5 text-red-400" />
+            <div className="w-10 h-10 rounded-lg bg-crimson/10 flex items-center justify-center flex-shrink-0">
+              <FolderSearchIcon className="w-5 h-5 text-crimson" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gunmetal-900 dark:text-zinc-100">
@@ -68,7 +68,7 @@ export function MissingPathModal({ project, onClose, onRelocate, onRemove }: Mis
 
           <div className="bg-gunmetal-200/50 dark:bg-zinc-800/50 rounded-md p-3 mb-5">
             <p className="text-xs text-gunmetal-500 dark:text-zinc-500 mb-1">Expected path</p>
-            <p className="text-xs font-mono text-red-500 dark:text-red-400 break-all">
+            <p className="text-xs font-mono text-crimson dark:text-crimson break-all">
               {project.path}
             </p>
           </div>
@@ -81,14 +81,14 @@ export function MissingPathModal({ project, onClose, onRelocate, onRemove }: Mis
             <button
               onClick={handleSelectFolder}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-steel-dark hover:bg-steel disabled:opacity-50 text-white text-sm font-medium transition-colors"
             >
               <FolderOpenIcon className="w-4 h-4" />
               {loading ? "Waiting for selection..." : "Select new folder"}
             </button>
             <button
               onClick={handleRemove}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border border-gunmetal-400 dark:border-zinc-700 hover:bg-red-500/10 hover:border-red-500/30 text-gunmetal-600 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400 text-sm transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border border-gunmetal-400 dark:border-zinc-700 hover:bg-crimson/10 hover:border-crimson/30 text-gunmetal-600 dark:text-zinc-400 hover:text-crimson dark:hover:text-crimson text-sm transition-colors"
             >
               <Trash2Icon className="w-4 h-4" />
               Remove project

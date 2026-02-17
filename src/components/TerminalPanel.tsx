@@ -62,7 +62,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
   );
 
   const tabAccentColor = (tab: TerminalTab) =>
-    tab.type === 'task' ? 'text-blue-400' : 'text-green-400';
+    tab.type === 'task' ? 'text-steel' : 'text-patina';
 
   return (
     <div

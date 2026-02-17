@@ -143,7 +143,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                 }
               }}
               disabled={dispatching}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 border border-blue-500/30 rounded-md hover:bg-blue-500/10 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/30 rounded-md hover:bg-steel/10 transition-colors disabled:opacity-50"
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />
@@ -195,17 +195,17 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   Queued
                 </span>
               ) : isLocked ? (
-                <span className="flex items-center gap-1.5 text-xs text-blue-400 font-medium uppercase tracking-wide">
+                <span className="flex items-center gap-1.5 text-xs text-steel font-medium uppercase tracking-wide">
                   <Loader2Icon className="w-3 h-3 animate-spin" />
                   Agent working
                 </span>
               ) : task.status === 'verify' ? (
-                <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wide">
+                <span className="flex items-center gap-1.5 text-xs text-gold-dark dark:text-gold font-medium uppercase tracking-wide">
                   <ClockIcon className="w-3 h-3" />
                   Awaiting review
                 </span>
               ) : task.status === 'done' ? (
-                <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium uppercase tracking-wide">
+                <span className="flex items-center gap-1.5 text-xs text-patina-dark dark:text-patina font-medium uppercase tracking-wide">
                   <CheckCircle2Icon className="w-3 h-3" />
                   Completed
                 </span>
@@ -271,7 +271,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
           {/* Resize handle */}
           <div
             onMouseDown={handleResizeMouseDown}
-            className="shrink-0 h-1 cursor-row-resize border-t border-gunmetal-300 dark:border-zinc-800 hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors group relative"
+            className="shrink-0 h-1 cursor-row-resize border-t border-gunmetal-300 dark:border-zinc-800 hover:bg-steel/20 active:bg-steel/30 transition-colors group relative"
           >
             <div className="absolute inset-x-0 -top-1 -bottom-1" />
           </div>
@@ -295,7 +295,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                     title="Copy to clipboard"
                   >
                     {copied ? (
-                      <CheckIcon className="w-3.5 h-3.5 text-green-400" />
+                      <CheckIcon className="w-3.5 h-3.5 text-patina" />
                     ) : (
                       <ClipboardCopyIcon className="w-3.5 h-3.5" />
                     )}
@@ -317,8 +317,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
               </div>
             ) : isLocked && !isQueued ? (
               <div className="flex flex-col items-center justify-center gap-3">
-                <Loader2Icon className="w-5 h-5 text-blue-400 animate-spin" />
-                <span className="text-xs text-blue-400 font-medium uppercase tracking-wide">
+                <Loader2Icon className="w-5 h-5 text-steel animate-spin" />
+                <span className="text-xs text-steel font-medium uppercase tracking-wide">
                   Agent working
                 </span>
                 <p className="text-xs text-gunmetal-500 dark:text-zinc-600 italic text-center mt-1">
@@ -351,10 +351,10 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
 
             {/* Human steps banner */}
             {steps.length > 0 && (
-              <div className="bg-amber-500/8 border border-amber-500/20 rounded-md p-3">
+              <div className="bg-gold/8 border border-gold/20 rounded-md p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangleIcon className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-xs font-medium text-amber-500 uppercase tracking-wide">
+                  <AlertTriangleIcon className="w-3.5 h-3.5 text-gold" />
+                  <span className="text-xs font-medium text-gold uppercase tracking-wide">
                     Steps for you
                   </span>
                 </div>
@@ -375,7 +375,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
             <div className="border-t border-gunmetal-300 dark:border-zinc-800 p-4">
               <button
                 onClick={() => onComplete(task.id)}
-                className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-green-400 border border-green-500/30 rounded-md hover:bg-green-500/10 transition-colors"
+                className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-patina border border-patina/30 rounded-md hover:bg-patina/10 transition-colors"
               >
                 <CheckCircle2Icon className="w-3.5 h-3.5" />
                 Complete

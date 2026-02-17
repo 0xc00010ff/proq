@@ -27,11 +27,11 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
       className={`
         group relative bg-surface-secondary border rounded-md overflow-hidden
         ${isLocked && !isQueued
-          ? 'border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.15)] animate-pulse-subtle'
+          ? 'border-steel/40 shadow-[0_0_12px_rgba(107,138,173,0.15)] animate-pulse-subtle'
           : isQueued
           ? 'border-zinc-500/30'
           : 'border-border-default'}
-        ${isDragOverlay ? 'ring-1 ring-blue-500 shadow-lg shadow-black/20 dark:shadow-black/40' : `hover:bg-surface-hover cursor-pointer ${isLocked && !isQueued ? '' : 'hover:border-border-hover'}`}
+        ${isDragOverlay ? 'ring-1 ring-steel-dark shadow-lg shadow-black/20 dark:shadow-black/40' : `hover:bg-surface-hover cursor-pointer ${isLocked && !isQueued ? '' : 'hover:border-border-hover'}`}
       `}
       onClick={() => !isDragOverlay && onClick?.(task)}
     >
@@ -42,7 +42,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
             e.stopPropagation();
             onDelete(task.id);
           }}
-          className="absolute top-2 right-2 p-1 rounded text-text-chrome hover:text-red-400 hover:bg-surface-hover opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          className="absolute top-2 right-2 p-1 rounded text-text-chrome hover:text-crimson hover:bg-surface-hover opacity-0 group-hover:opacity-100 transition-opacity z-10"
         >
           <Trash2Icon className="w-3.5 h-3.5" />
         </button>
@@ -63,8 +63,8 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
 
         {steps.length > 0 && task.status !== 'done' && (
           <div className="mt-2 flex items-center gap-1.5">
-            <AlertTriangleIcon className="w-3 h-3 text-amber-500 flex-shrink-0" />
-            <span className="text-[10px] text-amber-500 font-medium uppercase tracking-wide">
+            <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
+            <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
               {steps.length} step{steps.length !== 1 ? 's' : ''} for you
             </span>
           </div>
@@ -80,8 +80,8 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
             </div>
           ) : isLocked ? (
             <div className="flex items-center gap-1.5">
-              <Loader2Icon className="w-3 h-3 text-blue-400 animate-spin" />
-              <span className="text-[10px] text-blue-400 font-medium uppercase tracking-wide">
+              <Loader2Icon className="w-3 h-3 text-steel animate-spin" />
+              <span className="text-[10px] text-steel font-medium uppercase tracking-wide">
                 Agent working
               </span>
             </div>

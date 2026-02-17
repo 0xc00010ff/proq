@@ -170,7 +170,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-gunmetal-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-blue-500/50' : 'border-gunmetal-300 dark:border-zinc-800'}`}
+        className={`relative w-full max-w-2xl bg-gunmetal-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-steel/50' : 'border-gunmetal-300 dark:border-zinc-800'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -240,8 +240,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
 
         {/* Drag overlay hint */}
         {isDragOver && (
-          <div className="absolute inset-0 bg-blue-500/5 rounded-lg flex items-center justify-center pointer-events-none z-20">
-            <div className="text-sm text-blue-400 font-medium">
+          <div className="absolute inset-0 bg-steel/5 rounded-lg flex items-center justify-center pointer-events-none z-20">
+            <div className="text-sm text-steel font-medium">
               Drop files here
             </div>
           </div>
@@ -267,7 +267,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
                       <button
                         onClick={() => removeAttachment(att.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-white/80 hover:text-red-400 p-1"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-white/80 hover:text-crimson p-1"
                       >
                         <XIcon className="w-4 h-4" />
                       </button>
@@ -294,7 +294,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                     </div>
                     <button
                       onClick={() => removeAttachment(att.id)}
-                      className="text-zinc-600 hover:text-red-400 transition-colors ml-1 opacity-0 group-hover:opacity-100"
+                      className="text-zinc-600 hover:text-crimson transition-colors ml-1 opacity-0 group-hover:opacity-100"
                     >
                       <XIcon className="w-3.5 h-3.5" />
                     </button>
@@ -322,7 +322,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                   await onMoveToInProgress(task.id, { title, description, attachments, mode });
                 }}
                 disabled={!title.trim() || dispatching}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 border border-blue-500/50 rounded-md transition-colors ${dispatching ? 'pointer-events-none' : 'hover:bg-blue-500/10 hover:border-blue-400 disabled:opacity-30 disabled:pointer-events-none'}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/50 rounded-md transition-colors ${dispatching ? 'pointer-events-none' : 'hover:bg-steel/10 hover:border-steel disabled:opacity-30 disabled:pointer-events-none'}`}
               >
                 {dispatching ? (
                   <Loader2Icon className="w-3 h-3 animate-spin" />

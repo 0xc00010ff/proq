@@ -48,9 +48,9 @@ interface KanbanBoardProps {
 
 const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
   { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" /> },
-  { id: 'in-progress', label: 'In Progress', icon: <RefreshCwIcon className="w-3.5 h-3.5 text-blue-400" /> },
-  { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-amber-400" /> },
-  { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-green-400" /> },
+  { id: 'in-progress', label: 'In Progress', icon: <RefreshCwIcon className="w-3.5 h-3.5 text-steel" /> },
+  { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-gold" /> },
+  { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-patina" /> },
 ];
 
 function DroppableColumn({
@@ -68,7 +68,7 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={`flex-1 flex flex-col min-w-[240px] rounded-lg transition-colors ${
-        isOver ? 'bg-gunmetal-200/50 dark:bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
+        isOver ? 'bg-gunmetal-200/50 dark:bg-zinc-900/50 ring-2 ring-steel/20' : 'bg-transparent'
       }`}
     >
       {children}
@@ -353,14 +353,14 @@ export function KanbanBoard({
                           <div className="absolute top-full left-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-xl z-50 min-w-[140px]">
                             <button
                               onClick={() => { onExecutionModeChange('sequential'); setModeDropdownOpen(false); }}
-                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700 transition-colors ${executionMode === 'sequential' ? 'text-blue-400' : 'text-zinc-300'}`}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700 transition-colors ${executionMode === 'sequential' ? 'text-steel' : 'text-zinc-300'}`}
                             >
                               <ListOrderedIcon className="w-3.5 h-3.5" />
                               Sequential
                             </button>
                             <button
                               onClick={() => { onExecutionModeChange('parallel'); setModeDropdownOpen(false); }}
-                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700 transition-colors ${executionMode === 'parallel' ? 'text-blue-400' : 'text-zinc-300'}`}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700 transition-colors ${executionMode === 'parallel' ? 'text-steel' : 'text-zinc-300'}`}
                             >
                               <LayersIcon className="w-3.5 h-3.5" />
                               Parallel
@@ -447,7 +447,7 @@ export function KanbanBoard({
                     setTimeout(onRefreshTasks, 500);
                   }
                 }}
-                className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+                className="px-3 py-1.5 text-xs rounded-md bg-steel-dark text-white hover:bg-steel transition-colors"
               >
                 Try Again
               </button>

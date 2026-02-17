@@ -26,6 +26,7 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
 
   const refreshTasks = useCallback(async (projectId: string) => {
     const res = await fetch(`/api/projects/${projectId}/tasks`);
+    if (!res.ok) return;
     const tasks: Task[] = await res.json();
     setTasksByProject((prev) => ({ ...prev, [projectId]: tasks }));
   }, []);

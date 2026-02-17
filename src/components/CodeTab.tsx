@@ -116,6 +116,9 @@ export function CodeTab({ project }: CodeTabProps) {
     (value: string | undefined) => {
       if (value === undefined || !selectedPath) return;
       setFileContent(value);
+      if (value !== lastSavedContentRef.current) {
+        setSaveStatus('saving');
+      }
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         if (value !== lastSavedContentRef.current) {

@@ -1,8 +1,8 @@
-# Agent Q — Claude Code Guide
+# Last Q — Claude Code Guide
 
 ## What This Is
 
-Agent Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) where Brian manages tasks across multiple coding projects. When a task moves to "In Progress", Agent Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
+Last Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) where Brian manages tasks across multiple coding projects. When a task moves to "In Progress", Last Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
 
 **The loop:**
 1. Brian (or Twin, his AI assistant) creates tasks on the board

@@ -68,7 +68,7 @@ function getFileIcon(name: string) {
 }
 
 function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemProps) {
-  const [expanded, setExpanded] = useState(depth < 1);
+  const [expanded, setExpanded] = useState(false);
 
   const handleClick = useCallback(() => {
     if (node.type === 'dir') {

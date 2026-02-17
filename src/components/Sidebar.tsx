@@ -297,7 +297,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       <div className="h-16 flex items-center px-4 border-b border-warm-300/50 dark:border-zinc-800/50">
         <LayoutGridIcon className="w-5 h-5 text-zinc-400 mr-3" />
         <span className="text-sm font-bold tracking-wide text-warm-900 dark:text-zinc-100 uppercase">
-          Agent Q
+          Last Q
         </span>
       </div>
 

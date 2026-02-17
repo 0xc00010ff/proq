@@ -36,7 +36,7 @@ export function LiveTab({ project }: LiveTabProps) {
         </h3>
         <p className="text-sm text-zinc-500 max-w-md text-center mb-8">
           Connect a development server URL to see a live preview of your
-          application directly within Last Q.
+          application directly within Claude Q.
         </p>
         <div className="flex w-full max-w-sm items-center space-x-2">
           <input

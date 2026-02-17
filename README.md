@@ -1,11 +1,11 @@
-# Last Q
+# Claude Q
 
 A kanban command center for AI-assisted development. Tasks on the board automatically dispatch Claude Code agents to do the work.
 
 ## How It Works
 
 1. **Create tasks** on the board (manually, or via any chat agent that talks to the API)
-2. **Drag to "In Progress"** — Last Q launches a Claude Code instance in a tmux session against that project's codebase
+2. **Drag to "In Progress"** — Claude Q launches a Claude Code instance in a tmux session against that project's codebase
 3. **Agent works autonomously** — commits code, then curls back to the API to move itself to "Verify"
 4. **Human reviews** — approve to "Done" or send back to "Todo"
 

@@ -64,7 +64,7 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
               <span
                 className={`text-xs font-semibold ${msg.role === 'twin' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
               >
-                {msg.role === 'twin' ? 'Twin' : 'You'}
+                {msg.role === 'twin' ? 'Big Claude' : 'You'}
               </span>
               <span className="text-[10px] text-gunmetal-500 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100">
                 {formatTimestamp(msg.timestamp)}

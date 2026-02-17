@@ -1,8 +1,8 @@
-# Last Q — Claude Code Guide
+# Claude Q — Claude Code Guide
 
 ## What This Is
 
-Last Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) that manages tasks across multiple coding projects. When a task moves to "In Progress", Last Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
+Claude Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) that manages tasks across multiple coding projects. When a task moves to "In Progress", Claude Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
 
 **The loop:**
 1. Create tasks on the board (manually or via any chat agent that talks to the API)
@@ -11,7 +11,7 @@ Last Q is the command center for AI-assisted development. It's a Next.js kanban 
 4. Human reviews. Done or back to Todo.
 
 **Who's who:**
-- **Twin** — An AI assistant that creates/dispatches tasks via the API conversationally (e.g., via OpenClaw or any chat agent)
+- **Big Claude** — An AI assistant that creates/dispatches tasks via the API conversationally (e.g., via OpenClaw or any chat agent)
 - **Claude Code agents** — Disposable worker instances launched per-task in tmux
 
 **Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, lowdb, @dnd-kit, uuid

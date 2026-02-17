@@ -63,12 +63,17 @@ function DroppableColumn({
   children: React.ReactNode;
 }) {
   const { setNodeRef } = useDroppable({ id });
+  const isInProgress = id === 'in-progress';
 
   return (
     <div
       ref={setNodeRef}
       className={`flex-1 flex flex-col min-w-[240px] rounded-lg transition-colors ${
-        isOver ? 'bg-gunmetal-200/50 dark:bg-zinc-900/50 ring-2 ring-steel/20' : 'bg-transparent'
+        isOver
+          ? isInProgress
+            ? 'bg-steel/5 dark:bg-steel/5 ring-2 ring-steel/20'
+            : 'bg-gunmetal-200/50 dark:bg-zinc-900/50 ring-2 ring-gunmetal-400/30 dark:ring-gunmetal-700/30'
+          : 'bg-transparent'
       }`}
     >
       {children}

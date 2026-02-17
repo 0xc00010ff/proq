@@ -65,14 +65,6 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
       </span>
     );
   }
-  if (counts["todo"]) {
-    segments.push(
-      <span key="t" className="flex items-center gap-1">
-        <span className="inline-block w-2 h-2 rounded-full bg-gunmetal-500 dark:bg-zinc-500 flex-shrink-0" />
-        <span className="text-zinc-500 dark:text-zinc-400">{counts["todo"]} todo</span>
-      </span>
-    );
-  }
 
   if (segments.length === 0) {
     return <span className="text-zinc-400 dark:text-zinc-600 text-[11px]">No active tasks</span>;

@@ -20,7 +20,7 @@ export function TopBar({ project, activeTab, onTabChange }: TopBarProps) {
   ];
 
   return (
-    <header className="h-16 border-b border-border-default bg-surface-primary flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-16 border-b border-border-default bg-surface-base flex items-center justify-between px-6 flex-shrink-0">
       <div className="flex flex-col justify-center">
         <h1 className="text-lg font-semibold text-gunmetal-900 dark:text-zinc-100 leading-tight">
           {project.path.replace(/\/+$/, "").split("/").pop() || project.name}

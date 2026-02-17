@@ -8,6 +8,7 @@ import {
   AlertTriangleIcon,
   Loader2Icon,
   FileTextIcon,
+  FileIcon,
   ClipboardListIcon,
   ClipboardCopyIcon,
   CheckIcon,
@@ -226,6 +227,42 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
               <p className="text-xs text-warm-700 dark:text-zinc-400 leading-relaxed font-mono whitespace-pre-wrap">
                 {task.description}
               </p>
+            )}
+
+            {/* Attachments */}
+            {task.attachments && task.attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {task.attachments.map((att) => {
+                  const isImage = att.type?.startsWith('image/') || false;
+                  return isImage && att.dataUrl ? (
+                    <div
+                      key={att.id}
+                      className="relative group rounded-md overflow-hidden border border-warm-400/50 dark:border-zinc-700/50 bg-warm-200/60 dark:bg-zinc-800/60"
+                    >
+                      <img
+                        src={att.dataUrl}
+                        alt={att.name}
+                        className="h-20 w-auto max-w-[120px] object-cover block"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] text-zinc-300 truncate block">
+                          {att.name}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-2 bg-warm-200/60 dark:bg-zinc-800/60 border border-warm-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5"
+                    >
+                      <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
+                      <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px]">
+                        {att.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
           </div>

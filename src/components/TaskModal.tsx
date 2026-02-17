@@ -102,6 +102,21 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     };
   }, []);
 
+  // Cmd+Enter to trigger "Start Now"
+  useEffect(() => {
+    if (!isOpen || !onMoveToInProgress) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && e.metaKey && title.trim() && !dispatching) {
+        e.preventDefault();
+        if (saveTimeout.current) clearTimeout(saveTimeout.current);
+        setDispatching(true);
+        onMoveToInProgress(task.id, { title, description, attachments, mode });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onMoveToInProgress, title, description, attachments, mode, dispatching, task.id]);
+
   if (!isOpen) return null;
 
   const handleTitleChange = (val: string) => {

@@ -179,10 +179,9 @@ function SortableProject({
         {...listeners}
         href={`/projects/${project.id}`}
         onClick={pathInvalid ? (e) => { e.preventDefault(); onMissingPath?.(project); } : undefined}
-        className={`w-full text-left p-3 px-4 relative group block cursor-grab active:cursor-grabbing
-          ${isActive ? "bg-gunmetal-300 dark:bg-zinc-800" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}
-          ${index > 0 ? "border-t border-gunmetal-300/60 dark:border-zinc-800/60" : ""}
-          py-4`}
+        className={`w-full text-left py-3 px-4 relative group block cursor-grab active:cursor-grabbing
+          ${isActive ? "bg-gunmetal-300 dark:bg-zinc-800/50" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}
+          ${index > 0 ? "border-t border-gunmetal-300/60 dark:border-zinc-800/60" : ""}`}
       >
         {isActive && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
@@ -218,12 +217,12 @@ function SortableProject({
         </div>
 
         {/* Path */}
-        <div className={`text-[11px] font-mono mt-1 truncate ${pathInvalid ? "text-red-400/60 dark:text-red-500/50" : "text-zinc-400 dark:text-zinc-600"}`}>
+        <div className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-red-400/60 dark:text-red-500/50" : "text-zinc-400 dark:text-zinc-600"}`}>
           {project.path}
         </div>
 
         {/* Task Summary */}
-        <div className="mt-2.5 text-[11px]">
+        <div className="mt-1.5 text-[11px]">
           {pathInvalid ? (
             <span className="text-red-400 dark:text-red-500 text-[11px]">Folder not found</span>
           ) : (
@@ -322,7 +321,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           </span>
           <button
             onClick={onAddProject}
-            className="flex items-center gap-1 py-0.5 px-2 rounded border border-zinc-500 hover:bg-gunmetal-300 dark:hover:bg-zinc-800 hover:border-gunmetal-500 dark:hover:border-zinc-600 text-zinc-500 hover:text-gunmetal-700 dark:hover:text-zinc-200 text-xs"
+            className="flex items-center gap-1 py-0.5 px-2 rounded border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
           >
             <PlusIcon className="w-3 h-3" />
             <span>Add</span>

@@ -1,5 +1,6 @@
 import { JSONFilePreset } from "lowdb/node";
 import { v4 as uuidv4 } from "uuid";
+import { renameSync, existsSync as fsExists } from "fs";
 import path from "path";
 import type {
   ConfigData,
@@ -10,6 +11,7 @@ import type {
   ExecutionMode,
 } from "./types";
 import type { Low } from "lowdb";
+import { slugify } from "./utils";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 
@@ -67,13 +69,21 @@ export async function getProject(id: string): Promise<Project | undefined> {
   return db.data.projects.find((p) => p.id === id);
 }
 
+function uniqueSlug(base: string, existing: string[]): string {
+  if (!existing.includes(base)) return base;
+  let i = 2;
+  while (existing.includes(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
+
 export async function createProject(
   data: Pick<Project, "name" | "path" | "serverUrl">
 ): Promise<Project> {
   return withWriteLock('config', async () => {
   const db = await getConfigDb();
+  const existingIds = db.data.projects.map((p) => p.id);
   const project: Project = {
-    id: uuidv4(),
+    id: uniqueSlug(slugify(data.name), existingIds),
     name: data.name,
     path: data.path,
     serverUrl: data.serverUrl,
@@ -93,6 +103,30 @@ export async function updateProject(
     const db = await getConfigDb();
     const project = db.data.projects.find((p) => p.id === id);
     if (!project) return null;
+
+    // If name is changing, update the slug-based id
+    if (data.name && data.name !== project.name) {
+      const newSlug = slugify(data.name);
+      const existingIds = db.data.projects.filter((p) => p.id !== id).map((p) => p.id);
+      const newId = uniqueSlug(newSlug, existingIds);
+
+      // Rename state file
+      const oldFile = path.join(DATA_DIR, "state", `${id}.json`);
+      const newFile = path.join(DATA_DIR, "state", `${newId}.json`);
+      if (fsExists(oldFile)) {
+        renameSync(oldFile, newFile);
+      }
+
+      // Update cache
+      const cached = stateDbInstances.get(id);
+      if (cached) {
+        stateDbInstances.delete(id);
+        stateDbInstances.set(newId, cached);
+      }
+
+      project.id = newId;
+    }
+
     Object.assign(project, data);
     await db.write();
     return project;

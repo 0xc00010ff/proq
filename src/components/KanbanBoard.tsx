@@ -334,7 +334,7 @@ export function KanbanBoard({
                 <div className="flex items-center justify-between mb-4 px-1">
                   <div className="flex items-center gap-2">
                     {column.icon}
-                    <h3 className="text-sm font-medium text-gunmetal-500 dark:text-gunmetal-500">{column.label}</h3>
+                    <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{column.label}</h3>
                     {column.id === 'in-progress' && onExecutionModeChange && (
                       <div className="relative" ref={modeDropdownRef}>
                         <button

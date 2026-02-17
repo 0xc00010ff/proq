@@ -24,9 +24,9 @@ const config: Config = {
   			},
   			// Action accents — warm, muted, imperial
   			steel: {
-  				DEFAULT: '#6b8aad',
-  				light: '#7d9bbc',
-  				dark: '#5a7a9e',
+  				DEFAULT: '#5b83b0',
+  				light: '#6d94bf',
+  				dark: '#4a72a0',
   			},
   			gold: {
   				DEFAULT: '#c9a84c',
@@ -34,9 +34,9 @@ const config: Config = {
   				dark: '#b8953d',
   			},
   			patina: {
-  				DEFAULT: '#7a9a6d',
-  				light: '#8baa7e',
-  				dark: '#6a8a5d',
+  				DEFAULT: '#6a9a58',
+  				light: '#7baa6a',
+  				dark: '#5a8a48',
   			},
   			crimson: {
   				DEFAULT: '#b35a5a',

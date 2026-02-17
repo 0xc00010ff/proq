@@ -27,7 +27,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
       className={`
         group relative bg-surface-secondary border rounded-md overflow-hidden
         ${isLocked && !isQueued
-          ? 'border-steel/40 shadow-[0_0_12px_rgba(107,138,173,0.15)] animate-pulse-subtle'
+          ? 'border-steel/40 shadow-[0_0_12px_rgba(91,131,176,0.15)] animate-pulse-subtle'
           : isQueued
           ? 'border-zinc-500/30'
           : 'border-border-default'}

@@ -284,7 +284,7 @@ function SortableProject({
 export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { projects, tasksByProject, refreshProjects } = useProjects();
+  const { projects, tasksByProject, refreshProjects, setProjects } = useProjects();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
@@ -304,16 +304,16 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       if (oldIndex === -1 || newIndex === -1) return;
 
       const reordered = arrayMove(projects, oldIndex, newIndex);
-      const orderedIds = reordered.map((p) => p.id);
+      setProjects(reordered);
 
-      await fetch("/api/projects/reorder", {
+      const orderedIds = reordered.map((p) => p.id);
+      fetch("/api/projects/reorder", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderedIds }),
       });
-      await refreshProjects();
     },
-    [projects, refreshProjects]
+    [projects, setProjects]
   );
 
   const handleDelete = useCallback(

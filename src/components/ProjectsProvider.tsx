@@ -9,6 +9,7 @@ interface ProjectsContextValue {
   isLoaded: boolean;
   refreshProjects: () => Promise<void>;
   refreshTasks: (projectId: string) => Promise<void>;
+  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
 }
 
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
@@ -45,7 +46,7 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ProjectsContext.Provider
-      value={{ projects, tasksByProject, isLoaded, refreshProjects, refreshTasks }}
+      value={{ projects, tasksByProject, isLoaded, refreshProjects, refreshTasks, setProjects }}
     >
       {children}
     </ProjectsContext.Provider>

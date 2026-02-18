@@ -1,8 +1,8 @@
-# Claude Q — Claude Code Guide
+# proq — Claude Code Guide
 
 ## What This Is
 
-Claude Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) that manages tasks across multiple coding projects. When a task moves to "In Progress", Claude Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
+proq is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) that manages tasks across multiple coding projects. When a task moves to "In Progress", proq automatically launches a Claude Code instance in a tmux session to work on it autonomously.
 
 **The loop:**
 1. Create tasks on the board (manually or via any chat agent that talks to the API)
@@ -11,7 +11,7 @@ Claude Q is the command center for AI-assisted development. It's a Next.js kanba
 4. Human reviews. Done or back to Todo.
 
 **Who's who:**
-- **Big Claude** — An AI assistant that creates/dispatches tasks via the API conversationally (e.g., via OpenClaw or any chat agent)
+- **Professor Q** — An AI assistant that creates/dispatches tasks via the API conversationally (e.g., via OpenClaw or any chat agent)
 - **Claude Code agents** — Disposable worker instances launched per-task in tmux
 
 **Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, lowdb, @dnd-kit, uuid
@@ -94,7 +94,7 @@ todo ──drag/API──→ in-progress ──agent callback──→ verify �
 ### Key Types (src/lib/types.ts)
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
 - **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, locked, attachments, createdAt, updatedAt }`
-- **ChatLogEntry**: `{ role: 'twin'|'user', message, timestamp, toolCalls? }`
+- **ChatLogEntry**: `{ role: 'proq'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
 

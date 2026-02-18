@@ -280,7 +280,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       <div className="h-16 flex items-center px-4 border-b border-border-subtle">
         <LayoutGridIcon className="w-5 h-5 text-zinc-400 mr-3" />
         <span className="text-sm font-bold tracking-wide text-gunmetal-900 dark:text-zinc-100 uppercase">
-          Claude Q
+          proq
         </span>
       </div>
 
@@ -300,7 +300,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           <span
             className={`text-sm font-medium ${isChatActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
           >
-            Big Claude
+            Professor Q
           </span>
         </div>
       </Link>

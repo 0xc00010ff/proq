@@ -57,14 +57,14 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
           <div key={idx} className="group">
             <div className="flex items-baseline gap-2">
               <span
-                className={`text-xs font-bold ${msg.role === 'twin' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
+                className={`text-xs font-bold ${msg.role === 'proq' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
               >
-                {msg.role === 'twin' ? '\u25C6' : '\u276F'}
+                {msg.role === 'proq' ? '\u25C6' : '\u276F'}
               </span>
               <span
-                className={`text-xs font-semibold ${msg.role === 'twin' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
+                className={`text-xs font-semibold ${msg.role === 'proq' ? 'text-steel' : 'text-patina-dark dark:text-patina'}`}
               >
-                {msg.role === 'twin' ? 'Big Claude' : 'You'}
+                {msg.role === 'proq' ? 'Professor Q' : 'You'}
               </span>
               <span className="text-[10px] text-gunmetal-500 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100">
                 {formatTimestamp(msg.timestamp)}
@@ -72,7 +72,7 @@ export function ChatPanel({ messages, onSendMessage, style }: ChatPanelProps) {
             </div>
 
             <div className="pl-5 mt-0.5">
-              {msg.role === 'twin' && msg.toolCalls && msg.toolCalls.length > 0 && (
+              {msg.role === 'proq' && msg.toolCalls && msg.toolCalls.length > 0 && (
                 <div className="mb-2 space-y-0.5 border-l border-gunmetal-300 dark:border-zinc-800 ml-0.5 pl-3">
                   {msg.toolCalls.map((tc, i) => (
                     <div

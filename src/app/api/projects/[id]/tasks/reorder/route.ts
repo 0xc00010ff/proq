@@ -46,6 +46,9 @@ export async function PUT(request: Request, { params }: Params) {
           const terminalTabId = await dispatchTask(id, item.id, task?.title ?? "", task?.description ?? "", task?.mode);
           if (terminalTabId) {
             dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
+          } else {
+            // Dispatch failed — unlock so it doesn't get stuck as "queued"
+            await updateTask(id, item.id, { locked: false });
           }
         }
       }

@@ -9,7 +9,7 @@ import type { ChatLogEntry } from '@/lib/types';
 export default function ChatPage() {
   const [mainChatMessages, setMainChatMessages] = useState<ChatLogEntry[]>([
     {
-      role: 'twin',
+      role: 'proq',
       message: "Hey! I'm your AI assistant. Ask me anything across all your projects.",
       timestamp: new Date().toISOString(),
     },

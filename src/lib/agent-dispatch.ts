@@ -1,5 +1,7 @@
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 import { getAllProjects, getAllTasks, getExecutionMode, updateTask } from "./db";
 import { stripAnsi } from "./utils";
 import type { TaskMode } from "./types";
@@ -171,11 +173,16 @@ ${callbackCurl}
     claudeFlags = "--dangerously-skip-permissions";
   }
 
-  // Escape for shell
-  const escapedPrompt = prompt.replace(/'/g, "'\\''");
+  // Write prompt to temp file to avoid shell escaping issues with complex descriptions
+  const promptDir = join(tmpdir(), "proq-prompts");
+  mkdirSync(promptDir, { recursive: true });
+  const promptFile = join(promptDir, `${tmuxSession}.md`);
+  const launcherFile = join(promptDir, `${tmuxSession}.sh`);
+  writeFileSync(promptFile, prompt, "utf-8");
+  writeFileSync(launcherFile, `#!/bin/bash\nexec env -u CLAUDECODE ${CLAUDE} ${claudeFlags} "$(cat '${promptFile}')"\n`, "utf-8");
 
   // Launch via tmux — session survives server restarts
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' env -u CLAUDECODE ${CLAUDE} ${claudeFlags} '${escapedPrompt}'`;
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' bash '${launcherFile}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });

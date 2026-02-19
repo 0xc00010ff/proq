@@ -67,8 +67,8 @@ cp .env.example .env.local
 
 File-based JSON storage — no external database required. The `data/` directory is gitignored and auto-created on first run.
 
-- `data/config.json` — Project registry (name, path, status, serverUrl)
-- `data/state/{project-id}.json` — Per-project tasks and chat history
+- `data/workspace.json` — Project registry (name, path, status, serverUrl)
+- `data/projects/{project-id}.json` — Per-project tasks and chat history
 
 ## API
 

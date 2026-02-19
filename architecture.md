@@ -12,7 +12,7 @@ graph TB
         subgraph Server["Server (Next.js :7331)"]
             API["REST API"]
             WS["WebSocket (PTY)"]
-            DB["lowdb<br/>data/config.json<br/>data/state/*.json"]
+            DB["lowdb<br/>data/workspace.json<br/>data/projects/*.json"]
             Dispatch["Dispatch Engine"]
             Recovery["Startup Recovery<br/>(tmux scan + DB sync)"]
         end

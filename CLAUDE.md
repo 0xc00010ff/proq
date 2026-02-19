@@ -86,10 +86,11 @@ todo ──drag/API──→ in-progress ──agent callback──→ verify �
 - Dragging back to "Todo" aborts the agent (kills tmux session)
 
 ### Data Layer
-- **`data/config.json`** — Project registry (id, name, path, status, serverUrl)
-- **`data/state/{id}.json`** — Per-project state (tasks array + chatLog array)
+- **`data/workspace.json`** — Project registry (id, name, path, status, serverUrl)
+- **`data/projects/{id}.json`** — Per-project state (tasks array + chatLog array)
 - **`data/` is gitignored** — Each user has their own local state, auto-created on first run
 - Database: lowdb (JSON file storage, no external DB needed)
+- Auto-migration: old `config.json` / `state/` are renamed on startup
 
 ### Key Types (src/lib/types.ts)
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`

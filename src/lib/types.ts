@@ -12,7 +12,7 @@ export interface Project {
   createdAt: string;
 }
 
-export interface ConfigData {
+export interface WorkspaceData {
   projects: Project[];
 }
 

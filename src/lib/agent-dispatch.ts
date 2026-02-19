@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { existsSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, writeFileSync, readFileSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { getAllProjects, getAllTasks, getExecutionMode, updateTask } from "./db";
@@ -37,29 +37,34 @@ export function scheduleCleanup(projectId: string, taskId: string) {
 
   const timer = setTimeout(async () => {
     try {
-      // Capture terminal scrollback before killing
-      let output = "";
-      try {
-        output = execSync(
-          `tmux capture-pane -t '${tmuxSession}' -p -S -200`,
-          { timeout: 5_000, encoding: "utf-8" }
-        );
-        output = stripAnsi(output);
-      } catch {
-        // Session may already be gone
-      }
+      const socketLogPath = `/tmp/proq/${tmuxSession}.sock.log`;
 
-      // Save to agentLog
-      if (output.trim()) {
-        await updateTask(projectId, taskId, { agentLog: output.trim() });
-      }
-
-      // Kill the tmux session
+      // Kill tmux session first — this sends SIGTERM to bridge, which writes .log file
       try {
         execSync(`tmux kill-session -t '${tmuxSession}'`, { timeout: 5_000 });
         console.log(`[agent-cleanup] killed tmux session ${tmuxSession}`);
       } catch {
         // Already gone
+      }
+
+      // Wait for bridge to write the log file
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Read scrollback from bridge's log file
+      let output = "";
+      try {
+        if (existsSync(socketLogPath)) {
+          output = readFileSync(socketLogPath, "utf-8");
+          output = stripAnsi(output);
+          unlinkSync(socketLogPath);
+        }
+      } catch {
+        // Log file may not exist
+      }
+
+      // Save to agentLog
+      if (output.trim()) {
+        await updateTask(projectId, taskId, { agentLog: output.trim() });
       }
     } catch (err) {
       console.error(`[agent-cleanup] failed for ${taskId}:`, err);
@@ -181,8 +186,13 @@ ${callbackCurl}
   writeFileSync(promptFile, prompt, "utf-8");
   writeFileSync(launcherFile, `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${claudeFlags} "$(cat '${promptFile}')"\n`, "utf-8");
 
-  // Launch via tmux — session survives server restarts
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' bash '${launcherFile}'`;
+  // Ensure bridge socket directory exists
+  mkdirSync("/tmp/proq", { recursive: true });
+  const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
+  const socketPath = `/tmp/proq/${tmuxSession}.sock`;
+
+  // Launch via tmux with bridge — session survives server restarts, bridge exposes PTY over unix socket
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' node '${bridgePath}' '${socketPath}' '${launcherFile}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });
@@ -214,6 +224,12 @@ export async function abortTask(projectId: string, taskId: string) {
       err,
     );
   }
+
+  // Clean up bridge socket and log files
+  const socketPath = `/tmp/proq/${tmuxSession}.sock`;
+  const logPath = socketPath + ".log";
+  try { if (existsSync(socketPath)) unlinkSync(socketPath); } catch {}
+  try { if (existsSync(logPath)) unlinkSync(logPath); } catch {}
 }
 
 export function isTaskDispatched(taskId: string): boolean {

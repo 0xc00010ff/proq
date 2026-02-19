@@ -89,6 +89,18 @@ export function useTerminal(
         terminal.writeln('\r\n\x1b[90m[Disconnected]\x1b[0m');
       };
 
+      // Intercept Shift+Enter to send CSI u sequence (kitty keyboard protocol)
+      // xterm.js onData sends \r for both Enter and Shift+Enter by default
+      terminal.attachCustomKeyEventHandler((ev) => {
+        if (ev.type === 'keydown' && ev.key === 'Enter' && ev.shiftKey) {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send('\x1b[13;2u'); // CSI 13 ; 2 u = Shift+Enter
+          }
+          return false; // prevent default handling
+        }
+        return true;
+      });
+
       terminal.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(data);

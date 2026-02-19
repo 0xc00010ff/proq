@@ -179,7 +179,7 @@ ${callbackCurl}
   const promptFile = join(promptDir, `${tmuxSession}.md`);
   const launcherFile = join(promptDir, `${tmuxSession}.sh`);
   writeFileSync(promptFile, prompt, "utf-8");
-  writeFileSync(launcherFile, `#!/bin/bash\nexec env -u CLAUDECODE ${CLAUDE} ${claudeFlags} "$(cat '${promptFile}')"\n`, "utf-8");
+  writeFileSync(launcherFile, `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${claudeFlags} "$(cat '${promptFile}')"\n`, "utf-8");
 
   // Launch via tmux — session survives server restarts
   const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' bash '${launcherFile}'`;

@@ -61,8 +61,8 @@ export async function PUT(request: Request, { params }: Params) {
           console.error(`[reorder] abortTask failed for ${item.id}:`, e)
         );
       }
-    } else if (newStatus === "verify" || newStatus === "done") {
-      if (prevStatus === "in-progress") {
+    } else if (newStatus === "done") {
+      if (prevStatus === "in-progress" || prevStatus === "verify") {
         scheduleCleanup(id, item.id);
       }
     }

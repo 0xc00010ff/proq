@@ -45,12 +45,16 @@ export async function PATCH(request: Request, { params }: Params) {
         );
       }
     } else if (prevTask.status === "in-progress" && (body.status === "verify" || body.status === "done")) {
-      scheduleCleanup(id, taskId);
+      if (body.status === "done") {
+        scheduleCleanup(id, taskId);
+      }
       notify(`✅ *${updated.title.replace(/"/g, '\\"')}* → ${body.status}`);
       // Auto-dispatch next queued task in sequential mode
       dispatchNextQueued(id).catch(e =>
         console.error(`[task-patch] auto-dispatch next failed:`, e)
       );
+    } else if (body.status === "done" && (prevTask.status === "verify" || prevTask.status === "in-progress")) {
+      scheduleCleanup(id, taskId);
     }
   }
 

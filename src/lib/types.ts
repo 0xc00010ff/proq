@@ -1,6 +1,8 @@
 // ── Project ──────────────────────────────────────────────
 export type ProjectStatus = 'active' | 'review' | 'idle' | 'error';
 
+export type ProjectTab = 'project' | 'live' | 'code';
+
 export interface Project {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export interface Project {
   serverUrl?: string;
   order?: number;
   pathValid?: boolean;
+  activeTab?: ProjectTab;
   createdAt: string;
 }
 

@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import type { Project } from '@/lib/types';
+import type { Project, ProjectTab } from '@/lib/types';
 import { ThemeToggle } from './ThemeToggle';
 
-export type TabOption = 'project' | 'live' | 'code';
+export type TabOption = ProjectTab;
 
 interface TopBarProps {
   project: Project;

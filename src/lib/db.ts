@@ -112,7 +112,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl">>
+  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab">>
 ): Promise<Project | null> {
   return withWriteLock('workspace', async () => {
     const db = await getWorkspaceDb();

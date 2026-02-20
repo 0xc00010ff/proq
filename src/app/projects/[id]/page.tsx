@@ -33,7 +33,12 @@ export default function ProjectPage() {
 
   // Update document title with project id (slug)
   useEffect(() => {
-    document.title = project ? `Q - ${project.id}` : 'Q';
+    document.title = project ? `proq | ${project.name}` : 'proq';
+  }, [project?.id]);
+
+  // Restore last tab when switching projects
+  useEffect(() => {
+    if (project) setActiveTab(project.activeTab || 'project');
   }, [project?.id]);
 
   // Fetch terminal open/closed state from server
@@ -140,6 +145,15 @@ export default function ProjectPage() {
     refresh();
   };
 
+  const handleTabChange = useCallback((tab: TabOption) => {
+    setActiveTab(tab);
+    fetch(`/api/projects/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activeTab: tab }),
+    }).catch(() => {});
+  }, [projectId]);
+
   const toggleTerminalCollapsed = useCallback(() => {
     setTerminalCollapsed((prev) => {
       const next = !prev;
@@ -186,7 +200,7 @@ export default function ProjectPage() {
 
   return (
     <>
-      <TopBar project={project} activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopBar project={project} activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main ref={containerRef} className="flex-1 flex flex-col overflow-hidden relative">
         {activeTab === 'project' && (

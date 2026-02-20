@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
-const VIEWPORT_WIDTHS: Record<ViewportSize, string | undefined> = {
-  desktop: undefined,   // full width
-  tablet: '768px',
-  mobile: '375px',
+const VIEWPORT_DEFAULTS: Record<ViewportSize, { w: number; h: number | null; resizeX: boolean; resizeY: boolean }> = {
+  desktop: { w: 0, h: null, resizeX: false, resizeY: false },
+  tablet:  { w: 768, h: null, resizeX: true, resizeY: false },
+  mobile:  { w: 375, h: 812, resizeX: true, resizeY: true },
 };
 
 interface LiveTabProps {
@@ -21,7 +21,15 @@ export function LiveTab({ project }: LiveTabProps) {
   const [urlInput, setUrlInput] = useState('http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
+  const [size, setSize] = useState<{ w: number; h: number | null }>({ w: 0, h: null });
+  const containerRef = useRef<HTMLDivElement>(null);
   const { refreshProjects } = useProjects();
+
+  // Reset size when viewport changes
+  useEffect(() => {
+    const defaults = VIEWPORT_DEFAULTS[viewport];
+    setSize({ w: defaults.w, h: defaults.h });
+  }, [viewport]);
 
   const handleConnect = async () => {
     const url = urlInput.trim();
@@ -33,6 +41,36 @@ export function LiveTab({ project }: LiveTabProps) {
     });
     await refreshProjects();
   };
+
+  const handleResizeStart = useCallback((axis: 'x' | 'y' | 'xy', e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = size.w || (containerRef.current?.offsetWidth ?? 768);
+    const startH = size.h || (containerRef.current?.offsetHeight ?? 600);
+
+    const onMove = (ev: MouseEvent) => {
+      setSize(prev => ({
+        w: axis !== 'y' ? Math.max(280, startW + (ev.clientX - startX) * 2) : prev.w,
+        h: axis !== 'x' ? Math.max(300, startH + (ev.clientY - startY)) : prev.h,
+      }));
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      // Re-enable pointer events on iframe
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach(f => f.style.pointerEvents = '');
+    };
+
+    // Disable pointer events on iframe during drag
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(f => f.style.pointerEvents = 'none');
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [size.w, size.h]);
 
   if (!project.serverUrl) {
     return (
@@ -66,6 +104,10 @@ export function LiveTab({ project }: LiveTabProps) {
       </div>
     );
   }
+
+  const vp = VIEWPORT_DEFAULTS[viewport];
+  const iframeWidth = viewport === 'desktop' ? '100%' : `${size.w}px`;
+  const iframeHeight = size.h ? `${size.h}px` : '100%';
 
   return (
     <div className="flex-1 h-full flex flex-col bg-gunmetal-100 dark:bg-zinc-950">
@@ -102,14 +144,14 @@ export function LiveTab({ project }: LiveTabProps) {
           {([
             { size: 'desktop' as ViewportSize, icon: MonitorIcon, label: 'Desktop' },
             { size: 'tablet' as ViewportSize, icon: TabletSmartphoneIcon, label: 'Tablet' },
-            { size: 'mobile' as ViewportSize, icon: SmartphoneIcon, label: 'Mobile' },
-          ]).map(({ size, icon: Icon, label }) => (
+            { size: 'mobile' as ViewportSize, icon: SmartphoneIcon, label: 'Mobile / Responsive' },
+          ]).map(({ size: s, icon: Icon, label }) => (
             <button
-              key={size}
-              onClick={() => setViewport(size)}
+              key={s}
+              onClick={() => setViewport(s)}
               title={label}
               className={`p-1.5 rounded transition-colors ${
-                viewport === size
+                viewport === s
                   ? 'bg-gunmetal-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
                   : 'text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400'
               }`}
@@ -119,16 +161,78 @@ export function LiveTab({ project }: LiveTabProps) {
           ))}
         </div>
       </div>
-      <div className="flex-1 flex items-start justify-center overflow-auto bg-gunmetal-100 dark:bg-zinc-950">
-        <iframe
-          src={project.serverUrl}
-          className="border-0 h-full"
-          style={{
-            width: VIEWPORT_WIDTHS[viewport] ?? '100%',
-            maxWidth: '100%',
-            transition: 'width 0.2s ease',
-          }}
-        />
+
+      {/* Preview container with dot grid background */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-start justify-center overflow-auto p-6"
+        style={{
+          backgroundColor: 'var(--surface-base)',
+          backgroundImage: 'radial-gradient(circle, var(--live-dot-color) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+        }}
+      >
+        {viewport === 'desktop' ? (
+          <iframe
+            src={project.serverUrl}
+            className="w-full h-full border-0"
+          />
+        ) : (
+          <div className="relative inline-flex flex-col" style={{ maxWidth: '100%' }}>
+            {/* Bezel wrapper */}
+            <div
+              className="rounded-xl overflow-hidden shadow-lg"
+              style={{
+                border: '8px solid #2a2a2e',
+                boxShadow: '0 0 0 1px #3f3f46, 0 8px 32px rgba(0,0,0,0.4)',
+                width: iframeWidth,
+                height: iframeHeight,
+                maxWidth: '100%',
+                transition: 'width 0.15s ease, height 0.15s ease',
+              }}
+            >
+              <iframe
+                src={project.serverUrl}
+                className="w-full h-full border-0"
+              />
+            </div>
+
+            {/* Right resize handle (X axis) */}
+            {vp.resizeX && (
+              <div
+                onMouseDown={(e) => handleResizeStart('x', e)}
+                className="absolute top-0 -right-4 w-4 h-full cursor-ew-resize flex items-center justify-center group"
+              >
+                <div className="w-1 h-8 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors" />
+              </div>
+            )}
+
+            {/* Bottom resize handle (Y axis) */}
+            {vp.resizeY && (
+              <div
+                onMouseDown={(e) => handleResizeStart('y', e)}
+                className="absolute -bottom-4 left-0 w-full h-4 cursor-ns-resize flex items-center justify-center group"
+              >
+                <div className="h-1 w-8 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors" />
+              </div>
+            )}
+
+            {/* Corner resize handle (XY) */}
+            {vp.resizeX && vp.resizeY && (
+              <div
+                onMouseDown={(e) => handleResizeStart('xy', e)}
+                className="absolute -bottom-4 -right-4 w-4 h-4 cursor-nwse-resize flex items-center justify-center group"
+              >
+                <div className="w-2 h-2 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors" />
+              </div>
+            )}
+
+            {/* Size label */}
+            <div className="mt-3 text-center text-[10px] text-zinc-500 font-mono select-none">
+              {size.w}{size.h ? ` × ${size.h}` : ''}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

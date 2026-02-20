@@ -49,6 +49,7 @@
     --text-chrome: #7a7068;            /* gunmetal-600 */
     --text-chrome-hover: #5c534b;      /* gunmetal-700 */
     --text-chrome-active: #3a342e;     /* gunmetal-800 */
+    --live-dot-color: rgba(0, 0, 0, 0.08); /* dot grid for live preview (light) */
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -87,6 +88,7 @@
     --text-chrome: #7a7068;            /* gunmetal-600 — warm, not gray */
     --text-chrome-hover: #a89d90;      /* gunmetal-500 — brighter warm */
     --text-chrome-active: #a89d90;     /* gunmetal-500 — warm bright */
+    --live-dot-color: rgba(63, 63, 70, 0.5); /* dot grid for live preview */
   }
 }
 

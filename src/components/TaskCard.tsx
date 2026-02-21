@@ -85,6 +85,13 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
                 Agent working
               </span>
             </div>
+          ) : task.status === 'in-progress' ? (
+            <div className="flex items-center gap-1.5">
+              <Loader2Icon className="w-3 h-3 text-zinc-400 animate-spin" />
+              <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">
+                Starting...
+              </span>
+            </div>
           ) : (
             <span />
           )}

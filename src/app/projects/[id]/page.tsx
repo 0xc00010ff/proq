@@ -15,7 +15,7 @@ import type { Task, ExecutionMode } from '@/lib/types';
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
-  const { projects, tasksByProject, refreshTasks } = useProjects();
+  const { projects, tasksByProject, refreshTasks, setTasksByProject } = useProjects();
 
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [chatPercent, setChatPercent] = useState(60);
@@ -287,24 +287,28 @@ export default function ProjectPage() {
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
             const taskData = tasks.find((t) => t.id === taskId) || modalTask!;
-            // Save task content first
+            // Save task content while modal still shows spinner
             await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(currentData),
             });
-            // Move to in-progress via reorder — same code path as drag-drop
-            await fetch(`/api/projects/${projectId}/tasks/reorder`, {
+            // Close modal and optimistically show task in "In Progress"
+            setModalTask(null);
+            setTasksByProject((prev) => ({
+              ...prev,
+              [projectId]: (prev[projectId] || []).map((t) =>
+                t.id === taskId ? { ...t, ...currentData, status: 'in-progress' as const } : t
+              ),
+            }));
+            // Dispatch in background
+            fetch(`/api/projects/${projectId}/tasks/reorder`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 items: [{ id: taskId, order: taskData.order ?? 0, status: 'in-progress' }],
               }),
-            });
-            const freshTask = { ...taskData, ...currentData, status: 'in-progress' as const, locked: true };
-            setModalTask(null);
-            setAgentModalTask(freshTask);
-            refresh();
+            }).then(() => refresh());
           }}
         />
       )}

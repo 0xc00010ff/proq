@@ -94,6 +94,19 @@
 
 
 
+@layer components {
+  /* Design system buttons */
+  .btn-primary {
+    @apply px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors;
+    @apply text-text-chrome-active bg-zinc-800/60 border border-gunmetal-800/50;
+    @apply hover:bg-zinc-700/60;
+  }
+  .btn-secondary {
+    @apply px-3 py-1.5 text-xs font-medium rounded-md transition-colors;
+    @apply text-text-chrome hover:text-text-chrome-hover;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

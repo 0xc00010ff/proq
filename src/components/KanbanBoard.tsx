@@ -412,15 +412,16 @@ export function KanbanBoard({
       {pendingRerun && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-sm font-medium text-zinc-100 mb-2">Re-run task?</h3>
+            <h3 className="text-sm font-medium text-zinc-100 mb-2">Move back to In Progress?</h3>
             <p className="text-xs text-zinc-400 mb-5">
-              This will launch a new Claude Code agent for{' '}
-              <span className="text-zinc-200 font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>.
+              <span className="text-zinc-200 font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>{' '}
+              will return to In Progress without changes. The current agent session will continue as-is.
+              To reset and start fresh, move the task to Todo first.
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setPendingRerun(null)}
-                className="px-3 py-1.5 text-xs rounded-md border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors"
+                className="btn-secondary"
               >
                 Cancel
               </button>
@@ -434,9 +435,9 @@ export function KanbanBoard({
                     setTimeout(onRefreshTasks, 500);
                   }
                 }}
-                className="px-3 py-1.5 text-xs rounded-md bg-steel-dark text-white hover:bg-steel transition-colors"
+                className="btn-primary"
               >
-                Try Again
+                Move to In Progress
               </button>
             </div>
           </div>

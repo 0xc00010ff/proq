@@ -45,6 +45,8 @@ export interface Task {
   humanSteps?: string;
   agentLog?: string;
   dispatch?: "queued" | "starting" | "running" | null;
+  worktreePath?: string;
+  branch?: string;
   attachments?: TaskAttachment[];
   createdAt: string;
   updatedAt: string;

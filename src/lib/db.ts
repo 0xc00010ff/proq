@@ -300,7 +300,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode" | "worktreePath" | "branch">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);

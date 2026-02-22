@@ -10,6 +10,7 @@ import { CodeTab } from '@/components/CodeTab';
 import { TaskModal } from '@/components/TaskModal';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { UndoModal } from '@/components/UndoModal';
+import { ParallelModeModal } from '@/components/ParallelModeModal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
@@ -28,10 +29,36 @@ export default function ProjectPage() {
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
+  const [activeWorktreeTaskId, setActiveWorktreeTaskId] = useState<string | null>(null);
+  const [showParallelModal, setShowParallelModal] = useState(false);
+  const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
+
+  // Derive effective project for worktree view
+  const activeWorktreeTask = activeWorktreeTaskId
+    ? Object.values(columns).flat().find(t => t.id === activeWorktreeTaskId)
+    : null;
+  const effectivePath = activeWorktreeTask?.worktreePath || project?.path;
+  const effectiveProject = project && effectivePath !== project.path
+    ? { ...project, path: effectivePath! }
+    : project;
+
+  // Clear worktree view when task moves to done/todo (worktree removed)
+  useEffect(() => {
+    if (!activeWorktreeTaskId) return;
+    const task = Object.values(columns).flat().find(t => t.id === activeWorktreeTaskId);
+    if (!task || !task.worktreePath) {
+      setActiveWorktreeTaskId(null);
+    }
+  }, [columns, activeWorktreeTaskId]);
+
+  // Clear worktree view when switching projects
+  useEffect(() => {
+    setActiveWorktreeTaskId(null);
+  }, [projectId]);
 
   // Update document title with project id (slug)
   useEffect(() => {
@@ -149,12 +176,35 @@ export default function ProjectPage() {
     refresh();
   };
 
+  const hasTasksInFlight = columns['in-progress'].length > 0 || columns['verify'].length > 0;
+
   const handleExecutionModeChange = async (mode: ExecutionMode) => {
+    // Block mode switch if tasks are in-progress or verify
+    if (hasTasksInFlight) {
+      setShowModeBlockedModal(true);
+      return;
+    }
+    // Show confirmation modal when switching to parallel
+    if (mode === 'parallel' && executionMode !== 'parallel') {
+      setShowParallelModal(true);
+      return;
+    }
     setExecutionMode(mode);
     await fetch(`/api/projects/${projectId}/execution-mode`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode }),
+    });
+    refresh();
+  };
+
+  const applyParallelMode = async () => {
+    setShowParallelModal(false);
+    setExecutionMode('parallel');
+    await fetch(`/api/projects/${projectId}/execution-mode`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'parallel' }),
     });
     refresh();
   };
@@ -225,7 +275,13 @@ export default function ProjectPage() {
 
   return (
     <>
-      <TopBar project={project} activeTab={activeTab} onTabChange={handleTabChange} />
+      <TopBar
+        project={project}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        worktreeBranch={executionMode === 'parallel' ? (activeWorktreeTask?.branch || 'main') : undefined}
+        onExitWorktree={activeWorktreeTaskId ? () => setActiveWorktreeTaskId(null) : undefined}
+      />
 
       <main ref={containerRef} className="flex-1 flex flex-col overflow-hidden relative">
         {activeTab === 'project' && (
@@ -264,7 +320,7 @@ export default function ProjectPage() {
 
             <TerminalPanel
               projectId={projectId}
-              projectPath={project?.path}
+              projectPath={effectivePath}
               style={{ flexBasis: `${chatPercent}%` }}
               collapsed={terminalCollapsed}
               onToggleCollapsed={toggleTerminalCollapsed}
@@ -273,8 +329,8 @@ export default function ProjectPage() {
           </>
         )}
 
-        {activeTab === 'live' && <LiveTab project={project} />}
-        {activeTab === 'code' && <CodeTab project={project} />}
+        {activeTab === 'live' && effectiveProject && <LiveTab project={effectiveProject} />}
+        {activeTab === 'code' && effectiveProject && <CodeTab project={effectiveProject} />}
       </main>
 
       {isDragging && <div className="fixed inset-0 z-50 cursor-row-resize" />}
@@ -290,6 +346,9 @@ export default function ProjectPage() {
             await updateTask(taskId, { status: 'done' });
             setAgentModalTask(null);
           }}
+          parallelMode={executionMode === 'parallel'}
+          activeWorktreeTaskId={activeWorktreeTaskId}
+          onSwitchWorktree={(taskId) => setActiveWorktreeTaskId(taskId)}
         />
       )}
 
@@ -354,6 +413,32 @@ export default function ProjectPage() {
             refresh();
           }}
         />
+      )}
+
+      <ParallelModeModal
+        isOpen={showParallelModal}
+        onConfirm={applyParallelMode}
+        onCancel={() => setShowParallelModal(false)}
+      />
+
+      {showModeBlockedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowModeBlockedModal(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative bg-gunmetal-50 dark:bg-[#1a1a1a] border border-gunmetal-300 dark:border-zinc-800 rounded-lg p-6 max-w-sm mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-semibold text-gunmetal-900 dark:text-zinc-100 mb-3">Can't switch execution mode</h3>
+            <p className="text-xs text-gunmetal-700 dark:text-zinc-400 leading-relaxed mb-5">
+              Complete or move all in-progress and verify tasks back to Todo before switching modes.
+            </p>
+            <div className="flex justify-end">
+              <button onClick={() => setShowModeBlockedModal(false)} className="btn-primary">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

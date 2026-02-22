@@ -37,3 +37,5 @@ next-env.d.ts
 
 # local data storage (auto-created on first run)
 /data/
+
+.proq-worktrees

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { moveTask, getProject, getTask, updateTask } from "@/lib/db";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
+import { mergeWorktree, removeWorktree } from "@/lib/worktree";
 import type { TaskStatus } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
@@ -45,11 +46,29 @@ export async function PUT(request: Request, { params }: Params) {
       }
     } else if (toColumn === "todo" && prevStatus !== "todo") {
       cancelCleanup(taskId);
-      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "" });
+      // Remove worktree if task had one (no merge — work is discarded)
+      if (prevTask?.worktreePath) {
+        const projectPath = project!.path.replace(/^~/, process.env.HOME || "~");
+        removeWorktree(projectPath, prevTask.id.slice(0, 8));
+      }
+      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined });
       if (prevStatus === "in-progress") {
         await abortTask(id, taskId);
       }
     } else if (toColumn === "done" && (prevStatus === "in-progress" || prevStatus === "verify")) {
+      // Merge worktree if task has one
+      if (prevTask?.worktreePath) {
+        const projectPath = project!.path.replace(/^~/, process.env.HOME || "~");
+        const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
+        if (!result.success) {
+          // Revert to verify, explain the conflict
+          await moveTask(id, taskId, "verify", 0);
+          await updateTask(id, taskId, { findings: result.error });
+          await processQueue(id);
+          return NextResponse.json({ success: false, error: result.error });
+        }
+        await updateTask(id, taskId, { worktreePath: undefined, branch: undefined });
+      }
       scheduleCleanup(id, taskId);
     }
   }

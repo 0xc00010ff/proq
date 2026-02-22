@@ -15,6 +15,7 @@ import {
   CheckCircle2Icon,
   ClockIcon,
   PlayIcon,
+  GitBranchIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { TerminalPane } from './TerminalPane';
@@ -26,9 +27,12 @@ interface TaskAgentModalProps {
   cleanupExpiresAt?: number;
   onClose: () => void;
   onComplete?: (taskId: string) => void;
+  parallelMode?: boolean;
+  activeWorktreeTaskId?: string | null;
+  onSwitchWorktree?: (taskId: string) => void;
 }
 
-export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, onClose, onComplete }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, onClose, onComplete, parallelMode, activeWorktreeTaskId, onSwitchWorktree }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
@@ -123,57 +127,90 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Left panel: terminal or queued state (70%) ── */}
-        {isQueued ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-            <ClockIcon className="w-8 h-8 text-gunmetal-500 dark:text-zinc-600" />
-            <div>
-              <p className="text-sm font-medium text-gunmetal-600 dark:text-zinc-400">Queued</p>
-              <p className="text-xs text-gunmetal-500 dark:text-zinc-600 mt-1">
-                Waiting for the current task to finish before starting.
-              </p>
+        <div className="flex-1 min-h-0 flex flex-col">
+          {/* Worktree bar — always visible in parallel mode */}
+          {parallelMode && (
+            <div className="shrink-0 flex items-center justify-end px-3 py-2 border-b border-gunmetal-300 dark:border-zinc-800 bg-gunmetal-100/50 dark:bg-zinc-900/50">
+              <span className="flex items-center gap-1.5 text-xs text-gunmetal-500 dark:text-zinc-500">
+                <span>worktree:</span>
+                <span className={`inline-flex items-center gap-1 font-mono px-1.5 py-0.5 rounded border ${
+                  task.branch
+                    ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+                    : 'border-gunmetal-800/50 bg-zinc-800/60 text-text-chrome-active'
+                }`}>
+                  <GitBranchIcon className="w-3 h-3" />
+                  {task.branch || 'main'}
+                </span>
+              </span>
+              {task.worktreePath && task.branch ? (
+                activeWorktreeTaskId === task.id ? (
+                  <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded border border-yellow-500/30 text-yellow-400/80">
+                    Viewing this worktree
+                  </span>
+                ) : onSwitchWorktree ? (
+                  <button
+                    onClick={() => onSwitchWorktree(task.id)}
+                    className="ml-2 text-[11px] font-medium px-2 py-1 rounded border border-steel/30 text-steel hover:bg-steel/10 transition-colors"
+                  >
+                    Switch to this worktree
+                  </button>
+                ) : null
+              ) : null}
             </div>
-            <button
-              onClick={async () => {
-                setDispatching(true);
-                try {
-                  await fetch(`/api/projects/${projectId}/tasks/${task.id}/dispatch`, { method: 'POST' });
-                  onClose();
-                } catch {
-                  setDispatching(false);
-                }
-              }}
-              disabled={dispatching}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/30 rounded-md hover:bg-steel/10 transition-colors disabled:opacity-50"
-            >
-              {dispatching ? (
-                <Loader2Icon className="w-3 h-3 animate-spin" />
-              ) : (
-                <PlayIcon className="w-3 h-3" />
-              )}
-              Start Now
-            </button>
-          </div>
-        ) : showTerminal ? (
-          <div className="flex-1 relative min-h-0 flex flex-col">
-            <div className="flex-1 min-h-0">
-              <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
-            </div>
-            {countdownText && (
-              <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800 bg-[#0a0a0a]">
-                {countdownText}
+          )}
+
+          {isQueued ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
+              <ClockIcon className="w-8 h-8 text-gunmetal-500 dark:text-zinc-600" />
+              <div>
+                <p className="text-sm font-medium text-gunmetal-600 dark:text-zinc-400">Queued</p>
+                <p className="text-xs text-gunmetal-500 dark:text-zinc-600 mt-1">
+                  Waiting for the current task to finish before starting.
+                </p>
               </div>
-            )}
-          </div>
-        ) : showStaticLog ? (
-          <div className="flex-1 relative min-h-0 flex flex-col bg-black">
-            <pre className="flex-1 min-h-0 overflow-y-auto p-4 text-[12px] font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed">
-              {task.agentLog}
-            </pre>
-            <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800">
-              Session ended
+              <button
+                onClick={async () => {
+                  setDispatching(true);
+                  try {
+                    await fetch(`/api/projects/${projectId}/tasks/${task.id}/dispatch`, { method: 'POST' });
+                    onClose();
+                  } catch {
+                    setDispatching(false);
+                  }
+                }}
+                disabled={dispatching}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/30 rounded-md hover:bg-steel/10 transition-colors disabled:opacity-50"
+              >
+                {dispatching ? (
+                  <Loader2Icon className="w-3 h-3 animate-spin" />
+                ) : (
+                  <PlayIcon className="w-3 h-3" />
+                )}
+                Start Now
+              </button>
             </div>
-          </div>
-        ) : null}
+          ) : showTerminal ? (
+            <div className="flex-1 relative min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0">
+                <TerminalPane tabId={terminalTabId} visible={true} enableDrop />
+              </div>
+              {countdownText && (
+                <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800 bg-[#0a0a0a]">
+                  {countdownText}
+                </div>
+              )}
+            </div>
+          ) : showStaticLog ? (
+            <div className="flex-1 relative min-h-0 flex flex-col bg-black">
+              <pre className="flex-1 min-h-0 overflow-y-auto p-4 text-[12px] font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed">
+                {task.agentLog}
+              </pre>
+              <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800">
+                Session ended
+              </div>
+            </div>
+          ) : null}
+        </div>
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
         <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[33%] border-l border-gunmetal-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-gunmetal-50 dark:bg-[#141414]`}>

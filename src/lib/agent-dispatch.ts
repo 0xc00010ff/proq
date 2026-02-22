@@ -2,8 +2,9 @@ import { execSync } from "child_process";
 import { existsSync, writeFileSync, readFileSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { getAllProjects, getAllTasks, getExecutionMode, updateTask } from "./db";
+import { getAllProjects, getAllTasks, getExecutionMode, getTask, updateTask } from "./db";
 import { stripAnsi } from "./utils";
+import { createWorktree, removeWorktree } from "./worktree";
 import type { TaskAttachment, TaskMode } from "./types";
 
 const MC_API = "http://localhost:7331";
@@ -133,12 +134,21 @@ export async function dispatchTask(
   const terminalTabId = `task-${shortId}`;
   const tmuxSession = `mc-${shortId}`;
 
-  // Check if running in parallel mode
+  // Check if running in parallel mode — create worktree for parallel code tasks
   const executionMode = await getExecutionMode(projectId);
-  const parallelWarning =
-    executionMode === "parallel"
-      ? `\nNOTE: Multiple agents may be running on this project in parallel. When committing, only stage the specific files you changed — do not use "git add -A" or "git add .".\n`
-      : "";
+  let effectivePath = projectPath;
+
+  if (executionMode === "parallel" && mode !== "plan" && mode !== "answer") {
+    try {
+      const worktreePath = createWorktree(projectPath, shortId);
+      const branch = `proq/${shortId}`;
+      await updateTask(projectId, taskId, { worktreePath, branch });
+      effectivePath = worktreePath;
+    } catch (err) {
+      console.error(`[agent-dispatch] failed to create worktree for ${shortId}:`, err);
+      // Fall back to shared directory
+    }
+  }
 
   // Build the agent prompt
   const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
@@ -153,7 +163,6 @@ export async function dispatchTask(
   if (mode === "plan") {
     prompt = `\
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.
-${parallelWarning}
 ${heading}
 
 When completely finished, commit and signal complete:
@@ -166,14 +175,12 @@ ${callbackCurl}
     prompt = `${heading}
 
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.
-${parallelWarning}
 When completely finished, signal complete:
 ${callbackCurl}
 `;
     claudeFlags = "--dangerously-skip-permissions";
   } else {
     prompt = `${heading}
-${parallelWarning}
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
 2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
@@ -216,7 +223,7 @@ ${callbackCurl}
   const socketPath = `/tmp/proq/${tmuxSession}.sock`;
 
   // Launch via tmux with bridge — session survives server restarts, bridge exposes PTY over unix socket
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' node '${bridgePath}' '${socketPath}' '${launcherFile}'`;
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${effectivePath}' node '${bridgePath}' '${socketPath}' '${launcherFile}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });
@@ -254,6 +261,18 @@ export async function abortTask(projectId: string, taskId: string) {
   const logPath = socketPath + ".log";
   try { if (existsSync(socketPath)) unlinkSync(socketPath); } catch {}
   try { if (existsSync(logPath)) unlinkSync(logPath); } catch {}
+
+  // Clean up worktree if task had one
+  const task = await getTask(projectId, taskId);
+  if (task?.worktreePath) {
+    const projects = await getAllProjects();
+    const project = projects.find((p) => p.id === projectId);
+    if (project) {
+      const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
+      removeWorktree(projectPath, shortId);
+      await updateTask(projectId, taskId, { worktreePath: undefined, branch: undefined });
+    }
+  }
 }
 
 export function isSessionAlive(taskId: string): boolean {

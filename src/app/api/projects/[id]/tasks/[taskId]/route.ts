@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: Params) {
       if (body.status === "done") {
         scheduleCleanup(id, taskId);
       }
-      notify(`✅ *${updated.title.replace(/"/g, '\\"')}* → ${body.status}`);
+      notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → ${body.status}`);
     } else if (body.status === "done" && prevStatus === "verify") {
       scheduleCleanup(id, taskId);
     }

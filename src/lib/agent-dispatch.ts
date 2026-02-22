@@ -108,7 +108,7 @@ export function getAllCleanupTimes(): Record<string, number> {
 export async function dispatchTask(
   projectId: string,
   taskId: string,
-  taskTitle: string,
+  taskTitle: string | undefined,
   taskDescription: string,
   mode?: TaskMode,
   attachments?: TaskAttachment[],
@@ -145,6 +145,8 @@ export async function dispatchTask(
   -H 'Content-Type: application/json' \\
   -d '{"status":"verify","dispatch":null,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
 
+  const heading = taskTitle ? `# ${taskTitle}\n\n${taskDescription}` : taskDescription;
+
   let prompt: string;
   let claudeFlags: string;
 
@@ -152,9 +154,7 @@ export async function dispatchTask(
     prompt = `\
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.
 ${parallelWarning}
-# ${taskTitle}
-
-${taskDescription}
+${heading}
 
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
@@ -163,9 +163,7 @@ ${callbackCurl}
 `;
     claudeFlags = "--dangerously-skip-permissions";
   } else if (mode === "answer") {
-    prompt = `# ${taskTitle}
-
-${taskDescription}
+    prompt = `${heading}
 
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.
 ${parallelWarning}
@@ -174,9 +172,7 @@ ${callbackCurl}
 `;
     claudeFlags = "--dangerously-skip-permissions";
   } else {
-    prompt = `# ${taskTitle}
-
-${taskDescription}
+    prompt = `${heading}
 ${parallelWarning}
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
@@ -228,7 +224,7 @@ ${callbackCurl}
       `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`,
     );
 
-    notify(`🚀 *${taskTitle.replace(/"/g, '\\"')}* dispatched`);
+    notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched`);
 
     return terminalTabId;
   } catch (err) {
@@ -319,7 +315,7 @@ export async function processQueue(projectId: string): Promise<void> {
     if (mode === "sequential") {
       if (running.length === 0 && pending.length > 0) {
         const next = pending[0];
-        console.log(`[processQueue] launching ${next.id.slice(0, 8)} "${next.title}"`);
+        console.log(`[processQueue] launching ${next.id.slice(0, 8)} "${next.title || next.description.slice(0, 40)}"`);
         if (next.dispatch !== "starting") {
           await updateTask(projectId, next.id, { dispatch: "starting" });
         }
@@ -343,7 +339,7 @@ export async function processQueue(projectId: string): Promise<void> {
     } else {
       // parallel: launch all pending
       for (const task of pending) {
-        console.log(`[processQueue] launching ${task.id.slice(0, 8)} "${task.title}" (parallel)`);
+        console.log(`[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (parallel)`);
         if (task.dispatch !== "starting") {
           await updateTask(projectId, task.id, { dispatch: "starting" });
         }

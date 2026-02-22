@@ -30,16 +30,12 @@ if (fsExists(oldStateDir) && !fsExists(newProjectsDir)) {
 // Ensure data directories exist on first access (idempotent)
 mkdirSync(path.join(DATA_DIR, "projects"), { recursive: true });
 
-// ── Singleton caches (attached to globalThis to survive HMR) ──
+// ── Write locks (attached to globalThis to survive HMR) ──
 const g = globalThis as unknown as {
-  __proqWorkspaceCache?: WorkspaceData | null;
-  __proqProjectCache?: Map<string, ProjectState>;
   __proqWriteLocks?: Map<string, Promise<void>>;
 };
-if (!g.__proqProjectCache) g.__proqProjectCache = new Map();
 if (!g.__proqWriteLocks) g.__proqWriteLocks = new Map();
 
-const projectCache = g.__proqProjectCache;
 const writeLocks = g.__proqWriteLocks;
 
 async function withWriteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
@@ -77,59 +73,50 @@ function writeJSON(filePath: string, data: unknown): void {
 
 // ── Workspace DB (projects list) ─────────────────────────
 function getWorkspaceData(): WorkspaceData {
-  if (!g.__proqWorkspaceCache) {
-    const filePath = path.join(DATA_DIR, "workspace.json");
-    g.__proqWorkspaceCache = readJSON<WorkspaceData>(filePath, { projects: [] });
-  }
-  return g.__proqWorkspaceCache;
+  const filePath = path.join(DATA_DIR, "workspace.json");
+  return readJSON<WorkspaceData>(filePath, { projects: [] });
 }
 
-function writeWorkspace(): void {
+function writeWorkspace(ws: WorkspaceData): void {
   const filePath = path.join(DATA_DIR, "workspace.json");
-  writeJSON(filePath, g.__proqWorkspaceCache);
+  writeJSON(filePath, ws);
 }
 
 // ── Project DB (per-project columns + chat) ────────────────
 function getProjectData(projectId: string): ProjectState {
-  let data = projectCache.get(projectId);
-  if (!data) {
-    const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
-    const raw = readJSON<ProjectState & { tasks?: Task[] }>(filePath, {
-      columns: emptyColumns(),
-      chatLog: [],
-    });
+  const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
+  const raw = readJSON<ProjectState & { tasks?: Task[] }>(filePath, {
+    columns: emptyColumns(),
+    chatLog: [],
+  });
 
-    // Auto-migration: old flat tasks[] → column-oriented
-    if (raw.tasks && !raw.columns) {
-      const columns = emptyColumns();
-      const sorted = [...raw.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      for (const task of sorted) {
-        const col = columns[task.status];
-        if (col) {
-          delete task.order;
-          col.push(task);
-        }
+  // Auto-migration: old flat tasks[] → column-oriented
+  if (raw.tasks && !raw.columns) {
+    const columns = emptyColumns();
+    const sorted = [...raw.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    for (const task of sorted) {
+      const col = columns[task.status];
+      if (col) {
+        delete task.order;
+        col.push(task);
       }
-      raw.columns = columns;
-      delete raw.tasks;
-      // Write migrated data back immediately
-      writeJSON(filePath, raw);
     }
-
-    // Ensure columns exist even if file was empty
-    if (!raw.columns) raw.columns = emptyColumns();
-    if (!raw.chatLog) raw.chatLog = [];
-
-    data = raw as ProjectState;
-    projectCache.set(projectId, data);
+    raw.columns = columns;
+    delete raw.tasks;
+    // Write migrated data back immediately
+    writeJSON(filePath, raw);
   }
-  return data;
+
+  // Ensure columns exist even if file was empty
+  if (!raw.columns) raw.columns = emptyColumns();
+  if (!raw.chatLog) raw.chatLog = [];
+
+  return raw as ProjectState;
 }
 
-function writeProject(projectId: string): void {
+function writeProject(projectId: string, data: ProjectState): void {
   const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
-  const data = projectCache.get(projectId);
-  if (data) writeJSON(filePath, data);
+  writeJSON(filePath, data);
 }
 
 // Helper: find a task across all columns, returns [task, columnKey, index]
@@ -177,7 +164,7 @@ export async function createProject(
       createdAt: new Date().toISOString(),
     };
     ws.projects.push(project);
-    writeWorkspace();
+    writeWorkspace(ws);
     return project;
   });
 }
@@ -204,18 +191,11 @@ export async function updateProject(
         renameSync(oldFile, newFile);
       }
 
-      // Update cache
-      const cached = projectCache.get(id);
-      if (cached) {
-        projectCache.delete(id);
-        projectCache.set(newId, cached);
-      }
-
       project.id = newId;
     }
 
     Object.assign(project, data);
-    writeWorkspace();
+    writeWorkspace(ws);
     return project;
   });
 }
@@ -226,7 +206,7 @@ export async function deleteProject(id: string): Promise<boolean> {
     const idx = ws.projects.findIndex((p) => p.id === id);
     if (idx === -1) return false;
     ws.projects.splice(idx, 1);
-    writeWorkspace();
+    writeWorkspace(ws);
     return true;
   });
 }
@@ -240,7 +220,7 @@ export async function reorderProjects(
       const project = ws.projects.find((p) => p.id === orderedIds[i]);
       if (project) project.order = i;
     }
-    writeWorkspace();
+    writeWorkspace(ws);
     return true;
   });
 }
@@ -265,14 +245,14 @@ export async function getTask(
 
 export async function createTask(
   projectId: string,
-  data: Pick<Task, "title" | "description"> & { priority?: Task["priority"] }
+  data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"] }
 ): Promise<Task> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
     const now = new Date().toISOString();
     const task: Task = {
       id: uuidv4(),
-      title: data.title,
+      title: data.title || "",
       description: data.description,
       status: "todo",
       priority: data.priority,
@@ -280,7 +260,7 @@ export async function createTask(
       updatedAt: now,
     };
     state.columns.todo.unshift(task);
-    writeProject(projectId);
+    writeProject(projectId, state);
     return task;
   });
 }
@@ -310,7 +290,7 @@ export async function moveTask(
     const clampedIndex = Math.max(0, Math.min(toIndex, targetCol.length));
     targetCol.splice(clampedIndex, 0, task);
 
-    writeProject(projectId);
+    writeProject(projectId, state);
     return task;
   });
 }
@@ -335,7 +315,7 @@ export async function updateTask(
     }
 
     Object.assign(task, data, { updatedAt: new Date().toISOString() });
-    writeProject(projectId);
+    writeProject(projectId, state);
     return task;
   });
 }
@@ -351,7 +331,7 @@ export async function deleteTask(
 
     const [, column, index] = found;
     state.columns[column].splice(index, 1);
-    writeProject(projectId);
+    writeProject(projectId, state);
     return true;
   });
 }
@@ -369,7 +349,7 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
     data.executionMode = mode;
-    writeProject(projectId);
+    writeProject(projectId, data);
   });
 }
 
@@ -386,7 +366,7 @@ export async function setTerminalOpen(projectId: string, open: boolean): Promise
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
     data.terminalOpen = open;
-    writeProject(projectId);
+    writeProject(projectId, data);
   });
 }
 
@@ -400,7 +380,7 @@ export async function setTerminalTabs(projectId: string, tabs: import("./types")
     const data = getProjectData(projectId);
     data.terminalTabs = tabs;
     data.terminalActiveTabId = activeTabId;
-    writeProject(projectId);
+    writeProject(projectId, data);
   });
 }
 
@@ -426,7 +406,7 @@ export async function addChatMessage(
       toolCalls: data.toolCalls,
     };
     state.chatLog.push(entry);
-    writeProject(projectId);
+    writeProject(projectId, state);
     return entry;
   });
 }

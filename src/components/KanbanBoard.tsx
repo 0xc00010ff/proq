@@ -279,7 +279,7 @@ export function KanbanBoard({
     if (fromColumn && (fromColumn === 'verify' || fromColumn === 'done') && toColumn === 'in-progress') {
       const task = localColumns[toColumn][toIndex];
       setLocalColumns(null);
-      setPendingRerun({ taskId: activeId, toColumn, toIndex, taskTitle: task.title });
+      setPendingRerun({ taskId: activeId, toColumn, toIndex, taskTitle: task.title || task.description.slice(0, 40) });
       return;
     }
 

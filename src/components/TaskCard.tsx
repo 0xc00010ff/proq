@@ -52,12 +52,18 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
 
       <div className="p-3 min-h-[80px]">
         <div className="flex items-start justify-between pr-6">
-          <h4 className="text-sm text-gunmetal-800 dark:text-zinc-200 leading-snug font-normal">
-            {task.title}
-          </h4>
+          {task.title ? (
+            <h4 className="text-sm text-gunmetal-800 dark:text-zinc-200 leading-snug font-normal">
+              {task.title}
+            </h4>
+          ) : (
+            <p className="text-sm text-gunmetal-800 dark:text-zinc-200 leading-snug font-normal line-clamp-2">
+              {task.description}
+            </p>
+          )}
         </div>
 
-        {task.description && (
+        {task.title && task.description && (
           <p className="text-xs text-zinc-500 leading-relaxed mt-2 line-clamp-2">
             {task.description}
           </p>

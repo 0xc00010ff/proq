@@ -30,7 +30,7 @@ function formatSize(bytes: number): string {
 }
 
 export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
-  const [title, setTitle] = useState(task.title);
+  const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
   const [mode, setMode] = useState<TaskMode>(task.mode || 'code');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
@@ -44,7 +44,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTitle(task.title);
+    setTitle(task.title || '');
     setDescription(task.description);
     setMode(task.mode || 'code');
     setAttachments(task.attachments || []);
@@ -52,7 +52,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => titleRef.current?.focus(), 50);
+      setTimeout(() => descriptionRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
@@ -106,7 +106,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   useEffect(() => {
     if (!isOpen || !onMoveToInProgress) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && e.metaKey && title.trim() && !dispatching) {
+      if (e.key === 'Enter' && e.metaKey && description.trim() && !dispatching) {
         e.preventDefault();
         if (saveTimeout.current) clearTimeout(saveTimeout.current);
         setDispatching(true);
@@ -353,7 +353,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 setDispatching(true);
                 await onMoveToInProgress(task.id, { title, description, attachments, mode });
               }}
-              disabled={!title.trim() || dispatching}
+              disabled={!description.trim() || dispatching}
               className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium text-steel/80 border-l border-border-default transition-colors ${dispatching ? 'pointer-events-none' : 'hover:text-steel hover:border-steel/50 hover:bg-steel/10 disabled:opacity-30 disabled:pointer-events-none'}`}
             >
               {dispatching ? (

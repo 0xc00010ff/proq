@@ -35,7 +35,7 @@ export type TaskMode = 'code' | 'plan' | 'answer';
 
 export interface Task {
   id: string;
-  title: string;
+  title?: string;
   description: string;
   status: TaskStatus;
   priority?: 'low' | 'medium' | 'high';

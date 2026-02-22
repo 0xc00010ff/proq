@@ -390,15 +390,16 @@ export async function setTerminalOpen(projectId: string, open: boolean): Promise
   });
 }
 
-export async function getTerminalTabs(projectId: string): Promise<import("./types").TerminalTabInfo[]> {
+export async function getTerminalTabs(projectId: string): Promise<{ tabs: import("./types").TerminalTabInfo[]; activeTabId?: string }> {
   const data = getProjectData(projectId);
-  return data.terminalTabs ?? [];
+  return { tabs: data.terminalTabs ?? [], activeTabId: data.terminalActiveTabId };
 }
 
-export async function setTerminalTabs(projectId: string, tabs: import("./types").TerminalTabInfo[]): Promise<void> {
+export async function setTerminalTabs(projectId: string, tabs: import("./types").TerminalTabInfo[], activeTabId?: string): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
     data.terminalTabs = tabs;
+    data.terminalActiveTabId = activeTabId;
     writeProject(projectId);
   });
 }

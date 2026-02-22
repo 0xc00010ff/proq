@@ -86,6 +86,7 @@ export interface ProjectState {
   executionMode?: ExecutionMode;
   terminalOpen?: boolean;
   terminalTabs?: TerminalTabInfo[];
+  terminalActiveTabId?: string;
   // Legacy field — present only in unmigrated files
   tasks?: Task[];
 }

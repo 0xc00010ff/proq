@@ -51,7 +51,7 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const hydratedSet = useRef<Set<string>>(new Set());
 
-  // Persist shell tabs to server (debounced)
+  // Persist shell tabs + active tab to server (debounced)
   const persistTabs = useCallback((projectId: string, ps: ProjectTerminalState) => {
     if (saveTimers.current[projectId]) clearTimeout(saveTimers.current[projectId]);
     saveTimers.current[projectId] = setTimeout(() => {
@@ -59,7 +59,7 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
       fetch(`/api/projects/${projectId}/terminal-tabs`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tabs }),
+        body: JSON.stringify({ tabs, activeTabId: ps.activeTabId }),
       }).catch(() => {});
     }, 300);
   }, []);
@@ -73,6 +73,7 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
       .then((res) => res.json())
       .then((data) => {
         const saved: Array<{ id: string; label: string }> = data.tabs || [];
+        const savedActiveTabId: string | undefined = data.activeTabId;
         setState((prev) => {
           const existing = prev[projectId];
           // If tabs were already added (e.g. task tabs opened before hydration), merge
@@ -86,9 +87,11 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
           }
 
           const allTabs = [...shellTabs, ...taskTabs];
-          const activeTabId = existing?.activeTabId && allTabs.find((t) => t.id === existing.activeTabId)
-            ? existing.activeTabId
-            : allTabs[0].id;
+          // Restore saved active tab if it still exists, otherwise fall back
+          const activeTabId =
+            (savedActiveTabId && allTabs.find((t) => t.id === savedActiveTabId) ? savedActiveTabId : null)
+            ?? (existing?.activeTabId && allTabs.find((t) => t.id === existing.activeTabId) ? existing.activeTabId : null)
+            ?? allTabs[0].id;
 
           return { ...prev, [projectId]: { tabs: allTabs, activeTabId, hydrated: true } };
         });
@@ -117,9 +120,11 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
   const setActiveTabId = useCallback((projectId: string, tabId: string) => {
     setState((prev) => {
       const ps = getOrCreate(prev, projectId);
-      return { ...prev, [projectId]: { ...ps, activeTabId: tabId } };
+      const next = { ...prev, [projectId]: { ...ps, activeTabId: tabId } };
+      persistTabs(projectId, next[projectId]);
+      return next;
     });
-  }, []);
+  }, [persistTabs]);
 
   const openTab = useCallback(
     (projectId: string, tabId: string, label: string, type: 'shell' | 'task') => {

@@ -52,9 +52,10 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => descriptionRef.current?.focus(), 50);
+      const isNew = !task.title && !task.description;
+      setTimeout(() => (isNew ? titleRef : descriptionRef).current?.focus(), 50);
     }
-  }, [isOpen]);
+  }, [isOpen, task.title, task.description]);
 
   const autosave = useCallback(
     (newTitle: string, newDesc: string, newAttachments: TaskAttachment[], newMode?: TaskMode) => {

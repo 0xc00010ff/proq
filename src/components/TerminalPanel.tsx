@@ -153,7 +153,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
             onMouseDown={(e) => onResizeStart?.(e)}
             className="absolute inset-x-0 top-0 h-[5px] -translate-y-1/2 cursor-row-resize z-20 group/edge"
           >
-            <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-gold transition-colors" />
+            <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-gunmetal-800 transition-colors" />
           </div>
         )}
         <div

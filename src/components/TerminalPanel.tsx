@@ -147,8 +147,8 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
     >
       {/* Tab Bar — also serves as the resize drag handle */}
       <div
-        className={`h-12 flex items-stretch bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-visible shrink-0 border-t border-zinc-200 dark:border-zinc-800 ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab'
+        className={`h-12 flex items-stretch bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-visible shrink-0 border-t hover:border-gunmetal-800 dark:hover:border-gunmetal-800 ${
+          isDragging ? 'cursor-grabbing border-gunmetal-800 dark:border-gunmetal-800' : 'cursor-grab border-zinc-200 dark:border-zinc-800'
         }`}
         onMouseDown={(e) => {
           // Don't start resize if clicking on interactive elements

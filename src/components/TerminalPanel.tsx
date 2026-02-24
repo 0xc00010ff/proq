@@ -146,17 +146,27 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}
-      <div
-        className={`h-12 flex items-stretch bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-visible shrink-0 border-t hover:border-gunmetal-800 dark:hover:border-gunmetal-800 ${
-          isDragging ? 'cursor-grabbing border-gunmetal-800 dark:border-gunmetal-800' : 'cursor-grab border-zinc-200 dark:border-zinc-800'
-        }`}
-        onMouseDown={(e) => {
-          // Don't start resize if clicking on interactive elements
-          const target = e.target as HTMLElement;
-          if (target.closest('button') || target.closest('[data-clickable]')) return;
-          onResizeStart?.(e);
-        }}
-      >
+      <div className="relative shrink-0">
+        {/* Edge resize strip — sits over the top border */}
+        {!collapsed && (
+          <div
+            onMouseDown={(e) => onResizeStart?.(e)}
+            className="absolute inset-x-0 top-0 h-[5px] -translate-y-1/2 cursor-row-resize z-20 group/edge"
+          >
+            <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-gold transition-colors" />
+          </div>
+        )}
+        <div
+          className={`h-12 flex items-stretch bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-visible border-t border-zinc-200 dark:border-zinc-800 ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          onMouseDown={(e) => {
+            // Don't start resize if clicking on interactive elements
+            const target = e.target as HTMLElement;
+            if (target.closest('button') || target.closest('[data-clickable]')) return;
+            onResizeStart?.(e);
+          }}
+        >
         <button
           onClick={onToggleCollapsed}
           className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30 shrink-0"
@@ -262,6 +272,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
 
         {/* Spacer — fills remaining space for grab target */}
         <div className="flex-1" />
+        </div>
       </div>
 
       {/* Terminal Panes — each manages its own xterm lifecycle */}

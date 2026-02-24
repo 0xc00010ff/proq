@@ -48,7 +48,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     setDescription(task.description);
     setMode(task.mode || 'code');
     setAttachments(task.attachments || []);
-  }, [task]);
+  }, [task.id]);
 
   useEffect(() => {
     if (isOpen) {

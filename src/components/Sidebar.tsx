@@ -377,13 +377,17 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   return (
     <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0">
       {/* Header */}
-      <div className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo cursor-default hover:bg-gunmetal-100/60 dark:hover:bg-zinc-800/40 transition-colors">
+      <Link
+        href="/settings"
+        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-gunmetal-100/60 dark:hover:bg-zinc-800/40 transition-colors
+          ${pathname === '/settings' ? 'bg-gunmetal-300 dark:bg-zinc-800/50' : ''}`}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/proq-logo-vector.svg" alt="proq" width={12} height={12} className="translate-y-[3px]" />
         <span className="text-lg font-[var(--font-gemunu-libre)] text-gunmetal-900 dark:text-zinc-100 lowercase" style={{ fontFamily: 'var(--font-gemunu-libre)' }}>
           proq
         </span>
-      </div>
+      </Link>
 
       {/* Main Chat Item */}
       <Link

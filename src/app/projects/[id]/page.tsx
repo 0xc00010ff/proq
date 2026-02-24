@@ -231,6 +231,10 @@ export default function ProjectPage() {
       const rect = containerRef.current.getBoundingClientRect();
       const y = e.clientY - rect.top;
       const percent = ((rect.height - y) / rect.height) * 100;
+      // Drag up from closed state → expand
+      if (terminalCollapsed && percent > 5) {
+        toggleTerminalCollapsed();
+      }
       // Allow dragging down to 3% so snap-to-close is visible
       setChatPercent(Math.min(85, Math.max(3, percent)));
     };
@@ -253,7 +257,7 @@ export default function ProjectPage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, toggleTerminalCollapsed]);
+  }, [isDragging, terminalCollapsed, toggleTerminalCollapsed]);
 
   if (!project) {
     return (

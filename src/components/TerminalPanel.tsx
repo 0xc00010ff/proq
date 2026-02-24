@@ -176,7 +176,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
                 setRenamingTabId(tab.id);
                 setRenameValue(tab.label);
               }}
-              className={`relative flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors ${
+              className={`relative flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors min-w-[100px] ${
                 activeTabId === tab.id
                   ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
                   : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30'

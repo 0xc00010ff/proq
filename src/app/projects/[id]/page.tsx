@@ -11,6 +11,7 @@ import { TaskModal } from '@/components/TaskModal';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { UndoModal } from '@/components/UndoModal';
 import { ParallelModeModal } from '@/components/ParallelModeModal';
+import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
@@ -393,25 +394,13 @@ export default function ProjectPage() {
         onCancel={() => setShowParallelModal(false)}
       />
 
-      {showModeBlockedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowModeBlockedModal(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div
-            className="relative bg-gunmetal-50 dark:bg-[#1a1a1a] border border-gunmetal-300 dark:border-zinc-800 rounded-lg p-6 max-w-sm mx-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-semibold text-gunmetal-900 dark:text-zinc-100 mb-3">Can't switch execution mode</h3>
-            <p className="text-xs text-gunmetal-700 dark:text-zinc-400 leading-relaxed mb-5">
-              Complete or move all in-progress and verify tasks back to Todo before switching modes.
-            </p>
-            <div className="flex justify-end">
-              <button onClick={() => setShowModeBlockedModal(false)} className="btn-primary">
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertModal
+        isOpen={showModeBlockedModal}
+        onClose={() => setShowModeBlockedModal(false)}
+        title="Can't switch execution mode"
+      >
+        Complete or move all in-progress and verify tasks back to Todo before switching modes.
+      </AlertModal>
     </>
   );
 }

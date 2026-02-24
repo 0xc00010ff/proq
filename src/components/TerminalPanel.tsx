@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { Plus, X, TerminalIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, TerminalIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTerminalTabs, type TerminalTab } from './TerminalTabsProvider';
 import { TerminalPane } from './TerminalPane';
@@ -54,8 +54,13 @@ function useCleanupCountdown(expiresAt: number | undefined): string | null {
 }
 
 export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, cleanupTimes, onResizeStart, isDragging }: TerminalPanelProps) {
-  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, hydrateProject } = useTerminalTabs();
+  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, hydrateProject } = useTerminalTabs();
   const panelRef = useRef<HTMLDivElement>(null);
+  const [menuTabId, setMenuTabId] = useState<string | null>(null);
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   // Hydrate persisted shell tabs on mount
   useEffect(() => { hydrateProject(projectId); }, [projectId, hydrateProject]);
@@ -85,6 +90,31 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
       document.head.appendChild(link);
     }
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!menuTabId) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuTabId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuTabId]);
+
+  // Focus rename input when it appears
+  useEffect(() => {
+    if (renamingTabId) renameInputRef.current?.focus();
+  }, [renamingTabId]);
+
+  const submitRename = useCallback(() => {
+    if (renamingTabId && renameValue.trim()) {
+      renameTab(projectId, renamingTabId, renameValue.trim());
+    }
+    setRenamingTabId(null);
+    setRenameValue('');
+  }, [renamingTabId, renameValue, renameTab, projectId]);
 
   const addShellTab = useCallback(async () => {
     const id = `shell-${uuidv4().slice(0, 8)}`;
@@ -135,34 +165,83 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
           {collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTabId(projectId, tab.id);
-              if (collapsed) onToggleCollapsed();
-            }}
-            className={`flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors shrink-0 ${
-              activeTabId === tab.id
-                ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
-                : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30'
-            }`}
-          >
-            <TerminalIcon className="w-3 h-3" />
-            <span className="max-w-[120px] truncate">
-              {tab.status === 'done' ? '\u2705 ' : ''}
-              {tab.label}
-            </span>
-            <span
-              data-clickable
+          <div key={tab.id} className="flex items-stretch shrink-0 relative">
+            <button
+              onClick={() => {
+                setActiveTabId(projectId, tab.id);
+                if (collapsed) onToggleCollapsed();
+              }}
+              className={`flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors ${
+                activeTabId === tab.id
+                  ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
+                  : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30'
+              }`}
+            >
+              <TerminalIcon className="w-3 h-3" />
+              {renamingTabId === tab.id ? (
+                <input
+                  ref={renameInputRef}
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitRename();
+                    if (e.key === 'Escape') { setRenamingTabId(null); setRenameValue(''); }
+                  }}
+                  onBlur={submitRename}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border border-zinc-600 rounded px-1 py-0 text-xs w-24 outline-none focus:border-zinc-400"
+                />
+              ) : (
+                <span className="max-w-[120px] truncate">
+                  {tab.status === 'done' ? '\u2705 ' : ''}
+                  {tab.label}
+                </span>
+              )}
+            </button>
+            <button
               onClick={(e) => {
                 e.stopPropagation();
-                removeTab(tab.id);
+                setMenuTabId(menuTabId === tab.id ? null : tab.id);
               }}
-              className="ml-1 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 cursor-pointer"
+              className={`flex items-center justify-center px-1.5 self-stretch text-zinc-500 hover:text-zinc-300 transition-colors ${
+                activeTabId === tab.id
+                  ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60'
+                  : 'hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30'
+              }`}
             >
-              <X className="w-3 h-3" />
-            </span>
-          </button>
+              <MoreHorizontal className="w-3.5 h-3.5" />
+            </button>
+            {menuTabId === tab.id && (
+              <div
+                ref={menuRef}
+                className="absolute left-0 top-full mt-1 w-40 bg-gunmetal-50 dark:bg-zinc-800 border border-gunmetal-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1"
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuTabId(null);
+                    setRenamingTabId(tab.id);
+                    setRenameValue(tab.label);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-sm text-gunmetal-700 dark:text-zinc-300 hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+                >
+                  <PencilIcon className="w-3.5 h-3.5" />
+                  Rename
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuTabId(null);
+                    removeTab(tab.id);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Kill Terminal
+                </button>
+              </div>
+            )}
+          </div>
         ))}
 
         <button

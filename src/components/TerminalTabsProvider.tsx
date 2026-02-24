@@ -21,6 +21,7 @@ interface TerminalTabsContextValue {
   setActiveTabId(projectId: string, tabId: string): void;
   openTab(projectId: string, tabId: string, label: string, type: 'shell' | 'task'): void;
   closeTab(projectId: string, tabId: string): void;
+  renameTab(projectId: string, tabId: string, label: string): void;
   markTabDone(projectId: string, tabId: string): void;
   hydrateProject(projectId: string): void;
 }
@@ -173,6 +174,23 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
     });
   }, [persistTabs]);
 
+  const renameTab = useCallback((projectId: string, tabId: string, label: string) => {
+    setState((prev) => {
+      const ps = getOrCreate(prev, projectId);
+      const next = {
+        ...prev,
+        [projectId]: {
+          ...ps,
+          tabs: ps.tabs.map((t) =>
+            t.id === tabId ? { ...t, label } : t
+          ),
+        },
+      };
+      persistTabs(projectId, next[projectId]);
+      return next;
+    });
+  }, [persistTabs]);
+
   const markTabDone = useCallback((projectId: string, tabId: string) => {
     setState((prev) => {
       const ps = getOrCreate(prev, projectId);
@@ -190,7 +208,7 @@ export function TerminalTabsProvider({ children }: { children: React.ReactNode }
 
   return (
     <TerminalTabsContext.Provider
-      value={{ getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, markTabDone, hydrateProject }}
+      value={{ getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, markTabDone, hydrateProject }}
     >
       {children}
     </TerminalTabsContext.Provider>

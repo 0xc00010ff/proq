@@ -24,7 +24,7 @@ export function UndoModal({ task, column, isOpen, onRestore, onDiscard }: UndoMo
       confirmLabel="Restore"
       cancelLabel="Discard"
     >
-      <p className="text-sm text-gunmetal-800 dark:text-zinc-200">
+      <p className="text-sm text-bronze-800 dark:text-zinc-200">
         Restore &ldquo;<span className="font-medium">{label}</span>&rdquo; to <span className="font-medium">{column}</span>?
       </p>
     </ConfirmModal>

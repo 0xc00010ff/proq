@@ -44,14 +44,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-screen w-full bg-surface-base text-gunmetal-900 dark:text-zinc-100 items-center justify-center">
+      <div className="flex h-screen w-full bg-surface-base text-bronze-900 dark:text-zinc-100 items-center justify-center">
         <div className="text-zinc-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-surface-base text-gunmetal-900 dark:text-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-surface-base text-bronze-900 dark:text-zinc-100 overflow-hidden font-sans">
       <Sidebar
         onAddProject={handleAddProject}
         onMissingPath={setMissingProject}

@@ -80,7 +80,7 @@ function DroppableColumn({
         isOver
           ? isInProgress
             ? 'bg-steel/5 dark:bg-steel/5 ring-2 ring-steel/20'
-            : 'bg-gunmetal-200/50 dark:bg-zinc-900/50 ring-2 ring-gunmetal-400/30 dark:ring-gunmetal-700/30'
+            : 'bg-bronze-200/50 dark:bg-zinc-900/50 ring-2 ring-bronze-400/30 dark:ring-bronze-700/30'
           : 'bg-transparent'
       }`}
     >
@@ -401,7 +401,7 @@ export function KanbanBoard({
 
                     {colTasks.length === 0 && (
                       <div className="h-24 border border-dashed border-border-default rounded-lg flex items-center justify-center">
-                        <span className="text-xs text-gunmetal-500 dark:text-zinc-700">Empty</span>
+                        <span className="text-xs text-bronze-500 dark:text-zinc-700">Empty</span>
                       </div>
                     )}
 

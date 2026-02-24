@@ -253,7 +253,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
 
   return (
     <div
-      className="w-full flex flex-col bg-gunmetal-100 dark:bg-black/40 flex-shrink-0"
+      className="w-full flex flex-col bg-bronze-100 dark:bg-black/40 flex-shrink-0"
       style={{ minHeight: 0, ...style }}
     >
       {/* Messages */}
@@ -274,10 +274,10 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
             ) : (
               <div className="flex items-baseline gap-2">
                 <div className="inline-flex items-baseline gap-2 bg-zinc-800/50 rounded px-2.5 py-1">
-                  <span className="text-xs font-bold text-gunmetal-500 shrink-0">{'\u276F'}</span>
+                  <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
                   <p className="text-sm leading-relaxed text-zinc-300">{msg.message}</p>
                 </div>
-                <span className="text-[10px] text-gunmetal-500 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
+                <span className="text-[10px] text-bronze-500 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
                   {formatTimestamp(msg.timestamp)}
                 </span>
               </div>
@@ -315,16 +315,16 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
       </div>
 
       {/* Input */}
-      <div className="px-6 py-5 border-t border-gunmetal-300/60 dark:border-zinc-800/60 bg-gunmetal-200/20 dark:bg-black/20">
+      <div className="px-6 py-5 border-t border-bronze-300/60 dark:border-zinc-800/60 bg-bronze-200/20 dark:bg-black/20">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <span className="text-gunmetal-500 text-sm font-bold select-none">{'\u276F'}</span>
+          <span className="text-bronze-500 text-sm font-bold select-none">{'\u276F'}</span>
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={isLoading ? "waiting for response..." : "message..."}
             disabled={isLoading}
-            className="flex-1 bg-transparent text-sm text-gunmetal-800 dark:text-zinc-200 placeholder:text-gunmetal-500 dark:placeholder:text-zinc-700 focus:outline-none caret-steel disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-bronze-800 dark:text-zinc-200 placeholder:text-bronze-500 dark:placeholder:text-zinc-700 focus:outline-none caret-steel disabled:opacity-50"
           />
           <button
             type="submit"

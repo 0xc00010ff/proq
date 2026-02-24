@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
   	extend: {
   		colors: {
-  			gunmetal: {
+  			bronze: {
   				50: '#faf7f1',
   				100: '#f5f0e6',
   				200: '#ede7db',

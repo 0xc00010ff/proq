@@ -84,10 +84,10 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
     <div>
       <button
         onClick={handleClick}
-        className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[13px] hover:bg-gunmetal-200/60 dark:hover:bg-zinc-800/60 rounded-sm transition-colors ${
+        className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[13px] hover:bg-bronze-200/60 dark:hover:bg-zinc-800/60 rounded-sm transition-colors ${
           isSelected
             ? 'bg-steel/15 text-steel hover:bg-steel/20 dark:hover:bg-steel/20'
-            : 'text-gunmetal-800 dark:text-zinc-300'
+            : 'text-bronze-800 dark:text-zinc-300'
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >

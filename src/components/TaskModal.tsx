@@ -198,7 +198,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-gunmetal-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors overflow-hidden ${isDragOver ? 'border-steel/50' : 'border-gunmetal-300 dark:border-zinc-800'}`}
+        className={`relative w-full max-w-2xl bg-bronze-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors overflow-hidden ${isDragOver ? 'border-steel/50' : 'border-bronze-300 dark:border-zinc-800'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -231,7 +231,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               >
                 {mode === value && (
                   <div
-                    className="absolute inset-0 bg-gunmetal-50 dark:bg-zinc-800/60 rounded border border-gunmetal-400/50 dark:border-gunmetal-800/50 shadow-sm"
+                    className="absolute inset-0 bg-bronze-50 dark:bg-zinc-800/60 rounded border border-bronze-400/50 dark:border-bronze-800/50 shadow-sm"
                     style={{ zIndex: -1 }}
                   />
                 )}
@@ -251,7 +251,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 descriptionRef.current?.focus();
               }
             }}
-            className="w-full bg-transparent text-xl font-semibold text-gunmetal-900 dark:text-zinc-100 placeholder-gunmetal-500 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
+            className="w-full bg-transparent text-xl font-semibold text-bronze-900 dark:text-zinc-100 placeholder-bronze-500 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
             placeholder="Untitled"
           />
           <textarea
@@ -268,7 +268,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 }
               }
             }}
-            className="w-full min-h-[280px] bg-transparent text-sm text-gunmetal-700 dark:text-zinc-400 placeholder-gunmetal-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
+            className="w-full min-h-[280px] bg-transparent text-sm text-bronze-700 dark:text-zinc-400 placeholder-bronze-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
             placeholder="Write something..."
           />
         </div>
@@ -290,7 +290,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               return isImage && att.dataUrl ? (
                 <div
                   key={att.id}
-                  className="relative group rounded-md overflow-hidden border border-gunmetal-400/50 dark:border-zinc-700/50 bg-gunmetal-200/60 dark:bg-zinc-800/60 cursor-pointer"
+                  className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60 cursor-pointer"
                   onClick={() => openDataUrl(att.dataUrl!)}
                 >
                   <img
@@ -313,7 +313,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               ) : (
                 <div
                   key={att.id}
-                  className="flex items-center gap-2 bg-gunmetal-200/60 dark:bg-zinc-800/60 border border-gunmetal-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group cursor-pointer"
+                  className="flex items-center gap-2 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group cursor-pointer"
                   onClick={() => att.dataUrl && openDataUrl(att.dataUrl)}
                 >
                   <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
@@ -338,7 +338,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         )}
 
         {/* Footer toolbar */}
-        <div className="border-t border-gunmetal-300/60 dark:border-zinc-800/60 flex items-stretch shrink-0">
+        <div className="border-t border-bronze-300/60 dark:border-zinc-800/60 flex items-stretch shrink-0">
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs px-4 py-3"

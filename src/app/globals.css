@@ -39,16 +39,16 @@
     --radius: 0.5rem;
 
     /* Design system — semantic tokens (light) */
-    --surface-base: #f5f0e6;           /* gunmetal-100 */
-    --surface-primary: #faf7f1;        /* gunmetal-50 */
-    --surface-secondary: #ede7db;      /* gunmetal-200 */
-    --surface-hover: #e2dbd0;          /* gunmetal-300 */
-    --border-default: #e2dbd0;         /* gunmetal-300 */
+    --surface-base: #f5f0e6;           /* bronze-100 */
+    --surface-primary: #faf7f1;        /* bronze-50 */
+    --surface-secondary: #ede7db;      /* bronze-200 */
+    --surface-hover: #e2dbd0;          /* bronze-300 */
+    --border-default: #e2dbd0;         /* bronze-300 */
     --border-hover: #b8a078;           /* muted gold */
-    --border-subtle: rgba(226,219,208,0.6); /* gunmetal-300/60 */
-    --text-chrome: #7a7068;            /* gunmetal-600 */
-    --text-chrome-hover: #5c534b;      /* gunmetal-700 */
-    --text-chrome-active: #3a342e;     /* gunmetal-800 */
+    --border-subtle: rgba(226,219,208,0.6); /* bronze-300/60 */
+    --text-chrome: #7a7068;            /* bronze-600 */
+    --text-chrome-hover: #5c534b;      /* bronze-700 */
+    --text-chrome-active: #3a342e;     /* bronze-800 */
     --live-dot-color: rgba(0, 0, 0, 0.08); /* dot grid for live preview (light) */
   }
   .dark {
@@ -83,11 +83,11 @@
     --surface-secondary: rgba(39,39,42,0.3); /* zinc-800/30 */
     --surface-hover: #18181b;          /* zinc-900 */
     --border-default: #27272a;         /* zinc-800 */
-    --border-hover: #3a342e;           /* gunmetal-800 — the warm accent */
+    --border-hover: #3a342e;           /* bronze-800 — the warm accent */
     --border-subtle: rgba(39,39,42,0.6); /* zinc-800/60 */
-    --text-chrome: #7a7068;            /* gunmetal-600 — warm, not gray */
-    --text-chrome-hover: #a89d90;      /* gunmetal-500 — brighter warm */
-    --text-chrome-active: #a89d90;     /* gunmetal-500 — warm bright */
+    --text-chrome: #7a7068;            /* bronze-600 — warm, not gray */
+    --text-chrome-hover: #a89d90;      /* bronze-500 — brighter warm */
+    --text-chrome-active: #a89d90;     /* bronze-500 — warm bright */
     --live-dot-color: rgba(63, 63, 70, 0.5); /* dot grid for live preview */
   }
 }
@@ -98,7 +98,7 @@
   /* Design system buttons */
   .btn-primary {
     @apply px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors;
-    @apply text-text-chrome-active bg-zinc-800/60 border border-gunmetal-800/50;
+    @apply text-text-chrome-active bg-zinc-800/60 border border-bronze-800/50;
     @apply hover:bg-zinc-700/60;
   }
   .btn-secondary {
@@ -116,21 +116,21 @@
   }
 }
 
-/* Custom scrollbar — light mode (gunmetal palette) */
+/* Custom scrollbar — light mode (bronze palette) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f5f0e6; /* gunmetal-100 */
+  background: #f5f0e6; /* bronze-100 */
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4cbbf; /* gunmetal-400 */
+  background: #d4cbbf; /* bronze-400 */
   border-radius: 9999px;
   border: 2px solid #f5f0e6;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a89d90; /* gunmetal-500 */
+  background: #a89d90; /* bronze-500 */
 }
 
 /* Custom scrollbar — dark mode */

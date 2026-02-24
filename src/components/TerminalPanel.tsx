@@ -137,12 +137,12 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
   );
 
   const tabAccentColor = (tab: TerminalTab) =>
-    tab.type === 'task' ? 'text-steel' : 'text-gunmetal-500';
+    tab.type === 'task' ? 'text-steel' : 'text-bronze-500';
 
   return (
     <div
       ref={panelRef}
-      className="w-full flex flex-col bg-gunmetal-200 dark:bg-black/40 flex-shrink-0 font-mono"
+      className="w-full flex flex-col bg-bronze-200 dark:bg-black/40 flex-shrink-0 font-mono"
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}
@@ -153,11 +153,11 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
             onMouseDown={(e) => onResizeStart?.(e)}
             className="absolute inset-x-0 top-0 h-[5px] -translate-y-1/2 cursor-row-resize z-20 group/edge"
           >
-            <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-gunmetal-800 transition-colors" />
+            <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
           </div>
         )}
         <div
-          className={`h-12 flex items-stretch bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-visible border-t border-zinc-200 dark:border-zinc-800 ${
+          className={`h-12 flex items-stretch bg-bronze-300/20 dark:bg-zinc-900/20 overflow-visible border-t border-zinc-200 dark:border-zinc-800 ${
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
           onMouseDown={(e) => {
@@ -169,7 +169,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
         >
         <button
           onClick={onToggleCollapsed}
-          className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30 shrink-0"
+          className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30 shrink-0"
           title={collapsed ? 'Expand terminal' : 'Collapse terminal'}
         >
           {collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -188,8 +188,8 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
               }}
               className={`relative flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors min-w-[100px] ${
                 activeTabId === tab.id
-                  ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
-                  : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30'
+                  ? 'bg-bronze-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
+                  : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30'
               }`}
             >
               <TerminalIcon className="w-3 h-3" />
@@ -229,7 +229,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
             {menuTabId === tab.id && (
               <div
                 ref={menuRef}
-                className="absolute left-0 top-full mt-1 w-40 bg-gunmetal-50 dark:bg-zinc-800 border border-gunmetal-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1"
+                className="absolute left-0 top-full mt-1 w-40 bg-bronze-50 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1"
               >
                 <button
                   onClick={(e) => {
@@ -238,7 +238,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
                     setRenamingTabId(tab.id);
                     setRenameValue(tab.label);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-gunmetal-700 dark:text-zinc-300 hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
                 >
                   <PencilIcon className="w-3.5 h-3.5" />
                   Rename
@@ -249,7 +249,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
                     setMenuTabId(null);
                     removeTab(tab.id);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Kill Terminal
@@ -264,7 +264,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
             addShellTab();
             if (collapsed) onToggleCollapsed();
           }}
-          className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30 shrink-0"
+          className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30 shrink-0"
           title="New terminal"
         >
           <Plus className="w-3.5 h-3.5" />

@@ -22,7 +22,7 @@ export function TopBar({ project, activeTab, onTabChange }: TopBarProps) {
   return (
     <header className="h-16 bg-surface-base flex items-center justify-between px-6 flex-shrink-0">
       <div className="flex flex-col justify-center">
-        <h1 className="text-lg font-semibold text-gunmetal-900 dark:text-zinc-100 leading-tight">
+        <h1 className="text-lg font-semibold text-bronze-900 dark:text-zinc-100 leading-tight">
           {project.path.replace(/\/+$/, "").split("/").pop() || project.name}
         </h1>
         <span className="text-xs font-mono text-zinc-500 mt-0.5">
@@ -44,7 +44,7 @@ export function TopBar({ project, activeTab, onTabChange }: TopBarProps) {
               >
                 {isActive && (
                   <div
-                    className="absolute inset-0 bg-gunmetal-50 dark:bg-zinc-800/60 rounded-md border border-gunmetal-400/50 dark:border-gunmetal-800/50 shadow-sm"
+                    className="absolute inset-0 bg-bronze-50 dark:bg-zinc-800/60 rounded-md border border-bronze-400/50 dark:border-bronze-800/50 shadow-sm"
                     style={{ zIndex: -1 }}
                   />
                 )}

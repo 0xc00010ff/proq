@@ -104,12 +104,12 @@ function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
           e.stopPropagation();
           setOpen(!open);
         }}
-        className="p-1 rounded hover:bg-gunmetal-300 dark:hover:bg-zinc-700 text-gunmetal-500 hover:text-gunmetal-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="p-1 rounded hover:bg-bronze-300 dark:hover:bg-zinc-700 text-bronze-500 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <MoreHorizontalIcon className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-36 bg-gunmetal-50 dark:bg-zinc-800 border border-gunmetal-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
+        <div className="absolute right-0 top-full mt-1 w-36 bg-bronze-50 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -117,7 +117,7 @@ function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
               setOpen(false);
               onRename(project);
             }}
-            className="w-full text-left px-3 py-1.5 text-sm text-gunmetal-700 dark:text-zinc-300 hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+            className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
           >
             <PencilIcon className="w-3.5 h-3.5" />
             Rename
@@ -129,7 +129,7 @@ function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
               setOpen(false);
               onDelete(project);
             }}
-            className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+            className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
           >
             <Trash2Icon className="w-3.5 h-3.5" />
             Delete
@@ -212,11 +212,11 @@ function SortableProject({
           router.push(`/projects/${project.id}`);
         }}
         className={`w-full text-left py-3 px-4 relative group block cursor-grab active:cursor-grabbing
-          ${isActive ? "bg-gunmetal-300 dark:bg-zinc-800/50" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}
+          ${isActive ? "bg-bronze-300 dark:bg-zinc-800/50" : "hover:bg-bronze-300/60 dark:hover:bg-zinc-800/40"}
           `}
       >
         {isActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
         )}
         {pathInvalid && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-crimson" />
@@ -238,11 +238,11 @@ function SortableProject({
                 onBlur={onRenameCancel}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="w-full text-sm font-medium leading-tight bg-gunmetal-100 dark:bg-zinc-900 border border-steel/50 rounded px-1.5 py-0.5 text-gunmetal-900 dark:text-zinc-100 outline-none focus:border-steel"
+                className="w-full text-sm font-medium leading-tight bg-bronze-100 dark:bg-zinc-900 border border-steel/50 rounded px-1.5 py-0.5 text-bronze-900 dark:text-zinc-100 outline-none focus:border-steel"
               />
             ) : (
               <div
-                className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-crimson dark:text-crimson" : isActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
+                className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-crimson dark:text-crimson" : isActive ? "text-bronze-900 dark:text-zinc-100" : "text-bronze-700 dark:text-zinc-300 group-hover:text-bronze-900 dark:group-hover:text-zinc-100"}`}
               >
                 {folderName(project)}
               </div>
@@ -379,12 +379,12 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       {/* Header */}
       <Link
         href="/settings"
-        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-gunmetal-100/60 dark:hover:bg-zinc-800/40 transition-colors
-          ${pathname === '/settings' ? 'bg-gunmetal-300 dark:bg-zinc-800/50' : ''}`}
+        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors
+          ${pathname === '/settings' ? 'bg-bronze-300 dark:bg-zinc-800/50' : ''}`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/proq-logo-vector.svg" alt="proq" width={12} height={12} className="translate-y-[3px]" />
-        <span className="text-lg font-[var(--font-gemunu-libre)] text-gunmetal-900 dark:text-zinc-100 lowercase" style={{ fontFamily: 'var(--font-gemunu-libre)' }}>
+        <span className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase" style={{ fontFamily: 'var(--font-gemunu-libre)' }}>
           proq
         </span>
       </Link>
@@ -393,17 +393,17 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       <Link
         href="/supervisor"
         className={`w-full text-left p-3 px-4 relative group py-4 block
-          ${isChatActive ? "bg-gunmetal-300 dark:bg-zinc-800" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}`}
+          ${isChatActive ? "bg-bronze-300 dark:bg-zinc-800" : "hover:bg-bronze-300/60 dark:hover:bg-zinc-800/40"}`}
       >
         {isChatActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
         )}
         <div className="flex items-center gap-2.5">
           <SquareChevronUpIcon
-            className={`w-4 h-4 ${isChatActive ? "text-gunmetal-500" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
+            className={`w-4 h-4 ${isChatActive ? "text-bronze-500" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
           />
           <span
-            className={`text-sm font-medium ${isChatActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
+            className={`text-sm font-medium ${isChatActive ? "text-bronze-900 dark:text-zinc-100" : "text-bronze-700 dark:text-zinc-300 group-hover:text-bronze-900 dark:group-hover:text-zinc-100"}`}
           >
             Supervisor
           </span>

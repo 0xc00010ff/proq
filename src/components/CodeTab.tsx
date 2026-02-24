@@ -181,17 +181,17 @@ export function CodeTab({ project }: CodeTabProps) {
   }, [project.path]);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gunmetal-50 dark:bg-zinc-950">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-bronze-50 dark:bg-zinc-950">
       {/* Sub-header bar */}
-      <div className="h-10 flex-shrink-0 flex items-center justify-between px-3 border-b border-gunmetal-300 dark:border-zinc-800 bg-gunmetal-100 dark:bg-zinc-900/80">
+      <div className="h-10 flex-shrink-0 flex items-center justify-between px-3 border-b border-bronze-300 dark:border-zinc-800 bg-bronze-100 dark:bg-zinc-900/80">
         <div className="flex items-center gap-2">
           {isMarkdown && selectedPath && (
-            <div className="flex items-center bg-gunmetal-200 dark:bg-zinc-800 rounded-md p-0.5 border border-gunmetal-300 dark:border-zinc-700">
+            <div className="flex items-center bg-bronze-200 dark:bg-zinc-800 rounded-md p-0.5 border border-bronze-300 dark:border-zinc-700">
               <button
                 onClick={() => setMdView('raw')}
                 className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
                   mdView === 'raw'
-                    ? 'bg-gunmetal-50 dark:bg-zinc-700 text-gunmetal-900 dark:text-zinc-100 shadow-sm'
+                    ? 'bg-bronze-50 dark:bg-zinc-700 text-bronze-900 dark:text-zinc-100 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
@@ -202,7 +202,7 @@ export function CodeTab({ project }: CodeTabProps) {
                 onClick={() => setMdView('pretty')}
                 className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
                   mdView === 'pretty'
-                    ? 'bg-gunmetal-50 dark:bg-zinc-700 text-gunmetal-900 dark:text-zinc-100 shadow-sm'
+                    ? 'bg-bronze-50 dark:bg-zinc-700 text-bronze-900 dark:text-zinc-100 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
@@ -236,7 +236,7 @@ export function CodeTab({ project }: CodeTabProps) {
           {selectedPath && (
             <button
               onClick={handleCopyFile}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gunmetal-800 dark:text-zinc-300 bg-gunmetal-200 dark:bg-zinc-800 hover:bg-gunmetal-300 dark:hover:bg-zinc-700 rounded-md border border-gunmetal-300 dark:border-zinc-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-bronze-800 dark:text-zinc-300 bg-bronze-200 dark:bg-zinc-800 hover:bg-bronze-300 dark:hover:bg-zinc-700 rounded-md border border-bronze-300 dark:border-zinc-700 transition-colors"
             >
               {copyStatus === 'copied' ? (
                 <>
@@ -254,7 +254,7 @@ export function CodeTab({ project }: CodeTabProps) {
 
           <button
             onClick={handleOpenWith}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gunmetal-800 dark:text-zinc-300 bg-gunmetal-200 dark:bg-zinc-800 hover:bg-gunmetal-300 dark:hover:bg-zinc-700 rounded-md border border-gunmetal-300 dark:border-zinc-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-bronze-800 dark:text-zinc-300 bg-bronze-200 dark:bg-zinc-800 hover:bg-bronze-300 dark:hover:bg-zinc-700 rounded-md border border-bronze-300 dark:border-zinc-700 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             Open with...
@@ -266,7 +266,7 @@ export function CodeTab({ project }: CodeTabProps) {
       <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden">
         {/* File tree */}
         <div
-          className="h-full overflow-y-auto border-r border-gunmetal-300 dark:border-zinc-800 bg-gunmetal-50 dark:bg-zinc-900/50 flex-shrink-0"
+          className="h-full overflow-y-auto border-r border-bronze-300 dark:border-zinc-800 bg-bronze-50 dark:bg-zinc-900/50 flex-shrink-0"
           style={{ width: treeWidth }}
         >
           <FileTree
@@ -282,7 +282,7 @@ export function CodeTab({ project }: CodeTabProps) {
           className={`w-[5px] flex-shrink-0 cursor-col-resize transition-colors ${
             isDragging
               ? 'bg-steel-dark'
-              : 'bg-gunmetal-200 dark:bg-zinc-800 hover:bg-steel dark:hover:bg-steel-dark'
+              : 'bg-bronze-200 dark:bg-zinc-800 hover:bg-steel dark:hover:bg-steel-dark'
           }`}
         />
 
@@ -294,7 +294,7 @@ export function CodeTab({ project }: CodeTabProps) {
             </div>
           ) : isMarkdown && mdView === 'pretty' ? (
             <div className="h-full overflow-y-auto p-6">
-              <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-zinc-800 prose-pre:text-zinc-100 prose-code:text-steel prose-headings:text-gunmetal-900 dark:prose-headings:text-zinc-100">
+              <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-zinc-800 prose-pre:text-zinc-100 prose-code:text-steel prose-headings:text-bronze-900 dark:prose-headings:text-zinc-100">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}

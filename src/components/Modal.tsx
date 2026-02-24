@@ -44,7 +44,7 @@ export function Modal({
     <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4`} onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div
-        className={`relative bg-gunmetal-50 dark:bg-[#1a1a1a] border border-gunmetal-300 dark:border-zinc-800 rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-150 ${className}`}
+        className={`relative bg-bronze-50 dark:bg-[#1a1a1a] border border-bronze-300 dark:border-zinc-800 rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-150 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {showClose && (
@@ -90,8 +90,8 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onCancel} showClose={false} className={`max-w-md mx-4 p-6 ${className}`}>
-      <h3 className="text-sm font-semibold text-gunmetal-900 dark:text-zinc-100 mb-3">{title}</h3>
-      <div className="text-xs text-gunmetal-700 dark:text-zinc-400 leading-relaxed mb-5">{children}</div>
+      <h3 className="text-sm font-semibold text-bronze-900 dark:text-zinc-100 mb-3">{title}</h3>
+      <div className="text-xs text-bronze-700 dark:text-zinc-400 leading-relaxed mb-5">{children}</div>
       <div className="flex justify-end gap-2">
         <button onClick={onCancel} className="btn-secondary">{cancelLabel}</button>
         <button onClick={onConfirm} className="btn-primary">{confirmLabel}</button>
@@ -125,8 +125,8 @@ export function AlertModal({
 }: AlertModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} showClose={false} className={`max-w-sm mx-4 p-6 ${className}`}>
-      <h3 className="text-sm font-semibold text-gunmetal-900 dark:text-zinc-100 mb-3">{title}</h3>
-      <div className="text-xs text-gunmetal-700 dark:text-zinc-400 leading-relaxed mb-5">{children}</div>
+      <h3 className="text-sm font-semibold text-bronze-900 dark:text-zinc-100 mb-3">{title}</h3>
+      <div className="text-xs text-bronze-700 dark:text-zinc-400 leading-relaxed mb-5">{children}</div>
       <div className="flex justify-end">
         <button onClick={onClose} className="btn-primary">{buttonLabel}</button>
       </div>

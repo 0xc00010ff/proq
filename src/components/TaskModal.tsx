@@ -50,12 +50,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     setAttachments(task.attachments || []);
   }, [task.id]);
 
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpen.current) {
       const isNew = !task.title && !task.description;
       setTimeout(() => (isNew ? titleRef : descriptionRef).current?.focus(), 50);
     }
-  }, [isOpen, task.title, task.description]);
+    wasOpen.current = isOpen;
+  }, [isOpen, task.id]);
 
   const autosave = useCallback(
     (newTitle: string, newDesc: string, newAttachments: TaskAttachment[], newMode?: TaskMode) => {

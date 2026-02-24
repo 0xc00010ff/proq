@@ -302,7 +302,7 @@ export default function ProjectPage() {
                 className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-gunmetal-800 dark:hover:border-gunmetal-800 cursor-row-resize relative z-10 ${
                   isDragging ? 'border-gunmetal-800 dark:border-gunmetal-800' : ''
                 }`}
-                style={{ margin: '-2px 0', padding: '2px 0' }}
+                style={{ padding: '2px 0' }}
               />
             )}
 

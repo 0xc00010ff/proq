@@ -11,6 +11,7 @@ import type {
   ChatLogEntry,
   ExecutionMode,
   DeletedTaskEntry,
+  ProqSettings,
 } from "./types";
 import { slugify } from "./utils";
 
@@ -514,5 +515,31 @@ export async function addSupervisorMessage(
 export async function clearSupervisorChatLog(): Promise<void> {
   return withWriteLock("supervisor", async () => {
     writeSupervisorData({ chatLog: [] });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+
+const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
+
+const DEFAULT_SETTINGS: ProqSettings = {
+  claudeBin: "claude",
+  openclawBin: "",
+  slackChannel: "",
+  theme: "dark",
+};
+
+export async function getSettings(): Promise<ProqSettings> {
+  return { ...DEFAULT_SETTINGS, ...readJSON<Partial<ProqSettings>>(SETTINGS_FILE, {}) };
+}
+
+export async function updateSettings(data: Partial<ProqSettings>): Promise<ProqSettings> {
+  return withWriteLock("settings", async () => {
+    const current = { ...DEFAULT_SETTINGS, ...readJSON<Partial<ProqSettings>>(SETTINGS_FILE, {}) };
+    Object.assign(current, data);
+    writeJSON(SETTINGS_FILE, current);
+    return current;
   });
 }

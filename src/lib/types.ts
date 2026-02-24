@@ -86,6 +86,14 @@ export interface DeletedTaskEntry {
   deletedAt: string; // ISO timestamp
 }
 
+// ── Settings ─────────────────────────────────────────
+export interface ProqSettings {
+  claudeBin: string;
+  openclawBin: string;
+  slackChannel: string;
+  theme: 'dark' | 'light';
+}
+
 // ── Per-project state ────────────────────────────────────
 export type ExecutionMode = 'sequential' | 'parallel';
 

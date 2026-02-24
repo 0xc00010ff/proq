@@ -22,7 +22,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   PlusIcon,
   LayoutGridIcon,
-  MessageSquareIcon,
+  SquareChevronUpIcon,
   RefreshCwIcon,
   CheckCircle2Icon,
   MoreHorizontalIcon,
@@ -297,7 +297,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const isChatActive = pathname === "/chat";
+  const isChatActive = pathname === "/supervisor";
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -387,7 +387,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
 
       {/* Main Chat Item */}
       <Link
-        href="/chat"
+        href="/supervisor"
         className={`w-full text-left p-3 px-4 relative group py-4 border-b border-gunmetal-300/60 dark:border-zinc-800/60 block
           ${isChatActive ? "bg-gunmetal-300 dark:bg-zinc-800" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}`}
       >
@@ -395,13 +395,13 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
         )}
         <div className="flex items-center gap-2.5">
-          <MessageSquareIcon
-            className={`w-4 h-4 ${isChatActive ? "text-steel" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
+          <SquareChevronUpIcon
+            className={`w-4 h-4 ${isChatActive ? "text-gunmetal-500" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
           />
           <span
             className={`text-sm font-medium ${isChatActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
           >
-            Professor Q
+            Supervisor
           </span>
         </div>
       </Link>

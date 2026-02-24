@@ -471,3 +471,48 @@ export async function addChatMessage(
     return entry;
   });
 }
+
+// ═══════════════════════════════════════════════════════════
+// SUPERVISOR CHAT
+// ═══════════════════════════════════════════════════════════
+
+interface SupervisorData {
+  chatLog: ChatLogEntry[];
+}
+
+const SUPERVISOR_FILE = path.join(DATA_DIR, "supervisor.json");
+
+function readSupervisorData(): SupervisorData {
+  return readJSON<SupervisorData>(SUPERVISOR_FILE, { chatLog: [] });
+}
+
+function writeSupervisorData(data: SupervisorData): void {
+  writeJSON(SUPERVISOR_FILE, data);
+}
+
+export async function getSupervisorChatLog(): Promise<ChatLogEntry[]> {
+  return readSupervisorData().chatLog;
+}
+
+export async function addSupervisorMessage(
+  data: Pick<ChatLogEntry, "role" | "message" | "toolCalls">
+): Promise<ChatLogEntry> {
+  return withWriteLock("supervisor", async () => {
+    const state = readSupervisorData();
+    const entry: ChatLogEntry = {
+      role: data.role,
+      message: data.message,
+      timestamp: new Date().toISOString(),
+      toolCalls: data.toolCalls,
+    };
+    state.chatLog.push(entry);
+    writeSupervisorData(state);
+    return entry;
+  });
+}
+
+export async function clearSupervisorChatLog(): Promise<void> {
+  return withWriteLock("supervisor", async () => {
+    writeSupervisorData({ chatLog: [] });
+  });
+}

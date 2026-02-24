@@ -283,6 +283,18 @@ export function KanbanBoard({
       return;
     }
 
+    // Set "Starting..." on the task before committing so it shows immediately
+    if (fromColumn !== toColumn && toColumn === 'in-progress') {
+      setLocalColumns((prev) => {
+        if (!prev) return prev;
+        const col = [...prev[toColumn]];
+        const idx = col.findIndex((t) => t.id === activeId);
+        if (idx === -1) return prev;
+        col[idx] = { ...col[idx], dispatch: 'starting' };
+        return { ...prev, [toColumn]: col };
+      });
+    }
+
     // Commit
     pendingCommitRef.current = true;
     onMoveTask(activeId, toColumn, toIndex);

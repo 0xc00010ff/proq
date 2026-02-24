@@ -372,7 +372,7 @@ export default function ProjectPage() {
               const todoCol = cols.todo.filter((t) => t.id !== taskId);
               const task = cols.todo.find((t) => t.id === taskId);
               if (!task) return prev;
-              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const };
+              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const, dispatch: 'starting' as const };
               return {
                 ...prev,
                 [projectId]: {

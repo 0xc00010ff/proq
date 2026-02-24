@@ -299,8 +299,8 @@ export default function ProjectPage() {
             {!terminalCollapsed && (
               <div
                 onMouseDown={handleResizeStart}
-                className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-row-resize relative z-10 ${
-                  isDragging ? 'border-zinc-400 dark:border-zinc-600' : ''
+                className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-gunmetal-800 dark:hover:border-gunmetal-800 cursor-row-resize relative z-10 ${
+                  isDragging ? 'border-gunmetal-800 dark:border-gunmetal-800' : ''
                 }`}
                 style={{ margin: '-2px 0', padding: '2px 0' }}
               />

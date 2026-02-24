@@ -171,6 +171,11 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
                 setActiveTabId(projectId, tab.id);
                 if (collapsed) onToggleCollapsed();
               }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setRenamingTabId(tab.id);
+                setRenameValue(tab.label);
+              }}
               className={`relative flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors ${
                 activeTabId === tab.id
                   ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)

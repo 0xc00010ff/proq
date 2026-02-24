@@ -218,8 +218,8 @@ export default function ProjectPage() {
     });
   }, [projectId]);
 
-  // Resize handle
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Resize handle (tab bar is the drag target)
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
   }, []);
@@ -231,16 +231,29 @@ export default function ProjectPage() {
       const rect = containerRef.current.getBoundingClientRect();
       const y = e.clientY - rect.top;
       const percent = ((rect.height - y) / rect.height) * 100;
-      setChatPercent(Math.min(85, Math.max(15, percent)));
+      // Allow dragging down to 3% so snap-to-close is visible
+      setChatPercent(Math.min(85, Math.max(3, percent)));
     };
-    const handleMouseUp = () => setIsDragging(false);
+    const handleMouseUp = (e: MouseEvent) => {
+      // Snap closed if terminal height < 200px
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const pixelHeight = rect.height - y;
+        if (pixelHeight < 200) {
+          toggleTerminalCollapsed();
+          setChatPercent(25); // reset for next open
+        }
+      }
+      setIsDragging(false);
+    };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, toggleTerminalCollapsed]);
 
   if (!project) {
     return (
@@ -283,16 +296,6 @@ export default function ProjectPage() {
               />
             </div>
 
-            {!terminalCollapsed && (
-              <div
-                onMouseDown={handleMouseDown}
-                className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-row-resize relative z-10 ${
-                  isDragging ? 'border-zinc-400 dark:border-zinc-600' : ''
-                }`}
-                style={{ margin: '-2px 0', padding: '2px 0' }}
-              />
-            )}
-
             <TerminalPanel
               projectId={projectId}
               projectPath={project.path}
@@ -300,6 +303,8 @@ export default function ProjectPage() {
               collapsed={terminalCollapsed}
               onToggleCollapsed={toggleTerminalCollapsed}
               cleanupTimes={cleanupTimes}
+              onResizeStart={handleResizeStart}
+              isDragging={isDragging}
             />
           </>
         )}
@@ -308,7 +313,7 @@ export default function ProjectPage() {
         {activeTab === 'code' && project && <CodeTab project={project} />}
       </main>
 
-      {isDragging && <div className="fixed inset-0 z-50 cursor-row-resize" />}
+      {isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
 
       {agentModalTask && (
         <TaskAgentModal

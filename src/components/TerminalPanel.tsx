@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { Plus, X, TerminalIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, X, TerminalIcon, ChevronUp, ChevronDown, GripHorizontal } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTerminalTabs, type TerminalTab } from './TerminalTabsProvider';
 import { TerminalPane } from './TerminalPane';
@@ -18,6 +18,8 @@ interface TerminalPanelProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   cleanupTimes?: Record<string, number>;
+  onResizeStart?: (e: React.MouseEvent) => void;
+  isDragging?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -51,7 +53,7 @@ function useCleanupCountdown(expiresAt: number | undefined): string | null {
   return `process will be terminated in ${mins}m`;
 }
 
-export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, cleanupTimes }: TerminalPanelProps) {
+export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, cleanupTimes, onResizeStart, isDragging }: TerminalPanelProps) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, hydrateProject } = useTerminalTabs();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -113,8 +115,18 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
       className="w-full flex flex-col bg-gunmetal-200 dark:bg-black/40 flex-shrink-0 font-mono"
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
-      {/* Tab Bar */}
-      <div className="h-12 flex items-stretch border-t border-gunmetal-300/60 dark:border-zinc-800/60 bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-x-auto shrink-0">
+      {/* Tab Bar — also serves as the resize drag handle */}
+      <div
+        className={`h-12 flex items-stretch border-t border-gunmetal-300/60 dark:border-zinc-800/60 bg-gunmetal-300/20 dark:bg-zinc-900/20 overflow-x-auto shrink-0 ${
+          isDragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        onMouseDown={(e) => {
+          // Don't start resize if clicking on interactive elements
+          const target = e.target as HTMLElement;
+          if (target.closest('button') || target.closest('[data-clickable]')) return;
+          onResizeStart?.(e);
+        }}
+      >
         <button
           onClick={onToggleCollapsed}
           className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30 shrink-0"
@@ -141,6 +153,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
               {tab.label}
             </span>
             <span
+              data-clickable
               onClick={(e) => {
                 e.stopPropagation();
                 removeTab(tab.id);
@@ -163,6 +176,10 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
           <Plus className="w-3.5 h-3.5" />
         </button>
 
+        {/* Grip indicator — fills remaining space */}
+        <div className="flex-1 flex items-center justify-center">
+          <GripHorizontal className="w-4 h-4 text-zinc-700/40" />
+        </div>
       </div>
 
       {/* Terminal Panes — each manages its own xterm lifecycle */}

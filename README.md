@@ -27,7 +27,19 @@ Under the hood it's a tmux task runner that bolts up to your favorite command li
 - **Node.js** 18+
 - **tmux** — agents run in detached tmux sessions
 - **Claude Code CLI** — installed and on your PATH (or set `CLAUDE_BIN` in `.env.local`)
-- **Native build tools** — `node-pty` requires compilation (`xcode-select --install` on macOS)
+
+**macOS:**
+
+```bash
+brew install tmux
+xcode-select --install   # needed for native compilation (node-pty)
+```
+
+**Linux (Debian/Ubuntu):**
+
+```bash
+sudo apt install tmux build-essential
+```
 
 ### Install & Run
 

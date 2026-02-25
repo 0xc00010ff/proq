@@ -538,10 +538,35 @@ export async function setSupervisorDraft(draft: string): Promise<void> {
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 
 const DEFAULT_SETTINGS: ProqSettings = {
+  // System
+  port: 7331,
+
+  // Agent
   claudeBin: "claude",
+  defaultModel: "",
+  systemPromptAdditions: "",
+  executionMode: "sequential",
+
+  // Git
+  autoCommit: true,
+  commitStyle: "",
+  autoPush: false,
+  showGitBranches: false,
+
+  // Appearance
+  theme: "dark",
+
+  // Notifications
+  notificationMethod: "none",
   openclawBin: "",
   slackChannel: "",
-  theme: "dark",
+  webhooks: "",
+
+  // Process
+  cleanupDelay: 60,
+  taskPollInterval: 5,
+  deletedTaskRetention: 24,
+  terminalScrollback: 50,
 };
 
 export async function getSettings(): Promise<ProqSettings> {

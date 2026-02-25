@@ -379,9 +379,12 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       {/* Header */}
       <Link
         href="/settings"
-        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors
+        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative
           ${pathname === '/settings' ? 'bg-bronze-300 dark:bg-zinc-800/50' : ''}`}
       >
+        {pathname === '/settings' && (
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/proq-logo-vector.svg" alt="proq" width={12} height={12} className="translate-y-[3px]" />
         <span className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase" style={{ fontFamily: 'var(--font-gemunu-libre)' }}>

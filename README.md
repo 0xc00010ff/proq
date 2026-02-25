@@ -1,103 +1,156 @@
-# proq
+<p align="center">
+  <img src="public/proq-badge.png" alt="proq" width="360" />
+</p>
 
-A kanban command center for AI-assisted development. Tasks on the board automatically dispatch Claude Code agents to do the work.
+<p align="center">
+  <strong>A kanban IDE for CLI-based coding agents.</strong><br/>
+  Define what you want. Let agents ship it.
+</p>
 
-## How It Works
+<p align="center">
+  <a href="#getting-started">Getting Started</a> &nbsp;·&nbsp;
+  <a href="#how-it-works">How It Works</a> &nbsp;·&nbsp;
+  <a href="#api">API</a> &nbsp;·&nbsp;
+  <a href="#under-the-hood">Under the Hood</a>
+</p>
 
-1. **Create tasks** on the board (manually, or via any chat agent that talks to the API)
-2. **Drag to "In Progress"** — proq launches a Claude Code instance in a tmux session against that project's codebase
-3. **Agent works autonomously** — commits code, then curls back to the API to move itself to "Verify"
-4. **Human reviews** — approve to "Done" or send back to "Todo"
+---
 
-The agent runs with `--dangerously-skip-permissions` in a detached tmux session. While it's working, the task is locked on the board (blue pulsing border, spinner).
+proq is a vibe coding IDE built for shipping quality software. It's a kanban board for CLI-based agentic coding agents — designed to make sense of multi-agent capability and make us better at our real job: defining what we want.
 
-## Prerequisites
+Under the hood it's a tmux task runner that bolts up to your favorite command line agent. It works out of the box with subagents, MCPs, worktrees, and whatever config you bring along. You can also edit proq using proq.
+
+## Getting Started
+
+### Prerequisites
 
 - **Node.js** 18+
 - **tmux** — agents run in detached tmux sessions
-- **Claude Code CLI** — must be installed and on your PATH (or set `CLAUDE_BIN` in `.env.local`)
-- **macOS** — the folder picker uses `osascript` (you can still type paths manually on other platforms)
+- **Claude Code CLI** — installed and on your PATH (or set `CLAUDE_BIN` in `.env.local`)
 - **Native build tools** — `node-pty` requires compilation (`xcode-select --install` on macOS)
 
-## Getting Started
+### Install & Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:7331](http://localhost:7331) to view the dashboard. The `data/` directory is created automatically on first run.
+Open [http://localhost:7331](http://localhost:7331). The `data/` directory is auto-created on first run.
 
-Copy `.env.example` to `.env.local` and adjust if needed — see [Configuration](#configuration) below.
+Optionally copy `.env.example` to `.env.local` to configure:
 
-## Configuration
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CLAUDE_BIN` | `claude` | Path to the Claude Code CLI binary |
+| `OPENCLAW_BIN` | — | Path to OpenClaw CLI (enables Slack notifications) |
+| `SLACK_CHANNEL` | — | Slack channel ID for notifications |
 
-See `.env.example` for all options. Copy it to `.env.local` to customize:
+## How It Works
 
-```bash
-cp .env.example .env.local
+1. **Create tasks** on the board — manually, or via any chat agent that talks to the API
+2. **Drag to "In Progress"** — proq launches a Claude Code instance in a tmux session against that project's codebase
+3. **Agent works autonomously** — writes code, commits, then calls back to the API to move itself to "Verify"
+4. **Human reviews** — approve to "Done" or kick back to "Todo"
+
+```
+Todo ──→ In Progress ──→ Verify ──→ Done
+          (agent launches)  (agent calls back)  (human approves)
 ```
 
-| Variable        | Default  | Description                                                  |
-| --------------- | -------- | ------------------------------------------------------------ |
-| `CLAUDE_BIN`    | `claude` | Path to the Claude Code CLI binary                           |
-| `OPENCLAW_BIN`  | —        | Path to OpenClaw CLI (optional, enables Slack notifications) |
-| `SLACK_CHANNEL` | —        | Slack channel ID for notifications (requires `OPENCLAW_BIN`) |
-
-## Features
-
-- **Kanban Board** — 4-column drag-and-drop (Todo → In Progress → Verify → Done) via @dnd-kit
-- **Agent Dispatch** — Automatic Claude Code launch in tmux on task status change
-- **Task Locking** — Prevents edits while an agent is working
-- **Project Sidebar** — Multi-project support with status indicators
-- **Chat Panel** — Terminal-style activity log
-- **Live Preview** — Embedded iframe for dev servers
-- **5s Auto-Refresh** — Board polls for agent status updates
-
-## Tech Stack
-
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + shadcn/ui
-- **Database:** lowdb (JSON file storage, no external DB)
-- **Drag & Drop:** @dnd-kit
-- **Agent Runtime:** Claude Code in tmux
-
-## Data Storage
-
-File-based JSON storage — no external database required. The `data/` directory is gitignored and auto-created on first run.
-
-- `data/workspace.json` — Project registry (name, path, status, serverUrl)
-- `data/projects/{project-id}.json` — Per-project tasks and chat history
-
-## API
-
-All endpoints under `/api/projects`. The API can be consumed by any autonomous chat agent (e.g., [OpenClaw](https://github.com/openclaw)) to create and manage tasks programmatically.
-
-| Endpoint                            | Methods            | Description                                                         |
-| ----------------------------------- | ------------------ | ------------------------------------------------------------------- |
-| `/api/projects`                     | GET, POST          | List or create projects                                             |
-| `/api/projects/[id]`                | GET, PATCH, DELETE | Single project operations                                           |
-| `/api/projects/[id]/tasks`          | GET, POST          | List or create tasks                                                |
-| `/api/projects/[id]/tasks/[taskId]` | PATCH, DELETE      | Update or delete task (status changes trigger agent dispatch/abort) |
-| `/api/projects/[id]/tasks/reorder`  | PUT                | Bulk reorder from drag-drop (also triggers dispatch/abort)          |
-| `/api/projects/[id]/chat`           | GET, POST          | Chat/activity log                                                   |
-
-### Agent Callback
-
-Agents report completion by curling back:
-
-```bash
-curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"verify","locked":false,"findings":"summary of work","humanSteps":"verification steps"}'
-```
-
-## Watching Agents
+While an agent is running, the task card pulses blue with a live spinner. You can watch the agent work at any time:
 
 ```bash
 tmux attach -t mc-{first-8-chars-of-task-id}
 ```
+
+## Features
+
+- **Kanban Board** — 4-column drag-and-drop via @dnd-kit
+- **Multi-Project** — Sidebar with project switching and status indicators
+- **Agent Dispatch** — Automatic Claude Code launch on task status change
+- **Sequential & Parallel Modes** — Run one agent at a time or fan out across tasks
+- **Branch Preview** — Preview agent work on isolated branches before merging
+- **Live Preview** — Embedded iframe for dev server hot-reload
+- **Chat Panel** — Terminal-style activity log per project
+- **5s Auto-Refresh** — Board polls for agent status updates in real time
+- **REST API** — Full CRUD for projects and tasks, consumable by any automation
+
+## API
+
+All endpoints live under `/api/projects`. Any autonomous agent or script can create and manage tasks programmatically.
+
+| Endpoint | Methods | Description |
+| --- | --- | --- |
+| `/api/projects` | GET, POST | List or create projects |
+| `/api/projects/[id]` | GET, PATCH, DELETE | Single project CRUD |
+| `/api/projects/[id]/tasks` | GET, POST | List or create tasks |
+| `/api/projects/[id]/tasks/[taskId]` | PATCH, DELETE | Update or delete task |
+| `/api/projects/[id]/tasks/reorder` | PUT | Bulk reorder from drag-drop |
+| `/api/projects/[id]/git` | GET, POST, PATCH | Branch state and switching |
+| `/api/projects/[id]/chat` | GET, POST | Chat/activity log |
+
+### Agent Callback
+
+When an agent finishes, it reports back:
+
+```bash
+curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"verify","dispatch":null,"findings":"summary of work"}'
+```
+
+## Under the Hood
+
+### Architecture
+
+proq is a Next.js 14 app (App Router) with file-based JSON storage via lowdb — no external database needed.
+
+```
+src/
+├── app/api/projects/       # REST API (projects, tasks, git, chat)
+├── components/             # React UI (Sidebar, KanbanBoard, TaskCard, etc.)
+└── lib/
+    ├── agent-dispatch.ts   # tmux launch, abort, queue processing
+    ├── worktree.ts         # Git worktree + branch operations
+    ├── db.ts               # lowdb database layer
+    └── types.ts            # TypeScript interfaces
+```
+
+**Data storage:**
+- `data/workspace.json` — Project registry
+- `data/projects/{id}.json` — Per-project tasks and chat history
+- `data/` is gitignored — each user gets their own local state
+
+### Parallel Mode & Worktrees
+
+In parallel mode, each task gets its own git worktree and branch (`proq/{shortId}`). This means multiple agents can work on the same codebase simultaneously without stepping on each other.
+
+The merge into main is **deferred** — the branch stays alive through "Verify" so you can preview changes before they land:
+
+- **In Progress → Verify**: Worktree stays. Branch is available in the TopBar branch switcher.
+- **Verify → Done**: Checks out main → merges branch → removes worktree. On conflict, the task stays in Verify for manual resolution.
+
+**Preview flow:** Click "Preview" on a running task to create a disposable `proq-preview/{shortId}` branch at the same commit. The dev server hot-reloads to show the agent's work. Polling fast-forwards every 5 seconds to pick up new agent commits.
+
+Auto-stash keeps your uncommitted work safe — changes are stashed before branch switches and popped when you return to main.
+
+### Dispatch Lifecycle
+
+The dispatch system is centralized through `processQueue(projectId)` — a single function that reads all tasks and decides what to launch next, with a re-entrancy guard per project.
+
+```
+dispatch: "queued"    → Waiting in line (or for processQueue to pick it up)
+dispatch: "starting"  → processQueue selected it, tmux is launching
+dispatch: "running"   → Agent is actively working
+dispatch: null        → Not dispatched
+```
+
+Dragging a task back to "Todo" aborts the agent (kills the tmux session), then `processQueue()` picks up the next queued task automatically.
+
+## Tech Stack
+
+Next.js 14 · TypeScript · Tailwind CSS · shadcn/ui · lowdb · @dnd-kit · tmux · Claude Code CLI
 
 ## Scripts
 
@@ -107,3 +160,13 @@ npm run build  # Production build
 npm run start  # Production server
 npm run lint   # ESLint
 ```
+
+## License
+
+MIT
+
+---
+
+<p align="center">
+  Vibed with ♥ by <a href="https://brian.online">brian.online</a>
+</p>

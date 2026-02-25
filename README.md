@@ -27,7 +27,7 @@ You'll need **Node.js 18+** and the **[Claude Code CLI](https://docs.anthropic.c
 ```bash
 git clone https://github.com/0xc00010ff/proq.git
 cd proq
-./scripts/setup.sh
+npm run setup
 npm run dev
 ```
 
@@ -117,6 +117,7 @@ Next.js 16 · TypeScript · Tailwind CSS · shadcn/ui · lowdb · node-pty · tm
 ## Scripts
 
 ```bash
+npm run setup  # Install dependencies + system prereqs
 npm run dev    # Development server (port 7331)
 npm run build  # Production build
 npm run start  # Production server

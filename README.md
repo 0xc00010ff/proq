@@ -33,15 +33,6 @@ npm run dev
 
 Open [http://localhost:7331](http://localhost:7331) and you're in.
 
-### Configuration
-
-Optionally copy `.env.example` to `.env.local`:
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `CLAUDE_BIN` | `claude` | Path to the Claude Code CLI binary |
-| `OPENCLAW_BIN` | — | Path to OpenClaw CLI (enables Slack notifications) |
-| `SLACK_CHANNEL` | — | Slack channel ID for notifications |
 
 ## How It Works
 
@@ -55,27 +46,10 @@ Todo ──→ In Progress ──→ Verify ──→ Done
           (agent launches)  (agent calls back)  (human approves)
 ```
 
-While an agent is running, the task card pulses blue with a live spinner. You can watch the agent work at any time:
-
-```bash
-tmux attach -t mc-{first-8-chars-of-task-id}
-```
-
-## Features
-
-- **Kanban Board** — 4-column drag-and-drop via @dnd-kit
-- **Multi-Project** — Sidebar with project switching and status indicators
-- **Agent Dispatch** — Automatic Claude Code launch on task status change
-- **Sequential & Parallel Modes** — Run one agent at a time or fan out across tasks
-- **Branch Preview** — Preview agent work on isolated branches before merging
-- **Live Preview** — Embedded iframe for dev server hot-reload
-- **Chat Panel** — Terminal-style activity log per project
-- **5s Auto-Refresh** — Board polls for agent status updates in real time
-- **REST API** — Full CRUD for projects and tasks, consumable by any automation
 
 ## API
 
-All endpoints live under `/api/projects`. Any autonomous agent or script can create and manage tasks programmatically.
+All endpoints live under `/api/projects`. Any assistant agent or script can create and manage tasks programmatically.
 
 | Endpoint | Methods | Description |
 | --- | --- | --- |
@@ -87,21 +61,12 @@ All endpoints live under `/api/projects`. Any autonomous agent or script can cre
 | `/api/projects/[id]/git` | GET, POST, PATCH | Branch state and switching |
 | `/api/projects/[id]/chat` | GET, POST | Chat/activity log |
 
-### Agent Callback
-
-When an agent finishes, it reports back:
-
-```bash
-curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"verify","dispatch":null,"findings":"summary of work"}'
-```
 
 ## Under the Hood
 
 ### Architecture
 
-proq is a Next.js 14 app (App Router) with file-based JSON storage via lowdb — no external database needed.
+proq is a Next.js 16 app (App Router) with file-based JSON storage via local lowdb — no external database needed.
 
 ```
 src/
@@ -147,7 +112,7 @@ Dragging a task back to "Todo" aborts the agent (kills the tmux session), then `
 
 ## Tech Stack
 
-Next.js 14 · TypeScript · Tailwind CSS · shadcn/ui · lowdb · @dnd-kit · tmux · Claude Code CLI
+Next.js 16 · TypeScript · Tailwind CSS · shadcn/ui · lowdb · node-pty · tmux · Claude Code CLI
 
 ## Scripts
 

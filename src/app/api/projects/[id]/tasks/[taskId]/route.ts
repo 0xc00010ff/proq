@@ -43,7 +43,7 @@ export async function PATCH(request: Request, { params }: Params) {
     } else if (body.status === "todo" && prevStatus !== "todo") {
       cancelCleanup(taskId);
       // Remove worktree if task had one (no merge — work is discarded)
-      if (prevTask?.worktreePath) {
+      if (prevTask?.worktreePath || prevTask?.branch) {
         const proj = await getProject(id);
         if (proj) {
           const projectPath = proj.path.replace(/^~/, process.env.HOME || "~");
@@ -65,7 +65,7 @@ export async function PATCH(request: Request, { params }: Params) {
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
     } else if (prevStatus === "in-progress" && body.status === "done") {
       // Merge worktree when skipping verify
-      if (prevTask?.worktreePath) {
+      if (prevTask?.worktreePath || prevTask?.branch) {
         const proj = await getProject(id);
         if (proj) {
           const projectPath = proj.path.replace(/^~/, process.env.HOME || "~");
@@ -143,7 +143,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   // Clean up worktree/branch if present
-  if (task?.worktreePath) {
+  if (task?.worktreePath || task?.branch) {
     const proj = await getProject(id);
     if (proj) {
       const projectPath = proj.path.replace(/^~/, process.env.HOME || "~");

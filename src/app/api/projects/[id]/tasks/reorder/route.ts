@@ -58,7 +58,7 @@ export async function PUT(request: Request, { params }: Params) {
     } else if (toColumn === "todo" && prevStatus !== "todo") {
       cancelCleanup(taskId);
       // Remove worktree if task had one (no merge — work is discarded)
-      if (prevTask?.worktreePath) {
+      if (prevTask?.worktreePath || prevTask?.branch) {
         const projectPath = project!.path.replace(/^~/, process.env.HOME || "~");
         try {
           ensureNotOnTaskBranch(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
@@ -74,7 +74,7 @@ export async function PUT(request: Request, { params }: Params) {
       // No merge here — branch stays available for preview until "done"
     } else if (toColumn === "done" && prevStatus === "in-progress") {
       // Merge worktree when skipping verify
-      if (prevTask?.worktreePath) {
+      if (prevTask?.worktreePath || prevTask?.branch) {
         const projectPath = project!.path.replace(/^~/, process.env.HOME || "~");
         try {
           ensureNotOnTaskBranch(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);

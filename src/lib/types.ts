@@ -133,6 +133,7 @@ export interface ProjectState {
   agentSession?: AgentSession;
   executionMode?: ExecutionMode;
   terminalOpen?: boolean;
+  terminalHeight?: number;
   terminalTabs?: TerminalTabInfo[];
   terminalActiveTabId?: string;
   recentlyDeleted?: DeletedTaskEntry[];

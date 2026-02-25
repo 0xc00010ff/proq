@@ -432,6 +432,19 @@ export async function setTerminalOpen(projectId: string, open: boolean): Promise
   });
 }
 
+export async function getTerminalHeight(projectId: string): Promise<number | null> {
+  const data = getProjectData(projectId);
+  return data.terminalHeight ?? null;
+}
+
+export async function setTerminalHeight(projectId: string, height: number): Promise<void> {
+  return withWriteLock(`project:${projectId}`, async () => {
+    const data = getProjectData(projectId);
+    data.terminalHeight = height;
+    writeProject(projectId, data);
+  });
+}
+
 export async function getTerminalTabs(projectId: string): Promise<{ tabs: import("./types").TerminalTabInfo[]; activeTabId?: string }> {
   const data = getProjectData(projectId);
   return { tabs: data.terminalTabs ?? [], activeTabId: data.terminalActiveTabId };

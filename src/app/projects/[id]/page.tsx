@@ -47,12 +47,15 @@ export default function ProjectPage() {
     if (project) setActiveTab(project.activeTab || 'project');
   }, [project?.id]);
 
-  // Fetch terminal open/closed state from server
+  // Fetch terminal open/closed state and height from server
   useEffect(() => {
     if (!projectId) return;
     fetch(`/api/projects/${projectId}/terminal-open`)
       .then((res) => res.json())
-      .then((data) => setTerminalCollapsed(!data.open))
+      .then((data) => {
+        setTerminalCollapsed(!data.open);
+        if (typeof data.height === 'number') setChatPercent(data.height);
+      })
       .catch(() => {});
   }, [projectId]);
 
@@ -260,6 +263,14 @@ export default function ProjectPage() {
         if (pixelHeight < 200) {
           toggleTerminalCollapsed();
           setChatPercent(25); // reset for next open
+        } else {
+          // Persist the terminal height
+          const finalPercent = Math.min(85, Math.max(3, ((rect.height - y) / rect.height) * 100));
+          fetch(`/api/projects/${projectId}/terminal-open`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ height: finalPercent }),
+          }).catch(() => {});
         }
       }
       setIsDragging(false);
@@ -270,7 +281,7 @@ export default function ProjectPage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, terminalCollapsed, toggleTerminalCollapsed]);
+  }, [isDragging, terminalCollapsed, toggleTerminalCollapsed, projectId]);
 
   if (!project) {
     return (

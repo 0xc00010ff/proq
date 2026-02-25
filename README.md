@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="#getting-started">Getting Started</a> &nbsp;·&nbsp;
+  <a href="#quick-start">Quick Start</a> &nbsp;·&nbsp;
   <a href="#how-it-works">How It Works</a> &nbsp;·&nbsp;
   <a href="#api">API</a> &nbsp;·&nbsp;
   <a href="#under-the-hood">Under the Hood</a>
@@ -20,37 +20,22 @@ proq is a vibe coding IDE built for shipping quality software. It's a kanban boa
 
 Under the hood it's a tmux task runner that bolts up to your favorite command line agent. It works out of the box with subagents, MCPs, worktrees, and whatever config you bring along. You can also edit proq using proq.
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
-
-- **Node.js** 18+
-- **tmux** — agents run in detached tmux sessions
-- **Claude Code CLI** — installed and on your PATH (or set `CLAUDE_BIN` in `.env.local`)
-
-**macOS:**
+You'll need **Node.js 18+** and the **[Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)** on your PATH. The setup script handles everything else (tmux, build tools, npm install):
 
 ```bash
-brew install tmux
-xcode-select --install   # needed for native compilation (node-pty)
-```
-
-**Linux (Debian/Ubuntu):**
-
-```bash
-sudo apt install tmux build-essential
-```
-
-### Install & Run
-
-```bash
-npm install
+git clone https://github.com/0xc00010ff/proq.git
+cd proq
+./scripts/setup.sh
 npm run dev
 ```
 
-Open [http://localhost:7331](http://localhost:7331). The `data/` directory is auto-created on first run.
+Open [http://localhost:7331](http://localhost:7331) and you're in.
 
-Optionally copy `.env.example` to `.env.local` to configure:
+### Configuration
+
+Optionally copy `.env.example` to `.env.local`:
 
 | Variable | Default | Description |
 | --- | --- | --- |

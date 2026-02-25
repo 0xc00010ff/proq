@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: Params) {
   const current = getCurrentBranch(projectPath);
   const allBranches = listBranches(projectPath);
 
-  // Filter out preview/* branches — they're internal implementation detail
+  // Filter out proq/*/preview branches — they're internal implementation detail
   const branches = allBranches.filter((b) => !isPreviewBranch(b));
 
   // If we're on a preview branch, report the source proq/* branch as current
@@ -64,7 +64,7 @@ export async function POST(request: Request, { params }: Params) {
     checkoutBranch(projectPath, branch);
     const result = getCurrentBranch(projectPath);
 
-    // Report proq/* name, not preview/* name
+    // Report proq/* name, not proq/*/preview name
     let currentName = result.branch;
     if (isPreviewBranch(result.branch)) {
       currentName = sourceProqBranch(result.branch);

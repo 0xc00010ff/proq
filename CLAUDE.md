@@ -109,8 +109,8 @@ In parallel mode, each task gets its own git worktree + branch (`proq/{shortId}`
 - **in-progress → verify**: Worktree stays alive. Branch is available for preview via the TopBar branch switcher.
 - **verify → done**: Checkout main → merge branch → remove worktree. On conflict, task stays in verify.
 - **TopBar branch selector**: Shows all local git branches. `proq/*` branches are annotated with their task title. Works in both sequential and parallel modes.
-- **Preview flow**: User clicks "Preview" in TaskAgentModal → creates a `preview/{shortId}` branch at the same commit as `proq/{shortId}` → checks it out normally → dev server hot-reloads. Polling fast-forwards the preview branch every 5s to pick up new agent commits.
-- **Preview branches**: `preview/*` branches are disposable — automatically created on preview, deleted when switching away. The git API filters them from the branch list and reports `proq/*` as the current branch instead.
+- **Preview flow**: User clicks "Preview" in TaskAgentModal → creates a `proq/{shortId}/preview` branch at the same commit as `proq/{shortId}` → checks it out normally → dev server hot-reloads. Polling fast-forwards the preview branch every 5s to pick up new agent commits.
+- **Preview branches**: `proq/*/preview` branches are disposable — automatically created on preview, deleted when switching away. The git API filters them from the branch list and reports the parent `proq/*` as the current branch instead.
 - **Auto-stash**: If user has uncommitted changes on main, they're auto-stashed before branch switch and popped when returning.
 
 ### Data Layer
@@ -143,9 +143,9 @@ GET/POST       /api/projects/[id]/chat                # Chat history
 
 **Git API (`/api/projects/[id]/git`):**
 
-- `GET` — Returns `{ current, detached, branches }` — current branch + all local branches (preview/\* branches filtered out, reported as proq/\*)
-- `POST { branch }` — Switch branch (auto-stash, creates preview/\* branch for proq/\*, normal checkout for others)
-- `PATCH` — Refresh preview branch if on one (ff-merge from source proq/\* branch to pick up new agent commits)
+- `GET` — Returns `{ current, detached, branches }` — current branch + all local branches (`proq/*/preview` filtered out, reported as `proq/*`)
+- `POST { branch }` — Switch branch (auto-stash, creates `proq/*/preview` for proq/\* branches, normal checkout for others)
+- `PATCH` — Refresh preview branch if on one (ff-merge from source `proq/*` branch to pick up new agent commits)
 
 **Status change side effects in PATCH/reorder:**
 All routes follow the same pattern: update state, then call `processQueue()`.

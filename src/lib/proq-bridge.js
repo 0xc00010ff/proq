@@ -49,7 +49,7 @@ const shell = ptyModule.spawn("bash", [launcherScript], {
 });
 
 let scrollback = "";
-let activeClient = null;
+const activeClients = new Set();
 let processExited = false;
 let exitCode = null;
 
@@ -60,10 +60,10 @@ shell.onData((data) => {
     scrollback = scrollback.slice(-SCROLLBACK_LIMIT);
   }
 
-  if (activeClient && !activeClient.destroyed) {
-    try {
-      activeClient.write(data);
-    } catch {}
+  for (const client of activeClients) {
+    if (!client.destroyed) {
+      try { client.write(data); } catch {}
+    }
   }
 });
 
@@ -72,11 +72,11 @@ shell.onExit(({ exitCode: code }) => {
   exitCode = code;
   console.log(`[proq-bridge] process exited with code ${code}`);
 
-  // Notify connected client
-  if (activeClient && !activeClient.destroyed) {
-    try {
-      activeClient.write(JSON.stringify({ type: "exit", code }) + "\n");
-    } catch {}
+  // Notify all connected clients
+  for (const client of activeClients) {
+    if (!client.destroyed) {
+      try { client.write(JSON.stringify({ type: "exit", code }) + "\n"); } catch {}
+    }
   }
 });
 
@@ -84,13 +84,7 @@ shell.onExit(({ exitCode: code }) => {
 const server = net.createServer((client) => {
   console.log("[proq-bridge] client connected");
 
-  // Kick previous client
-  if (activeClient && !activeClient.destroyed) {
-    try {
-      activeClient.destroy();
-    } catch {}
-  }
-  activeClient = client;
+  activeClients.add(client);
 
   // Replay scrollback
   if (scrollback.length > 0) {
@@ -183,15 +177,11 @@ const server = net.createServer((client) => {
 
   client.on("close", () => {
     console.log("[proq-bridge] client disconnected");
-    if (activeClient === client) {
-      activeClient = null;
-    }
+    activeClients.delete(client);
   });
 
   client.on("error", () => {
-    if (activeClient === client) {
-      activeClient = null;
-    }
+    activeClients.delete(client);
   });
 });
 

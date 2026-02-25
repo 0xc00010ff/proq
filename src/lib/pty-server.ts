@@ -9,7 +9,7 @@ const SCROLLBACK_LIMIT = 50 * 1024; // 50 KB ring buffer per PTY
 
 interface PtyEntry {
   socket?: net.Socket;
-  ws?: WebSocket;
+  clients: Set<WebSocket>;
   disconnectTimer?: ReturnType<typeof setTimeout>;
   scrollback: string;
   cmd?: string;
@@ -94,7 +94,7 @@ function connectBridgeSocket(tabId: string, sockPath: string): PtyEntry | null {
     activePtys.delete(tabId);
   }
 
-  const entry: PtyEntry = { scrollback: "" };
+  const entry: PtyEntry = { clients: new Set(), scrollback: "" };
   activePtys.set(tabId, entry);
 
   const sock = net.createConnection(sockPath);
@@ -109,11 +109,11 @@ function connectBridgeSocket(tabId: string, sockPath: string): PtyEntry | null {
       entry.scrollback = entry.scrollback.slice(-SCROLLBACK_LIMIT);
     }
 
-    // Forward to attached WS
-    if (entry.ws) {
+    // Forward to all attached WS clients
+    for (const client of entry.clients) {
       try {
-        if (entry.ws.readyState === entry.ws.OPEN) {
-          entry.ws.send(str);
+        if (client.readyState === client.OPEN) {
+          client.send(str);
         }
       } catch {}
     }
@@ -192,23 +192,18 @@ function finishAttach(tabId: string, entry: PtyEntry, ws: WebSocket): void {
     entry.disconnectTimer = undefined;
   }
 
-  // Close previous WS if still connected (stale connection)
-  if (entry.ws && entry.ws !== ws) {
-    try { entry.ws.close(); } catch {}
-  }
-
-  // Replay scrollback BEFORE setting entry.ws to avoid duplication
+  // Replay scrollback before adding to clients set
   if (entry.scrollback.length > 0) {
     try {
       ws.send(entry.scrollback);
     } catch {}
   }
 
-  entry.ws = ws;
+  entry.clients.add(ws);
 
   ws.on("close", () => {
-    // Only detach if this is still the active WS (not replaced by a newer one)
-    if (entry.ws === ws) {
+    entry.clients.delete(ws);
+    if (entry.clients.size === 0) {
       detachWs(tabId);
     }
   });
@@ -218,7 +213,11 @@ export function detachWs(tabId: string): void {
   const entry = activePtys.get(tabId);
   if (!entry) return;
 
-  entry.ws = undefined;
+  // Close any remaining clients
+  for (const client of entry.clients) {
+    try { client.close(); } catch {}
+  }
+  entry.clients.clear();
   // All tabs now use bridge sockets — no cleanup timer needed.
   // Shells persist in tmux until explicitly killed via killPty().
 }

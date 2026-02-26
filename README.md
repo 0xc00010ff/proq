@@ -16,7 +16,7 @@
 
 ---
 
-proq is a massively parallel vibe code IDE built for shipping quality software. A screen full of streaming terminals is not how you manage quality work. We suggest combining the novelty of parallel tmux'd coding agents with the stupidly simple interface that's buitl software for decades: kanban. Instead of hunting windows, you click into a task to see the coding process. This organization lets us sensibly manage multiple agents across multiple projects without spreading our attention thin. 
+proq is a massively parallel vibe code IDE built for shipping quality software. A screen full of streaming terminals is not how you manage quality work. We suggest combining the novelty of parallel tmux'd coding agents with the stupidly simple interface that's worked for decades: kanban. Instead of grids of streaming text, you click into a task to observe the agent at work. Or you could just let the agent cook and look at the live preview when its done. This organization lets us sensibly manage multiple agents across multiple projects without spreading our attention thin. 
 
 Under the hood it's a tmux task queue that bolts up to your favorite command line agent. It works out of the box with subagents, MCPs, worktrees, and whatever config you bring along. **You can also edit proq using proq.**
 

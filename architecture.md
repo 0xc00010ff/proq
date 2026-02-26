@@ -3,13 +3,13 @@
 ```mermaid
 graph TB
     subgraph User["👤 User"]
-        Browser["Browser<br/>localhost:7331"]
+        Browser["Browser<br/>localhost:1337"]
         CLI["proq CLI"]
         Phone["Phone / Slack"]
     end
 
     subgraph ProQ["proq System"]
-        subgraph Server["Server (Next.js :7331)"]
+        subgraph Server["Server (Next.js :1337)"]
             API["REST API"]
             WS["WebSocket (PTY)"]
             DB["lowdb<br/>data/workspace.json<br/>data/projects/*.json"]

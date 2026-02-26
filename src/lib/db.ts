@@ -540,7 +540,7 @@ const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 
 const DEFAULT_SETTINGS: ProqSettings = {
   // System
-  port: 7331,
+  port: 1337,
 
   // Agent
   claudeBin: "claude",

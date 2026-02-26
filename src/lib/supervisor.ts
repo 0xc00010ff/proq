@@ -15,7 +15,7 @@ export type SupervisorChunk =
 // ── System prompt ────────────────────────────────────────
 
 function buildSystemPrompt(): string {
-  return `You are the Supervisor for proq — a task orchestration board for AI-assisted development running at http://localhost:7331.
+  return `You are the Supervisor for proq — a task orchestration board for AI-assisted development running at http://localhost:1337.
 
 You can manage projects and tasks by calling the REST API. Here are the available endpoints:
 

@@ -7,7 +7,7 @@ import { stripAnsi } from "./utils";
 import { createWorktree, removeWorktree } from "./worktree";
 import type { TaskAttachment, TaskMode } from "./types";
 
-const MC_API = "http://localhost:7331";
+const MC_API = "http://localhost:1337";
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 export function notify(message: string) {

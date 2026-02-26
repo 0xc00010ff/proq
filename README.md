@@ -31,7 +31,7 @@ npm run setup
 npm run dev
 ```
 
-Open [http://localhost:7331](http://localhost:7331) and you're in.
+Open [http://localhost:1337](http://localhost:1337) and you're in.
 
 
 ## How It Works
@@ -118,7 +118,7 @@ Next.js 16 · TypeScript · Tailwind CSS · shadcn/ui · lowdb · node-pty · tm
 
 ```bash
 npm run setup  # Install dependencies + system prereqs
-npm run dev    # Development server (port 7331)
+npm run dev    # Development server (port 1337)
 npm run build  # Production build
 npm run start  # Production server
 npm run lint   # ESLint

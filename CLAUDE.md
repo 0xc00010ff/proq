@@ -2,7 +2,7 @@
 
 ## What This Is
 
-proq is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) that manages tasks across multiple coding projects. When a task moves to "In Progress", proq automatically launches a Claude Code instance in a tmux session to work on it autonomously.
+proq is the command center for AI-assisted development. It's a Next.js kanban board (localhost:1337) that manages tasks across multiple coding projects. When a task moves to "In Progress", proq automatically launches a Claude Code instance in a tmux session to work on it autonomously.
 
 **The loop:**
 
@@ -21,7 +21,7 @@ proq is the command center for AI-assisted development. It's a Next.js kanban bo
 ## Quick Start
 
 ```bash
-npm run dev    # Start dev server (localhost:7331)
+npm run dev    # Start dev server (localhost:1337)
 npm run build  # Production build
 npm run lint   # ESLint
 ```
@@ -81,7 +81,7 @@ Key functions:
 **Callback:** Agent curls back when done:
 
 ```bash
-curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
+curl -s -X PATCH http://localhost:1337/api/projects/{projectId}/tasks/{taskId} \
   -H 'Content-Type: application/json' \
   -d '{"status":"verify","dispatch":null}'
 ```
@@ -201,6 +201,6 @@ Tasks have fields specifically for AI agent use:
 - Path alias: `@/*` maps to `./src/*`
 - `design-mock/` is a separate Vite prototype — not part of the main app
 - lowdb v7 uses ESM — all db operations are async
-- The app runs on port 7331 by default
+- The app runs on port 1337 by default
 - Tmux sessions: `tmux attach -t mc-{first8ofTaskId}` to watch an agent work
 - Optional Slack notifications via OpenClaw CLI — set `OPENCLAW_BIN` and `SLACK_CHANNEL` in `.env.local`

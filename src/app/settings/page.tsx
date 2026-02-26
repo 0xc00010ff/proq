@@ -288,7 +288,7 @@ export default function SettingsPage() {
                     type="number"
                     value={settings.port}
                     onChange={(e) =>
-                      update("port", parseInt(e.target.value) || 7331)
+                      update("port", parseInt(e.target.value) || 1337)
                     }
                     className={inputClass}
                   />

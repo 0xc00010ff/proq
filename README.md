@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>A kanban IDE for parallel coding agents.</strong><br/>
-  Your job is to define what you want. This is a workspace built for that. 
+  Our job is to define what AI will build. This is a workspace built for that. 
 </p>
 
 <p align="center">

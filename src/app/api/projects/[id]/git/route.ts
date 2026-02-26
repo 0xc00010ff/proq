@@ -7,6 +7,7 @@ import {
   refreshPreviewBranch,
   isPreviewBranch,
   sourceProqBranch,
+  isGitRepo,
 } from "@/lib/worktree";
 
 type Params = { params: Promise<{ id: string }> };
@@ -24,6 +25,11 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   const projectPath = resolveProjectPath(project.path);
+
+  if (!isGitRepo(projectPath)) {
+    return NextResponse.json({ current: null, detached: false, branches: [] });
+  }
+
   const current = getCurrentBranch(projectPath);
   const allBranches = listBranches(projectPath);
 
@@ -60,6 +66,14 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const projectPath = resolveProjectPath(project.path);
+
+  if (!isGitRepo(projectPath)) {
+    return NextResponse.json(
+      { error: "Project is not a git repository" },
+      { status: 400 },
+    );
+  }
+
   try {
     checkoutBranch(projectPath, branch);
     const result = getCurrentBranch(projectPath);
@@ -89,6 +103,14 @@ export async function PATCH(_request: Request, { params }: Params) {
   }
 
   const projectPath = resolveProjectPath(project.path);
+
+  if (!isGitRepo(projectPath)) {
+    return NextResponse.json(
+      { error: "Project is not a git repository" },
+      { status: 400 },
+    );
+  }
+
   const current = getCurrentBranch(projectPath);
 
   if (!isPreviewBranch(current.branch)) {

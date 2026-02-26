@@ -4,6 +4,19 @@ import { join } from "path";
 
 const WORKTREE_DIR = ".proq-worktrees";
 
+/** Check if a path is inside a git repository */
+export function isGitRepo(projectPath: string): boolean {
+  try {
+    execSync(`git -C '${projectPath}' rev-parse --git-dir`, {
+      timeout: 5_000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function createWorktree(
   projectPath: string,
   shortId: string,

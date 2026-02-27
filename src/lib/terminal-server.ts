@@ -3,7 +3,7 @@ import { parse } from "url";
 import { WebSocketServer } from "ws";
 import { attachWs, writeToPty, resizePty } from "./pty-server";
 
-const PORT = 42069;
+const PORT = parseInt(process.env.NEXT_PUBLIC_WS_PORT || "42069", 10);
 
 let started = false;
 

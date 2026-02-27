@@ -186,10 +186,7 @@ export async function dispatchTask(
     }
 
     try {
-      const settings = await getSettings();
-      await startPrettySession(projectId, taskId, prompt, effectivePath, {
-        model: settings.defaultModel || undefined,
-      });
+      await startPrettySession(projectId, taskId, prompt, effectivePath);
       console.log(`[agent-dispatch] launched pretty session for task ${taskId}`);
       notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (pretty)`);
       return terminalTabId;

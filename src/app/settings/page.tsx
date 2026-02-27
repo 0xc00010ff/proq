@@ -364,6 +364,24 @@ export default function SettingsPage() {
                     <option value="parallel">Parallel</option>
                   </select>
                 </Field>
+                <Field
+                  label="Agent render mode"
+                  hint="Terminal shows raw tmux output; Pretty shows structured blocks via the Claude SDK."
+                >
+                  <select
+                    value={settings.agentRenderMode}
+                    onChange={(e) =>
+                      update(
+                        "agentRenderMode",
+                        e.target.value as "terminal" | "pretty",
+                      )
+                    }
+                    className={inputClass}
+                  >
+                    <option value="terminal">Terminal</option>
+                    <option value="pretty">Pretty</option>
+                  </select>
+                </Field>
               </div>
             </section>
 

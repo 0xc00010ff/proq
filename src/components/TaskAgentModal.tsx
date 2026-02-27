@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { TerminalPane } from './TerminalPane';
+import { PrettyPane } from './PrettyPane';
 import { ConflictModal } from './ConflictModal';
 
 interface TaskAgentModalProps {
@@ -39,9 +40,12 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
   const steps = parseLines(task.humanSteps);
   const findings = parseLines(task.findings);
   const isDispatched = task.dispatch === 'running' || task.dispatch === 'starting';
+  const isPretty = task.renderMode === 'pretty';
+  const showPrettyPane = isPretty && !isQueued && (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done');
+  const showPrettyStatic = isPretty && task.status === 'done' && !!task.prettyLog;
   // Show terminal for done tasks too; fall back to static log only after cleanup has captured agentLog
-  const showStaticLog = task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
-  const showTerminal = (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;
+  const showStaticLog = !isPretty && task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
+  const showTerminal = !isPretty && (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;
   const [countdownText, setCountdownText] = useState('');
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -201,6 +205,13 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                 Start Now
               </button>
             </div>
+          ) : showPrettyPane ? (
+            <PrettyPane
+              taskId={task.id}
+              projectId={projectId}
+              visible={true}
+              prettyLog={showPrettyStatic ? task.prettyLog : undefined}
+            />
           ) : showTerminal ? (
             <div className="flex-1 relative min-h-0 flex flex-col">
               <div className="flex-1 min-h-0">
@@ -225,7 +236,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
         </div>
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[33%] border-l border-bronze-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`}>
+        <div ref={rightPanelRef} className={`${showTerminal || showPrettyPane || isQueued ? 'w-[33%] border-l border-bronze-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`}>
           {/* Close button */}
           <button
             onClick={onClose}

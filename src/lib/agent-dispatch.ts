@@ -2,10 +2,11 @@ import { execSync } from "child_process";
 import { existsSync, writeFileSync, readFileSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { getAllProjects, getAllTasks, getExecutionMode, getTask, updateTask } from "./db";
+import { getAllProjects, getAllTasks, getExecutionMode, getTask, updateTask, getSettings } from "./db";
 import { stripAnsi } from "./utils";
 import { createWorktree, removeWorktree } from "./worktree";
-import type { TaskAttachment, TaskMode } from "./types";
+import type { TaskAttachment, TaskMode, AgentRenderMode } from "./types";
+import { startSession as startPrettySession, stopSession as stopPrettySession, isSessionRunning, clearSession } from "./pretty-runtime";
 
 const MC_API = "http://localhost:1337";
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -113,6 +114,7 @@ export async function dispatchTask(
   taskDescription: string,
   mode?: TaskMode,
   attachments?: TaskAttachment[],
+  renderMode?: AgentRenderMode,
 ): Promise<string | undefined> {
   // Look up project path
   const projects = await getAllProjects();
@@ -150,12 +152,59 @@ export async function dispatchTask(
     }
   }
 
+  const heading = taskTitle ? `# ${taskTitle}\n\n${taskDescription}` : taskDescription;
+
+  // ── Pretty mode: dispatch via SDK ──
+  if (renderMode === "pretty") {
+    let prompt: string;
+    if (mode === "plan") {
+      prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan.\n${heading}`;
+    } else if (mode === "answer") {
+      prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question.`;
+    } else {
+      prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
+    }
+
+    // Append image attachments
+    if (attachments?.length) {
+      const imageFiles: string[] = [];
+      const attachDir = join(tmpdir(), "proq-prompts", `pretty-${shortId}-attachments`);
+      mkdirSync(attachDir, { recursive: true });
+      for (const att of attachments) {
+        if (att.dataUrl && att.type.startsWith("image/")) {
+          const match = att.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+          if (match) {
+            const filePath = join(attachDir, att.name);
+            writeFileSync(filePath, Buffer.from(match[1], "base64"));
+            imageFiles.push(filePath);
+          }
+        }
+      }
+      if (imageFiles.length > 0) {
+        prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+      }
+    }
+
+    try {
+      const settings = await getSettings();
+      await startPrettySession(projectId, taskId, prompt, effectivePath, {
+        model: settings.defaultModel || undefined,
+      });
+      console.log(`[agent-dispatch] launched pretty session for task ${taskId}`);
+      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (pretty)`);
+      return terminalTabId;
+    } catch (err) {
+      console.error(`[agent-dispatch] failed to launch pretty session for ${taskId}:`, err);
+      return undefined;
+    }
+  }
+
+  // ── Terminal mode: dispatch via tmux (existing behavior) ──
+
   // Build the agent prompt
   const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
   -H 'Content-Type: application/json' \\
   -d '{"status":"verify","dispatch":null,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
-
-  const heading = taskTitle ? `# ${taskTitle}\n\n${taskDescription}` : taskDescription;
 
   let prompt: string;
   let claudeFlags: string;
@@ -244,27 +293,36 @@ ${callbackCurl}
 }
 
 export async function abortTask(projectId: string, taskId: string) {
-  const shortId = taskId.slice(0, 8);
-  const tmuxSession = `mc-${shortId}`;
-  try {
-    execSync(`tmux kill-session -t '${tmuxSession}'`, { timeout: 5_000 });
-    console.log(`[agent-dispatch] killed tmux session ${tmuxSession}`);
-  } catch (err) {
-    console.error(
-      `[agent-dispatch] failed to kill tmux session ${tmuxSession}:`,
-      err,
-    );
+  const task = await getTask(projectId, taskId);
+
+  if (task?.renderMode === "pretty") {
+    // Pretty mode: abort via SDK
+    stopPrettySession(taskId);
+    console.log(`[agent-dispatch] stopped pretty session for task ${taskId}`);
+  } else {
+    // Terminal mode: kill tmux
+    const shortId = taskId.slice(0, 8);
+    const tmuxSession = `mc-${shortId}`;
+    try {
+      execSync(`tmux kill-session -t '${tmuxSession}'`, { timeout: 5_000 });
+      console.log(`[agent-dispatch] killed tmux session ${tmuxSession}`);
+    } catch (err) {
+      console.error(
+        `[agent-dispatch] failed to kill tmux session ${tmuxSession}:`,
+        err,
+      );
+    }
+
+    // Clean up bridge socket and log files
+    const socketPath = `/tmp/proq/${tmuxSession}.sock`;
+    const logPath = socketPath + ".log";
+    try { if (existsSync(socketPath)) unlinkSync(socketPath); } catch {}
+    try { if (existsSync(logPath)) unlinkSync(logPath); } catch {}
   }
 
-  // Clean up bridge socket and log files
-  const socketPath = `/tmp/proq/${tmuxSession}.sock`;
-  const logPath = socketPath + ".log";
-  try { if (existsSync(socketPath)) unlinkSync(socketPath); } catch {}
-  try { if (existsSync(logPath)) unlinkSync(logPath); } catch {}
-
-  // Clean up worktree if task had one
-  const task = await getTask(projectId, taskId);
+  // Clean up worktree if task had one (shared for both modes)
   if (task?.worktreePath) {
+    const shortId = taskId.slice(0, 8);
     const projects = await getAllProjects();
     const project = projects.find((p) => p.id === projectId);
     if (project) {
@@ -276,6 +334,10 @@ export async function abortTask(projectId: string, taskId: string) {
 }
 
 export function isSessionAlive(taskId: string): boolean {
+  // Check pretty runtime first
+  if (isSessionRunning(taskId)) return true;
+
+  // Fall back to tmux check
   const shortId = taskId.slice(0, 8);
   const tmuxSession = `mc-${shortId}`;
   try {
@@ -345,6 +407,7 @@ export async function processQueue(projectId: string): Promise<void> {
           next.description,
           next.mode,
           next.attachments,
+          next.renderMode,
         );
         if (result) {
           await updateTask(projectId, next.id, { dispatch: "running" });
@@ -369,6 +432,7 @@ export async function processQueue(projectId: string): Promise<void> {
           task.description,
           task.mode,
           task.attachments,
+          task.renderMode,
         );
         if (result) {
           await updateTask(projectId, task.id, { dispatch: "running" });

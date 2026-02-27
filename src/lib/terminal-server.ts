@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { parse } from "url";
 import { WebSocketServer } from "ws";
 import { attachWs, writeToPty, resizePty } from "./pty-server";
+import { attachPrettyWsWithProject } from "./pretty-server";
 
 const PORT = parseInt(process.env.NEXT_PUBLIC_WS_PORT || "42069", 10);
 
@@ -53,6 +54,20 @@ export function startTerminalServer() {
 
           writeToPty(tabId, msg);
         });
+      });
+    } else if (pathname === "/ws/pretty") {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        const taskId = query.taskId as string;
+        const projectId = query.projectId as string;
+        console.log(`[ws] pretty connected: task=${taskId} project=${projectId}`);
+
+        if (!taskId || !projectId) {
+          ws.send(JSON.stringify({ type: "error", error: "taskId and projectId required" }));
+          ws.close();
+          return;
+        }
+
+        attachPrettyWsWithProject(taskId, projectId, ws);
       });
     } else {
       socket.destroy();

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTask, getProject, updateTask, deleteTask } from "@/lib/db";
+import { getTask, getProject, updateTask, deleteTask, getSettings } from "@/lib/db";
 import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
@@ -36,9 +36,12 @@ export async function PATCH(request: Request, { params }: Params) {
     if (body.status === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(taskId);
       if (prevStatus !== "verify") {
+        const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
-        await updateTask(id, taskId, { dispatch });
+        const renderMode = updated.renderMode || settings.agentRenderMode || 'terminal';
+        await updateTask(id, taskId, { dispatch, renderMode });
         updated.dispatch = dispatch;
+        updated.renderMode = renderMode;
       }
     } else if (body.status === "todo" && prevStatus !== "todo") {
       cancelCleanup(taskId);
@@ -54,7 +57,7 @@ export async function PATCH(request: Request, { params }: Params) {
           popAutoStash(projectPath);
         }
       }
-      const resetFields = { dispatch: null as Task["dispatch"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"] };
+      const resetFields = { dispatch: null as Task["dispatch"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], prettyLog: undefined as Task["prettyLog"], sessionId: undefined as Task["sessionId"] };
       await updateTask(id, taskId, resetFields);
       Object.assign(updated, resetFields);
       if (prevStatus === "in-progress") {

@@ -20,6 +20,33 @@ export interface WorkspaceData {
   projects: Project[];
 }
 
+// ── Render Mode ─────────────────────────────────────────
+export type AgentRenderMode = 'terminal' | 'pretty';
+
+// ── Pretty Block Types ──────────────────────────────────
+export type PrettyBlock =
+  | { type: 'text';        text: string }
+  | { type: 'thinking';    thinking: string }
+  | { type: 'tool_use';    toolId: string; name: string; input: Record<string, unknown> }
+  | { type: 'tool_result'; toolId: string; name: string; output: string; isError?: boolean }
+  | { type: 'user';        text: string }
+  | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort';
+      sessionId?: string; model?: string; costUsd?: number;
+      durationMs?: number; turns?: number; error?: string }
+  | { type: 'stream_delta'; text: string };
+
+// ── Pretty WS Protocol ──────────────────────────────────
+// Server → Client
+export type PrettyWsServerMsg =
+  | { type: 'replay'; blocks: PrettyBlock[] }
+  | { type: 'block';  block: PrettyBlock }
+  | { type: 'error';  error: string };
+
+// Client → Server
+export type PrettyWsClientMsg =
+  | { type: 'followup'; text: string }
+  | { type: 'stop' };
+
 // ── Task ─────────────────────────────────────────────────
 export type TaskStatus = "todo" | "in-progress" | "verify" | "done";
 
@@ -52,6 +79,9 @@ export interface Task {
     files: string[];
     branch: string;
   };
+  renderMode?: AgentRenderMode;
+  prettyLog?: PrettyBlock[];
+  sessionId?: string;
   attachments?: TaskAttachment[];
   createdAt: string;
   updatedAt: string;
@@ -96,6 +126,7 @@ export interface ProqSettings {
   defaultModel: string;
   systemPromptAdditions: string;
   executionMode: 'sequential' | 'parallel';
+  agentRenderMode: AgentRenderMode;
 
   // Git
   autoCommit: boolean;

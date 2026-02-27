@@ -301,7 +301,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode" | "worktreePath" | "branch" | "mergeConflict">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode" | "worktreePath" | "branch" | "mergeConflict" | "renderMode" | "prettyLog" | "sessionId">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -547,6 +547,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   defaultModel: "",
   systemPromptAdditions: "",
   executionMode: "sequential",
+  agentRenderMode: "terminal",
 
   // Git
   autoCommit: true,

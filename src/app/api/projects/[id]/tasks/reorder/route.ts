@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { moveTask, getProject, getTask, updateTask } from "@/lib/db";
+import { moveTask, getProject, getTask, updateTask, getSettings } from "@/lib/db";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
 import type { TaskStatus } from "@/lib/types";
@@ -52,8 +52,10 @@ export async function PUT(request: Request, { params }: Params) {
     if (toColumn === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(taskId);
       if (prevStatus !== "verify") {
+        const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
-        await updateTask(id, taskId, { dispatch });
+        const renderMode = prevTask?.renderMode || settings.agentRenderMode || 'terminal';
+        await updateTask(id, taskId, { dispatch, renderMode });
       }
     } else if (toColumn === "todo" && prevStatus !== "todo") {
       cancelCleanup(taskId);
@@ -66,7 +68,7 @@ export async function PUT(request: Request, { params }: Params) {
         removeWorktree(projectPath, prevTask.id.slice(0, 8));
         popAutoStash(projectPath);
       }
-      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, mergeConflict: undefined });
+      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, mergeConflict: undefined, renderMode: undefined, prettyLog: undefined, sessionId: undefined });
       if (prevStatus === "in-progress") {
         await abortTask(id, taskId);
       }

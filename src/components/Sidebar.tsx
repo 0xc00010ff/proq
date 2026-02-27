@@ -53,21 +53,29 @@ function TaskStatusSummary({ columns }: { columns: TaskColumns }) {
     segments.push(
       <span key="ip" className="flex items-center gap-1">
         <RefreshCwIcon className="w-3 h-3 text-steel animate-[spin_3s_linear_infinite]" />
-        <span className="text-zinc-500 dark:text-zinc-400">{counts["in-progress"]} in progress</span>
-      </span>
+        <span className="text-zinc-500 dark:text-zinc-400">
+          {counts["in-progress"]} in progress
+        </span>
+      </span>,
     );
   }
   if (counts["verify"]) {
     segments.push(
       <span key="v" className="flex items-center gap-1">
         <CheckCircle2Icon className="w-2.5 h-2.5 text-gold dark:text-gold" />
-        <span className="text-zinc-500 dark:text-zinc-400">{counts["verify"]} to verify</span>
-      </span>
+        <span className="text-zinc-500 dark:text-zinc-400">
+          {counts["verify"]} to verify
+        </span>
+      </span>,
     );
   }
 
   if (segments.length === 0) {
-    return <span className="text-zinc-400 dark:text-zinc-600 text-[11px]">No active tasks</span>;
+    return (
+      <span className="text-zinc-400 dark:text-zinc-600 text-[11px]">
+        No active tasks
+      </span>
+    );
   }
 
   return (
@@ -207,7 +215,10 @@ function SortableProject({
         {...listeners}
         onClick={() => {
           if (isDragging) return;
-          if (pathInvalid) { onMissingPath?.(project); return; }
+          if (pathInvalid) {
+            onMissingPath?.(project);
+            return;
+          }
           if (isRenaming) return;
           router.push(`/projects/${project.id}`);
         }}
@@ -232,11 +243,20 @@ function SortableProject({
                 value={renameValue}
                 onChange={(e) => onRenameChange(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); onRenameSubmit(); }
-                  if (e.key === "Escape") { e.preventDefault(); onRenameCancel(); }
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onRenameSubmit();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    onRenameCancel();
+                  }
                 }}
                 onBlur={onRenameCancel}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 onMouseDown={(e) => e.stopPropagation()}
                 className="w-full text-sm font-medium leading-tight bg-bronze-100 dark:bg-zinc-900 border border-steel/50 rounded px-1.5 py-0.5 text-bronze-900 dark:text-zinc-100 outline-none focus:border-steel"
               />
@@ -251,7 +271,11 @@ function SortableProject({
 
           {pathInvalid && (
             <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMissingPath?.(project); }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onMissingPath?.(project);
+              }}
               className="p-1 text-crimson hover:text-crimson-light transition-colors"
               title="Project folder not found"
             >
@@ -267,14 +291,18 @@ function SortableProject({
         </div>
 
         {/* Path */}
-        <div className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-crimson/60 dark:text-crimson/50" : "text-zinc-400 dark:text-zinc-600"}`}>
+        <div
+          className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-crimson/60 dark:text-crimson/50" : "text-zinc-400 dark:text-zinc-600"}`}
+        >
           {project.path}
         </div>
 
         {/* Task Summary */}
         <div className="mt-1.5 text-[11px]">
           {pathInvalid ? (
-            <span className="text-crimson dark:text-crimson text-[11px]">Folder not found</span>
+            <span className="text-crimson dark:text-crimson text-[11px]">
+              Folder not found
+            </span>
           ) : (
             <TaskStatusSummary columns={columns} />
           )}
@@ -289,11 +317,12 @@ function SortableProject({
 export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { projects, tasksByProject, refreshProjects, setProjects } = useProjects();
+  const { projects, tasksByProject, refreshProjects, setProjects } =
+    useProjects();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const isChatActive = pathname === "/supervisor";
@@ -317,7 +346,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
         body: JSON.stringify({ orderedIds }),
       });
     },
-    [projects, setProjects]
+    [projects, setProjects],
   );
 
   const handleDelete = useCallback(
@@ -330,7 +359,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
         router.push("/");
       }
     },
-    [refreshProjects, pathname, router]
+    [refreshProjects, pathname, router],
   );
 
   const handleStartRename = useCallback((project: Project) => {
@@ -344,7 +373,10 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       return;
     }
     const project = projects.find((p) => p.id === renamingId);
-    if (!project) { setRenamingId(null); return; }
+    if (!project) {
+      setRenamingId(null);
+      return;
+    }
 
     // Don't submit if name hasn't changed
     if (renameValue.trim() === folderName(project)) {
@@ -380,14 +412,23 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       <Link
         href="/settings"
         className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative
-          ${pathname === '/settings' ? 'bg-bronze-300 dark:bg-zinc-800/50' : ''}`}
+          ${pathname === "/settings" ? "bg-bronze-300 dark:bg-zinc-800/50" : ""}`}
       >
-        {pathname === '/settings' && (
+        {pathname === "/settings" && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/proq-logo-vector.svg" alt="proq" width={12} height={12} className="translate-y-[3px]" />
-        <span className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase" style={{ fontFamily: 'var(--font-gemunu-libre)' }}>
+        <img
+          src="/proq-logo-vector.svg"
+          alt="proq"
+          width={13}
+          height={13}
+          className="translate-y-[4px]"
+        />
+        <span
+          className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase"
+          style={{ fontFamily: "var(--font-gemunu-libre)" }}
+        >
           proq
         </span>
       </Link>
@@ -438,7 +479,12 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           >
             {projects.map((project, index) => {
               const isActive = pathname === `/projects/${project.id}`;
-              const cols = tasksByProject[project.id] || { todo: [], "in-progress": [], verify: [], done: [] };
+              const cols = tasksByProject[project.id] || {
+                todo: [],
+                "in-progress": [],
+                verify: [],
+                done: [],
+              };
               return (
                 <SortableProject
                   key={project.id}
@@ -460,7 +506,6 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           </SortableContext>
         </DndContext>
       </div>
-
     </aside>
   );
 }

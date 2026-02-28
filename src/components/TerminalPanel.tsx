@@ -6,10 +6,11 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { Plus, TerminalIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2 } from 'lucide-react';
+import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTerminalTabs, type TerminalTab } from './TerminalTabsProvider';
 import { TerminalPane } from './TerminalPane';
+import { AgentTabPane } from './AgentTabPane';
 
 interface TerminalPanelProps {
   projectId: string;
@@ -18,7 +19,6 @@ interface TerminalPanelProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onExpand?: () => void;
-  cleanupTimes?: Record<string, number>;
   onResizeStart?: (e: React.MouseEvent) => void;
   isDragging?: boolean;
 }
@@ -27,58 +27,22 @@ interface TerminalPanelProps {
 /*  Panel component                                                            */
 /* -------------------------------------------------------------------------- */
 
-/* -------------------------------------------------------------------------- */
-/*  Cleanup countdown helper                                                   */
-/* -------------------------------------------------------------------------- */
-
-function useCleanupCountdown(expiresAt: number | undefined): string | null {
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    if (!expiresAt) return;
-    const interval = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(interval);
-  }, [expiresAt]);
-
-  if (!expiresAt) return null;
-
-  const remaining = expiresAt - now;
-  if (remaining <= 0) return 'process will be terminated shortly';
-
-  const mins = Math.ceil(remaining / 60_000);
-  if (mins >= 60) {
-    const hrs = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `process will be terminated in ${hrs}h ${m}m`;
-  }
-  return `process will be terminated in ${mins}m`;
-}
-
-export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, cleanupTimes, onResizeStart, isDragging }: TerminalPanelProps) {
+export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: TerminalPanelProps) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, hydrateProject } = useTerminalTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [menuTabId, setMenuTabId] = useState<string | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [showNewTabMenu, setShowNewTabMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const newTabMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  // Hydrate persisted shell tabs on mount
+  // Hydrate persisted tabs on mount
   useEffect(() => { hydrateProject(projectId); }, [projectId, hydrateProject]);
 
   const tabs = getTabs(projectId);
   const activeTabId = getActiveTabId(projectId);
-
-  // Find cleanup expiry for the active task tab
-  const activeTab = tabs.find((t) => t.id === activeTabId);
-  let activeCleanupExpiresAt: number | undefined;
-  if (activeTab?.type === 'task' && cleanupTimes) {
-    // Tab ID is "task-{first8}", cleanup keys are full task IDs
-    const shortId = activeTab.id.replace('task-', '');
-    const matchingKey = Object.keys(cleanupTimes).find((k) => k.startsWith(shortId));
-    if (matchingKey) activeCleanupExpiresAt = cleanupTimes[matchingKey];
-  }
-  const countdownText = useCleanupCountdown(activeCleanupExpiresAt);
 
   // Load xterm CSS once
   useEffect(() => {
@@ -92,17 +56,20 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
     }
   }, []);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
-    if (!menuTabId) return;
+    if (!menuTabId && !showNewTabMenu) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuTabId && menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuTabId(null);
+      }
+      if (showNewTabMenu && newTabMenuRef.current && !newTabMenuRef.current.contains(e.target as Node)) {
+        setShowNewTabMenu(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [menuTabId]);
+  }, [menuTabId, showNewTabMenu]);
 
   // Focus rename input when it appears
   useEffect(() => {
@@ -130,6 +97,12 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
     openTab(projectId, id, `Terminal ${shellCount}`, 'shell');
   }, [tabs, openTab, projectId, projectPath]);
 
+  const addAgentTab = useCallback(() => {
+    const id = `agent-${uuidv4().slice(0, 8)}`;
+    const agentCount = tabs.filter((t) => t.type === 'agent').length + 1;
+    openTab(projectId, id, `Agent ${agentCount}`, 'agent');
+  }, [tabs, openTab, projectId]);
+
   const removeTab = useCallback(
     (tabId: string) => {
       closeTab(projectId, tabId);
@@ -137,8 +110,10 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
     [closeTab, projectId]
   );
 
-  const tabAccentColor = (tab: TerminalTab) =>
-    tab.type === 'task' ? 'text-steel' : 'text-bronze-500';
+  const tabIcon = (tab: TerminalTab) =>
+    tab.type === 'agent'
+      ? <SquareChevronUpIcon className="w-3 h-3" />
+      : <TerminalIcon className="w-3 h-3" />;
 
   return (
     <div
@@ -189,15 +164,14 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
               }}
               className={`relative flex items-center gap-1.5 px-3 self-stretch text-xs transition-colors min-w-[100px] ${
                 activeTabId === tab.id
-                  ? 'bg-bronze-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
+                  ? 'bg-bronze-300/60 dark:bg-zinc-800/60 text-bronze-500'
                   : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30'
               }`}
             >
-              <TerminalIcon className="w-3 h-3" />
+              {tabIcon(tab)}
               <span className="relative">
                 {/* Always rendered to preserve tab width */}
                 <span className={`max-w-[120px] truncate block ${renamingTabId === tab.id ? 'invisible' : ''}`}>
-                  {tab.status === 'done' ? '\u2705 ' : ''}
                   {tab.label}
                 </span>
                 {renamingTabId === tab.id && (
@@ -253,44 +227,71 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
                   className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Kill Terminal
+                  {tab.type === 'agent' ? 'Close Agent' : 'Kill Terminal'}
                 </button>
               </div>
             )}
           </div>
         ))}
 
-        <button
-          onClick={() => {
-            addShellTab();
-            if (collapsed) (onExpand ?? onToggleCollapsed)();
-          }}
-          className="flex items-center justify-center w-12 self-stretch text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30 shrink-0"
-          title="New terminal"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
+        {/* New tab button with dropdown */}
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setShowNewTabMenu((prev) => !prev)}
+            className="flex items-center justify-center w-12 self-stretch h-full text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30"
+            title="New tab"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+          {showNewTabMenu && (
+            <div
+              ref={newTabMenuRef}
+              className="absolute left-0 top-full mt-1 w-40 bg-bronze-50 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1"
+            >
+              <button
+                onClick={() => {
+                  setShowNewTabMenu(false);
+                  addAgentTab();
+                  if (collapsed) (onExpand ?? onToggleCollapsed)();
+                }}
+                className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+              >
+                <SquareChevronUpIcon className="w-3.5 h-3.5" />
+                Agent
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewTabMenu(false);
+                  addShellTab();
+                  if (collapsed) (onExpand ?? onToggleCollapsed)();
+                }}
+                className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+              >
+                <TerminalIcon className="w-3.5 h-3.5" />
+                Terminal
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Spacer — fills remaining space for grab target */}
         <div className="flex-1" />
         </div>
       </div>
 
-      {/* Terminal Panes — each manages its own xterm lifecycle */}
+      {/* Panes — each manages its own lifecycle */}
       {!collapsed && (
         <div className="flex-1 relative" style={{ minHeight: 0 }}>
-          {tabs.map((tab) => (
-            <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
-          ))}
+          {tabs.map((tab) =>
+            tab.type === 'agent' ? (
+              <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} visible={activeTabId === tab.id} />
+            ) : (
+              <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
+            )
+          )}
         </div>
       )}
 
-      {/* Cleanup countdown footer */}
-      {!collapsed && countdownText && (
-        <div className="px-3 py-1 text-xs text-zinc-600 dark:text-zinc-600 font-mono shrink-0">
-          {countdownText}
-        </div>
-      )}
     </div>
   );
 }

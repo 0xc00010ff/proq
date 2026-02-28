@@ -163,6 +163,12 @@ export type ExecutionMode = 'sequential' | 'parallel';
 export interface TerminalTabInfo {
   id: string;
   label: string;
+  type?: 'shell' | 'agent'; // defaults to 'shell' for backward compat
+}
+
+export interface AgentTabData {
+  prettyLog: PrettyBlock[];
+  sessionId?: string;
 }
 
 export interface ProjectState {
@@ -174,6 +180,7 @@ export interface ProjectState {
   terminalHeight?: number;
   terminalTabs?: TerminalTabInfo[];
   terminalActiveTabId?: string;
+  agentTabs?: Record<string, AgentTabData>;
   recentlyDeleted?: DeletedTaskEntry[];
   // Legacy field — present only in unmigrated files
   tasks?: Task[];

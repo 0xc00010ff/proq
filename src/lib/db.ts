@@ -449,6 +449,34 @@ export async function setTerminalTabs(projectId: string, tabs: import("./types")
 }
 
 // ═══════════════════════════════════════════════════════════
+// AGENT TABS
+// ═══════════════════════════════════════════════════════════
+
+export async function getAgentTabData(projectId: string, tabId: string): Promise<import("./types").AgentTabData | null> {
+  const data = getProjectData(projectId);
+  return data.agentTabs?.[tabId] ?? null;
+}
+
+export async function setAgentTabData(projectId: string, tabId: string, agentData: import("./types").AgentTabData): Promise<void> {
+  return withWriteLock(`project:${projectId}`, async () => {
+    const data = getProjectData(projectId);
+    if (!data.agentTabs) data.agentTabs = {};
+    data.agentTabs[tabId] = agentData;
+    writeProject(projectId, data);
+  });
+}
+
+export async function deleteAgentTabData(projectId: string, tabId: string): Promise<void> {
+  return withWriteLock(`project:${projectId}`, async () => {
+    const data = getProjectData(projectId);
+    if (data.agentTabs) {
+      delete data.agentTabs[tabId];
+      writeProject(projectId, data);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // CHAT LOG
 // ═══════════════════════════════════════════════════════════
 

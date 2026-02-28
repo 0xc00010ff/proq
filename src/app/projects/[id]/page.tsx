@@ -35,6 +35,7 @@ export default function ProjectPage() {
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
 
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();

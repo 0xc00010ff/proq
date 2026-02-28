@@ -4,6 +4,7 @@ import { WebSocketServer } from "ws";
 import { attachWs, writeToPty, resizePty } from "./pty-server";
 import { attachPrettyWsWithProject } from "./pretty-server";
 import { attachSupervisorWs } from "./supervisor-server";
+import { attachAgentTabWs } from "./agent-tab-server";
 
 const PORT = parseInt(process.env.NEXT_PUBLIC_WS_PORT || "42069", 10);
 
@@ -69,6 +70,20 @@ export function startTerminalServer() {
         }
 
         attachPrettyWsWithProject(taskId, projectId, ws);
+      });
+    } else if (pathname === "/ws/agent-tab") {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        const tabId = query.tabId as string;
+        const projectId = query.projectId as string;
+        console.log(`[ws] agent-tab connected: tab=${tabId} project=${projectId}`);
+
+        if (!tabId || !projectId) {
+          ws.send(JSON.stringify({ type: "error", error: "tabId and projectId required" }));
+          ws.close();
+          return;
+        }
+
+        attachAgentTabWs(tabId, projectId, ws);
       });
     } else if (pathname === "/ws/supervisor") {
       wss.handleUpgrade(req, socket, head, (ws) => {

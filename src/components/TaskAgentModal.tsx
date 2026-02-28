@@ -29,12 +29,13 @@ interface TaskAgentModalProps {
   cleanupExpiresAt?: number;
   onClose: () => void;
   onComplete?: (taskId: string) => void;
+  onUpdateTitle?: (taskId: string, title: string) => void;
   parallelMode?: boolean;
   currentBranch?: string;
   onSwitchBranch?: (branch: string) => void;
 }
 
-export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, onClose, onComplete, parallelMode, currentBranch, onSwitchBranch }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, onClose, onComplete, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
@@ -50,6 +51,10 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState(task.title || '');
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [topPanelPercent, setTopPanelPercent] = useState(30);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const bottomPanelRef = useRef<HTMLDivElement>(null);
@@ -116,8 +121,28 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
     }
   }, []);
 
+  // Inline title editing
+  useEffect(() => {
+    if (editingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [editingTitle]);
+
+  useEffect(() => {
+    if (!editingTitle) setTitleValue(task.title || '');
+  }, [task.title, editingTitle]);
+
+  const commitTitle = () => {
+    const trimmed = titleValue.trim();
+    setEditingTitle(false);
+    if (trimmed && trimmed !== task.title) {
+      onUpdateTitle?.(task.id, trimmed);
+    }
+  };
+
   // Escape to close
-  useEscapeKey(onClose);
+  useEscapeKey(editingTitle ? () => { setTitleValue(task.title || ''); setEditingTitle(false); } : onClose);
 
   return (
     <div
@@ -278,9 +303,26 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
             </div>
 
             {/* Title */}
-            <h2 className="text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug">
-              {task.title || 'Untitled task'}
-            </h2>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={commitTitle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitTitle();
+                  if (e.key === 'Escape') { setTitleValue(task.title || ''); setEditingTitle(false); }
+                }}
+                className="text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug bg-transparent border-b border-zinc-500 outline-none w-full"
+              />
+            ) : (
+              <h2
+                className={`text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug ${canEditTitle ? 'cursor-text hover:border-b hover:border-zinc-600' : ''}`}
+                onClick={canEditTitle ? () => setEditingTitle(true) : undefined}
+              >
+                {task.title || 'Untitled task'}
+              </h2>
+            )}
 
             {/* Description */}
             {task.description && (

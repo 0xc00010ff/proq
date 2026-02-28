@@ -40,7 +40,6 @@ interface KanbanBoardProps {
   onAddTask?: () => void;
   onDeleteTask?: (taskId: string) => void;
   onClickTask?: (task: Task) => void;
-  onUpdateTitle?: (taskId: string, title: string) => void;
   onRefreshTasks?: () => void;
   executionMode?: ExecutionMode;
   onExecutionModeChange?: (mode: ExecutionMode) => void;
@@ -95,13 +94,11 @@ function SortableTaskCard({
   isQueued,
   onDelete,
   onClick,
-  onUpdateTitle,
 }: {
   task: Task;
   isQueued?: boolean;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
-  onUpdateTitle?: (taskId: string, title: string) => void;
 }) {
   const {
     attributes,
@@ -125,7 +122,7 @@ function SortableTaskCard({
       {...attributes}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
     >
-      <TaskCard task={task} isQueued={isQueued} onDelete={onDelete} onClick={onClick} onUpdateTitle={onUpdateTitle} />
+      <TaskCard task={task} isQueued={isQueued} onDelete={onDelete} onClick={onClick} />
     </div>
   );
 }
@@ -144,7 +141,6 @@ export function KanbanBoard({
   onAddTask,
   onDeleteTask,
   onClickTask,
-  onUpdateTitle,
   onRefreshTasks,
   executionMode = 'sequential',
   onExecutionModeChange,
@@ -399,7 +395,6 @@ export function KanbanBoard({
                           isQueued={isQueued}
                           onDelete={onDeleteTask}
                           onClick={onClickTask}
-                          onUpdateTitle={onUpdateTitle}
                         />
                       );
                     })}

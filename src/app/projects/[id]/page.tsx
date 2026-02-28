@@ -365,7 +365,6 @@ export default function ProjectPage() {
                 onMoveTask={moveTask}
                 onAddTask={handleAddTask}
                 onDeleteTask={deleteTask}
-                onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
                 onClickTask={(task) => {
                   if (task.status === 'todo') {
                     setModalTask(task);
@@ -406,6 +405,7 @@ export default function ProjectPage() {
           isQueued={agentModalTask.dispatch === 'queued'}
           cleanupExpiresAt={cleanupTimes[agentModalTask.id]}
           onClose={() => setAgentModalTask(null)}
+          onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
           onComplete={async (taskId) => {
             await updateTask(taskId, { status: 'done' });
             setAgentModalTask(null);

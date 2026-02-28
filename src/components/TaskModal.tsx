@@ -53,8 +53,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   const wasOpen = useRef(false);
   useEffect(() => {
     if (isOpen && !wasOpen.current) {
-      const isNew = !task.title && !task.description;
-      setTimeout(() => (isNew ? titleRef : descriptionRef).current?.focus(), 50);
+      setTimeout(() => descriptionRef.current?.focus(), 50);
     }
     wasOpen.current = isOpen;
   }, [isOpen, task.id]);
@@ -252,7 +251,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               }
             }}
             className="w-full bg-transparent text-xl font-semibold text-bronze-900 dark:text-zinc-100 placeholder-bronze-500 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
-            placeholder="Untitled"
+            placeholder="(Auto title)"
           />
           <textarea
             ref={descriptionRef}

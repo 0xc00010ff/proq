@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getTask, getProject, updateTask, deleteTask, getSettings } from "@/lib/db";
 import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
+import { autoTitle } from "@/lib/auto-title";
 import { clearSession } from "@/lib/pretty-runtime";
 import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
 
@@ -30,6 +31,11 @@ export async function PATCH(request: Request, { params }: Params) {
   const updated = await updateTask(id, taskId, body);
   if (!updated) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  // Auto-title: if description is present but title is empty, generate one in the background
+  if (!updated.title && updated.description?.trim()) {
+    autoTitle(id, taskId, updated.description);
   }
 
   // Handle status transitions

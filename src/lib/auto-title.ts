@@ -1,4 +1,7 @@
-import { execFile } from "child_process";
+import { exec } from "child_process";
+import { writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 import { updateTask } from "./db";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -23,14 +26,15 @@ export function autoTitle(projectId: string, taskId: string, description: string
     description.slice(0, 1000),
   ].join("\n");
 
-  const env = { ...process.env };
-  delete env.CLAUDECODE;
-  delete env.PORT;
+  // Write prompt to temp file to avoid shell escaping issues (same pattern as agent-dispatch)
+  const promptDir = join(tmpdir(), "proq-prompts");
+  mkdirSync(promptDir, { recursive: true });
+  const promptFile = join(promptDir, `auto-title-${taskId.slice(0, 8)}.txt`);
+  writeFileSync(promptFile, prompt, "utf-8");
 
-  execFile(
-    CLAUDE,
-    ["-p", prompt, "--model", "haiku"],
-    { timeout: 30_000, env },
+  exec(
+    `env -u CLAUDECODE -u PORT ${CLAUDE} -p "$(cat '${promptFile}')" --model haiku`,
+    { timeout: 30_000 },
     async (err, stdout) => {
       pending.delete(taskId);
       if (err) {

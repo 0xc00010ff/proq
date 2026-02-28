@@ -70,12 +70,12 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error 
 
   // abort
   return (
-    <div className="my-2 rounded-md border border-bronze-400 dark:border-zinc-700 bg-bronze-100/50 dark:bg-zinc-900/30 px-3 py-2.5">
-      <div className="flex items-center gap-2 text-xs font-medium text-bronze-600 dark:text-zinc-400">
+    <div className="my-2 rounded-md bg-red-500/10 px-3 py-2.5">
+      <div className="flex items-center gap-2 text-xs font-medium text-red-400">
         <BanIcon className="w-3.5 h-3.5" />
         Session aborted
       </div>
-      <div className="flex items-center gap-3 text-[11px] text-bronze-500 dark:text-zinc-500 font-mono mt-1">
+      <div className="flex items-center gap-3 text-[11px] text-red-400/60 font-mono mt-1">
         {durationMs != null && <span>{formatDuration(durationMs)}</span>}
         {turns != null && <span>{turns} turn{turns !== 1 ? 's' : ''}</span>}
       </div>

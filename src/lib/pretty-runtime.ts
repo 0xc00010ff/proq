@@ -128,17 +128,12 @@ function wireProcess(
       session.status = "done";
     }
 
-    // Build findings from text blocks
-    const textBlocks = session.blocks
-      .filter((b): b is Extract<PrettyBlock, { type: "text" }> => b.type === "text");
-    const lastText = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : "";
-    const findings = lastText.slice(0, 2000);
-
+    // Persist prettyLog (and move to verify as safety net for initial sessions).
+    // Findings are the agent's responsibility via the update_task MCP tool.
     if (moveToVerify) {
       await updateTask(projectId, taskId, {
         status: "verify",
         dispatch: null,
-        findings,
         prettyLog: session.blocks,
         sessionId: session.sessionId,
       });
@@ -146,9 +141,7 @@ function wireProcess(
       const task = await getTask(projectId, taskId);
       notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
     } else {
-      // Follow-up: just persist blocks and findings, don't change status
       await updateTask(projectId, taskId, {
-        findings,
         prettyLog: session.blocks,
         sessionId: session.sessionId,
       });

@@ -18,6 +18,8 @@ import {
   GitBranchIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { TerminalPane } from './TerminalPane';
 import { PrettyPane } from './PrettyPane';
 import { ConflictModal } from './ConflictModal';
@@ -391,15 +393,32 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
             ) : null}
 
             {findings.length > 0 ? (
-              <div className="space-y-3">
-                <ul className="space-y-1.5">
-                  {findings.map((finding, idx) => (
-                    <li key={idx} className="text-xs text-bronze-700 dark:text-zinc-400 flex items-start font-mono">
-                      <span className="mr-2 text-bronze-500 dark:text-zinc-700 shrink-0">-</span>
-                      <span>{finding}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="text-xs leading-relaxed text-bronze-700 dark:text-zinc-400">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold text-bronze-800 dark:text-zinc-300">{children}</strong>,
+                    em: ({ children }) => <em className="text-bronze-600 dark:text-zinc-500">{children}</em>,
+                    code: ({ children, className }) => {
+                      const isBlock = className?.includes('language-');
+                      if (isBlock) {
+                        return <code className={`${className} block bg-bronze-200/60 dark:bg-zinc-900 rounded px-3 py-2 text-[11px] font-mono text-bronze-800 dark:text-zinc-300 overflow-x-auto my-2`}>{children}</code>;
+                      }
+                      return <code className="bg-bronze-200/60 dark:bg-zinc-800/70 text-bronze-800 dark:text-zinc-300 rounded px-1 py-0.5 text-[11px] font-mono">{children}</code>;
+                    },
+                    pre: ({ children }) => <pre className="bg-bronze-200/60 dark:bg-zinc-900 rounded-md overflow-x-auto my-2">{children}</pre>,
+                    ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
+                    li: ({ children }) => <li>{children}</li>,
+                    a: ({ href, children }) => <a href={href} className="text-steel hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                    h1: ({ children }) => <h1 className="text-sm font-semibold text-bronze-800 dark:text-zinc-300 mt-3 mb-1.5 first:mt-0">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-xs font-semibold text-bronze-800 dark:text-zinc-300 mt-2.5 mb-1 first:mt-0">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-xs font-semibold text-bronze-800 dark:text-zinc-300 mt-2 mb-1 first:mt-0">{children}</h3>,
+                  }}
+                >
+                  {task.findings || ''}
+                </ReactMarkdown>
               </div>
             ) : isDispatched && !isQueued ? (
               <div className="flex flex-col items-center justify-center gap-3">

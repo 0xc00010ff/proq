@@ -59,7 +59,7 @@ export interface TaskAttachment {
   dataUrl?: string;
 }
 
-export type TaskMode = 'answer' | 'plan' | 'act';
+export type TaskMode = 'answer' | 'plan' | 'build';
 
 export interface Task {
   id: string;

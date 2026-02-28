@@ -32,7 +32,7 @@ function formatSize(bytes: number): string {
 export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
-  const [mode, setMode] = useState<TaskMode>(task.mode || 'act');
+  const [mode, setMode] = useState<TaskMode>(task.mode || 'build');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -46,7 +46,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   useEffect(() => {
     setTitle(task.title || '');
     setDescription(task.description);
-    setMode(task.mode || 'act');
+    setMode(task.mode || 'build');
     setAttachments(task.attachments || []);
   }, [task.id]);
 
@@ -216,7 +216,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
             {([
               ['answer', 'Answer', 'Research only, no code changes.'],
               ['plan', 'Plan', 'Agent proposes, you approve.'],
-              ['act', 'Act', 'Full autonomy. Bypass permissions.'],
+              ['build', 'Build', 'Full autonomy. Bypass permissions.'],
             ] as const).map(([value, label, tooltip]) => (
               <button
                 key={value}

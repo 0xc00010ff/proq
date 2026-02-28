@@ -429,7 +429,7 @@ export async function continueSession(
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
   const project = await getProject(projectId);
-  const proqSysPrompt = buildProqSystemPrompt(projectId, taskId, taskMode as "answer" | "plan" | "act" | undefined, project?.name);
+  const proqSysPrompt = buildProqSystemPrompt(projectId, taskId, taskMode as "answer" | "plan" | "build" | undefined, project?.name);
   systemParts.push(proqSysPrompt);
   if (systemParts.length > 0) {
     args.push("--append-system-prompt", systemParts.join("\n\n"));

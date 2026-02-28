@@ -216,8 +216,8 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     >
       {/* Drop overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 bg-bronze-500/15 dark:bg-bronze-500/10 border-2 border-bronze-500/50 flex items-center justify-center pointer-events-none z-20 rounded-md m-1">
-          <div className="text-sm text-bronze-600 dark:text-bronze-400 font-medium bg-bronze-100/90 dark:bg-zinc-900/90 px-4 py-2 rounded-md shadow-sm">Drop files here</div>
+        <div className="absolute inset-0 bg-bronze-500/20 dark:bg-bronze-500/15 border-2 border-bronze-500/50 flex items-center justify-center pointer-events-none z-20 rounded-md m-1">
+          <div className="text-sm text-bronze-600 dark:text-bronze-400 font-medium bg-bronze-100 dark:bg-zinc-900 border border-bronze-400/60 dark:border-bronze-700/60 px-4 py-2 rounded-md shadow-sm">Drop files here</div>
         </div>
       )}
 

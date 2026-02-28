@@ -347,7 +347,14 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
                       src={att.dataUrl}
                       alt={att.name}
                       className="h-16 w-auto max-w-[100px] object-cover block cursor-pointer"
-                      onClick={() => window.open(att.dataUrl, '_blank')}
+                      onClick={() => {
+                        if (att.dataUrl) {
+                          const res = fetch(att.dataUrl);
+                          res.then(r => r.blob()).then(blob => {
+                            window.open(URL.createObjectURL(blob), '_blank');
+                          });
+                        }
+                      }}
                     />
                     <button
                       onClick={() => removeAttachment(att.id)}
@@ -390,7 +397,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             placeholder="Send a message..."
             rows={1}
             style={{ height: '36px' }}
-            className="w-full min-h-[36px] max-h-[160px] resize-none overflow-hidden bg-transparent px-3 py-2 text-sm leading-[20px] text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none"
+            className="w-full min-h-[36px] max-h-[160px] resize-none overflow-hidden bg-transparent px-3 pt-3 pb-2 text-sm leading-[20px] text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none"
           />
 
           {/* Bottom bar: attach left, send right */}

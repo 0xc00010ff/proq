@@ -1,15 +1,100 @@
 import { execSync } from "child_process";
-import { existsSync, writeFileSync, readFileSync, mkdirSync, unlinkSync } from "fs";
+import {
+  existsSync,
+  writeFileSync,
+  readFileSync,
+  mkdirSync,
+  unlinkSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { getAllProjects, getAllTasks, getExecutionMode, getTask, updateTask, getSettings } from "./db";
+import {
+  getAllProjects,
+  getAllTasks,
+  getExecutionMode,
+  getTask,
+  updateTask,
+  getSettings,
+} from "./db";
 import { stripAnsi } from "./utils";
 import { createWorktree, removeWorktree } from "./worktree";
 import type { TaskAttachment, TaskMode, AgentRenderMode } from "./types";
-import { startSession as startPrettySession, stopSession as stopPrettySession, isSessionRunning, clearSession } from "./pretty-runtime";
+import {
+  startSession as startPrettySession,
+  stopSession as stopPrettySession,
+  isSessionRunning,
+  clearSession,
+} from "./pretty-runtime";
 
 const MC_API = "http://localhost:1337";
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
+
+/**
+ * Build the proq system prompt that tells the agent how to report back.
+ * Used via --append-system-prompt in both pretty and terminal modes.
+ */
+export function buildProqSystemPrompt(
+  projectId: string,
+  taskId: string,
+  mode: TaskMode | undefined,
+  projectName?: string,
+): string {
+  const updateCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
+  -H 'Content-Type: application/json' \\
+  -d '{"findings":"<newline-separated cumulative summary of all work done>"}'`;
+
+  const completeCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
+  -H 'Content-Type: application/json' \\
+  -d '{"status":"verify","dispatch":null,"findings":"<final summary>","humanSteps":"<steps for the human, or empty string>"}'`;
+
+  const sections: string[] = [
+    `## Fulfilling the task
+
+You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}`,
+  ];
+
+  if (mode === "plan" || mode === "answer") {
+    const modeLabel = mode === "plan" ? "plan" : "answer";
+    sections.push(`### ${mode === "plan" ? "Planning" : "Research"} Mode
+This is a ${modeLabel}-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
+
+### Reporting Results
+When finished, report your findings:
+${updateCurl}
+
+Your findings should be a clear, concise summary of your research/analysis.`);
+  } else {
+    sections.push(`### Code Changes
+Always commit your code changes unless explicitly asked not to. Stage and commit with a descriptive message after each logical unit of work.
+
+### Reporting Progress
+After making substantial changes (committing code, completing a phase of work), update the task board so the human can track progress:
+${updateCurl}
+
+**When to report:**
+- After committing code changes
+- After completing the main request or a significant phase
+- After substantial follow-up work that changes the scope of what was done
+- When you have meaningful findings or results to share
+
+**When NOT to report:**
+- Simple clarifying responses or short answers
+- Asking questions back to the user
+- Minor adjustments that don't change the overall findings
+
+Findings should be cumulative — each update replaces the previous one, so always include the full picture of everything done so far. Keep it concise but complete.`);
+  }
+
+  if (mode !== "plan" && mode !== "answer") {
+    sections.push(`### Completing the Task
+When the entire task is done and ready for human review, signal completion:
+${completeCurl}
+
+This moves the task to the "Verify" column for human review. Only do this when the work is fully complete — not on follow-up responses.`);
+  }
+
+  return sections.join("\n\n");
+}
 
 export function notify(message: string) {
   const bin = process.env.OPENCLAW_BIN;
@@ -28,7 +113,10 @@ const CLEANUP_DELAY_MS = 60 * 60 * 1000; // 1 hour
 
 // ── Singletons attached to globalThis to survive HMR ──
 const ga = globalThis as unknown as {
-  __proqCleanupTimers?: Map<string, { timer: NodeJS.Timeout; expiresAt: number }>;
+  __proqCleanupTimers?: Map<
+    string,
+    { timer: NodeJS.Timeout; expiresAt: number }
+  >;
   __proqProcessingProjects?: Set<string>;
 };
 if (!ga.__proqCleanupTimers) ga.__proqCleanupTimers = new Map();
@@ -91,7 +179,9 @@ export function cancelCleanup(taskId: string) {
   if (entry) {
     clearTimeout(entry.timer);
     cleanupTimers.delete(taskId);
-    console.log(`[agent-cleanup] cancelled cleanup for task ${taskId.slice(0, 8)}`);
+    console.log(
+      `[agent-cleanup] cancelled cleanup for task ${taskId.slice(0, 8)}`,
+    );
   }
 }
 
@@ -128,7 +218,9 @@ export async function dispatchTask(
   const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
 
   if (!existsSync(projectPath)) {
-    console.error(`[agent-dispatch] project path does not exist: ${projectPath}`);
+    console.error(
+      `[agent-dispatch] project path does not exist: ${projectPath}`,
+    );
     return undefined;
   }
 
@@ -147,12 +239,17 @@ export async function dispatchTask(
       await updateTask(projectId, taskId, { worktreePath, branch });
       effectivePath = worktreePath;
     } catch (err) {
-      console.error(`[agent-dispatch] failed to create worktree for ${shortId}:`, err);
+      console.error(
+        `[agent-dispatch] failed to create worktree for ${shortId}:`,
+        err,
+      );
       // Fall back to shared directory
     }
   }
 
-  const heading = taskTitle ? `# ${taskTitle}\n\n${taskDescription}` : taskDescription;
+  const heading = taskTitle
+    ? `# ${taskTitle}\n\n${taskDescription}`
+    : taskDescription;
 
   // ── Pretty mode: dispatch via SDK ──
   if (renderMode === "pretty") {
@@ -165,19 +262,14 @@ export async function dispatchTask(
       prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
     }
 
-    // Append incremental findings curl for code tasks
-    if (mode !== "plan" && mode !== "answer") {
-      const findingsCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"findings":"<newline-separated summary of changes so far>"}'`;
-
-      prompt += `\n\n## Progress Updates\nAfter each substantial code change, update findings so the human can see progress:\n${findingsCurl}\nKeep findings current — they should always summarize the complete state of work done.`;
-    }
-
     // Append image attachments
     if (attachments?.length) {
       const imageFiles: string[] = [];
-      const attachDir = join(tmpdir(), "proq-prompts", `pretty-${shortId}-attachments`);
+      const attachDir = join(
+        tmpdir(),
+        "proq-prompts",
+        `pretty-${shortId}-attachments`,
+      );
       mkdirSync(attachDir, { recursive: true });
       for (const att of attachments) {
         if (att.dataUrl && att.type.startsWith("image/")) {
@@ -194,60 +286,50 @@ export async function dispatchTask(
       }
     }
 
+    const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+
     try {
-      await startPrettySession(projectId, taskId, prompt, effectivePath);
-      console.log(`[agent-dispatch] launched pretty session for task ${taskId}`);
-      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (pretty)`);
+      await startPrettySession(projectId, taskId, prompt, effectivePath, {
+        proqSystemPrompt,
+      });
+      console.log(
+        `[agent-dispatch] launched pretty session for task ${taskId}`,
+      );
+      notify(
+        `🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (pretty)`,
+      );
       return terminalTabId;
     } catch (err) {
-      console.error(`[agent-dispatch] failed to launch pretty session for ${taskId}:`, err);
+      console.error(
+        `[agent-dispatch] failed to launch pretty session for ${taskId}:`,
+        err,
+      );
       return undefined;
     }
   }
 
   // ── Terminal mode: dispatch via tmux (existing behavior) ──
 
-  // Build the agent prompt
-  const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"status":"verify","dispatch":null,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
-
   let prompt: string;
-  let claudeFlags: string;
 
   if (mode === "plan") {
-    prompt = `\
-IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.
-${heading}
-
-When completely finished, commit and signal complete:
-1. If code was changed, stage and commit the changes with a descriptive message.
-2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
-${callbackCurl}
-`;
-    claudeFlags = "--dangerously-skip-permissions";
+    prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.\n${heading}`;
   } else if (mode === "answer") {
-    prompt = `${heading}
-
-IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.
-When completely finished, signal complete:
-${callbackCurl}
-`;
-    claudeFlags = "--dangerously-skip-permissions";
+    prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.`;
   } else {
-    prompt = `${heading}
-When completely finished, commit and signal complete:
-1. If code was changed, stage and commit the changes with a descriptive message.
-2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
-${callbackCurl}
-`;
-    claudeFlags = "--dangerously-skip-permissions";
+    prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
   }
+
+  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
 
   // Write image attachments to temp files so the agent can read them
   const imageFiles: string[] = [];
   if (attachments?.length) {
-    const attachDir = join(tmpdir(), "proq-prompts", `${tmuxSession}-attachments`);
+    const attachDir = join(
+      tmpdir(),
+      "proq-prompts",
+      `${tmuxSession}-attachments`,
+    );
     mkdirSync(attachDir, { recursive: true });
     for (const att of attachments) {
       if (att.dataUrl && att.type.startsWith("image/")) {
@@ -264,13 +346,19 @@ ${callbackCurl}
     }
   }
 
-  // Write prompt to temp file to avoid shell escaping issues with complex descriptions
+  // Write prompt + system prompt to temp files to avoid shell escaping issues
   const promptDir = join(tmpdir(), "proq-prompts");
   mkdirSync(promptDir, { recursive: true });
   const promptFile = join(promptDir, `${tmuxSession}.md`);
+  const systemPromptFile = join(promptDir, `${tmuxSession}-system.md`);
   const launcherFile = join(promptDir, `${tmuxSession}.sh`);
   writeFileSync(promptFile, prompt, "utf-8");
-  writeFileSync(launcherFile, `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${claudeFlags} "$(cat '${promptFile}')"\n`, "utf-8");
+  writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
+  writeFileSync(
+    launcherFile,
+    `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} --dangerously-skip-permissions --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+    "utf-8",
+  );
 
   // Ensure bridge socket directory exists
   mkdirSync("/tmp/proq", { recursive: true });
@@ -323,8 +411,12 @@ export async function abortTask(projectId: string, taskId: string) {
     // Clean up bridge socket and log files
     const socketPath = `/tmp/proq/${tmuxSession}.sock`;
     const logPath = socketPath + ".log";
-    try { if (existsSync(socketPath)) unlinkSync(socketPath); } catch {}
-    try { if (existsSync(logPath)) unlinkSync(logPath); } catch {}
+    try {
+      if (existsSync(socketPath)) unlinkSync(socketPath);
+    } catch {}
+    try {
+      if (existsSync(logPath)) unlinkSync(logPath);
+    } catch {}
   }
 
   // Clean up worktree if task had one (shared for both modes)
@@ -335,7 +427,10 @@ export async function abortTask(projectId: string, taskId: string) {
     if (project) {
       const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
       removeWorktree(projectPath, shortId);
-      await updateTask(projectId, taskId, { worktreePath: undefined, branch: undefined });
+      await updateTask(projectId, taskId, {
+        worktreePath: undefined,
+        branch: undefined,
+      });
     }
   }
 }
@@ -394,16 +489,18 @@ export async function processQueue(projectId: string): Promise<void> {
       (t) => t.dispatch === "queued" || t.dispatch === "starting",
     );
 
-    const running = inProgress.filter(
-      (t) => t.dispatch === "running",
-    );
+    const running = inProgress.filter((t) => t.dispatch === "running");
 
-    console.log(`[processQueue] ${projectId}: mode=${mode} running=${running.length} pending=${pending.length}`);
+    console.log(
+      `[processQueue] ${projectId}: mode=${mode} running=${running.length} pending=${pending.length}`,
+    );
 
     if (mode === "sequential") {
       if (running.length === 0 && pending.length > 0) {
         const next = pending[0];
-        console.log(`[processQueue] launching ${next.id.slice(0, 8)} "${next.title || next.description.slice(0, 40)}"`);
+        console.log(
+          `[processQueue] launching ${next.id.slice(0, 8)} "${next.title || next.description.slice(0, 40)}"`,
+        );
         if (next.dispatch !== "starting") {
           await updateTask(projectId, next.id, { dispatch: "starting" });
         }
@@ -419,16 +516,22 @@ export async function processQueue(projectId: string): Promise<void> {
         if (result) {
           await updateTask(projectId, next.id, { dispatch: "running" });
         } else {
-          console.log(`[processQueue] dispatch failed for ${next.id.slice(0, 8)}, rolling back`);
+          console.log(
+            `[processQueue] dispatch failed for ${next.id.slice(0, 8)}, rolling back`,
+          );
           await updateTask(projectId, next.id, { dispatch: "queued" });
         }
       } else if (pending.length > 0) {
-        console.log(`[processQueue] ${running.length} task(s) running, ${pending.length} waiting`);
+        console.log(
+          `[processQueue] ${running.length} task(s) running, ${pending.length} waiting`,
+        );
       }
     } else {
       // parallel: launch all pending
       for (const task of pending) {
-        console.log(`[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (parallel)`);
+        console.log(
+          `[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (parallel)`,
+        );
         if (task.dispatch !== "starting") {
           await updateTask(projectId, task.id, { dispatch: "starting" });
         }
@@ -444,7 +547,9 @@ export async function processQueue(projectId: string): Promise<void> {
         if (result) {
           await updateTask(projectId, task.id, { dispatch: "running" });
         } else {
-          console.log(`[processQueue] dispatch failed for ${task.id.slice(0, 8)}, rolling back`);
+          console.log(
+            `[processQueue] dispatch failed for ${task.id.slice(0, 8)}, rolling back`,
+          );
           await updateTask(projectId, task.id, { dispatch: "queued" });
         }
       }

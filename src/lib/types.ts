@@ -33,6 +33,7 @@ export type PrettyBlock =
   | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort';
       sessionId?: string; model?: string; costUsd?: number;
       durationMs?: number; turns?: number; error?: string }
+  | { type: 'task_update'; findings: string; humanSteps?: string; timestamp: string }
   | { type: 'stream_delta'; text: string };
 
 // ── Pretty WS Protocol ──────────────────────────────────

@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "child_process";
 import type { PrettyBlock } from "./types";
-import { updateTask, getTask, getSettings } from "./db";
-import { notify } from "./agent-dispatch";
+import { updateTask, getTask, getProject, getSettings } from "./db";
+import { notify, buildProqSystemPrompt } from "./agent-dispatch";
 import type WebSocket from "ws";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -180,7 +180,7 @@ export async function startSession(
   taskId: string,
   prompt: string,
   cwd: string,
-  _options?: { model?: string },
+  options?: { model?: string; proqSystemPrompt?: string },
 ): Promise<void> {
   const session: PrettySession = {
     taskId,
@@ -218,8 +218,13 @@ export async function startSession(
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
   }
-  if (settings.systemPromptAdditions) {
-    args.push("--append-system-prompt", settings.systemPromptAdditions);
+
+  // Combine user's system prompt additions with proq system prompt
+  const systemParts: string[] = [];
+  if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
+  if (options?.proqSystemPrompt) systemParts.push(options.proqSystemPrompt);
+  if (systemParts.length > 0) {
+    args.push("--append-system-prompt", systemParts.join("\n\n"));
   }
 
   // Spawn the CLI child process
@@ -336,6 +341,7 @@ export async function continueSession(
   cwd: string,
 ): Promise<void> {
   let session = sessions.get(taskId);
+  let taskMode: string | undefined;
 
   // If no in-memory session, reconstruct from DB
   if (!session) {
@@ -343,6 +349,7 @@ export async function continueSession(
     if (!task?.sessionId) {
       throw new Error("No session to continue — no sessionId on task");
     }
+    taskMode = task.mode;
     session = {
       taskId,
       projectId,
@@ -353,6 +360,10 @@ export async function continueSession(
       status: "done",
     };
     sessions.set(taskId, session);
+  } else {
+    // Fetch task mode for system prompt
+    const task = await getTask(projectId, taskId);
+    taskMode = task?.mode;
   }
 
   if (session.status === "running") {
@@ -387,8 +398,15 @@ export async function continueSession(
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
   }
-  if (settings.systemPromptAdditions) {
-    args.push("--append-system-prompt", settings.systemPromptAdditions);
+
+  // Combine user's system prompt additions with proq system prompt
+  const systemParts: string[] = [];
+  if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
+  const project = await getProject(projectId);
+  const proqSysPrompt = buildProqSystemPrompt(projectId, taskId, taskMode as "code" | "plan" | "answer" | undefined, project?.name);
+  systemParts.push(proqSysPrompt);
+  if (systemParts.length > 0) {
+    args.push("--append-system-prompt", systemParts.join("\n\n"));
   }
 
   const proc = spawn(CLAUDE, args, {
@@ -438,6 +456,13 @@ export function clearSession(taskId: string): void {
   if (session) {
     session.clients.clear();
     sessions.delete(taskId);
+  }
+}
+
+export function injectBlock(taskId: string, block: PrettyBlock): void {
+  const session = sessions.get(taskId);
+  if (session) {
+    appendBlock(session, block);
   }
 }
 

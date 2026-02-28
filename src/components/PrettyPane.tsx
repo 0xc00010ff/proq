@@ -11,6 +11,7 @@ import { ToolBlock } from './pretty/ToolBlock';
 import { ToolGroupBlock } from './pretty/ToolGroupBlock';
 import type { ToolGroupItem } from './pretty/ToolGroupBlock';
 import { StatusBlock } from './pretty/StatusBlock';
+import { TaskUpdateBlock } from './pretty/TaskUpdateBlock';
 import { UserBlock } from './pretty/UserBlock';
 
 interface PrettyPaneProps {
@@ -209,6 +210,14 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
                     durationMs={block.durationMs}
                     turns={block.turns}
                     error={block.error}
+                  />
+                );
+              case 'task_update':
+                return (
+                  <TaskUpdateBlock
+                    key={idx}
+                    findings={block.findings}
+                    humanSteps={block.humanSteps}
                   />
                 );
               case 'stream_delta':

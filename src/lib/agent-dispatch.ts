@@ -30,6 +30,28 @@ const MC_API = "http://localhost:1337";
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 /**
+ * Write an MCP config JSON file that tells Claude to connect to the proq
+ * stdio MCP server, scoped to a specific project/task.
+ * Returns the path to the config file.
+ */
+export function writeMcpConfig(projectId: string, taskId: string): string {
+  const promptDir = join(tmpdir(), "proq-prompts");
+  mkdirSync(promptDir, { recursive: true });
+  const mcpScriptPath = join(process.cwd(), "src/lib/proq-mcp.js");
+  const configPath = join(promptDir, `mcp-${taskId.slice(0, 8)}.json`);
+  const config = {
+    mcpServers: {
+      proq: {
+        command: "node",
+        args: [mcpScriptPath, projectId, taskId],
+      },
+    },
+  };
+  writeFileSync(configPath, JSON.stringify(config), "utf-8");
+  return configPath;
+}
+
+/**
  * Build the proq system prompt that tells the agent how to report back.
  * Used via --append-system-prompt in both pretty and terminal modes.
  */
@@ -39,22 +61,12 @@ export function buildProqSystemPrompt(
   mode: TaskMode | undefined,
   projectName?: string,
 ): string {
-  const taskUrl = `${MC_API}/api/projects/${projectId}/tasks/${taskId}`;
-
-  const readCurl = `curl -s ${taskUrl}`;
-
-  const updateCurl = `curl -s -X PATCH ${taskUrl} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"findings":"<newline-separated cumulative summary of all work done>"}'`;
-
-  const completeCurl = `curl -s -X PATCH ${taskUrl} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"status":"verify","dispatch":null,"findings":"<final summary>","humanSteps":"<steps for the human, or empty string>"}'`;
-
   const sections: string[] = [
     `## Fulfilling the task
 
-You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}`,
+You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}
+
+You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.`,
   ];
 
   if (mode === "plan" || mode === "answer") {
@@ -63,45 +75,28 @@ You are working on a task assigned to you by proq, an agentic coding task board.
 This is a ${modeLabel}-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
 
 ### Reporting Results
-Before reporting, read the current task state to see any existing findings:
-${readCurl}
-
-When finished, report your findings (incorporating any prior findings):
-${updateCurl}
-
-Your findings should be a clear, concise, cumulative summary of your research/analysis.`);
+When finished, use the \`read_task\` tool to check for any existing findings, then use \`report_findings\` with a cumulative summary incorporating prior findings.`);
   } else {
     sections.push(`### Code Changes
 Always commit your code changes unless explicitly asked not to. Stage and commit with a descriptive message after each logical unit of work.
 
 ### Reporting Progress
-After making substantial changes (committing code, completing a phase of work), update the task board so the human can track progress:
-${updateCurl}
+After making substantial changes (committing code, completing a phase of work), use the \`report_findings\` tool to update the task board. Before reporting, use \`read_task\` to see existing findings so you can write a cumulative summary.
 
 **When to report:**
 - After committing code changes
 - After completing the main request or a significant phase
 - After substantial follow-up work that changes the scope of what was done
-- When you have meaningful findings or results to share
 
 **When NOT to report:**
 - Simple clarifying responses or short answers
 - Asking questions back to the user
-- Minor adjustments that don't change the overall findings
-
-**Findings should be cumulative — each update replaces the previous one, so always include the full picture of everything done so far.** Before reporting, read the current task state to see existing findings:
-${readCurl}
-
-Incorporate prior findings into your update. The human sees findings as a running summary of all work done on this task, not just the latest change. Keep it concise but complete.`);
-
+- Minor adjustments that don't change the overall findings`);
   }
 
   if (mode !== "plan" && mode !== "answer") {
     sections.push(`### Completing the Task
-When the entire task is done and ready for human review, signal completion:
-${completeCurl}
-
-This moves the task to the "Verify" column for human review. Only do this when the work is fully complete — not on follow-up responses.`);
+When the entire task is done and ready for human review, use the \`complete_task\` tool to move it to the Verify column. Only do this when the work is fully complete — not on follow-up responses.`);
   }
 
   return sections.join("\n\n");
@@ -298,10 +293,12 @@ export async function dispatchTask(
     }
 
     const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+    const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
     try {
       await startPrettySession(projectId, taskId, prompt, effectivePath, {
         proqSystemPrompt,
+        mcpConfig: mcpConfigPath,
       });
       console.log(
         `[agent-dispatch] launched pretty session for task ${taskId}`,
@@ -332,6 +329,7 @@ export async function dispatchTask(
   }
 
   const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+  const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   // Write image attachments to temp files so the agent can read them
   const imageFiles: string[] = [];
@@ -367,7 +365,7 @@ export async function dispatchTask(
   writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
   writeFileSync(
     launcherFile,
-    `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} --dangerously-skip-permissions --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+    `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} --dangerously-skip-permissions --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
     "utf-8",
   );
 

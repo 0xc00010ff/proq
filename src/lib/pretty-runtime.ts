@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "child_process";
 import type { PrettyBlock } from "./types";
 import { updateTask, getTask, getProject, getSettings } from "./db";
-import { notify, buildProqSystemPrompt } from "./agent-dispatch";
+import { notify, buildProqSystemPrompt, writeMcpConfig } from "./agent-dispatch";
 import type WebSocket from "ws";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -10,6 +10,7 @@ export interface PrettySession {
   taskId: string;
   projectId: string;
   sessionId?: string;
+  mcpConfig?: string;
   queryHandle: ChildProcess | null;
   blocks: PrettyBlock[];
   clients: Set<WebSocket>;
@@ -180,7 +181,7 @@ export async function startSession(
   taskId: string,
   prompt: string,
   cwd: string,
-  options?: { model?: string; proqSystemPrompt?: string },
+  options?: { model?: string; proqSystemPrompt?: string; mcpConfig?: string },
 ): Promise<void> {
   const session: PrettySession = {
     taskId,
@@ -225,6 +226,11 @@ export async function startSession(
   if (options?.proqSystemPrompt) systemParts.push(options.proqSystemPrompt);
   if (systemParts.length > 0) {
     args.push("--append-system-prompt", systemParts.join("\n\n"));
+  }
+
+  if (options?.mcpConfig) {
+    args.push("--mcp-config", options.mcpConfig);
+    session.mcpConfig = options.mcpConfig;
   }
 
   // Spawn the CLI child process
@@ -407,6 +413,12 @@ export async function continueSession(
   if (systemParts.length > 0) {
     args.push("--append-system-prompt", systemParts.join("\n\n"));
   }
+
+  // Ensure MCP config is available (may need to recreate after server restart)
+  if (!session.mcpConfig) {
+    session.mcpConfig = writeMcpConfig(projectId, taskId);
+  }
+  args.push("--mcp-config", session.mcpConfig);
 
   const proc = spawn(CLAUDE, args, {
     cwd,

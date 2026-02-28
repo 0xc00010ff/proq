@@ -46,14 +46,20 @@ export function usePrettySession(
 
         if (msg.type === 'replay') {
           setBlocks(msg.blocks);
-          // Check if session is already done
-          const hasComplete = msg.blocks.some(
-            (b) => b.type === 'status' && (b.subtype === 'complete' || b.subtype === 'error' || b.subtype === 'abort')
+          // Check the last status block — a multi-turn session (init→complete→init→...) should
+          // only show as done if the final status is complete/error/abort
+          const statusBlocks = msg.blocks.filter(
+            (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
           );
-          if (hasComplete) setSessionDone(true);
+          const last = statusBlocks[statusBlocks.length - 1];
+          const isDone = last?.type === 'status' && last.subtype !== 'init';
+          setSessionDone(isDone);
         } else if (msg.type === 'block') {
           setBlocks((prev) => [...prev, msg.block]);
-          if (msg.block.type === 'status' && (msg.block.subtype === 'complete' || msg.block.subtype === 'error' || msg.block.subtype === 'abort')) {
+          if (msg.block.type === 'status' && msg.block.subtype === 'init') {
+            // New turn starting (follow-up) — reset done state
+            setSessionDone(false);
+          } else if (msg.block.type === 'status' && (msg.block.subtype === 'complete' || msg.block.subtype === 'error' || msg.block.subtype === 'abort')) {
             setSessionDone(true);
           }
         } else if (msg.type === 'error') {

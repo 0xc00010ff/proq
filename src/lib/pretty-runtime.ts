@@ -40,6 +40,141 @@ function appendBlock(session: PrettySession, block: PrettyBlock) {
   broadcast(session, { type: "block", block });
 }
 
+// ── Shared process wiring ──
+// Handles stdout parsing, stderr capture, close/error handlers.
+// moveToVerify: true for initial session, false for follow-ups.
+function wireProcess(
+  session: PrettySession,
+  proc: ChildProcess,
+  opts: { moveToVerify: boolean; startTime: number; projectId: string; taskId: string },
+) {
+  const { moveToVerify, startTime, projectId, taskId } = opts;
+
+  let stdoutBuffer = "";
+
+  proc.stdout!.on("data", (chunk: Buffer) => {
+    stdoutBuffer += chunk.toString();
+    const lines = stdoutBuffer.split("\n");
+    stdoutBuffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      let event: Record<string, unknown>;
+      try {
+        event = JSON.parse(trimmed);
+      } catch {
+        continue;
+      }
+
+      processStreamEvent(session, event);
+    }
+  });
+
+  let stderrOutput = "";
+  proc.stderr!.on("data", (chunk: Buffer) => {
+    stderrOutput += chunk.toString();
+  });
+
+  proc.on("close", async (code) => {
+    // Process any remaining buffered data
+    if (stdoutBuffer.trim()) {
+      try {
+        const event = JSON.parse(stdoutBuffer.trim());
+        processStreamEvent(session, event);
+      } catch {
+        // ignore
+      }
+    }
+
+    if (session.status === "aborted") {
+      await updateTask(projectId, taskId, {
+        prettyLog: session.blocks,
+      });
+      return;
+    }
+
+    if (code !== 0 && session.status === "running") {
+      session.status = "error";
+      const errorMsg = stderrOutput.trim() || `CLI exited with code ${code}`;
+      appendBlock(session, {
+        type: "status",
+        subtype: "error",
+        error: errorMsg,
+        durationMs: Date.now() - startTime,
+      });
+      if (moveToVerify) {
+        await updateTask(projectId, taskId, {
+          status: "verify",
+          dispatch: null,
+          findings: `Error: ${errorMsg}`,
+          prettyLog: session.blocks,
+        });
+      } else {
+        await updateTask(projectId, taskId, {
+          prettyLog: session.blocks,
+        });
+      }
+      return;
+    }
+
+    // Normal completion
+    if (session.status === "running") {
+      session.status = "done";
+    }
+
+    // Build findings from text blocks
+    const textBlocks = session.blocks
+      .filter((b): b is Extract<PrettyBlock, { type: "text" }> => b.type === "text");
+    const lastText = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : "";
+    const findings = lastText.slice(0, 2000);
+
+    if (moveToVerify) {
+      await updateTask(projectId, taskId, {
+        status: "verify",
+        dispatch: null,
+        findings,
+        prettyLog: session.blocks,
+        sessionId: session.sessionId,
+      });
+
+      const task = await getTask(projectId, taskId);
+      notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
+    } else {
+      // Follow-up: just persist blocks and findings, don't change status
+      await updateTask(projectId, taskId, {
+        findings,
+        prettyLog: session.blocks,
+        sessionId: session.sessionId,
+      });
+    }
+  });
+
+  proc.on("error", async (err) => {
+    session.status = "error";
+    const errorMsg = err.message;
+    appendBlock(session, {
+      type: "status",
+      subtype: "error",
+      error: errorMsg,
+      durationMs: Date.now() - startTime,
+    });
+    if (moveToVerify) {
+      await updateTask(projectId, taskId, {
+        status: "verify",
+        dispatch: null,
+        findings: `Error: ${errorMsg}`,
+        prettyLog: session.blocks,
+      });
+    } else {
+      await updateTask(projectId, taskId, {
+        prettyLog: session.blocks,
+      });
+    }
+  });
+}
+
 export async function startSession(
   projectId: string,
   taskId: string,
@@ -93,112 +228,7 @@ export async function startSession(
 
   session.queryHandle = proc;
 
-  // Parse stdout line-by-line for stream-json events
-  let stdoutBuffer = "";
-
-  proc.stdout!.on("data", (chunk: Buffer) => {
-    stdoutBuffer += chunk.toString();
-    const lines = stdoutBuffer.split("\n");
-    // Keep the last (possibly incomplete) line in the buffer
-    stdoutBuffer = lines.pop() || "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      let event: Record<string, unknown>;
-      try {
-        event = JSON.parse(trimmed);
-      } catch {
-        continue; // skip non-JSON lines
-      }
-
-      processStreamEvent(session, event);
-    }
-  });
-
-  let stderrOutput = "";
-  proc.stderr!.on("data", (chunk: Buffer) => {
-    stderrOutput += chunk.toString();
-  });
-
-  // Handle process exit
-  proc.on("close", async (code) => {
-    // Process any remaining buffered data
-    if (stdoutBuffer.trim()) {
-      try {
-        const event = JSON.parse(stdoutBuffer.trim());
-        processStreamEvent(session, event);
-      } catch {
-        // ignore
-      }
-    }
-
-    if (session.status === "aborted") {
-      // Already handled by stopSession — just persist
-      await updateTask(projectId, taskId, {
-        prettyLog: session.blocks,
-      });
-      return;
-    }
-
-    if (code !== 0 && session.status === "running") {
-      session.status = "error";
-      const errorMsg = stderrOutput.trim() || `CLI exited with code ${code}`;
-      appendBlock(session, {
-        type: "status",
-        subtype: "error",
-        error: errorMsg,
-        durationMs: Date.now() - startTime,
-      });
-      await updateTask(projectId, taskId, {
-        status: "verify",
-        dispatch: null,
-        findings: `Error: ${errorMsg}`,
-        prettyLog: session.blocks,
-      });
-      return;
-    }
-
-    // Normal completion — if no result event was emitted, finalize here
-    if (session.status === "running") {
-      session.status = "done";
-
-      // Build findings from text blocks
-      const textBlocks = session.blocks
-        .filter((b): b is Extract<PrettyBlock, { type: "text" }> => b.type === "text");
-      const lastText = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : "";
-      const findings = lastText.slice(0, 2000);
-
-      await updateTask(projectId, taskId, {
-        status: "verify",
-        dispatch: null,
-        findings,
-        prettyLog: session.blocks,
-        sessionId: session.sessionId,
-      });
-
-      const task = await getTask(projectId, taskId);
-      notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
-    }
-  });
-
-  proc.on("error", async (err) => {
-    session.status = "error";
-    const errorMsg = err.message;
-    appendBlock(session, {
-      type: "status",
-      subtype: "error",
-      error: errorMsg,
-      durationMs: Date.now() - startTime,
-    });
-    await updateTask(projectId, taskId, {
-      status: "verify",
-      dispatch: null,
-      findings: `Error: ${errorMsg}`,
-      prettyLog: session.blocks,
-    });
-  });
+  wireProcess(session, proc, { moveToVerify: true, startTime, projectId, taskId });
 }
 
 function processStreamEvent(session: PrettySession, event: Record<string, unknown>) {
@@ -210,11 +240,13 @@ function processStreamEvent(session: PrettySession, event: Record<string, unknow
       session.sessionId = event.session_id as string | undefined;
       const model = event.model as string | undefined;
       if (model) {
-        const initBlock = session.blocks.find(
+        // Update the most recent init block's model
+        const initBlocks = session.blocks.filter(
           (b) => b.type === "status" && b.subtype === "init"
         );
-        if (initBlock && initBlock.type === "status") {
-          initBlock.model = model;
+        const lastInit = initBlocks[initBlocks.length - 1];
+        if (lastInit && lastInit.type === "status") {
+          lastInit.model = model;
         }
       }
     }
@@ -285,33 +317,86 @@ function processStreamEvent(session: PrettySession, event: Record<string, unknow
       error: isError ? (resultText || "Agent error") : undefined,
     });
 
-    // Mark session done/error based on result
+    // Mark session done/error based on result — actual DB persistence happens in wireProcess close handler
     if (isError) {
       session.status = "error";
     } else {
       session.status = "done";
     }
-
-    // Build findings from text blocks
-    const textBlocks = session.blocks
-      .filter((b): b is Extract<PrettyBlock, { type: "text" }> => b.type === "text");
-    const lastText = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : "";
-    const findings = lastText.slice(0, 2000);
-
-    // Persist and update task
-    updateTask(session.projectId, session.taskId, {
-      status: "verify",
-      dispatch: null,
-      findings: isError ? `Error: ${resultText || "Agent error"}` : findings,
-      prettyLog: session.blocks,
-      sessionId: session.sessionId,
-    }).then(async () => {
-      if (!isError) {
-        const task = await getTask(session.projectId, session.taskId);
-        notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
-      }
-    });
   }
+}
+
+export async function continueSession(
+  projectId: string,
+  taskId: string,
+  text: string,
+  cwd: string,
+): Promise<void> {
+  let session = sessions.get(taskId);
+
+  // If no in-memory session, reconstruct from DB
+  if (!session) {
+    const task = await getTask(projectId, taskId);
+    if (!task?.sessionId) {
+      throw new Error("No session to continue — no sessionId on task");
+    }
+    session = {
+      taskId,
+      projectId,
+      sessionId: task.sessionId,
+      queryHandle: null,
+      blocks: task.prettyLog || [],
+      clients: new Set(),
+      status: "done",
+    };
+    sessions.set(taskId, session);
+  }
+
+  if (session.status === "running") {
+    throw new Error("Session is already running");
+  }
+
+  // Append user block so it renders immediately
+  appendBlock(session, { type: "user", text });
+
+  // Emit init status for the new turn
+  const settings = await getSettings();
+  appendBlock(session, {
+    type: "status",
+    subtype: "init",
+    model: settings.defaultModel || undefined,
+  });
+
+  session.status = "running";
+
+  const startTime = Date.now();
+
+  // Build CLI args for resume
+  const args: string[] = [
+    "--resume", session.sessionId!,
+    "-p", text,
+    "--output-format", "stream-json",
+    "--verbose",
+    "--dangerously-skip-permissions",
+    "--max-turns", "200",
+  ];
+
+  if (settings.defaultModel) {
+    args.push("--model", settings.defaultModel);
+  }
+  if (settings.systemPromptAdditions) {
+    args.push("--append-system-prompt", settings.systemPromptAdditions);
+  }
+
+  const proc = spawn(CLAUDE, args, {
+    cwd,
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },
+  });
+
+  session.queryHandle = proc;
+
+  wireProcess(session, proc, { moveToVerify: false, startTime, projectId, taskId });
 }
 
 export function stopSession(taskId: string): void {

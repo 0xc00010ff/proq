@@ -165,6 +165,15 @@ export async function dispatchTask(
       prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
     }
 
+    // Append incremental findings curl for code tasks
+    if (mode !== "plan" && mode !== "answer") {
+      const findingsCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
+  -H 'Content-Type: application/json' \\
+  -d '{"findings":"<newline-separated summary of changes so far>"}'`;
+
+      prompt += `\n\n## Progress Updates\nAfter each substantial code change, update findings so the human can see progress:\n${findingsCurl}\nKeep findings current — they should always summarize the complete state of work done.`;
+    }
+
     // Append image attachments
     if (attachments?.length) {
       const imageFiles: string[] = [];
@@ -295,6 +304,7 @@ export async function abortTask(projectId: string, taskId: string) {
   if (task?.renderMode === "pretty") {
     // Pretty mode: abort via SDK
     stopPrettySession(taskId);
+    clearSession(taskId);
     console.log(`[agent-dispatch] stopped pretty session for task ${taskId}`);
   } else {
     // Terminal mode: kill tmux

@@ -1,6 +1,6 @@
 import type WebSocket from "ws";
-import { getSession, attachClient, detachClient, stopSession } from "./pretty-runtime";
-import { getTask } from "./db";
+import { getSession, attachClient, detachClient, stopSession, continueSession } from "./pretty-runtime";
+import { getTask, getProject } from "./db";
 import type { PrettyWsClientMsg } from "./types";
 
 export async function attachPrettyWs(taskId: string, ws: WebSocket): Promise<void> {
@@ -61,14 +61,30 @@ export async function attachPrettyWsWithProject(
     }
   }
 
-  ws.on("message", (raw) => {
+  ws.on("message", async (raw) => {
     try {
       const msg: PrettyWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSession(taskId);
+      } else if (msg.type === "followup") {
+        try {
+          const task = await getTask(projectId, taskId);
+          const project = await getProject(projectId);
+          const projectPath = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
+          const cwd = task?.worktreePath || projectPath;
+          await continueSession(projectId, taskId, msg.text, cwd);
+          // Ensure this client is attached to the (possibly reconstructed) session
+          const sess = getSession(taskId);
+          if (sess && !sess.clients.has(ws)) {
+            attachClient(taskId, ws);
+          }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          ws.send(JSON.stringify({ type: "error", error: errorMsg }));
+        }
       }
     } catch {
-      // ignore
+      // ignore malformed messages
     }
   });
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getTask, getProject, updateTask, deleteTask, getSettings } from "@/lib/db";
 import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
+import { clearSession } from "@/lib/pretty-runtime";
 import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
 
 /** Check if the main project directory is currently on a task's branch (or its preview) and switch to main if so */
@@ -97,6 +98,7 @@ export async function PATCH(request: Request, { params }: Params) {
         }
       }
       scheduleCleanup(id, taskId);
+      clearSession(taskId);
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → done`);
     } else if (body.status === "done" && prevStatus === "verify") {
       // Merge worktree branch into main on completion
@@ -130,6 +132,7 @@ export async function PATCH(request: Request, { params }: Params) {
         }
       }
       scheduleCleanup(id, taskId);
+      clearSession(taskId);
     }
 
     await processQueue(id);
@@ -161,6 +164,11 @@ export async function DELETE(_request: Request, { params }: Params) {
       removeWorktree(projectPath, task.id.slice(0, 8));
       popAutoStash(projectPath);
     }
+  }
+
+  // Clean up pretty session if present
+  if (task?.renderMode === "pretty") {
+    clearSession(taskId);
   }
 
   // If deleted task was in-progress, abort and process queue for next

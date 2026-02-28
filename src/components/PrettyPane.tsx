@@ -382,7 +382,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors"
+            className="shrink-0 w-9 h-[38px] flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors"
             title="Attach file"
           >
             <PaperclipIcon className="w-4 h-4" />
@@ -400,7 +400,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           {isRunning ? (
             <button
               onClick={stop}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md bg-red-500/10 hover:bg-red-500/20 transition-colors"
+              className="shrink-0 w-9 h-[38px] flex items-center justify-center rounded-md bg-red-500/10 hover:bg-red-500/20 transition-colors"
               title="Stop agent"
             >
               <SquareIcon className="w-3.5 h-3.5 text-red-400 fill-red-400" />
@@ -409,7 +409,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             <button
               onClick={handleSend}
               disabled={!inputValue.trim() && attachments.length === 0}
-              className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-md transition-colors ${inputValue.trim() || attachments.length > 0 ? 'text-bronze-600 dark:text-bronze-500 bg-bronze-200/60 dark:bg-zinc-800' : 'text-bronze-500 dark:text-zinc-500 disabled:opacity-30'}`}
+              className={`shrink-0 w-9 h-[38px] flex items-center justify-center rounded-md transition-colors ${inputValue.trim() || attachments.length > 0 ? 'text-bronze-600 dark:text-bronze-500 bg-bronze-200/60 dark:bg-zinc-800' : 'text-bronze-500 dark:text-zinc-500 disabled:opacity-30'}`}
               title="Send message"
             >
               <SendIcon className="w-4 h-4" />

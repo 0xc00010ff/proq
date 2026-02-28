@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GitBranchIcon, ChevronDownIcon, CheckIcon } from 'lucide-react';
 import type { Project, ProjectTab } from '@/lib/types';
-import { ThemeToggle } from './ThemeToggle';
 
 export type TabOption = ProjectTab;
 
@@ -51,7 +50,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   }) : [];
 
   return (
-    <header className="h-16 bg-surface-base flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-16 bg-surface-base flex items-center px-6 flex-shrink-0">
       <div className="flex flex-col justify-center">
         <h1 className="text-lg font-semibold text-bronze-900 dark:text-zinc-100 leading-tight">
           {project.path.replace(/\/+$/, "").split("/").pop() || project.name}
@@ -61,58 +60,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Branch indicator + switcher */}
-        {currentBranch && branches && branches.length > 0 && (
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors"
-            >
-              <GitBranchIcon className="w-3.5 h-3.5" />
-              <span className="max-w-[160px] truncate">
-                {currentBranch}
-              </span>
-              <ChevronDownIcon className="w-3 h-3 opacity-50" />
-            </button>
-
-            {dropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-border-default bg-surface-base shadow-xl shadow-black/30 z-50">
-                {sortedBranches.map((branch) => {
-                  const isCurrent = branch === currentBranch;
-                  const taskTitle = taskBranchMap?.[branch];
-                  return (
-                    <button
-                      key={branch}
-                      onClick={() => {
-                        if (!isCurrent && onSwitchBranch) {
-                          onSwitchBranch(branch);
-                        }
-                        setDropdownOpen(false);
-                      }}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-left text-xs hover:bg-surface-hover transition-colors ${
-                        isCurrent ? 'text-text-chrome-active' : 'text-text-chrome'
-                      }`}
-                    >
-                      {isCurrent ? (
-                        <CheckIcon className="w-3 h-3 shrink-0" />
-                      ) : (
-                        <span className="w-3 shrink-0" />
-                      )}
-                      <span className="font-mono truncate">{branch}</span>
-                      {taskTitle && (
-                        <span className="ml-auto text-[10px] text-bronze-500 dark:text-zinc-600 truncate max-w-[120px]">
-                          {taskTitle}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
+      <div className="flex-1 flex justify-center">
         <div className="bg-surface-secondary p-1 rounded-lg flex items-center border border-border-default">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -135,8 +83,58 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             );
           })}
         </div>
-        <ThemeToggle />
       </div>
+
+      {/* Branch indicator + switcher */}
+      {currentBranch && branches && branches.length > 0 && (
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors"
+          >
+            <GitBranchIcon className="w-3.5 h-3.5" />
+            <span className="max-w-[160px] truncate">
+              {currentBranch}
+            </span>
+            <ChevronDownIcon className="w-3 h-3 opacity-50" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute top-full right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-border-default bg-surface-base shadow-xl shadow-black/30 z-50">
+              {sortedBranches.map((branch) => {
+                const isCurrent = branch === currentBranch;
+                const taskTitle = taskBranchMap?.[branch];
+                return (
+                  <button
+                    key={branch}
+                    onClick={() => {
+                      if (!isCurrent && onSwitchBranch) {
+                        onSwitchBranch(branch);
+                      }
+                      setDropdownOpen(false);
+                    }}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-left text-xs hover:bg-surface-hover transition-colors ${
+                      isCurrent ? 'text-text-chrome-active' : 'text-text-chrome'
+                    }`}
+                  >
+                    {isCurrent ? (
+                      <CheckIcon className="w-3 h-3 shrink-0" />
+                    ) : (
+                      <span className="w-3 shrink-0" />
+                    )}
+                    <span className="font-mono truncate">{branch}</span>
+                    {taskTitle && (
+                      <span className="ml-auto text-[10px] text-bronze-500 dark:text-zinc-600 truncate max-w-[120px]">
+                        {taskTitle}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

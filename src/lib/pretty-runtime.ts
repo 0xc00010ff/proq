@@ -373,6 +373,17 @@ export async function continueSession(
     taskMode = task?.mode;
   }
 
+  // Clear question-related humanSteps/findings now that the user has responded
+  {
+    const currentTask = await getTask(projectId, taskId);
+    if (currentTask?.humanSteps || currentTask?.findings === "Agent has a question — see below.") {
+      await updateTask(projectId, taskId, {
+        humanSteps: "",
+        ...(currentTask.findings === "Agent has a question — see below." ? { findings: "" } : {}),
+      });
+    }
+  }
+
   // Attach client before appending any blocks so it receives the user message
   if (preAttachClient && !session.clients.has(preAttachClient)) {
     session.clients.add(preAttachClient);

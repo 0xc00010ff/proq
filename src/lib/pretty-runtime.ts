@@ -373,9 +373,6 @@ export async function continueSession(
     taskMode = task?.mode;
   }
 
-  // Clear stale humanSteps/findings — the resumed agent will set new ones if needed
-  await updateTask(projectId, taskId, { humanSteps: "", findings: "" });
-
   // Attach client before appending any blocks so it receives the user message
   if (preAttachClient && !session.clients.has(preAttachClient)) {
     session.clients.add(preAttachClient);

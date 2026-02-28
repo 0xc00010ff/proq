@@ -41,7 +41,7 @@ server.tool(
           status: "verify",
           dispatch: null,
           findings,
-          ...(humanSteps ? { humanSteps } : {}),
+          humanSteps: humanSteps || "",
         }),
       });
       if (!res.ok) {

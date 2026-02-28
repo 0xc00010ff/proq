@@ -201,6 +201,9 @@ export async function startSession(
     model: settings.defaultModel || undefined,
   });
 
+  // Show the original prompt in the chatlog
+  appendBlock(session, { type: "user", text: prompt });
+
   const startTime = Date.now();
 
   // Build CLI args

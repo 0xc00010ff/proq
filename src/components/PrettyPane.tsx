@@ -68,7 +68,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     // Reset to 0 to get true scrollHeight, then clamp
     ta.style.height = '0';
     const sh = ta.scrollHeight;
-    ta.style.height = Math.max(36, Math.min(sh, 160)) + 'px';
+    ta.style.height = Math.max(38, Math.min(sh, 160)) + 'px';
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -394,8 +394,8 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             onKeyDown={handleKeyDown}
             placeholder="Send a message..."
             rows={1}
-            style={{ height: '36px' }}
-            className="flex-1 min-h-[36px] max-h-[160px] resize-none overflow-hidden rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-3 py-2 text-sm leading-[20px] text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-0 focus:border-bronze-400 dark:focus:border-bronze-600"
+            style={{ height: '38px' }}
+            className="flex-1 min-h-[38px] max-h-[160px] resize-none overflow-hidden rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-3 py-2 text-sm leading-[20px] box-border text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-0 focus:border-bronze-400 dark:focus:border-bronze-600"
           />
           {isRunning ? (
             <button

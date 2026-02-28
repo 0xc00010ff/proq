@@ -32,9 +32,7 @@ function formatSize(bytes: number): string {
 export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
-  // Map legacy "code" mode to "act"
-  const resolveMode = (m?: string): TaskMode => m === 'code' ? 'act' : (m as TaskMode) || 'act';
-  const [mode, setMode] = useState<TaskMode>(resolveMode(task.mode));
+  const [mode, setMode] = useState<TaskMode>(task.mode || 'act');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -48,7 +46,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   useEffect(() => {
     setTitle(task.title || '');
     setDescription(task.description);
-    setMode(resolveMode(task.mode));
+    setMode(task.mode || 'act');
     setAttachments(task.attachments || []);
   }, [task.id]);
 

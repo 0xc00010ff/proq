@@ -47,18 +47,10 @@ export function buildProqSystemPrompt(
   -H 'Content-Type: application/json' \\
   -d '{"status":"verify","dispatch":null,"findings":"<final summary>","humanSteps":"<steps for the human, or empty string>"}'`;
 
-  const titleCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"title":"<short 3-8 word title>"}'`;
-
   const sections: string[] = [
     `## Fulfilling the task
 
-You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}
-
-### Naming the Task
-Before starting work, give this task a short descriptive title (3-8 words):
-${titleCurl}`,
+You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}`,
   ];
 
   if (mode === "plan" || mode === "answer") {

@@ -406,7 +406,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             <button
               onClick={handleSend}
               disabled={!inputValue.trim() && attachments.length === 0}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-steel hover:bg-steel/10 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-bronze-500 dark:disabled:hover:text-zinc-500"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-bronze-500 dark:disabled:hover:text-zinc-500"
               title="Send message"
             >
               <SendIcon className="w-4 h-4" />

@@ -13,6 +13,7 @@ import type { ToolGroupItem } from './pretty/ToolGroupBlock';
 import { StatusBlock } from './pretty/StatusBlock';
 import { TaskUpdateBlock } from './pretty/TaskUpdateBlock';
 import { UserBlock } from './pretty/UserBlock';
+import { AskQuestionBlock } from './pretty/AskQuestionBlock';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -172,7 +173,8 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =
     | { kind: 'block'; block: PrettyBlock; idx: number }
-    | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] };
+    | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] }
+    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<PrettyBlock, { type: 'tool_result' }>; idx: number };
 
   const renderItems: RenderItem[] = [];
   for (let i = 0; i < blocks.length; i++) {
@@ -180,6 +182,18 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     if (block.type === 'tool_result') continue;
 
     if (block.type === 'tool_use') {
+      // Render AskUserQuestion as interactive question card
+      if (block.name === 'AskUserQuestion') {
+        renderItems.push({
+          kind: 'ask_question',
+          toolId: block.toolId,
+          input: block.input,
+          result: toolResultMap.get(block.toolId),
+          idx: i,
+        });
+        continue;
+      }
+
       // Render proq update_task as TaskUpdateBlock instead of ToolBlock
       const isProqUpdate = block.name === 'mcp__proq__update_task';
       if (isProqUpdate && typeof block.input.findings === 'string') {
@@ -249,6 +263,20 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           className="absolute inset-0 overflow-y-auto px-5 py-4 space-y-1"
         >
           {renderItems.map((item, ri) => {
+            if (item.kind === 'ask_question') {
+              const questions = Array.isArray(item.input.questions) ? item.input.questions as { question: string; header?: string; options: { label: string; description: string }[]; multiSelect?: boolean }[] : [];
+              return (
+                <AskQuestionBlock
+                  key={`ask-${item.idx}`}
+                  questions={questions}
+                  hasResult={!!item.result}
+                  resultText={item.result?.output}
+                  onAnswer={(answer) => {
+                    sendFollowUp(answer);
+                  }}
+                />
+              );
+            }
             if (item.kind === 'tool_group') {
               // Single tool call — render inline without group wrapper
               if (item.items.length === 1) {

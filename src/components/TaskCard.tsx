@@ -6,7 +6,6 @@ import {
   Trash2Icon,
   Loader2Icon,
   ClockIcon,
-  ClipboardListIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { parseLines } from '@/lib/utils';
@@ -22,12 +21,10 @@ interface TaskCardProps {
 
 export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const steps = parseLines(task.humanSteps);
-  const findings = parseLines(task.findings);
   const isRunning = task.dispatch === 'running';
   const isStarting = task.dispatch === 'starting';
   const isActive = isRunning || isStarting;
   const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
-  const hasFindings = findings.length > 0;
 
   // Track findings changes to trigger flash animation
   const [flash, setFlash] = useState(false);
@@ -131,24 +128,12 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onU
           </p>
         )}
 
-        {(hasFindings || (steps.length > 0 && task.status !== 'done')) && (
-          <div className="mt-2 flex items-center gap-3">
-            {hasFindings && (
-              <div className="flex items-center gap-1.5">
-                <ClipboardListIcon className="w-3 h-3 text-steel flex-shrink-0" />
-                <span className="text-[10px] text-steel font-medium uppercase tracking-wide">
-                  Report
-                </span>
-              </div>
-            )}
-            {steps.length > 0 && task.status !== 'done' && (
-              <div className="flex items-center gap-1.5">
-                <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
-                <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
-                  {steps.length} step{steps.length !== 1 ? 's' : ''} for you
-                </span>
-              </div>
-            )}
+        {steps.length > 0 && task.status !== 'done' && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
+            <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
+              {steps.length} step{steps.length !== 1 ? 's' : ''} for you
+            </span>
           </div>
         )}
 

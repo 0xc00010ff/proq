@@ -339,6 +339,7 @@ export async function continueSession(
   taskId: string,
   text: string,
   cwd: string,
+  preAttachClient?: WebSocket,
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
@@ -364,6 +365,11 @@ export async function continueSession(
     // Fetch task mode for system prompt
     const task = await getTask(projectId, taskId);
     taskMode = task?.mode;
+  }
+
+  // Attach client before appending any blocks so it receives the user message
+  if (preAttachClient && !session.clients.has(preAttachClient)) {
+    session.clients.add(preAttachClient);
   }
 
   if (session.status === "running") {

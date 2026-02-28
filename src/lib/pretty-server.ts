@@ -72,12 +72,7 @@ export async function attachPrettyWsWithProject(
           const project = await getProject(projectId);
           const projectPath = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
           const cwd = task?.worktreePath || projectPath;
-          await continueSession(projectId, taskId, msg.text, cwd);
-          // Ensure this client is attached to the (possibly reconstructed) session
-          const sess = getSession(taskId);
-          if (sess && !sess.clients.has(ws)) {
-            attachClient(taskId, ws);
-          }
+          await continueSession(projectId, taskId, msg.text, cwd, ws);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));

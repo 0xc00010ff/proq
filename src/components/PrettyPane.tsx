@@ -165,7 +165,8 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     blocks.length === 0 ||
     (lastBlock?.type === 'status' && lastBlock.subtype === 'init') ||
     (lastBlock?.type === 'tool_result') ||
-    (lastBlock?.type === 'text')
+    (lastBlock?.type === 'text') ||
+    (lastBlock?.type === 'user')
   );
 
   // Group consecutive tool_use blocks of the same type into render items

@@ -14,7 +14,7 @@ import {
   Loader2Icon,
 } from 'lucide-react';
 import type { PrettyBlock } from '@/lib/types';
-import { ToolBlock } from './ToolBlock';
+import { ToolBlock, cleanToolName } from './ToolBlock';
 
 const TOOL_ICONS: Record<string, React.ReactNode> = {
   Bash: <TerminalSquareIcon className="w-3.5 h-3.5" />,
@@ -29,7 +29,7 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
 };
 
 function getToolIcon(name: string) {
-  return TOOL_ICONS[name] || <WrenchIcon className="w-3.5 h-3.5" />;
+  return TOOL_ICONS[cleanToolName(name)] || <WrenchIcon className="w-3.5 h-3.5" />;
 }
 
 /** Past-tense verb for each tool, used in group summaries */
@@ -105,8 +105,9 @@ export function ToolGroupBlock({ toolName, items, forceCollapsed }: ToolGroupBlo
   const anyError = items.some(i => i.result?.isError);
   const isActive = !allComplete;
 
-  const verb = TOOL_VERBS[toolName] || toolName;
-  const [singular, plural] = TOOL_NOUNS[toolName] || ['call', 'calls'];
+  const clean = cleanToolName(toolName);
+  const verb = TOOL_VERBS[clean] || clean;
+  const [singular, plural] = TOOL_NOUNS[clean] || ['call', 'calls'];
   const noun = count === 1 ? singular : plural;
 
   // Build preview: first 2 summaries + "... N total" if more

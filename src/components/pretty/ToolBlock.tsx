@@ -30,7 +30,22 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
 };
 
 function getToolIcon(name: string) {
-  return TOOL_ICONS[name] || <WrenchIcon className="w-3.5 h-3.5" />;
+  return TOOL_ICONS[cleanToolName(name)] || <WrenchIcon className="w-3.5 h-3.5" />;
+}
+
+/** Convert ugly MCP names like `mcp__proq__complete_task` → `Complete Task` */
+export function cleanToolName(name: string): string {
+  // Strip mcp__{server}__ prefix
+  const stripped = name.replace(/^mcp__[^_]+__/, '');
+  // If it still matches a known tool name, return as-is
+  if (TOOL_ICONS[stripped] || ['Bash','Read','Edit','Write','Grep','Glob','Task','WebFetch','WebSearch'].includes(stripped)) {
+    return stripped;
+  }
+  if (stripped !== name) {
+    // Convert snake_case to Title Case
+    return stripped.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return name;
 }
 
 function getToolSummary(name: string, input: Record<string, unknown>): string {
@@ -75,6 +90,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
 
   const isActive = !result;
   const isError = result?.isError;
+  const displayName = cleanToolName(name);
   const summary = getToolSummary(name, input);
 
   const outputLines = result?.output?.split('\n') || [];
@@ -107,7 +123,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
 
         {/* Tool name + summary */}
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-xs font-medium text-bronze-700 dark:text-zinc-300 shrink-0">{name}</span>
+          <span className="text-xs font-medium text-bronze-700 dark:text-zinc-300 shrink-0">{displayName}</span>
           <span className="text-xs text-bronze-500 dark:text-zinc-500 truncate">{summary}</span>
         </span>
 

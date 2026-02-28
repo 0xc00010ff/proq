@@ -179,6 +179,22 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     if (block.type === 'tool_result') continue;
 
     if (block.type === 'tool_use') {
+      // Render proq report/complete tools as TaskUpdateBlock instead of ToolBlock
+      const isProqUpdate = block.name === 'mcp__proq__report_findings' || block.name === 'mcp__proq__complete_task';
+      if (isProqUpdate && typeof block.input.findings === 'string') {
+        renderItems.push({
+          kind: 'block',
+          block: {
+            type: 'task_update',
+            findings: block.input.findings as string,
+            humanSteps: block.input.humanSteps as string | undefined,
+            timestamp: new Date().toISOString(),
+          },
+          idx: i,
+        });
+        continue;
+      }
+
       // Check if this extends an existing group at the end
       const last = renderItems[renderItems.length - 1];
       if (last?.kind === 'tool_group' && last.toolName === block.name) {

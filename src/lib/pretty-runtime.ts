@@ -267,6 +267,16 @@ function processStreamEvent(session: PrettySession, event: Record<string, unknow
             name: b.name as string,
             input: b.input as Record<string, unknown>,
           });
+          // When agent asks a question, surface it as humanSteps so the
+          // gold "Steps for you" banner shows in the right panel on verify
+          if (b.name === "AskUserQuestion") {
+            const input = b.input as Record<string, unknown>;
+            const questions = Array.isArray(input.questions) ? input.questions as { question: string }[] : [];
+            const questionText = questions.map((q) => q.question).join("\n");
+            if (questionText) {
+              updateTask(session.projectId, session.taskId, { humanSteps: questionText });
+            }
+          }
         }
       }
     }

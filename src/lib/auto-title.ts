@@ -33,7 +33,7 @@ export function autoTitle(projectId: string, taskId: string, description: string
   writeFileSync(promptFile, prompt, "utf-8");
 
   exec(
-    `env -u CLAUDECODE -u PORT ${CLAUDE} -p "$(cat '${promptFile}')" --model haiku`,
+    `env -u CLAUDECODE -u PORT ${CLAUDE} -p --model haiku "$(cat '${promptFile}')"`,
     { timeout: 30_000 },
     async (err, stdout) => {
       pending.delete(taskId);

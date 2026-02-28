@@ -8,6 +8,8 @@ import { ScrambleText } from './ScrambleText';
 import { TextBlock } from './pretty/TextBlock';
 import { ThinkingBlock } from './pretty/ThinkingBlock';
 import { ToolBlock } from './pretty/ToolBlock';
+import { ToolGroupBlock } from './pretty/ToolGroupBlock';
+import type { ToolGroupItem } from './pretty/ToolGroupBlock';
 import { StatusBlock } from './pretty/StatusBlock';
 import { UserBlock } from './pretty/UserBlock';
 
@@ -99,6 +101,46 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     (lastBlock?.type === 'text')
   );
 
+  // Group consecutive tool_use blocks of the same type into render items
+  type RenderItem =
+    | { kind: 'block'; block: PrettyBlock; idx: number }
+    | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] };
+
+  const renderItems: RenderItem[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (block.type === 'tool_result') continue;
+
+    if (block.type === 'tool_use') {
+      // Check if this extends an existing group at the end
+      const last = renderItems[renderItems.length - 1];
+      if (last?.kind === 'tool_group' && last.toolName === block.name) {
+        last.items.push({
+          toolId: block.toolId,
+          name: block.name,
+          input: block.input,
+          result: toolResultMap.get(block.toolId),
+          idx: i,
+        });
+      } else {
+        // Start a new potential group
+        renderItems.push({
+          kind: 'tool_group',
+          toolName: block.name,
+          items: [{
+            toolId: block.toolId,
+            name: block.name,
+            input: block.input,
+            result: toolResultMap.get(block.toolId),
+            idx: i,
+          }],
+        });
+      }
+    } else {
+      renderItems.push({ kind: 'block', block, idx: i });
+    }
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d]">
       {/* Message list */}
@@ -119,26 +161,41 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           onScroll={handleScroll}
           className="absolute inset-0 overflow-y-auto px-5 py-4 space-y-1"
         >
-          {blocks.map((block, idx) => {
-            // Skip tool_result blocks — they're rendered inside ToolBlock
-            if (block.type === 'tool_result') return null;
+          {renderItems.map((item, ri) => {
+            if (item.kind === 'tool_group') {
+              // Single tool call — render inline without group wrapper
+              if (item.items.length === 1) {
+                const t = item.items[0];
+                return (
+                  <ToolBlock
+                    key={`tool-${t.idx}`}
+                    toolId={t.toolId}
+                    name={t.name}
+                    input={t.input}
+                    result={t.result}
+                    forceCollapsed={allCollapsed || undefined}
+                  />
+                );
+              }
+              // Multiple consecutive same-type tools — aggregate
+              return (
+                <ToolGroupBlock
+                  key={`tg-${ri}`}
+                  toolName={item.toolName}
+                  items={item.items}
+                  forceCollapsed={allCollapsed || undefined}
+                />
+              );
+            }
+
+            const block = item.block;
+            const idx = item.idx;
 
             switch (block.type) {
               case 'text':
                 return <TextBlock key={idx} text={block.text} />;
               case 'thinking':
                 return <ThinkingBlock key={idx} thinking={block.thinking} forceCollapsed={allCollapsed || undefined} />;
-              case 'tool_use':
-                return (
-                  <ToolBlock
-                    key={idx}
-                    toolId={block.toolId}
-                    name={block.name}
-                    input={block.input}
-                    result={toolResultMap.get(block.toolId)}
-                    forceCollapsed={allCollapsed || undefined}
-                  />
-                );
               case 'user':
                 return <UserBlock key={idx} text={block.text} />;
               case 'status':

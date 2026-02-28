@@ -3,11 +3,13 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon } from 'lucide-react';
-import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
+import type { Task, TaskDraft, TaskAttachment, TaskMode } from '@/lib/types';
 
 interface TaskModalProps {
   task: Task;
   isOpen: boolean;
+  draft?: TaskDraft;
+  onDraftChange?: (draft: TaskDraft) => void;
   onClose: (isEmpty: boolean) => void;
   onSave: (taskId: string, updates: Partial<Task>) => void;
   onMoveToInProgress?: (taskId: string, currentData: Partial<Task>) => Promise<void>;
@@ -29,12 +31,12 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
-  const [title, setTitle] = useState(task.title || '');
-  const [description, setDescription] = useState(task.description);
-  const [mode, setMode] = useState<TaskMode>(task.mode || 'build');
+export function TaskModal({ task, isOpen, draft, onDraftChange, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
+  const [title, setTitle] = useState(draft?.title ?? task.title ?? '');
+  const [description, setDescription] = useState(draft?.description ?? task.description);
+  const [mode, setMode] = useState<TaskMode>(draft?.mode ?? task.mode ?? 'build');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
-    task.attachments || [],
+    draft?.attachments ?? task.attachments ?? [],
   );
   const [isDragOver, setIsDragOver] = useState(false);
   const [dispatching, setDispatching] = useState(false);
@@ -44,11 +46,11 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTitle(task.title || '');
-    setDescription(task.description);
-    setMode(task.mode || 'build');
-    setAttachments(task.attachments || []);
-  }, [task.id]);
+    setTitle(draft?.title ?? task.title ?? '');
+    setDescription(draft?.description ?? task.description);
+    setMode(draft?.mode ?? task.mode ?? 'build');
+    setAttachments(draft?.attachments ?? task.attachments ?? []);
+  }, [task.id]); // eslint-disable-line react-hooks/exhaustive-deps -- draft is read only on task switch
 
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -121,19 +123,26 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
 
   if (!isOpen) return null;
 
+  const updateDraft = useCallback((t: string, d: string, a: TaskAttachment[], m: TaskMode) => {
+    onDraftChange?.({ title: t, description: d, attachments: a, mode: m });
+  }, [onDraftChange]);
+
   const handleTitleChange = (val: string) => {
     setTitle(val);
     autosave(val, description, attachments, mode);
+    updateDraft(val, description, attachments, mode);
   };
 
   const handleDescriptionChange = (val: string) => {
     setDescription(val);
     autosave(title, val, attachments, mode);
+    updateDraft(title, val, attachments, mode);
   };
 
   const handleModeChange = (newMode: TaskMode) => {
     setMode(newMode);
     autosave(title, description, attachments, newMode);
+    updateDraft(title, description, attachments, newMode);
   };
 
   const addFiles = (files: FileList | File[]) => {
@@ -151,6 +160,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
           setAttachments((prev) => {
             const updated = [...prev, att];
             autosave(title, description, updated, mode);
+            updateDraft(title, description, updated, mode);
             return updated;
           });
         };
@@ -159,6 +169,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         setAttachments((prev) => {
           const updated = [...prev, att];
           autosave(title, description, updated);
+          updateDraft(title, description, updated, mode);
           return updated;
         });
       }
@@ -169,6 +180,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     const updated = attachments.filter((a) => a.id !== id);
     setAttachments(updated);
     autosave(title, description, updated);
+    updateDraft(title, description, updated, mode);
   };
 
   const handleDrop = (e: React.DragEvent) => {

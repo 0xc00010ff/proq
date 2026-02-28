@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, ChevronsUpDownIcon, SendIcon } from 'lucide-react';
-import type { PrettyBlock } from '@/lib/types';
+import { SquareIcon, ArrowDownIcon, ChevronsUpDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon } from 'lucide-react';
+import type { PrettyBlock, TaskAttachment } from '@/lib/types';
 import { usePrettySession } from '@/hooks/usePrettySession';
 import { ScrambleText } from './ScrambleText';
 import { TextBlock } from './pretty/TextBlock';
@@ -13,6 +13,12 @@ import type { ToolGroupItem } from './pretty/ToolGroupBlock';
 import { StatusBlock } from './pretty/StatusBlock';
 import { TaskUpdateBlock } from './pretty/TaskUpdateBlock';
 import { UserBlock } from './pretty/UserBlock';
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface PrettyPaneProps {
   taskId: string;
@@ -25,9 +31,12 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   const { blocks, sessionDone, sendFollowUp, stop } = usePrettySession(taskId, projectId, prettyLog);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const [allCollapsed, setAllCollapsed] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Auto-scroll to bottom on new blocks unless user scrolled up
   useEffect(() => {
@@ -64,11 +73,37 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     resizeTextarea();
   };
 
+  const addFiles = useCallback((files: FileList | File[]) => {
+    Array.from(files).forEach((f) => {
+      const att: TaskAttachment = {
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      };
+      if (f.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          att.dataUrl = e.target?.result as string;
+          setAttachments((prev) => [...prev, att]);
+        };
+        reader.readAsDataURL(f);
+      } else {
+        setAttachments((prev) => [...prev, att]);
+      }
+    });
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }, []);
+
   const handleSend = () => {
     const text = inputValue.trim();
-    if (!text) return;
-    sendFollowUp(text);
+    if (!text && attachments.length === 0) return;
+    sendFollowUp(text, attachments.length > 0 ? attachments : undefined);
     setInputValue('');
+    setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -81,6 +116,24 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
       handleSend();
     }
   };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      addFiles(e.dataTransfer.files);
+    }
+  }, [addFiles]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
 
   if (!visible) return null;
 
@@ -143,7 +196,19 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d]">
+    <div
+      className={`flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d] relative transition-colors ${isDragOver ? 'ring-1 ring-bronze-500/40' : ''}`}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
+      {/* Drop overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 bg-bronze-500/5 flex items-center justify-center pointer-events-none z-20 rounded">
+          <div className="text-sm text-bronze-500 font-medium">Drop files here</div>
+        </div>
+      )}
+
       {/* Message list */}
       <div className="relative flex-1 min-h-0">
         {/* Expand/Collapse toggle — floating top-right */}
@@ -198,7 +263,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
               case 'thinking':
                 return <ThinkingBlock key={idx} thinking={block.thinking} forceCollapsed={allCollapsed || undefined} />;
               case 'user':
-                return <UserBlock key={idx} text={block.text} />;
+                return <UserBlock key={idx} text={block.text} attachments={block.attachments} />;
               case 'status':
                 return (
                   <StatusBlock
@@ -251,6 +316,53 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
         )}
       </div>
 
+      {/* Attachment previews above input */}
+      {attachments.length > 0 && (
+        <div className="shrink-0 px-3 pb-1 pt-2 flex flex-wrap gap-2 border-t border-bronze-300/40 dark:border-zinc-800/40">
+          {attachments.map((att) => {
+            const isImage = att.type?.startsWith('image/') && att.dataUrl;
+            return isImage ? (
+              <div
+                key={att.id}
+                className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
+              >
+                <img
+                  src={att.dataUrl}
+                  alt={att.name}
+                  className="h-16 w-auto max-w-[100px] object-cover block"
+                />
+                <button
+                  onClick={() => removeAttachment(att.id)}
+                  className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <XIcon className="w-2.5 h-2.5" />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
+                  <span className="text-[9px] text-zinc-300 truncate block">{att.name}</span>
+                </div>
+              </div>
+            ) : (
+              <div
+                key={att.id}
+                className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-2.5 py-2 group"
+              >
+                <FileIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] text-zinc-700 dark:text-zinc-300 truncate max-w-[120px] leading-tight">{att.name}</span>
+                  <span className="text-[9px] text-zinc-600 leading-tight">{formatSize(att.size)}</span>
+                </div>
+                <button
+                  onClick={() => removeAttachment(att.id)}
+                  className="text-zinc-600 hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
+                >
+                  <XIcon className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Input area */}
       <div className="shrink-0 border-t border-bronze-300 dark:border-zinc-800 px-3 py-2.5 bg-bronze-100/50 dark:bg-zinc-900/30">
         <div className="flex items-end gap-2">
@@ -261,8 +373,16 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             onKeyDown={handleKeyDown}
             placeholder="Send a message..."
             rows={1}
-            className="flex-1 min-h-[36px] max-h-[160px] resize-none rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-3 py-2 text-sm text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-steel/50 focus:border-steel/50"
+            className="flex-1 min-h-[36px] max-h-[160px] resize-none rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-3 py-2 text-sm text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-bronze-500/40 focus:border-bronze-500/40"
           />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors"
+            title="Attach file"
+          >
+            <PaperclipIcon className="w-4 h-4" />
+          </button>
           {isRunning ? (
             <button
               onClick={stop}
@@ -274,7 +394,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           ) : (
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() && attachments.length === 0}
               className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-steel hover:bg-steel/10 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-bronze-500 dark:disabled:hover:text-zinc-500"
               title="Send message"
             >
@@ -282,6 +402,18 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             </button>
           )}
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              addFiles(e.target.files);
+              e.target.value = '';
+            }
+          }}
+        />
       </div>
     </div>
   );

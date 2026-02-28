@@ -72,7 +72,7 @@ export async function attachPrettyWsWithProject(
           const project = await getProject(projectId);
           const projectPath = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
           const cwd = task?.worktreePath || projectPath;
-          await continueSession(projectId, taskId, msg.text, cwd, ws);
+          await continueSession(projectId, taskId, msg.text, cwd, ws, msg.attachments);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));

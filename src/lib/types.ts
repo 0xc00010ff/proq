@@ -29,7 +29,7 @@ export type PrettyBlock =
   | { type: 'thinking';    thinking: string }
   | { type: 'tool_use';    toolId: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; toolId: string; name: string; output: string; isError?: boolean }
-  | { type: 'user';        text: string }
+  | { type: 'user';        text: string; attachments?: TaskAttachment[] }
   | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort';
       sessionId?: string; model?: string; costUsd?: number;
       durationMs?: number; turns?: number; error?: string }
@@ -45,7 +45,7 @@ export type PrettyWsServerMsg =
 
 // Client → Server
 export type PrettyWsClientMsg =
-  | { type: 'followup'; text: string }
+  | { type: 'followup'; text: string; attachments?: TaskAttachment[] }
   | { type: 'stop' };
 
 // ── Task ─────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { PrettyBlock, PrettyWsServerMsg } from '@/lib/types';
+import type { PrettyBlock, PrettyWsServerMsg, TaskAttachment } from '@/lib/types';
 
 const WS_PORT = process.env.NEXT_PUBLIC_WS_PORT || '42069';
 
@@ -9,7 +9,7 @@ interface UsePrettySessionResult {
   blocks: PrettyBlock[];
   connected: boolean;
   sessionDone: boolean;
-  sendFollowUp: (text: string) => void;
+  sendFollowUp: (text: string, attachments?: TaskAttachment[]) => void;
   stop: () => void;
 }
 
@@ -87,10 +87,10 @@ export function usePrettySession(
     };
   }, [taskId, projectId, staticLog]);
 
-  const sendFollowUp = useCallback((text: string) => {
+  const sendFollowUp = useCallback((text: string, attachments?: TaskAttachment[]) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'followup', text }));
+      ws.send(JSON.stringify({ type: 'followup', text, attachments }));
     }
   }, []);
 

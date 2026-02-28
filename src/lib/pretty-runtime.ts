@@ -346,6 +346,7 @@ export async function continueSession(
   text: string,
   cwd: string,
   preAttachClient?: WebSocket,
+  attachments?: import("@/lib/types").TaskAttachment[],
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
@@ -383,7 +384,7 @@ export async function continueSession(
   }
 
   // Append user block so it renders immediately
-  appendBlock(session, { type: "user", text });
+  appendBlock(session, { type: "user", text, attachments: attachments?.length ? attachments : undefined });
 
   const settings = await getSettings();
   session.status = "running";

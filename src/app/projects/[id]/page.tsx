@@ -14,7 +14,7 @@ import { ParallelModeModal } from '@/components/ParallelModeModal';
 import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
-import type { Task, TaskDraft, TaskStatus, TaskColumns, ExecutionMode, TaskAttachment, TaskMode } from '@/lib/types';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -35,7 +35,6 @@ export default function ProjectPage() {
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-  const draftsRef = useRef<Map<string, TaskDraft>>(new Map());
 
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
@@ -155,7 +154,6 @@ export default function ProjectPage() {
   }, [columns]);
 
   const deleteTask = async (taskId: string) => {
-    draftsRef.current.delete(taskId);
     await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
       method: 'DELETE',
     });
@@ -439,11 +437,8 @@ export default function ProjectPage() {
         <TaskModal
           task={modalTask}
           isOpen={true}
-          draft={draftsRef.current.get(modalTask.id)}
-          onDraftChange={(draft) => { draftsRef.current.set(modalTask.id, draft); }}
           onClose={async (isEmpty: boolean) => {
             if (isEmpty) {
-              draftsRef.current.delete(modalTask.id);
               await deleteTask(modalTask.id);
             }
             setModalTask(null);
@@ -451,7 +446,6 @@ export default function ProjectPage() {
           }}
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
-            draftsRef.current.delete(taskId);
             // Save task content while modal still shows spinner
             await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
               method: 'PATCH',

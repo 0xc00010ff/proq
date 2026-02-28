@@ -20,6 +20,15 @@ function ensureNotOnTaskBranch(projectPath: string, taskBranch: string): void {
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
+export async function GET(_request: Request, { params }: Params) {
+  const { id, taskId } = await params;
+  const task = await getTask(id, taskId);
+  if (!task) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+  return NextResponse.json(task);
+}
+
 export async function PATCH(request: Request, { params }: Params) {
   const { id, taskId } = await params;
   const body = await request.json();

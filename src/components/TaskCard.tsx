@@ -6,6 +6,7 @@ import {
   Trash2Icon,
   Loader2Icon,
   ClockIcon,
+  ClipboardListIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { parseLines } from '@/lib/utils';
@@ -21,10 +22,25 @@ interface TaskCardProps {
 
 export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const steps = parseLines(task.humanSteps);
+  const findings = parseLines(task.findings);
   const isRunning = task.dispatch === 'running';
   const isStarting = task.dispatch === 'starting';
   const isActive = isRunning || isStarting;
   const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
+  const hasFindings = findings.length > 0;
+
+  // Track findings changes to trigger flash animation
+  const [flash, setFlash] = useState(false);
+  const prevFindingsRef = useRef(task.findings);
+  useEffect(() => {
+    if (task.findings && task.findings !== prevFindingsRef.current) {
+      setFlash(true);
+      const timer = setTimeout(() => setFlash(false), 2000);
+      prevFindingsRef.current = task.findings;
+      return () => clearTimeout(timer);
+    }
+    prevFindingsRef.current = task.findings;
+  }, [task.findings]);
 
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title || '');
@@ -59,7 +75,9 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onU
           : isQueued || isStarting
           ? 'border-zinc-500/30'
           : 'border-border-default'}
+        ${flash ? 'ring-1 ring-gold/50 shadow-[0_0_12px_rgba(200,170,80,0.2)]' : ''}
         ${isDragOverlay ? 'ring-1 ring-steel-dark shadow-lg shadow-black/20 dark:shadow-black/40' : `hover:bg-surface-hover cursor-pointer ${isRunning ? '' : 'hover:border-border-hover'}`}
+        transition-shadow duration-700
       `}
       onClick={() => !isDragOverlay && onClick?.(task)}
     >
@@ -113,12 +131,24 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onU
           </p>
         )}
 
-        {steps.length > 0 && task.status !== 'done' && (
-          <div className="mt-2 flex items-center gap-1.5">
-            <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
-            <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
-              {steps.length} step{steps.length !== 1 ? 's' : ''} for you
-            </span>
+        {(hasFindings || (steps.length > 0 && task.status !== 'done')) && (
+          <div className="mt-2 flex items-center gap-3">
+            {hasFindings && (
+              <div className="flex items-center gap-1.5">
+                <ClipboardListIcon className="w-3 h-3 text-steel flex-shrink-0" />
+                <span className="text-[10px] text-steel font-medium uppercase tracking-wide">
+                  Report
+                </span>
+              </div>
+            )}
+            {steps.length > 0 && task.status !== 'done' && (
+              <div className="flex items-center gap-1.5">
+                <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
+                <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
+                  {steps.length} step{steps.length !== 1 ? 's' : ''} for you
+                </span>
+              </div>
+            )}
           </div>
         )}
 

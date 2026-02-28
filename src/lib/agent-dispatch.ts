@@ -39,11 +39,15 @@ export function buildProqSystemPrompt(
   mode: TaskMode | undefined,
   projectName?: string,
 ): string {
-  const updateCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
+  const taskUrl = `${MC_API}/api/projects/${projectId}/tasks/${taskId}`;
+
+  const readCurl = `curl -s ${taskUrl}`;
+
+  const updateCurl = `curl -s -X PATCH ${taskUrl} \\
   -H 'Content-Type: application/json' \\
   -d '{"findings":"<newline-separated cumulative summary of all work done>"}'`;
 
-  const completeCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
+  const completeCurl = `curl -s -X PATCH ${taskUrl} \\
   -H 'Content-Type: application/json' \\
   -d '{"status":"verify","dispatch":null,"findings":"<final summary>","humanSteps":"<steps for the human, or empty string>"}'`;
 
@@ -59,10 +63,13 @@ You are working on a task assigned to you by proq, an agentic coding task board.
 This is a ${modeLabel}-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
 
 ### Reporting Results
-When finished, report your findings:
+Before reporting, read the current task state to see any existing findings:
+${readCurl}
+
+When finished, report your findings (incorporating any prior findings):
 ${updateCurl}
 
-Your findings should be a clear, concise summary of your research/analysis.`);
+Your findings should be a clear, concise, cumulative summary of your research/analysis.`);
   } else {
     sections.push(`### Code Changes
 Always commit your code changes unless explicitly asked not to. Stage and commit with a descriptive message after each logical unit of work.
@@ -82,7 +89,11 @@ ${updateCurl}
 - Asking questions back to the user
 - Minor adjustments that don't change the overall findings
 
-Findings should be cumulative — each update replaces the previous one, so always include the full picture of everything done so far. Keep it concise but complete.`);
+**Findings should be cumulative — each update replaces the previous one, so always include the full picture of everything done so far.** Before reporting, read the current task state to see existing findings:
+${readCurl}
+
+Incorporate prior findings into your update. The human sees findings as a running summary of all work done on this task, not just the latest change. Keep it concise but complete.`);
+
   }
 
   if (mode !== "plan" && mode !== "answer") {

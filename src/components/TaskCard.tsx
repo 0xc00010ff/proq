@@ -88,12 +88,14 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onU
                 if (e.key === 'Enter') commitEdit();
                 if (e.key === 'Escape') { setEditValue(task.title || ''); setEditing(false); }
               }}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
               className="text-sm text-zinc-200 leading-snug font-normal bg-transparent border-b border-zinc-500 outline-none w-full"
             />
           ) : task.title ? (
             <h4
               className={`text-sm text-bronze-800 dark:text-zinc-200 leading-snug font-normal ${canEditTitle ? 'cursor-text hover:border-b hover:border-zinc-600' : ''}`}
+              onPointerDown={canEditTitle ? (e) => e.stopPropagation() : undefined}
               onClick={canEditTitle ? (e) => { e.stopPropagation(); setEditing(true); } : undefined}
             >
               {task.title}

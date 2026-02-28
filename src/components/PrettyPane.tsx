@@ -331,7 +331,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
       </div>
 
       {/* Input area */}
-      <div className="shrink-0 border-t border-bronze-300 dark:border-zinc-800 px-3 py-2.5 bg-bronze-100/50 dark:bg-zinc-900/30">
+      <div className="shrink-0 border-t border-bronze-300 dark:border-zinc-800 px-2 py-2.5 bg-bronze-100/50 dark:bg-zinc-900/30">
         {/* Attachment previews inside input bar */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">

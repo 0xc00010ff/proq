@@ -18,9 +18,13 @@ export function autoTitle(projectId: string, taskId: string, description: string
   const prompt = `Give this task a short title (3-8 words, no quotes, no punctuation at the end). Just output the title, nothing else.\n\nTask description:\n${description.slice(0, 1000)}`;
   const escaped = prompt.replace(/'/g, "'\\''");
 
+  const env = { ...process.env };
+  delete env.CLAUDECODE;
+  delete env.PORT;
+
   exec(
     `${CLAUDE} -p '${escaped}' --model haiku`,
-    { timeout: 30_000 },
+    { timeout: 30_000, env },
     async (err, stdout) => {
       pending.delete(taskId);
       if (err) {

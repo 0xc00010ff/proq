@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { updateTask } from "./db";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -15,15 +15,21 @@ export function autoTitle(projectId: string, taskId: string, description: string
   if (pending.has(taskId)) return;
   pending.add(taskId);
 
-  const prompt = `Give this task a short title (3-8 words, no quotes, no punctuation at the end). Just output the title, nothing else.\n\nTask description:\n${description.slice(0, 1000)}`;
-  const escaped = prompt.replace(/'/g, "'\\''");
+  const prompt = [
+    "Give this task a short title (3-8 words, no quotes, no punctuation at the end).",
+    "Just output the title, nothing else.",
+    "",
+    "Task description:",
+    description.slice(0, 1000),
+  ].join("\n");
 
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.PORT;
 
-  exec(
-    `${CLAUDE} -p '${escaped}' --model haiku`,
+  execFile(
+    CLAUDE,
+    ["-p", prompt, "--model", "haiku"],
     { timeout: 30_000, env },
     async (err, stdout) => {
       pending.delete(taskId);

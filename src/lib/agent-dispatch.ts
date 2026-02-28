@@ -81,7 +81,7 @@ When finished, use the \`read_task\` tool to check for any existing findings, th
 Always commit your code changes unless explicitly asked not to. Stage and commit with a descriptive message after each logical unit of work.
 
 ### Reporting Progress
-After making substantial changes (committing code, completing a phase of work), use the \`report_findings\` tool to update the task board. Before reporting, use \`read_task\` to see existing findings so you can write a cumulative summary.
+After making substantial changes (committing code, completing a phase of work), use the \`report_findings\` tool to update the task board and move the task to Verify for human review. Before reporting, use \`read_task\` to see existing findings so you can write a cumulative summary.
 
 **When to report:**
 - After committing code changes
@@ -92,11 +92,6 @@ After making substantial changes (committing code, completing a phase of work), 
 - Simple clarifying responses or short answers
 - Asking questions back to the user
 - Minor adjustments that don't change the overall findings`);
-  }
-
-  if (mode !== "plan" && mode !== "answer") {
-    sections.push(`### Completing the Task
-When the entire task is done and ready for human review, use the \`complete_task\` tool to move it to the Verify column. Only do this when the work is fully complete — not on follow-up responses. If you already called \`report_findings\` with a complete summary, you don't need to pass findings again.`);
   }
 
   return sections.join("\n\n");

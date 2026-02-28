@@ -27,7 +27,7 @@ const server = new McpServer({
 
 server.tool(
   "report_findings",
-  "Report progress on the current task. Findings should be a cumulative summary of ALL work done so far on this task — each report replaces the previous one. Call this after committing code, completing a phase, or finishing substantial work. Do NOT call for minor tweaks or clarifications.",
+  "Report progress on the current task and move it to Verify for human review. Findings should be a cumulative summary of ALL work done so far — each call replaces the previous report. Call this after committing code, completing a phase, or finishing substantial work. Do NOT call for minor tweaks or clarifications.",
   {
     findings: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
     humanSteps: z.string().optional().describe("Newline-separated action items the human needs to do, if any"),
@@ -37,41 +37,17 @@ server.tool(
       const res = await fetch(taskUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ findings, ...(humanSteps ? { humanSteps } : {}) }),
-      });
-      if (!res.ok) {
-        return { content: [{ type: "text", text: `Failed to update task: ${res.status}` }], isError: true };
-      }
-      return { content: [{ type: "text", text: "Task findings updated." }] };
-    } catch (err) {
-      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
-    }
-  },
-);
-
-server.tool(
-  "complete_task",
-  "Signal that the task is fully complete and ready for human review. This moves the task to the Verify column. Only call when ALL work is done — not for intermediate progress.",
-  {
-    findings: z.string().optional().describe("Final cumulative summary of all work done. Only needed if you haven't already called report_findings with a complete summary."),
-    humanSteps: z.string().optional().describe("Newline-separated action items for human review, if any"),
-  },
-  async ({ findings, humanSteps }) => {
-    try {
-      const res = await fetch(taskUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: "verify",
           dispatch: null,
-          ...(findings ? { findings } : {}),
+          findings,
           ...(humanSteps ? { humanSteps } : {}),
         }),
       });
       if (!res.ok) {
-        return { content: [{ type: "text", text: `Failed to complete task: ${res.status}` }], isError: true };
+        return { content: [{ type: "text", text: `Failed to update task: ${res.status}` }], isError: true };
       }
-      return { content: [{ type: "text", text: "Task moved to Verify." }] };
+      return { content: [{ type: "text", text: "Task findings updated and moved to Verify." }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
     }

@@ -379,6 +379,14 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           </div>
         )}
         <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors"
+            title="Attach file"
+          >
+            <PaperclipIcon className="w-4 h-4" />
+          </button>
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -389,14 +397,6 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             style={{ height: '36px' }}
             className="flex-1 min-h-[36px] max-h-[160px] resize-none overflow-hidden rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-3 py-2 text-sm leading-[20px] text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-0 focus:border-bronze-400 dark:focus:border-bronze-600"
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors"
-            title="Attach file"
-          >
-            <PaperclipIcon className="w-4 h-4" />
-          </button>
           {isRunning ? (
             <button
               onClick={stop}
@@ -409,7 +409,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             <button
               onClick={handleSend}
               disabled={!inputValue.trim() && attachments.length === 0}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-bronze-500 dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 hover:bg-bronze-200/60 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-bronze-500 dark:disabled:hover:text-zinc-500"
+              className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-md transition-colors ${inputValue.trim() || attachments.length > 0 ? 'text-bronze-600 dark:text-bronze-500 bg-bronze-200/60 dark:bg-zinc-800' : 'text-bronze-500 dark:text-zinc-500 disabled:opacity-30'}`}
               title="Send message"
             >
               <SendIcon className="w-4 h-4" />

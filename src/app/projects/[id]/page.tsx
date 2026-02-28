@@ -14,7 +14,7 @@ import { ParallelModeModal } from '@/components/ParallelModeModal';
 import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
-import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft } from '@/lib/types';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -385,7 +385,6 @@ export default function ProjectPage() {
               collapsed={terminalCollapsed}
               onToggleCollapsed={toggleTerminalCollapsed}
               onExpand={expandTerminal}
-              cleanupTimes={cleanupTimes}
               onResizeStart={handleResizeStart}
               isDragging={isDragging}
             />
@@ -404,9 +403,15 @@ export default function ProjectPage() {
           projectId={projectId}
           isQueued={agentModalTask.dispatch === 'queued'}
           cleanupExpiresAt={cleanupTimes[agentModalTask.id]}
+          followUpDraft={followUpDraftsRef.current.get(agentModalTask.id)}
+          onFollowUpDraftChange={(draft) => {
+            if (draft) followUpDraftsRef.current.set(agentModalTask.id, draft);
+            else followUpDraftsRef.current.delete(agentModalTask.id);
+          }}
           onClose={() => setAgentModalTask(null)}
           onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
           onComplete={async (taskId) => {
+            followUpDraftsRef.current.delete(taskId);
             await updateTask(taskId, { status: 'done' });
             setAgentModalTask(null);
             fetchBranchState();

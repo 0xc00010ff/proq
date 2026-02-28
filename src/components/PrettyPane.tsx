@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
-import type { PrettyBlock, TaskAttachment } from '@/lib/types';
+import type { PrettyBlock, TaskAttachment, FollowUpDraft } from '@/lib/types';
 import { usePrettySession } from '@/hooks/usePrettySession';
 import { ScrambleText } from './ScrambleText';
 import { TextBlock } from './pretty/TextBlock';
@@ -26,17 +26,19 @@ interface PrettyPaneProps {
   projectId: string;
   visible: boolean;
   prettyLog?: PrettyBlock[];
+  followUpDraft?: FollowUpDraft;
+  onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
 }
 
-export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPaneProps) {
+export function PrettyPane({ taskId, projectId, visible, prettyLog, followUpDraft, onFollowUpDraftChange }: PrettyPaneProps) {
   const { blocks, sessionDone, sendFollowUp, stop } = usePrettySession(taskId, projectId, prettyLog);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
 
-  const [inputValue, setInputValue] = useState('');
-  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [inputValue, setInputValue] = useState(followUpDraft?.text ?? '');
+  const [attachments, setAttachments] = useState<TaskAttachment[]>(followUpDraft?.attachments ?? []);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -72,8 +74,23 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     ta.style.height = Math.max(36, Math.min(sh, 160)) + 'px';
   }, []);
 
+  // Resize textarea on mount when restoring a draft
+  useEffect(() => {
+    if (followUpDraft?.text) resizeTextarea();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const syncDraft = useCallback((text: string, atts: TaskAttachment[]) => {
+    if (text || atts.length > 0) {
+      onFollowUpDraftChange?.({ text, attachments: atts });
+    } else {
+      onFollowUpDraftChange?.(null);
+    }
+  }, [onFollowUpDraftChange]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
+    const val = e.target.value;
+    setInputValue(val);
+    syncDraft(val, attachments);
     resizeTextarea();
   };
 
@@ -89,18 +106,30 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
         const reader = new FileReader();
         reader.onload = (e) => {
           att.dataUrl = e.target?.result as string;
-          setAttachments((prev) => [...prev, att]);
+          setAttachments((prev) => {
+            const updated = [...prev, att];
+            syncDraft(inputValue, updated);
+            return updated;
+          });
         };
         reader.readAsDataURL(f);
       } else {
-        setAttachments((prev) => [...prev, att]);
+        setAttachments((prev) => {
+          const updated = [...prev, att];
+          syncDraft(inputValue, updated);
+          return updated;
+        });
       }
     });
-  }, []);
+  }, [inputValue, syncDraft]);
 
   const removeAttachment = useCallback((id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+    setAttachments((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      syncDraft(inputValue, updated);
+      return updated;
+    });
+  }, [inputValue, syncDraft]);
 
   const handleSend = () => {
     const text = inputValue.trim();
@@ -108,6 +137,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     sendFollowUp(text, attachments.length > 0 ? attachments : undefined);
     setInputValue('');
     setAttachments([]);
+    onFollowUpDraftChange?.(null);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }

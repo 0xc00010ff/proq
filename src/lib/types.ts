@@ -61,6 +61,11 @@ export interface TaskAttachment {
 
 export type TaskMode = 'answer' | 'plan' | 'build';
 
+export interface FollowUpDraft {
+  text: string;
+  attachments: TaskAttachment[];
+}
+
 export interface Task {
   id: string;
   title?: string;

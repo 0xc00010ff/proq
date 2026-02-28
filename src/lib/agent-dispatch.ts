@@ -98,6 +98,9 @@ After making substantial changes (committing code, completing a phase of work), 
 - Minor adjustments that don't change the overall findings`);
   }
 
+  sections.push(`### Asking Questions
+When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.`);
+
   return sections.join("\n\n");
 }
 

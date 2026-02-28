@@ -12,6 +12,7 @@ import type {
   ExecutionMode,
   DeletedTaskEntry,
   ProqSettings,
+  PrettyBlock,
 } from "./types";
 import { slugify } from "./utils";
 
@@ -482,6 +483,8 @@ export async function addChatMessage(
 interface SupervisorData {
   chatLog: ChatLogEntry[];
   draft?: string;
+  prettyLog?: PrettyBlock[];
+  sessionId?: string;
 }
 
 const SUPERVISOR_FILE = path.join(DATA_DIR, "supervisor.json");
@@ -530,6 +533,26 @@ export async function setSupervisorDraft(draft: string): Promise<void> {
     const state = readSupervisorData();
     state.draft = draft || undefined;
     writeSupervisorData(state);
+  });
+}
+
+export async function getSupervisorPrettyLog(): Promise<{ prettyLog?: PrettyBlock[]; sessionId?: string }> {
+  const data = readSupervisorData();
+  return { prettyLog: data.prettyLog, sessionId: data.sessionId };
+}
+
+export async function setSupervisorPrettyLog(prettyLog: PrettyBlock[], sessionId?: string): Promise<void> {
+  return withWriteLock("supervisor", async () => {
+    const state = readSupervisorData();
+    state.prettyLog = prettyLog;
+    if (sessionId !== undefined) state.sessionId = sessionId;
+    writeSupervisorData(state);
+  });
+}
+
+export async function clearSupervisorSession(): Promise<void> {
+  return withWriteLock("supervisor", async () => {
+    writeSupervisorData({ chatLog: [] });
   });
 }
 

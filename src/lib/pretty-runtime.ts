@@ -111,6 +111,19 @@ function wireProcess(
       session.status = "done";
     }
 
+    // Check if the last tool_use was AskUserQuestion — surface as humanSteps
+    const lastToolUse = [...session.blocks].reverse().find((b) => b.type === "tool_use");
+    const endedOnQuestion = lastToolUse?.type === "tool_use" && lastToolUse.name === "AskUserQuestion";
+    let questionFields: { humanSteps?: string; findings?: string } = {};
+    if (endedOnQuestion) {
+      const input = lastToolUse.input as Record<string, unknown>;
+      const questions = Array.isArray(input.questions) ? input.questions as { question: string }[] : [];
+      const questionText = questions.map((q) => q.question).join("\n");
+      if (questionText) {
+        questionFields = { humanSteps: questionText, findings: "Agent has a question — see below." };
+      }
+    }
+
     // Check if task is still in-progress (agent didn't call update_task)
     const task = await getTask(projectId, taskId);
     const stillInProgress = task?.status === "in-progress";
@@ -123,6 +136,7 @@ function wireProcess(
         findings: session.status === "error"
           ? `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`
           : undefined,
+        ...questionFields,
         prettyLog: session.blocks,
         sessionId: session.sessionId,
       });
@@ -267,16 +281,6 @@ function processStreamEvent(session: PrettySession, event: Record<string, unknow
             name: b.name as string,
             input: b.input as Record<string, unknown>,
           });
-          // When agent asks a question, surface it as humanSteps so the
-          // gold "Steps for you" banner shows in the right panel on verify
-          if (b.name === "AskUserQuestion") {
-            const input = b.input as Record<string, unknown>;
-            const questions = Array.isArray(input.questions) ? input.questions as { question: string }[] : [];
-            const questionText = questions.map((q) => q.question).join("\n");
-            if (questionText) {
-              updateTask(session.projectId, session.taskId, { humanSteps: questionText });
-            }
-          }
         }
       }
     }

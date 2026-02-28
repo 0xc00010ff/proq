@@ -32,7 +32,9 @@ function formatSize(bytes: number): string {
 export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
-  const [mode, setMode] = useState<TaskMode>(task.mode || 'code');
+  // Map legacy "code" mode to "act"
+  const resolveMode = (m?: string): TaskMode => m === 'code' ? 'act' : (m as TaskMode) || 'act';
+  const [mode, setMode] = useState<TaskMode>(resolveMode(task.mode));
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -46,7 +48,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   useEffect(() => {
     setTitle(task.title || '');
     setDescription(task.description);
-    setMode(task.mode || 'code');
+    setMode(resolveMode(task.mode));
     setAttachments(task.attachments || []);
   }, [task.id]);
 
@@ -214,9 +216,9 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
           {/* Mode selector */}
           <div className="bg-surface-secondary p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
             {([
-              ['code', 'Code', 'Coding mode. Bypass permissions.'],
-              ['plan', 'Plan', 'Planning mode. Agent proposes, you approve.'],
-              ['answer', 'Answer', 'Answer mode. Research only, no code changes.'],
+              ['answer', 'Answer', 'Research only, no code changes.'],
+              ['plan', 'Plan', 'Agent proposes, you approve.'],
+              ['act', 'Act', 'Full autonomy. Bypass permissions.'],
             ] as const).map(([value, label, tooltip]) => (
               <button
                 key={value}

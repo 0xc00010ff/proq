@@ -1,5 +1,8 @@
 import { spawn, type ChildProcess } from "child_process";
-import type { PrettyBlock } from "./types";
+import { mkdirSync, writeFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
+import type { PrettyBlock, TaskAttachment } from "./types";
 import { updateTask, getTask, getProject, getSettings } from "./db";
 import { notify, buildProqSystemPrompt, writeMcpConfig } from "./agent-dispatch";
 import type WebSocket from "ws";
@@ -346,7 +349,7 @@ export async function continueSession(
   text: string,
   cwd: string,
   preAttachClient?: WebSocket,
-  attachments?: import("@/lib/types").TaskAttachment[],
+  attachments?: TaskAttachment[],
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
@@ -391,10 +394,31 @@ export async function continueSession(
 
   const startTime = Date.now();
 
+  // Write image attachments to temp files so the agent can read them
+  let promptText = text;
+  if (attachments?.length) {
+    const imageFiles: string[] = [];
+    const attachDir = join(tmpdir(), "proq-prompts", `followup-${taskId.slice(0, 8)}-${Date.now()}`);
+    mkdirSync(attachDir, { recursive: true });
+    for (const att of attachments) {
+      if (att.dataUrl && att.type.startsWith("image/")) {
+        const match = att.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+        if (match) {
+          const filePath = join(attachDir, att.name);
+          writeFileSync(filePath, Buffer.from(match[1], "base64"));
+          imageFiles.push(filePath);
+        }
+      }
+    }
+    if (imageFiles.length > 0) {
+      promptText += `\n\n## Attached Images\nThe following image files are attached to this message. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+    }
+  }
+
   // Build CLI args for resume
   const args: string[] = [
     "--resume", session.sessionId!,
-    "-p", text,
+    "-p", promptText,
     "--output-format", "stream-json",
     "--verbose",
     "--dangerously-skip-permissions",

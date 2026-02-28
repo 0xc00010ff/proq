@@ -373,14 +373,7 @@ export async function continueSession(
   // Append user block so it renders immediately
   appendBlock(session, { type: "user", text });
 
-  // Emit init status for the new turn
   const settings = await getSettings();
-  appendBlock(session, {
-    type: "status",
-    subtype: "init",
-    model: settings.defaultModel || undefined,
-  });
-
   session.status = "running";
 
   const startTime = Date.now();

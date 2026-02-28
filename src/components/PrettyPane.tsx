@@ -65,8 +65,10 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   const resizeTextarea = useCallback(() => {
     const ta = textareaRef.current;
     if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+    // Reset to 0 to get true scrollHeight, then clamp
+    ta.style.height = '0';
+    const sh = ta.scrollHeight;
+    ta.style.height = Math.max(36, Math.min(sh, 160)) + 'px';
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

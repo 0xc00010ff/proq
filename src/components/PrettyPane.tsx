@@ -386,6 +386,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
             onKeyDown={handleKeyDown}
             placeholder="Send a message..."
             rows={1}
+            style={{ height: '36px' }}
             className="flex-1 min-h-[36px] max-h-[160px] resize-none overflow-hidden rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-3 py-2 text-sm leading-[20px] text-bronze-800 dark:text-zinc-300 placeholder:text-bronze-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-[1px] focus:ring-bronze-400 dark:focus:ring-bronze-600 focus:border-bronze-400 dark:focus:border-bronze-600"
           />
           <button

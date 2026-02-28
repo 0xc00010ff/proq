@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json();
-  const { role, message, toolCalls } = body;
+  const { role, message, toolCalls, attachments } = body;
 
   if (!role || !message) {
     return NextResponse.json(
@@ -30,6 +30,6 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  const entry = await addChatMessage(id, { role, message, toolCalls });
+  const entry = await addChatMessage(id, { role, message, toolCalls, attachments });
   return NextResponse.json(entry, { status: 201 });
 }

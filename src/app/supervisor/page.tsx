@@ -36,7 +36,7 @@ export default function SupervisorPage() {
     }, 500);
   }, []);
 
-  const handleSendMessage = useCallback(async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string, _attachments?: unknown) => {
     // Optimistic user message
     const userEntry: ChatLogEntry = {
       role: 'user',

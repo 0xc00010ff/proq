@@ -458,7 +458,7 @@ export async function getChatLog(projectId: string): Promise<ChatLogEntry[]> {
 
 export async function addChatMessage(
   projectId: string,
-  data: Pick<ChatLogEntry, "role" | "message" | "toolCalls">
+  data: Pick<ChatLogEntry, "role" | "message" | "toolCalls" | "attachments">
 ): Promise<ChatLogEntry> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -467,6 +467,7 @@ export async function addChatMessage(
       message: data.message,
       timestamp: new Date().toISOString(),
       toolCalls: data.toolCalls,
+      attachments: data.attachments,
     };
     state.chatLog.push(entry);
     writeProject(projectId, state);

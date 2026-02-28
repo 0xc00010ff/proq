@@ -101,6 +101,7 @@ export interface ChatLogEntry {
   message: string;
   timestamp: string;
   toolCalls?: ToolCall[];
+  attachments?: TaskAttachment[];
 }
 
 // ── Agent session ────────────────────────────────────────

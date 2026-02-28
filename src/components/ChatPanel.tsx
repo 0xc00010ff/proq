@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { CornerDownLeftIcon, TerminalSquareIcon, GlobeIcon, FileTextIcon, SearchIcon, PencilIcon, CodeIcon, WrenchIcon, ChevronUpIcon } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { CornerDownLeftIcon, TerminalSquareIcon, GlobeIcon, FileTextIcon, SearchIcon, PencilIcon, CodeIcon, WrenchIcon, ChevronUpIcon, PaperclipIcon, XIcon, FileIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ChatLogEntry, ToolCall } from '@/lib/types';
+import type { ChatLogEntry, ToolCall, TaskAttachment } from '@/lib/types';
 import { ScrambleText } from './ScrambleText';
 
 export interface StreamingMessage {
@@ -14,7 +14,7 @@ export interface StreamingMessage {
 
 interface ChatPanelProps {
   messages: ChatLogEntry[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachments?: TaskAttachment[]) => void;
   style?: React.CSSProperties;
   streamingMessage?: StreamingMessage | null;
   isLoading?: boolean;
@@ -62,6 +62,12 @@ function ToolCallPill({ tc }: { tc: ToolCall }) {
   );
 }
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function MessageContent({ text }: { text: string }) {
   return (
     <div className="prose-chat text-sm leading-relaxed text-zinc-300">
@@ -95,9 +101,33 @@ function MessageContent({ text }: { text: string }) {
   );
 }
 
+function AttachmentPreview({ attachments }: { attachments: TaskAttachment[] }) {
+  if (!attachments || attachments.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      {attachments.map((att) => {
+        const isImage = att.type?.startsWith('image/') && att.dataUrl;
+        return isImage ? (
+          <div key={att.id} className="rounded overflow-hidden border border-zinc-700/50 bg-zinc-800/60">
+            <img src={att.dataUrl} alt={att.name} className="h-16 w-auto max-w-[100px] object-cover block" />
+          </div>
+        ) : (
+          <div key={att.id} className="flex items-center gap-1.5 bg-zinc-800/60 border border-zinc-700/50 rounded px-2 py-1.5">
+            <FileIcon className="w-3 h-3 text-zinc-500 shrink-0" />
+            <span className="text-[10px] text-zinc-400 truncate max-w-[100px]">{att.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ChatPanel({ messages, onSendMessage, style, streamingMessage, isLoading, initialValue, onDraftChange }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState(initialValue || '');
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync when initialValue changes (e.g. restored from persistence)
   const initialValueApplied = useRef(false);
@@ -116,13 +146,57 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
     scrollToBottom();
   }, [messages, streamingMessage]);
 
+  const addFiles = useCallback((files: FileList | File[]) => {
+    Array.from(files).forEach((f) => {
+      const att: TaskAttachment = {
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      };
+      if (f.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          att.dataUrl = e.target?.result as string;
+          setAttachments((prev) => [...prev, att]);
+        };
+        reader.readAsDataURL(f);
+      } else {
+        setAttachments((prev) => [...prev, att]);
+      }
+    });
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-    onSendMessage(inputValue);
+    if ((!inputValue.trim() && attachments.length === 0) || isLoading) return;
+    onSendMessage(inputValue, attachments.length > 0 ? attachments : undefined);
     setInputValue('');
+    setAttachments([]);
     onDraftChange?.('');
   };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      addFiles(e.dataTransfer.files);
+    }
+  }, [addFiles]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
 
   const formatTimestamp = (ts: string) => {
     try {
@@ -134,9 +208,19 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
 
   return (
     <div
-      className="w-full flex flex-col bg-bronze-100 dark:bg-black/40 flex-shrink-0"
+      className={`w-full flex flex-col bg-bronze-100 dark:bg-black/40 flex-shrink-0 relative transition-colors ${isDragOver ? 'ring-1 ring-bronze-500/40' : ''}`}
       style={{ minHeight: 0, ...style }}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
     >
+      {/* Drop overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 bg-bronze-500/5 flex items-center justify-center pointer-events-none z-20 rounded">
+          <div className="text-sm text-bronze-500 font-medium">Drop files here</div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {messages.map((msg, idx) => (
@@ -154,9 +238,14 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
               </div>
             ) : (
               <div className="flex items-baseline gap-2">
-                <div className="inline-flex items-baseline gap-2 bg-zinc-800/50 rounded px-2.5 py-1">
-                  <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
-                  <p className="text-sm leading-relaxed text-zinc-300">{msg.message}</p>
+                <div className="inline-flex flex-col bg-zinc-800/50 rounded px-2.5 py-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
+                    <p className="text-sm leading-relaxed text-zinc-300">{msg.message}</p>
+                  </div>
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <AttachmentPreview attachments={msg.attachments} />
+                  )}
                 </div>
                 <span className="text-[10px] text-bronze-500 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
                   {formatTimestamp(msg.timestamp)}
@@ -195,6 +284,53 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Attachment previews above input */}
+      {attachments.length > 0 && (
+        <div className="px-6 pb-2 flex flex-wrap gap-2 shrink-0">
+          {attachments.map((att) => {
+            const isImage = att.type?.startsWith('image/') && att.dataUrl;
+            return isImage ? (
+              <div
+                key={att.id}
+                className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
+              >
+                <img
+                  src={att.dataUrl}
+                  alt={att.name}
+                  className="h-16 w-auto max-w-[100px] object-cover block"
+                />
+                <button
+                  onClick={() => removeAttachment(att.id)}
+                  className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <XIcon className="w-2.5 h-2.5" />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
+                  <span className="text-[9px] text-zinc-300 truncate block">{att.name}</span>
+                </div>
+              </div>
+            ) : (
+              <div
+                key={att.id}
+                className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-2.5 py-2 group"
+              >
+                <FileIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] text-zinc-700 dark:text-zinc-300 truncate max-w-[120px] leading-tight">{att.name}</span>
+                  <span className="text-[9px] text-zinc-600 leading-tight">{formatSize(att.size)}</span>
+                </div>
+                <button
+                  onClick={() => removeAttachment(att.id)}
+                  className="text-zinc-600 hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
+                >
+                  <XIcon className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Input */}
       <div className="px-6 py-5 border-t border-bronze-300/60 dark:border-zinc-800/60 bg-bronze-200/20 dark:bg-black/20">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -208,16 +344,37 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
             }}
             placeholder={isLoading ? "waiting for response..." : "message..."}
             disabled={isLoading}
-            className="flex-1 bg-transparent text-sm text-bronze-800 dark:text-zinc-200 placeholder:text-bronze-500 dark:placeholder:text-zinc-700 focus:outline-none caret-steel disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-bronze-800 dark:text-zinc-200 placeholder:text-bronze-500 dark:placeholder:text-zinc-700 focus:outline-none caret-bronze-500 disabled:opacity-50"
           />
           <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="text-zinc-400 dark:text-zinc-600 hover:text-bronze-500 dark:hover:text-bronze-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            title="Attach file"
+          >
+            <PaperclipIcon className="w-3.5 h-3.5" />
+          </button>
+          <button
             type="submit"
-            disabled={!inputValue.trim() || isLoading}
+            disabled={(!inputValue.trim() && attachments.length === 0) || isLoading}
             className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <CornerDownLeftIcon className="w-3.5 h-3.5" />
           </button>
         </form>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              addFiles(e.target.files);
+              e.target.value = '';
+            }
+          }}
+        />
       </div>
     </div>
   );

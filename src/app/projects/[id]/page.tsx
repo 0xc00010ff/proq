@@ -365,6 +365,7 @@ export default function ProjectPage() {
                 onMoveTask={moveTask}
                 onAddTask={handleAddTask}
                 onDeleteTask={deleteTask}
+                onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
                 onClickTask={(task) => {
                   if (task.status === 'todo') {
                     setModalTask(task);

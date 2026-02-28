@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   AlertTriangleIcon,
   Trash2Icon,
@@ -16,13 +16,39 @@ interface TaskCardProps {
   isQueued?: boolean;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
+  onUpdateTitle?: (taskId: string, title: string) => void;
 }
 
-export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: TaskCardProps) {
+export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const steps = parseLines(task.humanSteps);
   const isRunning = task.dispatch === 'running';
   const isStarting = task.dispatch === 'starting';
   const isActive = isRunning || isStarting;
+  const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
+
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(task.title || '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  // Sync editValue when task title changes externally
+  useEffect(() => {
+    if (!editing) setEditValue(task.title || '');
+  }, [task.title, editing]);
+
+  const commitEdit = () => {
+    const trimmed = editValue.trim();
+    setEditing(false);
+    if (trimmed && trimmed !== task.title) {
+      onUpdateTitle?.(task.id, trimmed);
+    }
+  };
 
   return (
     <div
@@ -52,8 +78,24 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
 
       <div className="p-3 min-h-[80px]">
         <div className="flex items-start justify-between pr-6">
-          {task.title ? (
-            <h4 className="text-sm text-bronze-800 dark:text-zinc-200 leading-snug font-normal">
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitEdit();
+                if (e.key === 'Escape') { setEditValue(task.title || ''); setEditing(false); }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm text-zinc-200 leading-snug font-normal bg-transparent border-b border-zinc-500 outline-none w-full"
+            />
+          ) : task.title ? (
+            <h4
+              className={`text-sm text-bronze-800 dark:text-zinc-200 leading-snug font-normal ${canEditTitle ? 'cursor-text hover:border-b hover:border-zinc-600' : ''}`}
+              onClick={canEditTitle ? (e) => { e.stopPropagation(); setEditing(true); } : undefined}
+            >
               {task.title}
             </h4>
           ) : (

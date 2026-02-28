@@ -46,13 +46,12 @@ function appendBlock(session: PrettySession, block: PrettyBlock) {
 
 // ── Shared process wiring ──
 // Handles stdout parsing, stderr capture, close/error handlers.
-// moveToVerify: true for initial session, false for follow-ups.
 function wireProcess(
   session: PrettySession,
   proc: ChildProcess,
-  opts: { moveToVerify: boolean; startTime: number; projectId: string; taskId: string },
+  opts: { startTime: number; projectId: string; taskId: string },
 ) {
-  const { moveToVerify, startTime, projectId, taskId } = opts;
+  const { startTime, projectId, taskId } = opts;
 
   let stdoutBuffer = "";
 
@@ -108,39 +107,28 @@ function wireProcess(
         error: errorMsg,
         durationMs: Date.now() - startTime,
       });
-      if (moveToVerify) {
-        await updateTask(projectId, taskId, {
-          status: "verify",
-          dispatch: null,
-          findings: `Error: ${errorMsg}`,
-          prettyLog: session.blocks,
-        });
-      } else {
-        await updateTask(projectId, taskId, {
-          prettyLog: session.blocks,
-        });
-      }
-      return;
-    }
-
-    // Normal completion
-    if (session.status === "running") {
+    } else if (session.status === "running") {
       session.status = "done";
     }
 
-    // Persist prettyLog (and move to verify as safety net for initial sessions).
-    // Findings are the agent's responsibility via the update_task MCP tool.
-    if (moveToVerify) {
+    // Check if task is still in-progress (agent didn't call update_task)
+    const task = await getTask(projectId, taskId);
+    const stillInProgress = task?.status === "in-progress";
+
+    if (stillInProgress) {
+      // Safety net: move to verify and clear dispatch
       await updateTask(projectId, taskId, {
         status: "verify",
         dispatch: null,
+        findings: session.status === "error"
+          ? `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`
+          : undefined,
         prettyLog: session.blocks,
         sessionId: session.sessionId,
       });
-
-      const task = await getTask(projectId, taskId);
       notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
     } else {
+      // Agent already handled status via update_task — just persist prettyLog
       await updateTask(projectId, taskId, {
         prettyLog: session.blocks,
         sessionId: session.sessionId,
@@ -157,7 +145,8 @@ function wireProcess(
       error: errorMsg,
       durationMs: Date.now() - startTime,
     });
-    if (moveToVerify) {
+    const task = await getTask(projectId, taskId);
+    if (task?.status === "in-progress") {
       await updateTask(projectId, taskId, {
         status: "verify",
         dispatch: null,
@@ -238,7 +227,7 @@ export async function startSession(
 
   session.queryHandle = proc;
 
-  wireProcess(session, proc, { moveToVerify: true, startTime, projectId, taskId });
+  wireProcess(session, proc, { startTime, projectId, taskId });
 }
 
 function processStreamEvent(session: PrettySession, event: Record<string, unknown>) {
@@ -446,7 +435,7 @@ export async function continueSession(
 
   session.queryHandle = proc;
 
-  wireProcess(session, proc, { moveToVerify: false, startTime, projectId, taskId });
+  wireProcess(session, proc, { startTime, projectId, taskId });
 }
 
 export function stopSession(taskId: string): void {

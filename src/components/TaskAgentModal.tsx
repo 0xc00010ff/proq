@@ -17,7 +17,7 @@ import {
   PlayIcon,
   GitBranchIcon,
 } from 'lucide-react';
-import type { Task } from '@/lib/types';
+import type { Task, FollowUpDraft } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TerminalPane } from './TerminalPane';
@@ -29,6 +29,8 @@ interface TaskAgentModalProps {
   projectId: string;
   isQueued?: boolean;
   cleanupExpiresAt?: number;
+  followUpDraft?: FollowUpDraft;
+  onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
   onClose: () => void;
   onComplete?: (taskId: string) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
@@ -37,7 +39,7 @@ interface TaskAgentModalProps {
   onSwitchBranch?: (branch: string) => void;
 }
 
-export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, onClose, onComplete, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
@@ -152,7 +154,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Left panel: terminal or queued state (70%) ── */}
-        <div className={`flex-1 min-h-0 flex flex-col${showPrettyPane ? ' bg-bronze-50 dark:bg-[#0d0d0d]' : ''}`}>
+        <div className={`flex-1 min-h-0 flex flex-col${showPrettyPane || (task.status === 'in-progress' && !isQueued) ? ' bg-bronze-50 dark:bg-[#0d0d0d]' : ''}`}>
           {/* Worktree status — only in parallel mode */}
           {parallelMode && (
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-zinc-800 bg-bronze-100/50 dark:bg-zinc-900/50">
@@ -230,6 +232,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
               projectId={projectId}
               visible={true}
               prettyLog={showPrettyStatic ? task.prettyLog : undefined}
+              followUpDraft={followUpDraft}
+              onFollowUpDraftChange={onFollowUpDraftChange}
             />
           ) : showTerminal ? (
             <div className="flex-1 relative min-h-0 flex flex-col">
@@ -249,6 +253,15 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
               </pre>
               <div className="shrink-0 px-3 py-1.5 text-[11px] text-zinc-600 font-mono border-t border-zinc-800">
                 Session ended
+              </div>
+            </div>
+          ) : task.status === 'in-progress' ? (
+            <div className="flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d]">
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2 py-2 text-xs text-bronze-500 dark:text-zinc-500">
+                  <Loader2Icon className="w-3.5 h-3.5 text-steel animate-spin" />
+                  <span>Starting session...</span>
+                </div>
               </div>
             </div>
           ) : null}

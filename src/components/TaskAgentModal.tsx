@@ -52,9 +52,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
   const [copied, setCopied] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(task.title || '');
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [topPanelPercent, setTopPanelPercent] = useState(30);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const bottomPanelRef = useRef<HTMLDivElement>(null);
@@ -121,28 +119,22 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
     }
   }, []);
 
-  // Inline title editing
+  // Sync contentEditable text when task.title changes externally (only if not focused)
   useEffect(() => {
-    if (editingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
+    if (titleRef.current && document.activeElement !== titleRef.current) {
+      titleRef.current.textContent = task.title || 'Untitled task';
     }
-  }, [editingTitle]);
-
-  useEffect(() => {
-    if (!editingTitle) setTitleValue(task.title || '');
-  }, [task.title, editingTitle]);
+  }, [task.title]);
 
   const commitTitle = () => {
-    const trimmed = titleValue.trim();
-    setEditingTitle(false);
+    const trimmed = (titleRef.current?.textContent || '').trim();
     if (trimmed && trimmed !== task.title) {
       onUpdateTitle?.(task.id, trimmed);
     }
   };
 
   // Escape to close
-  useEscapeKey(editingTitle ? () => { setTitleValue(task.title || ''); setEditingTitle(false); } : onClose);
+  useEscapeKey(onClose);
 
   return (
     <div
@@ -303,26 +295,18 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
             </div>
 
             {/* Title */}
-            {editingTitle ? (
-              <input
-                ref={titleInputRef}
-                value={titleValue}
-                onChange={(e) => setTitleValue(e.target.value)}
-                onBlur={commitTitle}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitTitle();
-                  if (e.key === 'Escape') { setTitleValue(task.title || ''); setEditingTitle(false); }
-                }}
-                className="text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug bg-transparent border-b border-zinc-500 outline-none w-full"
-              />
-            ) : (
-              <h2
-                className={`text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug ${canEditTitle ? 'cursor-text hover:border-b hover:border-zinc-600' : ''}`}
-                onClick={canEditTitle ? () => setEditingTitle(true) : undefined}
-              >
-                {task.title || 'Untitled task'}
-              </h2>
-            )}
+            <h2
+              ref={titleRef}
+              contentEditable={canEditTitle}
+              suppressContentEditableWarning
+              onBlur={canEditTitle ? commitTitle : undefined}
+              onKeyDown={canEditTitle ? (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); }
+              } : undefined}
+              className={`text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug outline-none ${canEditTitle ? 'cursor-text focus:border-b focus:border-zinc-500' : ''}`}
+            >
+              {task.title || 'Untitled task'}
+            </h2>
 
             {/* Description */}
             {task.description && (

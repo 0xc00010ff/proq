@@ -3,7 +3,7 @@ import { getTask, getProject, updateTask, deleteTask, getSettings } from "@/lib/
 import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
-import { clearSession, injectBlock } from "@/lib/pretty-runtime";
+import { clearSession } from "@/lib/pretty-runtime";
 import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
 
 /** Check if the main project directory is currently on a task's branch (or its preview) and switch to main if so */
@@ -45,16 +45,6 @@ export async function PATCH(request: Request, { params }: Params) {
   // Auto-title: fire-and-forget background process when description exists but title is empty
   if (!updated.title && updated.description?.trim()) {
     autoTitle(id, taskId, updated.description);
-  }
-
-  // Inject task_update block into live pretty session when findings are updated
-  if (body.findings != null && updated.renderMode === "pretty") {
-    injectBlock(taskId, {
-      type: "task_update",
-      findings: body.findings,
-      humanSteps: body.humanSteps,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   // Handle status transitions

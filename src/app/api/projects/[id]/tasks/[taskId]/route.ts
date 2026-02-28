@@ -54,7 +54,7 @@ export async function PATCH(request: Request, { params }: Params) {
       if (prevStatus !== "verify") {
         const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
-        const renderMode = updated.renderMode || settings.agentRenderMode || 'terminal';
+        const renderMode = updated.renderMode || settings.agentRenderMode || 'pretty';
         await updateTask(id, taskId, { dispatch, renderMode });
         updated.dispatch = dispatch;
         updated.renderMode = renderMode;
@@ -181,8 +181,8 @@ export async function DELETE(_request: Request, { params }: Params) {
     }
   }
 
-  // Clean up pretty session if present
-  if (task?.renderMode === "pretty") {
+  // Clean up SDK session if present (default pretty mode)
+  if (task?.renderMode !== "terminal") {
     clearSession(taskId);
   }
 

@@ -54,7 +54,7 @@ export async function PUT(request: Request, { params }: Params) {
       if (prevStatus !== "verify") {
         const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
-        const renderMode = prevTask?.renderMode || settings.agentRenderMode || 'terminal';
+        const renderMode = prevTask?.renderMode || settings.agentRenderMode || 'pretty';
         await updateTask(id, taskId, { dispatch, renderMode });
       }
     } else if (toColumn === "todo" && prevStatus !== "todo") {

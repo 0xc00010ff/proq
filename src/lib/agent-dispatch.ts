@@ -259,24 +259,28 @@ export async function dispatchTask(
     ? `# ${taskTitle}\n\n${taskDescription}`
     : taskDescription;
 
-  // ── Pretty mode: dispatch via SDK ──
-  if (renderMode === "pretty") {
+  // ── Terminal mode: dispatch via tmux ──
+  if (renderMode === "terminal") {
     let prompt: string;
+
     if (mode === "plan") {
-      prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan.\n${heading}`;
+      prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.\n${heading}`;
     } else if (mode === "answer") {
-      prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question.`;
+      prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.`;
     } else {
       prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
     }
 
-    // Append image attachments
+    const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+    const mcpConfigPath = writeMcpConfig(projectId, taskId);
+
+    // Write image attachments to temp files so the agent can read them
+    const imageFiles: string[] = [];
     if (attachments?.length) {
-      const imageFiles: string[] = [];
       const attachDir = join(
         tmpdir(),
         "proq-prompts",
-        `pretty-${shortId}-attachments`,
+        `${tmuxSession}-attachments`,
       );
       mkdirSync(attachDir, { recursive: true });
       for (const att of attachments) {
@@ -290,56 +294,68 @@ export async function dispatchTask(
         }
       }
       if (imageFiles.length > 0) {
-        prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+        prompt += `\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
       }
     }
 
-    const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
-    const mcpConfigPath = writeMcpConfig(projectId, taskId);
+    // Write prompt + system prompt to temp files to avoid shell escaping issues
+    const promptDir = join(tmpdir(), "proq-prompts");
+    mkdirSync(promptDir, { recursive: true });
+    const promptFile = join(promptDir, `${tmuxSession}.md`);
+    const systemPromptFile = join(promptDir, `${tmuxSession}-system.md`);
+    const launcherFile = join(promptDir, `${tmuxSession}.sh`);
+    writeFileSync(promptFile, prompt, "utf-8");
+    writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
+    writeFileSync(
+      launcherFile,
+      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} --dangerously-skip-permissions --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+      "utf-8",
+    );
+
+    // Ensure bridge socket directory exists
+    mkdirSync("/tmp/proq", { recursive: true });
+    const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
+    const socketPath = `/tmp/proq/${tmuxSession}.sock`;
+
+    // Launch via tmux with bridge — session survives server restarts, bridge exposes PTY over unix socket
+    const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${effectivePath}' node '${bridgePath}' '${socketPath}' '${launcherFile}'`;
 
     try {
-      await startPrettySession(projectId, taskId, prompt, effectivePath, {
-        proqSystemPrompt,
-        mcpConfig: mcpConfigPath,
-      });
+      execSync(tmuxCmd, { timeout: 10_000 });
       console.log(
-        `[agent-dispatch] launched pretty session for task ${taskId}`,
+        `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`,
       );
-      notify(
-        `🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (pretty)`,
-      );
+
+      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (terminal)`);
+
       return terminalTabId;
     } catch (err) {
       console.error(
-        `[agent-dispatch] failed to launch pretty session for ${taskId}:`,
+        `[agent-dispatch] failed to launch tmux session for ${taskId}:`,
         err,
       );
       return undefined;
     }
   }
 
-  // ── Terminal mode: dispatch via tmux (existing behavior) ──
+  // ── Default: dispatch via SDK (pretty mode) ──
 
   let prompt: string;
-
   if (mode === "plan") {
-    prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.\n${heading}`;
+    prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan.\n${heading}`;
   } else if (mode === "answer") {
-    prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.`;
+    prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question.`;
   } else {
     prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
   }
 
-  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
-  const mcpConfigPath = writeMcpConfig(projectId, taskId);
-
-  // Write image attachments to temp files so the agent can read them
-  const imageFiles: string[] = [];
+  // Append image attachments
   if (attachments?.length) {
+    const imageFiles: string[] = [];
     const attachDir = join(
       tmpdir(),
       "proq-prompts",
-      `${tmuxSession}-attachments`,
+      `pretty-${shortId}-attachments`,
     );
     mkdirSync(attachDir, { recursive: true });
     for (const att of attachments) {
@@ -353,44 +369,28 @@ export async function dispatchTask(
       }
     }
     if (imageFiles.length > 0) {
-      prompt += `\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+      prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
   }
 
-  // Write prompt + system prompt to temp files to avoid shell escaping issues
-  const promptDir = join(tmpdir(), "proq-prompts");
-  mkdirSync(promptDir, { recursive: true });
-  const promptFile = join(promptDir, `${tmuxSession}.md`);
-  const systemPromptFile = join(promptDir, `${tmuxSession}-system.md`);
-  const launcherFile = join(promptDir, `${tmuxSession}.sh`);
-  writeFileSync(promptFile, prompt, "utf-8");
-  writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
-  writeFileSync(
-    launcherFile,
-    `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} --dangerously-skip-permissions --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
-    "utf-8",
-  );
-
-  // Ensure bridge socket directory exists
-  mkdirSync("/tmp/proq", { recursive: true });
-  const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
-  const socketPath = `/tmp/proq/${tmuxSession}.sock`;
-
-  // Launch via tmux with bridge — session survives server restarts, bridge exposes PTY over unix socket
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${effectivePath}' node '${bridgePath}' '${socketPath}' '${launcherFile}'`;
+  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+  const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   try {
-    execSync(tmuxCmd, { timeout: 10_000 });
+    await startPrettySession(projectId, taskId, prompt, effectivePath, {
+      proqSystemPrompt,
+      mcpConfig: mcpConfigPath,
+    });
     console.log(
-      `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`,
+      `[agent-dispatch] launched pretty session for task ${taskId}`,
     );
-
-    notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched`);
-
+    notify(
+      `🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched`,
+    );
     return terminalTabId;
   } catch (err) {
     console.error(
-      `[agent-dispatch] failed to launch tmux session for ${taskId}:`,
+      `[agent-dispatch] failed to launch pretty session for ${taskId}:`,
       err,
     );
     return undefined;
@@ -400,12 +400,7 @@ export async function dispatchTask(
 export async function abortTask(projectId: string, taskId: string) {
   const task = await getTask(projectId, taskId);
 
-  if (task?.renderMode === "pretty") {
-    // Pretty mode: abort via SDK
-    stopPrettySession(taskId);
-    clearSession(taskId);
-    console.log(`[agent-dispatch] stopped pretty session for task ${taskId}`);
-  } else {
+  if (task?.renderMode === "terminal") {
     // Terminal mode: kill tmux
     const shortId = taskId.slice(0, 8);
     const tmuxSession = `mc-${shortId}`;
@@ -428,6 +423,11 @@ export async function abortTask(projectId: string, taskId: string) {
     try {
       if (existsSync(logPath)) unlinkSync(logPath);
     } catch {}
+  } else {
+    // Default (pretty mode): abort via SDK
+    stopPrettySession(taskId);
+    clearSession(taskId);
+    console.log(`[agent-dispatch] stopped pretty session for task ${taskId}`);
   }
 
   // Clean up worktree if task had one (shared for both modes)

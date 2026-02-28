@@ -599,7 +599,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   defaultModel: "",
   systemPromptAdditions: "",
   executionMode: "sequential",
-  agentRenderMode: "terminal",
+  agentRenderMode: "pretty",
 
   // Git
   autoCommit: true,

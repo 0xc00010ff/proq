@@ -366,7 +366,7 @@ export default function SettingsPage() {
                 </Field>
                 <Field
                   label="Agent render mode"
-                  hint="Terminal shows raw tmux output; Pretty shows structured blocks via the Claude SDK."
+                  hint="Pretty shows structured agent output. Terminal shows raw tmux session for debugging."
                 >
                   <select
                     value={settings.agentRenderMode}
@@ -378,8 +378,8 @@ export default function SettingsPage() {
                     }
                     className={inputClass}
                   >
-                    <option value="terminal">Terminal</option>
                     <option value="pretty">Pretty</option>
+                    <option value="terminal">Terminal</option>
                   </select>
                 </Field>
               </div>

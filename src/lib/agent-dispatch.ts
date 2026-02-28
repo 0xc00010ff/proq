@@ -66,7 +66,11 @@ export function buildProqSystemPrompt(
 
 You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}
 
-You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.`,
+You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.
+
+### Task Tools
+- \`read_task\` — Read current task state and any existing findings
+- \`update_task\` — Update findings and move task to Verify for review`,
   ];
 
   if (mode === "plan" || mode === "answer") {
@@ -75,13 +79,13 @@ You have MCP tools from the **proq** server for reporting progress. Use them ins
 This is a ${modeLabel}-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
 
 ### Reporting Results
-When finished, use the \`read_task\` tool to check for any existing findings, then use \`report_findings\` with a cumulative summary incorporating prior findings.`);
+When finished, use the \`read_task\` tool to check for any existing findings, then use \`update_task\` with a cumulative summary incorporating prior findings.`);
   } else {
     sections.push(`### Code Changes
 Always commit your code changes unless explicitly asked not to. Stage and commit with a descriptive message after each logical unit of work.
 
 ### Reporting Progress
-After making substantial changes (committing code, completing a phase of work), use the \`report_findings\` tool to update the task board and move the task to Verify for human review. Before reporting, use \`read_task\` to see existing findings so you can write a cumulative summary.
+After making substantial changes (committing code, completing a phase of work), use the \`update_task\` tool to update the task board and move the task to Verify for human review. Before reporting, use \`read_task\` to see existing findings so you can write a cumulative summary.
 
 **When to report:**
 - After committing code changes

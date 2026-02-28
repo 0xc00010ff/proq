@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * proq MCP stdio server — exposes report_findings and read_task tools to agents.
+ * proq MCP stdio server — exposes read_task and update_task tools to agents.
  * Spawned per-task by dispatchTask() via --mcp-config.
  *
  * Usage: node proq-mcp.js <projectId> <taskId>
@@ -26,8 +26,8 @@ const server = new McpServer({
 });
 
 server.tool(
-  "report_findings",
-  "Report progress on the current task and move it to Verify for human review. Findings should be a cumulative summary of ALL work done so far — each call replaces the previous report. Call this after committing code, completing a phase, or finishing substantial work. Do NOT call for minor tweaks or clarifications.",
+  "update_task",
+  "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new findings. Each call replaces the previous summary.",
   {
     findings: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
     humanSteps: z.string().optional().describe("Newline-separated action items the human needs to do, if any"),
@@ -47,7 +47,7 @@ server.tool(
       if (!res.ok) {
         return { content: [{ type: "text", text: `Failed to update task: ${res.status}` }], isError: true };
       }
-      return { content: [{ type: "text", text: "Task findings updated and moved to Verify." }] };
+      return { content: [{ type: "text", text: "Task updated and moved to Verify." }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
     }
@@ -56,7 +56,7 @@ server.tool(
 
 server.tool(
   "read_task",
-  "Read the current task state, including any existing findings from prior work. Use this before reporting findings to see what has already been reported, so you can write a cumulative summary.",
+  "Read the current task state, including any existing findings from prior work. Use this before updating to see what has already been reported, so you can write a cumulative summary.",
   {},
   async () => {
     try {

@@ -179,8 +179,8 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
     if (block.type === 'tool_result') continue;
 
     if (block.type === 'tool_use') {
-      // Render proq report_findings as TaskUpdateBlock instead of ToolBlock
-      const isProqUpdate = block.name === 'mcp__proq__report_findings';
+      // Render proq update_task as TaskUpdateBlock instead of ToolBlock
+      const isProqUpdate = block.name === 'mcp__proq__update_task';
       if (isProqUpdate && typeof block.input.findings === 'string') {
         renderItems.push({
           kind: 'block',

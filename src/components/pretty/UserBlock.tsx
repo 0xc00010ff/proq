@@ -10,7 +10,7 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
       <div className="inline-flex flex-col bg-bronze-200/60 dark:bg-zinc-800/50 rounded px-2.5 py-1.5">
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
-          <p className="text-sm leading-relaxed text-bronze-800 dark:text-zinc-300">{text}</p>
+          <p className="text-sm leading-relaxed text-bronze-800 dark:text-zinc-300 whitespace-pre-wrap">{text}</p>
         </div>
         {attachments && attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5 ml-4">

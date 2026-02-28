@@ -110,14 +110,14 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
         {/* Status dot */}
         <span className="shrink-0">
           {isActive ? (
-            <Loader2Icon className="w-3.5 h-3.5 text-steel animate-spin" />
+            <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
           ) : (
             <span className={`block w-2 h-2 rounded-full ${isError ? 'bg-red-400' : 'bg-patina-dark dark:bg-patina'}`} />
           )}
         </span>
 
         {/* Tool icon */}
-        <span className={`shrink-0 ${isActive ? 'text-steel' : isError ? 'text-red-400' : 'text-bronze-500 dark:text-zinc-500'}`}>
+        <span className={`shrink-0 ${isActive ? 'text-bronze-500' : isError ? 'text-red-400' : 'text-bronze-500 dark:text-zinc-500'}`}>
           {getToolIcon(name)}
         </span>
 

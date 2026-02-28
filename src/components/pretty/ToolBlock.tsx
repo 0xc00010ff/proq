@@ -75,6 +75,66 @@ function getToolSummary(name: string, input: Record<string, unknown>): string {
 
 const MAX_OUTPUT_LINES = 50;
 
+/** Renders a nice red/green diff view for Edit tool calls */
+function EditDiffView({ input }: { input: Record<string, unknown> }) {
+  const filePath = input.file_path as string || '';
+  const oldStr = input.old_string as string || '';
+  const newStr = input.new_string as string || '';
+  const replaceAll = input.replace_all as boolean || false;
+
+  const shortPath = filePath.split('/').slice(-2).join('/');
+
+  const oldLines = oldStr.split('\n');
+  const newLines = newStr.split('\n');
+
+  // Find common prefix/suffix lines to show context vs changes
+  let commonPrefix = 0;
+  while (commonPrefix < oldLines.length && commonPrefix < newLines.length && oldLines[commonPrefix] === newLines[commonPrefix]) {
+    commonPrefix++;
+  }
+  let commonSuffix = 0;
+  while (
+    commonSuffix < oldLines.length - commonPrefix &&
+    commonSuffix < newLines.length - commonPrefix &&
+    oldLines[oldLines.length - 1 - commonSuffix] === newLines[newLines.length - 1 - commonSuffix]
+  ) {
+    commonSuffix++;
+  }
+
+  const removedLines = oldLines.slice(commonPrefix, oldLines.length - commonSuffix);
+  const addedLines = newLines.slice(commonPrefix, newLines.length - commonSuffix);
+  const prefixLines = oldLines.slice(0, commonPrefix);
+  const suffixLines = oldLines.slice(oldLines.length - commonSuffix);
+
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-[10px] font-medium text-bronze-500 dark:text-zinc-600 uppercase tracking-wide">Diff</span>
+        <span className="text-[10px] text-bronze-400 dark:text-zinc-600">{shortPath}</span>
+        {replaceAll && <span className="text-[9px] bg-bronze-200/60 dark:bg-zinc-800 text-bronze-500 dark:text-zinc-500 px-1 rounded">replace all</span>}
+      </div>
+      <div className="text-[11px] font-mono bg-bronze-200/40 dark:bg-zinc-900/60 rounded overflow-x-auto max-h-64 overflow-y-auto">
+        {prefixLines.map((line, i) => (
+          <div key={`ctx-pre-${i}`} className="px-2 py-px text-bronze-600 dark:text-zinc-500 whitespace-pre-wrap">{line || '\u00A0'}</div>
+        ))}
+        {removedLines.map((line, i) => (
+          <div key={`rm-${i}`} className="px-2 py-px bg-red-500/15 text-red-600 dark:text-red-400 whitespace-pre-wrap">
+            <span className="select-none opacity-60 mr-1">-</span>{line || '\u00A0'}
+          </div>
+        ))}
+        {addedLines.map((line, i) => (
+          <div key={`add-${i}`} className="px-2 py-px bg-green-500/15 text-green-700 dark:text-green-400 whitespace-pre-wrap">
+            <span className="select-none opacity-60 mr-1">+</span>{line || '\u00A0'}
+          </div>
+        ))}
+        {suffixLines.map((line, i) => (
+          <div key={`ctx-suf-${i}`} className="px-2 py-px text-bronze-600 dark:text-zinc-500 whitespace-pre-wrap">{line || '\u00A0'}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface ToolBlockProps {
   toolId: string;
   name: string;
@@ -134,12 +194,16 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
       {isOpen && (
         <div className="ml-8 mr-1 mb-2 mt-1 space-y-2.5">
           {/* Input */}
+          {name === 'Edit' ? (
+            <EditDiffView input={input} />
+          ) : (
           <div>
             <div className="text-[10px] font-medium text-bronze-500 dark:text-zinc-600 uppercase tracking-wide mb-1">Input</div>
             <pre className="text-[11px] font-mono text-bronze-700 dark:text-zinc-400 bg-bronze-200/40 dark:bg-zinc-900/60 rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
               {JSON.stringify(input, null, 2)}
             </pre>
           </div>
+          )}
 
           {/* Output */}
           {result && (

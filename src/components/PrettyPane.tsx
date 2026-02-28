@@ -270,7 +270,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog, followUpDraf
 
   return (
     <div
-      className="flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d] relative"
+      className="flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0C0C0C] relative"
       onDrop={handleDrop}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}

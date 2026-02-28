@@ -203,7 +203,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
 
   return (
     <div
-      className="absolute inset-0 flex flex-col bg-bronze-50 dark:bg-[#0d0d0d] font-sans"
+      className="absolute inset-0 flex flex-col bg-bronze-50 dark:bg-[#0C0C0C] font-sans"
       onDrop={handleDrop}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}

@@ -154,7 +154,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Left panel: terminal or queued state (70%) ── */}
-        <div className={`flex-1 min-h-0 flex flex-col${showPrettyPane ? ' bg-bronze-50 dark:bg-[#0d0d0d]' : ''}`}>
+        <div className={`flex-1 min-h-0 flex flex-col${showPrettyPane ? ' bg-bronze-50 dark:bg-[#0C0C0C]' : ''}`}>
           {/* Worktree status — only in parallel mode */}
           {parallelMode && (
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-zinc-800 bg-bronze-100/50 dark:bg-zinc-900/50">

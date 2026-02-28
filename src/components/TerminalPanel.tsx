@@ -118,7 +118,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
   return (
     <div
       ref={panelRef}
-      className="w-full flex flex-col bg-bronze-200 dark:bg-black/40 flex-shrink-0 font-mono"
+      className="w-full flex flex-col bg-bronze-200 dark:bg-[#0C0C0C] flex-shrink-0 font-mono"
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}

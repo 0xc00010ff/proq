@@ -70,7 +70,7 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error 
 
   // abort
   return (
-    <div className="my-2 py-1">
+    <div className="my-2 py-2.5">
       <div className="flex items-center gap-2 text-xs font-medium text-red-400">
         <BanIcon className="w-3.5 h-3.5" />
         Session aborted

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, ChevronsUpDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon } from 'lucide-react';
+import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon } from 'lucide-react';
 import type { PrettyBlock, TaskAttachment } from '@/lib/types';
 import { usePrettySession } from '@/hooks/usePrettySession';
 import { ScrambleText } from './ScrambleText';
@@ -33,7 +33,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
-  const [allCollapsed, setAllCollapsed] = useState(false);
+
   const [inputValue, setInputValue] = useState('');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -242,16 +242,6 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
 
       {/* Message list */}
       <div className="relative flex-1 min-h-0">
-        {/* Expand/Collapse toggle — floating top-right */}
-        <div className="absolute top-2 right-3 z-10">
-          <button
-            onClick={() => setAllCollapsed(!allCollapsed)}
-            className="flex items-center gap-1 text-[10px] text-bronze-500 dark:text-zinc-500 hover:text-bronze-700 dark:hover:text-zinc-300 transition-colors px-1.5 py-0.5 rounded border border-bronze-300 dark:border-zinc-800 hover:bg-bronze-200 dark:hover:bg-zinc-800 bg-bronze-50/90 dark:bg-[#0d0d0d]/90 backdrop-blur-sm"
-          >
-            <ChevronsUpDownIcon className="w-3 h-3" />
-            {allCollapsed ? 'Expand' : 'Collapse'}
-          </button>
-        </div>
 
         <div
           ref={scrollRef}
@@ -270,7 +260,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
                     name={t.name}
                     input={t.input}
                     result={t.result}
-                    forceCollapsed={allCollapsed || undefined}
+                    forceCollapsed={undefined}
                   />
                 );
               }
@@ -280,7 +270,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
                   key={`tg-${ri}`}
                   toolName={item.toolName}
                   items={item.items}
-                  forceCollapsed={allCollapsed || undefined}
+                  forceCollapsed={undefined}
                 />
               );
             }
@@ -292,7 +282,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
               case 'text':
                 return <TextBlock key={idx} text={block.text} />;
               case 'thinking':
-                return <ThinkingBlock key={idx} thinking={block.thinking} forceCollapsed={allCollapsed || undefined} />;
+                return <ThinkingBlock key={idx} thinking={block.thinking} forceCollapsed={undefined} />;
               case 'user':
                 return <UserBlock key={idx} text={block.text} attachments={block.attachments} />;
               case 'status':

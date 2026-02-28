@@ -96,7 +96,7 @@ After making substantial changes (committing code, completing a phase of work), 
 
   if (mode !== "plan" && mode !== "answer") {
     sections.push(`### Completing the Task
-When the entire task is done and ready for human review, use the \`complete_task\` tool to move it to the Verify column. Only do this when the work is fully complete — not on follow-up responses.`);
+When the entire task is done and ready for human review, use the \`complete_task\` tool to move it to the Verify column. Only do this when the work is fully complete — not on follow-up responses. If you already called \`report_findings\` with a complete summary, you don't need to pass findings again.`);
   }
 
   return sections.join("\n\n");

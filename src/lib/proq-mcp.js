@@ -53,7 +53,7 @@ server.tool(
   "complete_task",
   "Signal that the task is fully complete and ready for human review. This moves the task to the Verify column. Only call when ALL work is done — not for intermediate progress.",
   {
-    findings: z.string().describe("Final cumulative summary of all work done"),
+    findings: z.string().optional().describe("Final cumulative summary of all work done. Only needed if you haven't already called report_findings with a complete summary."),
     humanSteps: z.string().optional().describe("Newline-separated action items for human review, if any"),
   },
   async ({ findings, humanSteps }) => {
@@ -64,7 +64,7 @@ server.tool(
         body: JSON.stringify({
           status: "verify",
           dispatch: null,
-          findings,
+          ...(findings ? { findings } : {}),
           ...(humanSteps ? { humanSteps } : {}),
         }),
       });

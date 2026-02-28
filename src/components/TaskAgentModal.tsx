@@ -303,7 +303,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
               onKeyDown={canEditTitle ? (e) => {
                 if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); }
               } : undefined}
-              className={`relative text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug outline-none ${canEditTitle ? 'cursor-text after:absolute after:left-0 after:right-0 after:bottom-[-3px] after:h-px after:bg-transparent focus:after:bg-zinc-500' : ''}`}
+              className={`relative text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug outline-none ${canEditTitle ? 'cursor-text after:absolute after:left-0 after:right-0 after:bottom-[-3px] after:h-px after:bg-transparent focus:after:bg-bronze-400/40' : ''}`}
             >
               {task.title || 'Untitled task'}
             </h2>

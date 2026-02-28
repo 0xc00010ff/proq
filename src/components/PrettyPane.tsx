@@ -37,6 +37,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   const [inputValue, setInputValue] = useState('');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // Auto-scroll to bottom on new blocks unless user scrolled up
   useEffect(() => {
@@ -119,20 +120,30 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    dragCounterRef.current = 0;
     setIsDragOver(false);
     if (e.dataTransfer.files.length > 0) {
       addFiles(e.dataTransfer.files);
     }
   }, [addFiles]);
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current++;
+    setIsDragOver(true);
+  }, []);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
+    dragCounterRef.current--;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+    }
   }, []);
 
   if (!visible) return null;
@@ -197,14 +208,15 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
 
   return (
     <div
-      className={`flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d] relative transition-colors ${isDragOver ? 'ring-1 ring-bronze-500/40' : ''}`}
+      className="flex-1 flex flex-col min-h-0 bg-bronze-50 dark:bg-[#0d0d0d] relative"
       onDrop={handleDrop}
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
       {/* Drop overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 bg-bronze-500/5 flex items-center justify-center pointer-events-none z-20 rounded">
+        <div className="absolute inset-0 bg-bronze-500/5 dark:bg-bronze-500/[0.03] border-2 border-dashed border-bronze-500/50 flex items-center justify-center pointer-events-none z-20 rounded-md m-1">
           <div className="text-sm text-bronze-500 font-medium">Drop files here</div>
         </div>
       )}
@@ -316,55 +328,54 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
         )}
       </div>
 
-      {/* Attachment previews above input */}
-      {attachments.length > 0 && (
-        <div className="shrink-0 px-3 pb-1 pt-2 flex flex-wrap gap-2 border-t border-bronze-300/40 dark:border-zinc-800/40">
-          {attachments.map((att) => {
-            const isImage = att.type?.startsWith('image/') && att.dataUrl;
-            return isImage ? (
-              <div
-                key={att.id}
-                className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
-              >
-                <img
-                  src={att.dataUrl}
-                  alt={att.name}
-                  className="h-16 w-auto max-w-[100px] object-cover block"
-                />
-                <button
-                  onClick={() => removeAttachment(att.id)}
-                  className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                >
-                  <XIcon className="w-2.5 h-2.5" />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
-                  <span className="text-[9px] text-zinc-300 truncate block">{att.name}</span>
-                </div>
-              </div>
-            ) : (
-              <div
-                key={att.id}
-                className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-2.5 py-2 group"
-              >
-                <FileIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] text-zinc-700 dark:text-zinc-300 truncate max-w-[120px] leading-tight">{att.name}</span>
-                  <span className="text-[9px] text-zinc-600 leading-tight">{formatSize(att.size)}</span>
-                </div>
-                <button
-                  onClick={() => removeAttachment(att.id)}
-                  className="text-zinc-600 hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
-                >
-                  <XIcon className="w-3 h-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Input area */}
       <div className="shrink-0 border-t border-bronze-300 dark:border-zinc-800 px-3 py-2.5 bg-bronze-100/50 dark:bg-zinc-900/30">
+        {/* Attachment previews inside input bar */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {attachments.map((att) => {
+              const isImage = att.type?.startsWith('image/') && att.dataUrl;
+              return isImage ? (
+                <div
+                  key={att.id}
+                  className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
+                >
+                  <img
+                    src={att.dataUrl}
+                    alt={att.name}
+                    className="h-16 w-auto max-w-[100px] object-cover block"
+                  />
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <XIcon className="w-2.5 h-2.5" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
+                    <span className="text-[9px] text-zinc-300 truncate block">{att.name}</span>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-2.5 py-2 group"
+                >
+                  <FileIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] text-zinc-700 dark:text-zinc-300 truncate max-w-[120px] leading-tight">{att.name}</span>
+                    <span className="text-[9px] text-zinc-600 leading-tight">{formatSize(att.size)}</span>
+                  </div>
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="text-zinc-600 hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
+                  >
+                    <XIcon className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}

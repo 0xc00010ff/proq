@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon } from 'lucide-react';
+import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
 import type { PrettyBlock, TaskAttachment } from '@/lib/types';
 import { usePrettySession } from '@/hooks/usePrettySession';
 import { ScrambleText } from './ScrambleText';
@@ -162,8 +162,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
   // Check if agent is actively thinking (last non-status block has no result yet)
   const isRunning = !sessionDone;
   const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
-  const isThinking = isRunning && (
-    blocks.length === 0 ||
+  const isThinking = isRunning && blocks.length > 0 && (
     (lastBlock?.type === 'status' && lastBlock.subtype === 'init') ||
     (lastBlock?.type === 'tool_result') ||
     (lastBlock?.type === 'text') ||
@@ -262,6 +261,14 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog }: PrettyPane
           onScroll={handleScroll}
           className="absolute inset-0 overflow-y-auto px-5 py-4 space-y-1"
         >
+          {/* Starting session placeholder — shown before any blocks arrive */}
+          {blocks.length === 0 && !sessionDone && (
+            <div className="flex items-center gap-2 py-2 text-xs text-bronze-500 dark:text-zinc-500">
+              <Loader2Icon className="w-3.5 h-3.5 text-steel animate-spin" />
+              <span>Starting session...</span>
+            </div>
+          )}
+
           {renderItems.map((item, ri) => {
             if (item.kind === 'ask_question') {
               const questions = Array.isArray(item.input.questions) ? item.input.questions as { question: string; header?: string; options: { label: string; description: string }[]; multiSelect?: boolean }[] : [];

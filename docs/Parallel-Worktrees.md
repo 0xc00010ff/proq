@@ -1,5 +1,7 @@
 # Parallel Mode & Worktrees
 
+This is the deep dive on parallel execution and git worktrees. For a usage-level overview, see [Getting Started](./Getting-Started.md). For broader architecture context, see [Architecture](./Architecture.md).
+
 ## Overview
 
 In parallel mode, proq runs multiple agents simultaneously on the same project. Each task gets its own isolated git worktree on a dedicated branch (`proq/<shortId>`), so agents never interfere with each other. Merging is deferred until the human marks the task "done," and a preview branch mechanism lets the user inspect work before merging.

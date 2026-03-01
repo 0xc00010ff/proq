@@ -431,26 +431,28 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
         }`}
         onClick={onToggleCollapsed}
       >
-        {showFull ? (
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/proq-logo-vector.svg"
+          alt="proq"
+          width={showFull ? 13 : 18}
+          height={showFull ? 13 : 18}
+          className={`flex-shrink-0 ${showFull ? "translate-y-[4px]" : ""}`}
+        />
+        {showFull && (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/proq-logo-vector.svg"
-              alt="proq"
-              width={13}
-              height={13}
-              className="flex-shrink-0 translate-y-[4px]"
-            />
             <span
               className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase flex-1"
               style={{ fontFamily: "var(--font-gemunu-libre)" }}
             >
               proq
             </span>
-            <PanelLeftCloseIcon className="w-4 h-4 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+            {collapsed ? (
+              <PanelLeftOpenIcon className="w-4 h-4 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+            ) : (
+              <PanelLeftCloseIcon className="w-4 h-4 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+            )}
           </>
-        ) : (
-          <PanelLeftOpenIcon className="w-[18px] h-[18px] text-zinc-500 hover:text-zinc-300" />
         )}
       </div>
 

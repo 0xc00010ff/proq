@@ -84,6 +84,7 @@ export interface Task {
     error: string;
     files: string[];
     branch: string;
+    diff?: string; // unified diff showing what conflicts
   };
   renderMode?: AgentRenderMode;
   agentBlocks?: AgentBlock[];

@@ -110,6 +110,15 @@ dispatch: null        → Not dispatched
 
 Dragging a task back to "Todo" aborts the agent (kills the tmux session), then `processQueue()` picks up the next queued task automatically.
 
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [Getting Started](docs/Getting-Started.md) | Full walkthrough — install, create tasks, watch agents, review, live preview, workbench, supervisor |
+| [Architecture](docs/Architecture.md) | System internals — data layer, dispatch engine, MCP callback, render modes, WebSocket protocol, settings reference, REST API |
+| [Parallel Worktrees](docs/Parallel-Worktrees.md) | Deep dive on parallel mode — worktree lifecycle, preview branches, auto-stash, merge conflicts |
+| [Self-Editing](docs/Self-Editing.md) | How to develop proq using proq — setup, caveats, dev tips |
+
 ## Tech Stack
 
 Next.js 16 · TypeScript · Tailwind CSS · shadcn/ui · lowdb · node-pty · tmux · Claude Code CLI

@@ -81,6 +81,18 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
     if (followUpDraft?.text) resizeTextarea();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync input when draft is set externally (e.g., conflict resolution prompt)
+  const prevDraftRef = useRef(followUpDraft?.text);
+  useEffect(() => {
+    if (followUpDraft?.text && followUpDraft.text !== prevDraftRef.current) {
+      setInputValue(followUpDraft.text);
+      setAttachments(followUpDraft.attachments ?? []);
+      setTimeout(resizeTextarea, 0);
+      textareaRef.current?.focus();
+    }
+    prevDraftRef.current = followUpDraft?.text;
+  }, [followUpDraft, resizeTextarea]);
+
   const syncDraft = useCallback((text: string, atts: TaskAttachment[]) => {
     if (text || atts.length > 0) {
       onFollowUpDraftChange?.({ text, attachments: atts });

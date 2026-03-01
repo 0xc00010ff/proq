@@ -17,7 +17,7 @@ interface PlanApprovalBlockProps {
 }
 
 export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath, onApprove, onReject }: PlanApprovalBlockProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [feedbackMode, setFeedbackMode] = useState(false);
   const [feedback, setFeedback] = useState('');
 
@@ -59,7 +59,7 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
               )}
             </button>
             {expanded && (
-              <div className="border-t border-zinc-800/60 max-h-80 overflow-y-auto px-3">
+              <div className="border-t border-zinc-800/60 max-h-[22rem] overflow-y-auto px-3">
                 <TextBlock text={planContent} />
               </div>
             )}

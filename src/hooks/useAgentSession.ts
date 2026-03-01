@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AgentBlock, AgentWsServerMsg, TaskAttachment } from '@/lib/types';
 
 const WS_PORT = process.env.NEXT_PUBLIC_WS_PORT || '42069';
+const MAX_RETRIES = 15;
+const RETRY_DELAY_MS = 2000;
 
 interface UseAgentSessionResult {
   blocks: AgentBlock[];
@@ -31,58 +33,77 @@ export function useAgentSession(
       return;
     }
 
-    const wsHost = window.location.hostname;
-    const url = `ws://${wsHost}:${WS_PORT}/ws/agent?taskId=${taskId}&projectId=${projectId}`;
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    let retryCount = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
 
-    ws.onopen = () => {
-      setConnected(true);
-    };
+    function connect() {
+      if (cancelled) return;
 
-    ws.onmessage = (event) => {
-      try {
-        const msg: AgentWsServerMsg = JSON.parse(event.data);
+      const wsHost = window.location.hostname;
+      const url = `ws://${wsHost}:${WS_PORT}/ws/agent?taskId=${taskId}&projectId=${projectId}`;
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
 
-        if (msg.type === 'replay') {
-          setBlocks(msg.blocks);
-          // Check if session is done — look at last status block and user blocks
-          // A user block after the last complete/error/abort means a follow-up is pending
-          const statusBlocks = msg.blocks.filter(
-            (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
-          );
-          const lastStatus = statusBlocks[statusBlocks.length - 1];
-          const lastStatusIdx = lastStatus ? msg.blocks.lastIndexOf(lastStatus) : -1;
-          const hasUserAfter = msg.blocks.slice(lastStatusIdx + 1).some((b) => b.type === 'user');
-          const isDone = lastStatus?.type === 'status' && lastStatus.subtype !== 'init' && !hasUserAfter;
-          setSessionDone(isDone);
-        } else if (msg.type === 'block') {
-          setBlocks((prev) => [...prev, msg.block]);
-          if (msg.block.type === 'status' && msg.block.subtype === 'init' || msg.block.type === 'user') {
-            // New turn starting (follow-up or initial) — reset done state
-            setSessionDone(false);
-          } else if (msg.block.type === 'status' && (msg.block.subtype === 'complete' || msg.block.subtype === 'error' || msg.block.subtype === 'abort')) {
-            setSessionDone(true);
+      ws.onopen = () => {
+        setConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg: AgentWsServerMsg = JSON.parse(event.data);
+
+          if (msg.type === 'replay') {
+            retryCount = 0; // successful — reset retries
+            setBlocks(msg.blocks);
+            // Check if session is done — look at last status block and user blocks
+            // A user block after the last complete/error/abort means a follow-up is pending
+            const statusBlocks = msg.blocks.filter(
+              (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
+            );
+            const lastStatus = statusBlocks[statusBlocks.length - 1];
+            const lastStatusIdx = lastStatus ? msg.blocks.lastIndexOf(lastStatus) : -1;
+            const hasUserAfter = msg.blocks.slice(lastStatusIdx + 1).some((b) => b.type === 'user');
+            const isDone = lastStatus?.type === 'status' && lastStatus.subtype !== 'init' && !hasUserAfter;
+            setSessionDone(isDone);
+          } else if (msg.type === 'block') {
+            retryCount = 0;
+            setBlocks((prev) => [...prev, msg.block]);
+            if (msg.block.type === 'status' && msg.block.subtype === 'init' || msg.block.type === 'user') {
+              // New turn starting (follow-up or initial) — reset done state
+              setSessionDone(false);
+            } else if (msg.block.type === 'status' && (msg.block.subtype === 'complete' || msg.block.subtype === 'error' || msg.block.subtype === 'abort')) {
+              setSessionDone(true);
+            }
+          } else if (msg.type === 'error') {
+            // Session not ready yet — retry with backoff
+            console.log('[useAgentSession] server error:', msg.error);
+            if (retryCount < MAX_RETRIES && !cancelled) {
+              retryCount++;
+              ws.close();
+              retryTimer = setTimeout(connect, RETRY_DELAY_MS);
+            }
           }
-        } else if (msg.type === 'error') {
-          // No session — might be loaded from DB already in replay
-          console.log('[useAgentSession] server error:', msg.error);
+        } catch {
+          // ignore parse errors
         }
-      } catch {
-        // ignore parse errors
-      }
-    };
+      };
 
-    ws.onclose = () => {
-      setConnected(false);
-    };
+      ws.onclose = () => {
+        setConnected(false);
+      };
 
-    ws.onerror = () => {
-      setConnected(false);
-    };
+      ws.onerror = () => {
+        setConnected(false);
+      };
+    }
+
+    connect();
 
     return () => {
-      ws.close();
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (wsRef.current) wsRef.current.close();
       wsRef.current = null;
     };
   }, [taskId, projectId, staticLog]);

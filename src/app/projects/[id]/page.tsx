@@ -286,6 +286,9 @@ export default function ProjectPage() {
     setBoardDragOver(false);
     if (!e.dataTransfer.files.length) return;
 
+    // Capture files synchronously — dataTransfer is invalidated after yielding
+    const files = Array.from(e.dataTransfer.files);
+
     // Create a new task
     const res = await fetch(`/api/projects/${projectId}/tasks`, {
       method: 'POST',
@@ -295,7 +298,6 @@ export default function ProjectPage() {
     const newTask: Task = await res.json();
 
     // Read files into attachments
-    const files = Array.from(e.dataTransfer.files);
     const attachments: TaskAttachment[] = [];
     await Promise.all(
       files.map(

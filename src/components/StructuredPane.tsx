@@ -219,7 +219,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
     | { kind: 'block'; block: AgentBlock; idx: number }
     | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] }
     | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number }
-    | { kind: 'plan_approval'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number };
+    | { kind: 'plan_approval'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; planContent?: string; planFilePath?: string; alreadyResponded: boolean; idx: number };
 
   const renderItems: RenderItem[] = [];
   for (let i = 0; i < blocks.length; i++) {
@@ -241,11 +241,37 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
       // Render ExitPlanMode as plan approval card
       if (block.name === 'ExitPlanMode') {
+        // Scan backwards to find the preceding Write tool call containing the plan file
+        let planContent: string | undefined;
+        let planFilePath: string | undefined;
+        for (let j = i - 1; j >= 0; j--) {
+          const prev = blocks[j];
+          if (prev.type === 'tool_use' && prev.name === 'Write') {
+            const fp = prev.input.file_path as string;
+            if (fp && fp.endsWith('.md')) {
+              planContent = prev.input.content as string;
+              planFilePath = fp;
+              break;
+            }
+          }
+          // Also check tool_result for the Write output
+          if (prev.type === 'tool_result' && prev.name === 'Write') continue;
+          // Stop if we hit a non-tool block (text/thinking) — plan write should be right before
+          if (prev.type === 'text' || prev.type === 'thinking') break;
+        }
+        // Check if the user already responded (a user block exists after this one)
+        let alreadyResponded = false;
+        for (let j = i + 1; j < blocks.length; j++) {
+          if (blocks[j].type === 'user') { alreadyResponded = true; break; }
+        }
         renderItems.push({
           kind: 'plan_approval',
           toolId: block.toolId,
           input: block.input,
           result: toolResultMap.get(block.toolId),
+          planContent,
+          planFilePath,
+          alreadyResponded,
           idx: i,
         });
         continue;
@@ -347,7 +373,9 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                 <PlanApprovalBlock
                   key={`plan-${item.idx}`}
                   input={item.input}
-                  hasResult={!!item.result}
+                  planContent={item.planContent}
+                  planFilePath={item.planFilePath}
+                  alreadyResponded={item.alreadyResponded}
                   onApprove={() => sendFollowUp('Plan approved. Proceed with implementation.')}
                   onReject={(feedback) => sendFollowUp(`Plan rejected. ${feedback}`)}
                 />

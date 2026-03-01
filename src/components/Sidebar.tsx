@@ -418,12 +418,12 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
 
   return (
     <div
-      className={`h-full flex-shrink-0 relative ${collapsed ? "w-10" : "w-[260px]"} transition-[width] duration-200 ease-in-out`}
+      className={`h-full flex-shrink-0 relative ${collapsed ? "w-10" : "w-[260px]"} transition-[width] duration-75 ease-in-out`}
       onMouseEnter={() => { if (collapsed) setHovered(true); }}
       onMouseLeave={() => setHovered(false)}
     >
     <aside
-      className={`h-full bg-surface-secondary border-r border-border-default flex flex-col overflow-hidden transition-[width] duration-200 ease-in-out ${
+      className={`h-full bg-surface-secondary border-r border-border-default flex flex-col overflow-hidden transition-[width] duration-75 ease-in-out ${
         collapsed ? (hovered ? "w-[260px] absolute top-0 left-0 z-40 shadow-xl bg-[#ede7db] dark:bg-zinc-900" : "w-10") : "w-[260px]"
       }`}
     >

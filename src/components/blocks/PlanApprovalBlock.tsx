@@ -20,11 +20,11 @@ export function PlanApprovalBlock({ input, hasResult, onApprove, onReject }: Pla
 
   return (
     <div className="my-2">
-      <div className="rounded-lg border border-steel/30 bg-steel/5 overflow-hidden">
+      <div className="rounded-lg border border-bronze-300 dark:border-zinc-700/60 bg-bronze-50/50 dark:bg-zinc-800/30 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-steel/20">
-          <ClipboardCheckIcon className="w-3.5 h-3.5 text-steel" />
-          <span className="text-xs font-medium text-steel uppercase tracking-wide">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-zinc-700/50">
+          <ClipboardCheckIcon className="w-3.5 h-3.5 text-bronze-500 dark:text-zinc-500" />
+          <span className="text-xs font-medium text-bronze-600 dark:text-zinc-400 uppercase tracking-wide">
             Plan Ready for Approval
           </span>
           {hasResult && (
@@ -57,13 +57,13 @@ export function PlanApprovalBlock({ input, hasResult, onApprove, onReject }: Pla
             <div className="flex gap-2">
               <button
                 onClick={onApprove}
-                className="px-3 py-1.5 rounded-md border border-green-600/50 bg-green-600/10 hover:bg-green-600/20 text-xs font-medium text-green-400 transition-colors"
+                className="px-3 py-1.5 rounded-md border border-steel/40 bg-steel/10 hover:bg-steel/20 text-xs font-medium text-steel transition-colors"
               >
                 Approve Plan
               </button>
               <button
                 onClick={() => setFeedbackMode(true)}
-                className="px-3 py-1.5 rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-100/50 dark:bg-zinc-800/50 hover:border-red-500/50 hover:bg-red-500/10 text-xs font-medium text-bronze-800 dark:text-zinc-300 hover:text-red-400 transition-colors"
+                className="px-3 py-1.5 rounded-md border border-bronze-300 dark:border-zinc-700 bg-bronze-100/50 dark:bg-zinc-800/50 hover:border-bronze-400 dark:hover:border-zinc-600 text-xs font-medium text-bronze-600 dark:text-zinc-400 hover:text-bronze-800 dark:hover:text-zinc-200 transition-colors"
               >
                 Request Changes
               </button>
@@ -81,7 +81,7 @@ export function PlanApprovalBlock({ input, hasResult, onApprove, onReject }: Pla
                 <button
                   onClick={() => { if (feedback.trim()) onReject(feedback.trim()); }}
                   disabled={!feedback.trim()}
-                  className="px-3 py-1.5 rounded-md border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-xs font-medium text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-md border border-crimson/40 bg-crimson/10 hover:bg-crimson/20 text-xs font-medium text-crimson transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Send Feedback
                 </button>

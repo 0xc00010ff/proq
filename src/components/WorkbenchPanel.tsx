@@ -8,11 +8,11 @@ import React, {
 } from 'react';
 import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { useTerminalTabs, type TerminalTab } from './TerminalTabsProvider';
+import { useWorkbenchTabs, type WorkbenchTab } from './WorkbenchTabsProvider';
 import { TerminalPane } from './TerminalPane';
 import { AgentTabPane } from './AgentTabPane';
 
-interface TerminalPanelProps {
+interface WorkbenchPanelProps {
   projectId: string;
   projectPath?: string;
   style?: React.CSSProperties;
@@ -27,8 +27,8 @@ interface TerminalPanelProps {
 /*  Panel component                                                            */
 /* -------------------------------------------------------------------------- */
 
-export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: TerminalPanelProps) {
-  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, hydrateProject } = useTerminalTabs();
+export default function WorkbenchPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: WorkbenchPanelProps) {
+  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [menuTabId, setMenuTabId] = useState<string | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -88,7 +88,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
     const id = `shell-${uuidv4().slice(0, 8)}`;
     const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
 
-    await fetch('/api/terminal/spawn', {
+    await fetch('/api/shell/spawn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tabId: id, cwd: projectPath }),
@@ -110,7 +110,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
     [closeTab, projectId]
   );
 
-  const tabIcon = (tab: TerminalTab) =>
+  const tabIcon = (tab: WorkbenchTab) =>
     tab.type === 'agent'
       ? <SquareChevronUpIcon className="w-3 h-3" />
       : <TerminalIcon className="w-3 h-3" />;

@@ -54,7 +54,7 @@ export async function PUT(request: Request, { params }: Params) {
       if (prevStatus !== "verify") {
         const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
-        const renderMode = prevTask?.renderMode || settings.agentRenderMode || 'pretty';
+        const renderMode = prevTask?.renderMode || settings.agentRenderMode || 'structured';
         await updateTask(id, taskId, { dispatch, renderMode });
       }
     } else if (toColumn === "todo" && prevStatus !== "todo") {
@@ -68,7 +68,7 @@ export async function PUT(request: Request, { params }: Params) {
         removeWorktree(projectPath, prevTask.id.slice(0, 8));
         popAutoStash(projectPath);
       }
-      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, mergeConflict: undefined, renderMode: undefined, prettyLog: undefined, sessionId: undefined });
+      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, mergeConflict: undefined, renderMode: undefined, agentBlocks: undefined, sessionId: undefined });
       if (prevStatus === "in-progress") {
         await abortTask(id, taskId);
       }

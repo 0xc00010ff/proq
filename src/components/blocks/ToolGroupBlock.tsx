@@ -13,7 +13,7 @@ import {
   WrenchIcon,
   Loader2Icon,
 } from 'lucide-react';
-import type { PrettyBlock } from '@/lib/types';
+import type { AgentBlock } from '@/lib/types';
 import { ToolBlock, cleanToolName } from './ToolBlock';
 
 const TOOL_ICONS: Record<string, React.ReactNode> = {
@@ -88,7 +88,7 @@ export interface ToolGroupItem {
   toolId: string;
   name: string;
   input: Record<string, unknown>;
-  result?: Extract<PrettyBlock, { type: 'tool_result' }>;
+  result?: Extract<AgentBlock, { type: 'tool_result' }>;
 }
 
 interface ToolGroupBlockProps {

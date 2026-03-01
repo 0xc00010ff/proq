@@ -373,13 +373,13 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       update(
                         "agentRenderMode",
-                        e.target.value as "terminal" | "pretty",
+                        e.target.value as "cli" | "structured",
                       )
                     }
                     className={inputClass}
                   >
-                    <option value="pretty">Pretty</option>
-                    <option value="terminal">Terminal</option>
+                    <option value="structured">Structured</option>
+                    <option value="cli">CLI</option>
                   </select>
                 </Field>
               </div>

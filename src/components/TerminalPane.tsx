@@ -207,7 +207,7 @@ export function TerminalPane({
       form.append('file', file);
 
       try {
-        const res = await fetch('/api/terminal/upload', {
+        const res = await fetch('/api/shell/upload', {
           method: 'POST',
           body: form,
         });

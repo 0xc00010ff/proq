@@ -2,17 +2,17 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { SquareChevronUpIcon, Trash2Icon, SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
-import type { PrettyBlock, TaskAttachment } from '@/lib/types';
+import type { AgentBlock, TaskAttachment } from '@/lib/types';
 import { useSupervisorSession } from '@/hooks/useSupervisorSession';
 import { ScrambleText } from '@/components/ScrambleText';
-import { TextBlock } from '@/components/pretty/TextBlock';
-import { ThinkingBlock } from '@/components/pretty/ThinkingBlock';
-import { ToolBlock } from '@/components/pretty/ToolBlock';
-import { ToolGroupBlock } from '@/components/pretty/ToolGroupBlock';
-import type { ToolGroupItem } from '@/components/pretty/ToolGroupBlock';
-import { StatusBlock } from '@/components/pretty/StatusBlock';
-import { UserBlock } from '@/components/pretty/UserBlock';
-import { AskQuestionBlock } from '@/components/pretty/AskQuestionBlock';
+import { TextBlock } from '@/components/blocks/TextBlock';
+import { ThinkingBlock } from '@/components/blocks/ThinkingBlock';
+import { ToolBlock } from '@/components/blocks/ToolBlock';
+import { ToolGroupBlock } from '@/components/blocks/ToolGroupBlock';
+import type { ToolGroupItem } from '@/components/blocks/ToolGroupBlock';
+import { StatusBlock } from '@/components/blocks/StatusBlock';
+import { UserBlock } from '@/components/blocks/UserBlock';
+import { AskQuestionBlock } from '@/components/blocks/AskQuestionBlock';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -143,7 +143,7 @@ export default function SupervisorPage() {
   }, []);
 
   // Build tool result map for pairing
-  const toolResultMap = new Map<string, Extract<PrettyBlock, { type: 'tool_result' }>>();
+  const toolResultMap = new Map<string, Extract<AgentBlock, { type: 'tool_result' }>>();
   for (const block of blocks) {
     if (block.type === 'tool_result') {
       toolResultMap.set(block.toolId, block);
@@ -161,9 +161,9 @@ export default function SupervisorPage() {
 
   // Group consecutive tool_use blocks
   type RenderItem =
-    | { kind: 'block'; block: PrettyBlock; idx: number }
+    | { kind: 'block'; block: AgentBlock; idx: number }
     | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] }
-    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<PrettyBlock, { type: 'tool_result' }>; idx: number };
+    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number };
 
   const renderItems: RenderItem[] = [];
   for (let i = 0; i < blocks.length; i++) {

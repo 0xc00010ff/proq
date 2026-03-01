@@ -1,24 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { PrettyBlock, PrettyWsServerMsg, TaskAttachment } from '@/lib/types';
+import type { AgentBlock, AgentWsServerMsg, TaskAttachment } from '@/lib/types';
 
 const WS_PORT = process.env.NEXT_PUBLIC_WS_PORT || '42069';
 
-interface UsePrettySessionResult {
-  blocks: PrettyBlock[];
+interface UseAgentSessionResult {
+  blocks: AgentBlock[];
   connected: boolean;
   sessionDone: boolean;
   sendFollowUp: (text: string, attachments?: TaskAttachment[]) => void;
   stop: () => void;
 }
 
-export function usePrettySession(
+export function useAgentSession(
   taskId: string,
   projectId: string,
-  staticLog?: PrettyBlock[],
-): UsePrettySessionResult {
-  const [blocks, setBlocks] = useState<PrettyBlock[]>(staticLog || []);
+  staticLog?: AgentBlock[],
+): UseAgentSessionResult {
+  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || []);
   const [connected, setConnected] = useState(false);
   const [sessionDone, setSessionDone] = useState(!!staticLog);
   const wsRef = useRef<WebSocket | null>(null);
@@ -32,7 +32,7 @@ export function usePrettySession(
     }
 
     const wsHost = window.location.hostname;
-    const url = `ws://${wsHost}:${WS_PORT}/ws/pretty?taskId=${taskId}&projectId=${projectId}`;
+    const url = `ws://${wsHost}:${WS_PORT}/ws/agent?taskId=${taskId}&projectId=${projectId}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -42,7 +42,7 @@ export function usePrettySession(
 
     ws.onmessage = (event) => {
       try {
-        const msg: PrettyWsServerMsg = JSON.parse(event.data);
+        const msg: AgentWsServerMsg = JSON.parse(event.data);
 
         if (msg.type === 'replay') {
           setBlocks(msg.blocks);
@@ -66,7 +66,7 @@ export function usePrettySession(
           }
         } else if (msg.type === 'error') {
           // No session — might be loaded from DB already in replay
-          console.log('[usePrettySession] server error:', msg.error);
+          console.log('[useAgentSession] server error:', msg.error);
         }
       } catch {
         // ignore parse errors

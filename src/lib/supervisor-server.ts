@@ -7,8 +7,8 @@ import {
   startSupervisorSession,
   continueSupervisorSession,
 } from "./supervisor-runtime";
-import { getSupervisorPrettyLog } from "./db";
-import type { PrettyWsClientMsg } from "./types";
+import { getSupervisorAgentBlocks } from "./db";
+import type { AgentWsClientMsg } from "./types";
 
 export async function attachSupervisorWs(ws: WebSocket): Promise<void> {
   const session = getSupervisorSession();
@@ -18,10 +18,10 @@ export async function attachSupervisorWs(ws: WebSocket): Promise<void> {
     ws.send(JSON.stringify({ type: "replay", blocks: session.blocks }));
     attachSupervisorClient(ws);
   } else {
-    // No live session — try to load persisted prettyLog from DB
-    const stored = await getSupervisorPrettyLog();
-    if (stored.prettyLog && stored.prettyLog.length > 0) {
-      ws.send(JSON.stringify({ type: "replay", blocks: stored.prettyLog }));
+    // No live session — try to load persisted agentBlocks from DB
+    const stored = await getSupervisorAgentBlocks();
+    if (stored.agentBlocks && stored.agentBlocks.length > 0) {
+      ws.send(JSON.stringify({ type: "replay", blocks: stored.agentBlocks }));
     } else {
       // No history — send empty replay so client knows it's connected
       ws.send(JSON.stringify({ type: "replay", blocks: [] }));
@@ -30,7 +30,7 @@ export async function attachSupervisorWs(ws: WebSocket): Promise<void> {
 
   ws.on("message", async (raw) => {
     try {
-      const msg: PrettyWsClientMsg = JSON.parse(raw.toString());
+      const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSupervisorSession();
       } else if (msg.type === "followup") {

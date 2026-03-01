@@ -4,7 +4,7 @@ const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 /**
  * One-shot Claude CLI call. Spawns `claude -p <prompt>` and returns the text output.
- * Uses the same spawn pattern as pretty-runtime.ts.
+ * Uses the same spawn pattern as agent-session.ts.
  */
 export function claudeOneShot(
   prompt: string,

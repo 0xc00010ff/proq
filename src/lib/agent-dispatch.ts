@@ -20,11 +20,11 @@ import { stripAnsi } from "./utils";
 import { createWorktree, removeWorktree } from "./worktree";
 import type { TaskAttachment, TaskMode, AgentRenderMode } from "./types";
 import {
-  startSession as startPrettySession,
-  stopSession as stopPrettySession,
+  startSession,
+  stopSession,
   isSessionRunning,
   clearSession,
-} from "./pretty-runtime";
+} from "./agent-session";
 
 const MC_API = "http://localhost:1337";
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -53,7 +53,7 @@ export function writeMcpConfig(projectId: string, taskId: string): string {
 
 /**
  * Build the proq system prompt that tells the agent how to report back.
- * Used via --append-system-prompt in both pretty and terminal modes.
+ * Used via --append-system-prompt in both structured and CLI modes.
  */
 export function buildProqSystemPrompt(
   projectId: string,
@@ -259,8 +259,8 @@ export async function dispatchTask(
     ? `# ${taskTitle}\n\n${taskDescription}`
     : taskDescription;
 
-  // ── Terminal mode: dispatch via tmux ──
-  if (renderMode === "terminal") {
+  // ── CLI mode: dispatch via tmux ──
+  if (renderMode === "cli") {
     let prompt: string;
 
     if (mode === "plan") {
@@ -326,7 +326,7 @@ export async function dispatchTask(
         `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`,
       );
 
-      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (terminal)`);
+      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (cli)`);
 
       return terminalTabId;
     } catch (err) {
@@ -338,7 +338,7 @@ export async function dispatchTask(
     }
   }
 
-  // ── Default: dispatch via SDK (pretty mode) ──
+  // ── Default: dispatch via SDK (structured mode) ──
 
   let prompt: string;
   if (mode === "plan") {
@@ -355,7 +355,7 @@ export async function dispatchTask(
     const attachDir = join(
       tmpdir(),
       "proq-prompts",
-      `pretty-${shortId}-attachments`,
+      `agent-${shortId}-attachments`,
     );
     mkdirSync(attachDir, { recursive: true });
     for (const att of attachments) {
@@ -377,12 +377,12 @@ export async function dispatchTask(
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   try {
-    await startPrettySession(projectId, taskId, prompt, effectivePath, {
+    await startSession(projectId, taskId, prompt, effectivePath, {
       proqSystemPrompt,
       mcpConfig: mcpConfigPath,
     });
     console.log(
-      `[agent-dispatch] launched pretty session for task ${taskId}`,
+      `[agent-dispatch] launched agent session for task ${taskId}`,
     );
     notify(
       `🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched`,
@@ -390,7 +390,7 @@ export async function dispatchTask(
     return terminalTabId;
   } catch (err) {
     console.error(
-      `[agent-dispatch] failed to launch pretty session for ${taskId}:`,
+      `[agent-dispatch] failed to launch agent session for ${taskId}:`,
       err,
     );
     return undefined;
@@ -400,8 +400,8 @@ export async function dispatchTask(
 export async function abortTask(projectId: string, taskId: string) {
   const task = await getTask(projectId, taskId);
 
-  if (task?.renderMode === "terminal") {
-    // Terminal mode: kill tmux
+  if (task?.renderMode === "cli") {
+    // CLI mode: kill tmux
     const shortId = taskId.slice(0, 8);
     const tmuxSession = `mc-${shortId}`;
     try {
@@ -424,10 +424,10 @@ export async function abortTask(projectId: string, taskId: string) {
       if (existsSync(logPath)) unlinkSync(logPath);
     } catch {}
   } else {
-    // Default (pretty mode): abort via SDK
-    stopPrettySession(taskId);
+    // Default (structured mode): abort via SDK
+    stopSession(taskId);
     clearSession(taskId);
-    console.log(`[agent-dispatch] stopped pretty session for task ${taskId}`);
+    console.log(`[agent-dispatch] stopped agent session for task ${taskId}`);
   }
 
   // Clean up worktree if task had one (shared for both modes)
@@ -447,7 +447,7 @@ export async function abortTask(projectId: string, taskId: string) {
 }
 
 export function isSessionAlive(taskId: string): boolean {
-  // Check pretty runtime first
+  // Check agent session runtime first
   if (isSessionRunning(taskId)) return true;
 
   // Fall back to tmux check

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { ProjectsProvider } from './ProjectsProvider';
-import { TerminalTabsProvider } from './TerminalTabsProvider';
+import { WorkbenchTabsProvider } from './WorkbenchTabsProvider';
 import { Sidebar } from './Sidebar';
 import { MissingPathModal } from './MissingPathModal';
 import { useProjects } from './ProjectsProvider';
@@ -74,9 +74,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <ProjectsProvider>
-      <TerminalTabsProvider>
+      <WorkbenchTabsProvider>
         <ShellInner>{children}</ShellInner>
-      </TerminalTabsProvider>
+      </WorkbenchTabsProvider>
     </ProjectsProvider>
   );
 }

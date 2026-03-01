@@ -21,10 +21,10 @@ export interface WorkspaceData {
 }
 
 // ── Render Mode ─────────────────────────────────────────
-export type AgentRenderMode = 'terminal' | 'pretty';
+export type AgentRenderMode = 'cli' | 'structured';
 
-// ── Pretty Block Types ──────────────────────────────────
-export type PrettyBlock =
+// ── Agent Block Types ───────────────────────────────────
+export type AgentBlock =
   | { type: 'text';        text: string }
   | { type: 'thinking';    thinking: string }
   | { type: 'tool_use';    toolId: string; name: string; input: Record<string, unknown> }
@@ -36,15 +36,15 @@ export type PrettyBlock =
   | { type: 'task_update'; findings: string; humanSteps?: string; timestamp: string }
   | { type: 'stream_delta'; text: string };
 
-// ── Pretty WS Protocol ──────────────────────────────────
+// ── Agent WS Protocol ───────────────────────────────────
 // Server → Client
-export type PrettyWsServerMsg =
-  | { type: 'replay'; blocks: PrettyBlock[] }
-  | { type: 'block';  block: PrettyBlock }
+export type AgentWsServerMsg =
+  | { type: 'replay'; blocks: AgentBlock[] }
+  | { type: 'block';  block: AgentBlock }
   | { type: 'error';  error: string };
 
 // Client → Server
-export type PrettyWsClientMsg =
+export type AgentWsClientMsg =
   | { type: 'followup'; text: string; attachments?: TaskAttachment[] }
   | { type: 'stop' };
 
@@ -86,7 +86,7 @@ export interface Task {
     branch: string;
   };
   renderMode?: AgentRenderMode;
-  prettyLog?: PrettyBlock[];
+  agentBlocks?: AgentBlock[];
   sessionId?: string;
   attachments?: TaskAttachment[];
   createdAt: string;
@@ -160,14 +160,14 @@ export interface ProqSettings {
 // ── Per-project state ────────────────────────────────────
 export type ExecutionMode = 'sequential' | 'parallel';
 
-export interface TerminalTabInfo {
+export interface WorkbenchTabInfo {
   id: string;
   label: string;
   type?: 'shell' | 'agent'; // defaults to 'shell' for backward compat
 }
 
 export interface AgentTabData {
-  prettyLog: PrettyBlock[];
+  agentBlocks: AgentBlock[];
   sessionId?: string;
 }
 
@@ -176,10 +176,10 @@ export interface ProjectState {
   chatLog: ChatLogEntry[];
   agentSession?: AgentSession;
   executionMode?: ExecutionMode;
-  terminalOpen?: boolean;
-  terminalHeight?: number;
-  terminalTabs?: TerminalTabInfo[];
-  terminalActiveTabId?: string;
+  workbenchOpen?: boolean;
+  workbenchHeight?: number;
+  workbenchTabs?: WorkbenchTabInfo[];
+  workbenchActiveTabId?: string;
   agentTabs?: Record<string, AgentTabData>;
   recentlyDeleted?: DeletedTaskEntry[];
   // Legacy field — present only in unmigrated files

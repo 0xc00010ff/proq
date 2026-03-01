@@ -2,7 +2,7 @@ import { createServer } from "http";
 import { parse } from "url";
 import { WebSocketServer } from "ws";
 import { attachWs, writeToPty, resizePty } from "./pty-server";
-import { attachPrettyWsWithProject } from "./pretty-server";
+import { attachAgentWsWithProject } from "./agent-session-server";
 import { attachSupervisorWs } from "./supervisor-server";
 import { attachAgentTabWs } from "./agent-tab-server";
 
@@ -10,13 +10,13 @@ const PORT = parseInt(process.env.NEXT_PUBLIC_WS_PORT || "42069", 10);
 
 let started = false;
 
-export function startTerminalServer() {
+export function startWsServer() {
   if (started) return;
   started = true;
 
   const server = createServer((_req, res) => {
     res.writeHead(200);
-    res.end("terminal ws server");
+    res.end("ws server");
   });
 
   const wss = new WebSocketServer({ noServer: true });
@@ -57,11 +57,11 @@ export function startTerminalServer() {
           writeToPty(tabId, msg);
         });
       });
-    } else if (pathname === "/ws/pretty") {
+    } else if (pathname === "/ws/agent") {
       wss.handleUpgrade(req, socket, head, (ws) => {
         const taskId = query.taskId as string;
         const projectId = query.projectId as string;
-        console.log(`[ws] pretty connected: task=${taskId} project=${projectId}`);
+        console.log(`[ws] agent connected: task=${taskId} project=${projectId}`);
 
         if (!taskId || !projectId) {
           ws.send(JSON.stringify({ type: "error", error: "taskId and projectId required" }));
@@ -69,7 +69,7 @@ export function startTerminalServer() {
           return;
         }
 
-        attachPrettyWsWithProject(taskId, projectId, ws);
+        attachAgentWsWithProject(taskId, projectId, ws);
       });
     } else if (pathname === "/ws/agent-tab") {
       wss.handleUpgrade(req, socket, head, (ws) => {
@@ -96,6 +96,6 @@ export function startTerminalServer() {
   });
 
   server.listen(PORT, () => {
-    console.log(`> Terminal WS server on ws://localhost:${PORT}`);
+    console.log(`> WS server on ws://localhost:${PORT}`);
   });
 }

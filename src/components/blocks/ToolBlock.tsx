@@ -15,7 +15,7 @@ import {
   ClipboardCopyIcon,
   CheckIcon,
 } from 'lucide-react';
-import type { PrettyBlock } from '@/lib/types';
+import type { AgentBlock } from '@/lib/types';
 
 const TOOL_ICONS: Record<string, React.ReactNode> = {
   Bash: <TerminalSquareIcon className="w-3.5 h-3.5" />,
@@ -139,7 +139,7 @@ interface ToolBlockProps {
   toolId: string;
   name: string;
   input: Record<string, unknown>;
-  result?: Extract<PrettyBlock, { type: 'tool_result' }>;
+  result?: Extract<AgentBlock, { type: 'tool_result' }>;
   forceCollapsed?: boolean;
 }
 

@@ -8,7 +8,7 @@ import {
   continueAgentTabSession,
 } from "./agent-tab-runtime";
 import { getAgentTabData, getProject } from "./db";
-import type { PrettyWsClientMsg } from "./types";
+import type { AgentWsClientMsg } from "./types";
 
 export async function attachAgentTabWs(
   tabId: string,
@@ -22,10 +22,10 @@ export async function attachAgentTabWs(
     ws.send(JSON.stringify({ type: "replay", blocks: session.blocks }));
     attachAgentTabClient(tabId, ws);
   } else {
-    // No live session — try to load persisted prettyLog from DB
+    // No live session — try to load persisted agentBlocks from DB
     const stored = await getAgentTabData(projectId, tabId);
-    if (stored?.prettyLog && stored.prettyLog.length > 0) {
-      ws.send(JSON.stringify({ type: "replay", blocks: stored.prettyLog }));
+    if (stored?.agentBlocks && stored.agentBlocks.length > 0) {
+      ws.send(JSON.stringify({ type: "replay", blocks: stored.agentBlocks }));
     } else {
       // No history — send empty replay so client knows it's connected
       ws.send(JSON.stringify({ type: "replay", blocks: [] }));
@@ -34,7 +34,7 @@ export async function attachAgentTabWs(
 
   ws.on("message", async (raw) => {
     try {
-      const msg: PrettyWsClientMsg = JSON.parse(raw.toString());
+      const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopAgentTabSession(tabId);
       } else if (msg.type === "followup") {

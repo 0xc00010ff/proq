@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { PrettyBlock, TaskAttachment } from "./types";
+import type { AgentBlock, TaskAttachment } from "./types";
 import { getAgentTabData, setAgentTabData, getSettings, getProject } from "./db";
 import type WebSocket from "ws";
 
@@ -13,7 +13,7 @@ export interface AgentTabSession {
   projectId: string;
   sessionId?: string;
   queryHandle: ChildProcess | null;
-  blocks: PrettyBlock[];
+  blocks: AgentBlock[];
   clients: Set<WebSocket>;
   status: "running" | "done" | "error" | "aborted";
 }
@@ -37,7 +37,7 @@ function broadcast(session: AgentTabSession, msg: object) {
   }
 }
 
-function appendBlock(session: AgentTabSession, block: PrettyBlock) {
+function appendBlock(session: AgentTabSession, block: AgentBlock) {
   session.blocks.push(block);
   broadcast(session, { type: "block", block });
 }
@@ -176,7 +176,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
 
     if (session.status === "aborted") {
       await setAgentTabData(session.projectId, session.tabId, {
-        prettyLog: session.blocks,
+        agentBlocks: session.blocks,
         sessionId: session.sessionId,
       });
       return;
@@ -196,7 +196,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
     }
 
     await setAgentTabData(session.projectId, session.tabId, {
-      prettyLog: session.blocks,
+      agentBlocks: session.blocks,
       sessionId: session.sessionId,
     });
   });
@@ -210,7 +210,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
       durationMs: Date.now() - startTime,
     });
     await setAgentTabData(session.projectId, session.tabId, {
-      prettyLog: session.blocks,
+      agentBlocks: session.blocks,
       sessionId: session.sessionId,
     });
   });
@@ -296,7 +296,7 @@ export async function continueAgentTabSession(
       projectId,
       sessionId: stored.sessionId,
       queryHandle: null,
-      blocks: stored.prettyLog || [],
+      blocks: stored.agentBlocks || [],
       clients: new Set(),
       status: "done",
     };

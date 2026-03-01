@@ -2,18 +2,18 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
-import type { PrettyBlock, TaskAttachment, FollowUpDraft } from '@/lib/types';
-import { usePrettySession } from '@/hooks/usePrettySession';
+import type { AgentBlock, TaskAttachment, FollowUpDraft } from '@/lib/types';
+import { useAgentSession } from '@/hooks/useAgentSession';
 import { ScrambleText } from './ScrambleText';
-import { TextBlock } from './pretty/TextBlock';
-import { ThinkingBlock } from './pretty/ThinkingBlock';
-import { ToolBlock } from './pretty/ToolBlock';
-import { ToolGroupBlock } from './pretty/ToolGroupBlock';
-import type { ToolGroupItem } from './pretty/ToolGroupBlock';
-import { StatusBlock } from './pretty/StatusBlock';
-import { TaskUpdateBlock } from './pretty/TaskUpdateBlock';
-import { UserBlock } from './pretty/UserBlock';
-import { AskQuestionBlock } from './pretty/AskQuestionBlock';
+import { TextBlock } from './blocks/TextBlock';
+import { ThinkingBlock } from './blocks/ThinkingBlock';
+import { ToolBlock } from './blocks/ToolBlock';
+import { ToolGroupBlock } from './blocks/ToolGroupBlock';
+import type { ToolGroupItem } from './blocks/ToolGroupBlock';
+import { StatusBlock } from './blocks/StatusBlock';
+import { TaskUpdateBlock } from './blocks/TaskUpdateBlock';
+import { UserBlock } from './blocks/UserBlock';
+import { AskQuestionBlock } from './blocks/AskQuestionBlock';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -21,17 +21,17 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-interface PrettyPaneProps {
+interface StructuredPaneProps {
   taskId: string;
   projectId: string;
   visible: boolean;
-  prettyLog?: PrettyBlock[];
+  agentBlocks?: AgentBlock[];
   followUpDraft?: FollowUpDraft;
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
 }
 
-export function PrettyPane({ taskId, projectId, visible, prettyLog, followUpDraft, onFollowUpDraftChange }: PrettyPaneProps) {
-  const { blocks, sessionDone, sendFollowUp, stop } = usePrettySession(taskId, projectId, prettyLog);
+export function StructuredPane({ taskId, projectId, visible, agentBlocks, followUpDraft, onFollowUpDraftChange }: StructuredPaneProps) {
+  const { blocks, sessionDone, sendFollowUp, stop } = useAgentSession(taskId, projectId, agentBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -182,7 +182,7 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog, followUpDraf
   if (!visible) return null;
 
   // Build a map of tool_use toolId -> tool_result for pairing
-  const toolResultMap = new Map<string, Extract<PrettyBlock, { type: 'tool_result' }>>();
+  const toolResultMap = new Map<string, Extract<AgentBlock, { type: 'tool_result' }>>();
   for (const block of blocks) {
     if (block.type === 'tool_result') {
       toolResultMap.set(block.toolId, block);
@@ -201,9 +201,9 @@ export function PrettyPane({ taskId, projectId, visible, prettyLog, followUpDraf
 
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =
-    | { kind: 'block'; block: PrettyBlock; idx: number }
+    | { kind: 'block'; block: AgentBlock; idx: number }
     | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] }
-    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<PrettyBlock, { type: 'tool_result' }>; idx: number };
+    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number };
 
   const renderItems: RenderItem[] = [];
   for (let i = 0; i < blocks.length; i++) {

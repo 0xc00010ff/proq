@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { TopBar, type TabOption } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import TerminalPanel from '@/components/TerminalPanel';
+import WorkbenchPanel from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { TaskModal } from '@/components/TaskModal';
@@ -24,7 +24,7 @@ export default function ProjectPage() {
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
-  const [terminalCollapsed, setTerminalCollapsed] = useState(true);
+  const [workbenchCollapsed, setTerminalCollapsed] = useState(true);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
@@ -53,7 +53,7 @@ export default function ProjectPage() {
   // Restore terminal open/closed state and height from project
   useEffect(() => {
     if (!projectId) return;
-    fetch(`/api/projects/${projectId}/terminal-state`)
+    fetch(`/api/projects/${projectId}/workbench-state`)
       .then((res) => res.json())
       .then((data) => {
         setTerminalCollapsed(!data.open);
@@ -264,30 +264,30 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, [projectId]);
 
-  const patchTerminalState = useCallback((data: { open?: boolean; height?: number }) => {
-    fetch(`/api/projects/${projectId}/terminal-state`, {
+  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
+    fetch(`/api/projects/${projectId}/workbench-state`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).catch(() => {});
   }, [projectId]);
 
-  const toggleTerminalCollapsed = useCallback(() => {
+  const toggleWorkbenchCollapsed = useCallback(() => {
     setTerminalCollapsed((prev) => {
       const next = !prev;
-      patchTerminalState({ open: !next });
+      patchWorkbenchState({ open: !next });
       return next;
     });
-  }, [patchTerminalState]);
+  }, [patchWorkbenchState]);
 
-  const expandTerminal = useCallback(() => {
+  const expandWorkbench = useCallback(() => {
     setTerminalCollapsed((prev) => {
       if (!prev) return prev; // already open
-      patchTerminalState({ open: true });
+      patchWorkbenchState({ open: true });
       return false;
     });
     setChatPercent((prev) => Math.max(prev, 25));
-  }, [patchTerminalState]);
+  }, [patchWorkbenchState]);
 
   // Resize handle (tab bar is the drag target)
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -303,8 +303,8 @@ export default function ProjectPage() {
       const y = e.clientY - rect.top;
       const percent = ((rect.height - y) / rect.height) * 100;
       // Drag up from closed state → expand
-      if (terminalCollapsed && percent > 5) {
-        toggleTerminalCollapsed();
+      if (workbenchCollapsed && percent > 5) {
+        toggleWorkbenchCollapsed();
       }
       // Allow dragging down to 3% so snap-to-close is visible
       setChatPercent(Math.min(100, Math.max(3, percent)));
@@ -316,12 +316,12 @@ export default function ProjectPage() {
         const y = e.clientY - rect.top;
         const pixelHeight = rect.height - y;
         if (pixelHeight < 200) {
-          toggleTerminalCollapsed();
+          toggleWorkbenchCollapsed();
           setChatPercent(25); // reset for next open
         } else {
           // Persist the terminal height
           const finalPercent = Math.min(100, Math.max(3, ((rect.height - y) / rect.height) * 100));
-          patchTerminalState({ height: finalPercent });
+          patchWorkbenchState({ height: finalPercent });
         }
       }
       setIsDragging(false);
@@ -332,7 +332,7 @@ export default function ProjectPage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, terminalCollapsed, toggleTerminalCollapsed, patchTerminalState]);
+  }, [isDragging, workbenchCollapsed, toggleWorkbenchCollapsed, patchWorkbenchState]);
 
   if (!project) {
     return (
@@ -359,7 +359,7 @@ export default function ProjectPage() {
           <>
             <div
               className="flex-1 min-h-0 overflow-hidden"
-              style={terminalCollapsed ? undefined : { flexBasis: `${100 - chatPercent}%` }}
+              style={workbenchCollapsed ? undefined : { flexBasis: `${100 - chatPercent}%` }}
             >
               <KanbanBoard
                 tasks={columns}
@@ -379,13 +379,13 @@ export default function ProjectPage() {
               />
             </div>
 
-            <TerminalPanel
+            <WorkbenchPanel
               projectId={projectId}
               projectPath={project.path}
               style={{ flexBasis: `${chatPercent}%` }}
-              collapsed={terminalCollapsed}
-              onToggleCollapsed={toggleTerminalCollapsed}
-              onExpand={expandTerminal}
+              collapsed={workbenchCollapsed}
+              onToggleCollapsed={toggleWorkbenchCollapsed}
+              onExpand={expandWorkbench}
               onResizeStart={handleResizeStart}
               isDragging={isDragging}
             />

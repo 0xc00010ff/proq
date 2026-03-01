@@ -1,9 +1,9 @@
 import type WebSocket from "ws";
-import { getSession, attachClient, detachClient, stopSession, continueSession } from "./pretty-runtime";
+import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
 import { getTask, getProject } from "./db";
-import type { PrettyWsClientMsg } from "./types";
+import type { AgentWsClientMsg } from "./types";
 
-export async function attachPrettyWs(taskId: string, ws: WebSocket): Promise<void> {
+export async function attachAgentWs(taskId: string, ws: WebSocket): Promise<void> {
   const session = getSession(taskId);
 
   if (session) {
@@ -12,10 +12,10 @@ export async function attachPrettyWs(taskId: string, ws: WebSocket): Promise<voi
     ws.send(replay);
     attachClient(taskId, ws);
   } else {
-    // No live session — try to load persisted prettyLog from DB
+    // No live session — try to load persisted agentBlocks from DB
     // Parse projectId from the task by searching all projects
     // For simplicity, we scan — the caller should pass projectId via query param
-    // We'll handle this in terminal-server.ts by passing projectId
+    // We'll handle this in ws-server.ts by passing projectId
     const sent = await tryReplayFromDb(taskId, ws);
     if (!sent) {
       ws.send(JSON.stringify({ type: "error", error: "No session found" }));
@@ -24,7 +24,7 @@ export async function attachPrettyWs(taskId: string, ws: WebSocket): Promise<voi
 
   ws.on("message", (raw) => {
     try {
-      const msg: PrettyWsClientMsg = JSON.parse(raw.toString());
+      const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSession(taskId);
       }
@@ -40,7 +40,7 @@ export async function attachPrettyWs(taskId: string, ws: WebSocket): Promise<voi
 }
 
 // Project ID will be passed as a query param from the client
-export async function attachPrettyWsWithProject(
+export async function attachAgentWsWithProject(
   taskId: string,
   projectId: string,
   ws: WebSocket,
@@ -54,8 +54,8 @@ export async function attachPrettyWsWithProject(
   } else {
     // Load from DB
     const task = await getTask(projectId, taskId);
-    if (task?.prettyLog && task.prettyLog.length > 0) {
-      ws.send(JSON.stringify({ type: "replay", blocks: task.prettyLog }));
+    if (task?.agentBlocks && task.agentBlocks.length > 0) {
+      ws.send(JSON.stringify({ type: "replay", blocks: task.agentBlocks }));
     } else {
       ws.send(JSON.stringify({ type: "error", error: "No session found" }));
     }
@@ -63,7 +63,7 @@ export async function attachPrettyWsWithProject(
 
   ws.on("message", async (raw) => {
     try {
-      const msg: PrettyWsClientMsg = JSON.parse(raw.toString());
+      const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSession(taskId);
       } else if (msg.type === "followup") {
@@ -90,6 +90,6 @@ export async function attachPrettyWsWithProject(
 
 async function tryReplayFromDb(taskId: string, ws: WebSocket): Promise<boolean> {
   // Without projectId we can't look up the task — return false
-  // The client should use the /ws/pretty?taskId=X&projectId=Y endpoint
+  // The client should use the /ws/agent?taskId=X&projectId=Y endpoint
   return false;
 }

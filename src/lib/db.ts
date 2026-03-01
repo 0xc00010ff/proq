@@ -12,7 +12,9 @@ import type {
   ExecutionMode,
   DeletedTaskEntry,
   ProqSettings,
-  PrettyBlock,
+  AgentBlock,
+  WorkbenchTabInfo,
+  AgentTabData,
 } from "./types";
 import { slugify } from "./utils";
 
@@ -108,6 +110,71 @@ function getProjectData(projectId: string): ProjectState {
     delete raw.tasks;
     // Write migrated data back immediately
     writeJSON(filePath, raw);
+  }
+
+  // ── Auto-migration: old naming → new naming ──
+  const r = raw as ProjectState & Record<string, unknown>;
+  let migrated = false;
+
+  // Workbench state: terminalOpen/Height/Tabs/ActiveTabId → workbench*
+  if ('terminalOpen' in r && r.workbenchOpen === undefined) {
+    r.workbenchOpen = r.terminalOpen as boolean;
+    delete r.terminalOpen;
+    migrated = true;
+  }
+  if ('terminalHeight' in r && r.workbenchHeight === undefined) {
+    r.workbenchHeight = r.terminalHeight as number;
+    delete r.terminalHeight;
+    migrated = true;
+  }
+  if ('terminalTabs' in r && r.workbenchTabs === undefined) {
+    r.workbenchTabs = r.terminalTabs as WorkbenchTabInfo[];
+    delete r.terminalTabs;
+    migrated = true;
+  }
+  if ('terminalActiveTabId' in r && r.workbenchActiveTabId === undefined) {
+    r.workbenchActiveTabId = r.terminalActiveTabId as string;
+    delete r.terminalActiveTabId;
+    migrated = true;
+  }
+
+  // Task fields: prettyLog → agentBlocks, renderMode values "pretty"→"structured", "terminal"→"cli"
+  if (r.columns) {
+    for (const status of ["todo", "in-progress", "verify", "done"] as TaskStatus[]) {
+      for (const task of r.columns[status] || []) {
+        const t = task as Task & Record<string, unknown>;
+        if ('prettyLog' in t) {
+          t.agentBlocks = t.prettyLog as AgentBlock[];
+          delete t.prettyLog;
+          migrated = true;
+        }
+        if (t.renderMode === 'pretty' as string) {
+          t.renderMode = 'structured';
+          migrated = true;
+        }
+        if (t.renderMode === 'terminal' as string) {
+          t.renderMode = 'cli';
+          migrated = true;
+        }
+      }
+    }
+  }
+
+  // Agent tab data: prettyLog → agentBlocks
+  if (r.agentTabs) {
+    for (const [tabId, tabData] of Object.entries(r.agentTabs)) {
+      const td = tabData as unknown as Record<string, unknown>;
+      if ('prettyLog' in td && !('agentBlocks' in td)) {
+        td.agentBlocks = td.prettyLog;
+        delete td.prettyLog;
+        r.agentTabs[tabId] = td as unknown as AgentTabData;
+        migrated = true;
+      }
+    }
+  }
+
+  if (migrated) {
+    writeJSON(filePath, r);
   }
 
   // Ensure columns exist even if file was empty
@@ -302,7 +369,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode" | "worktreePath" | "branch" | "mergeConflict" | "renderMode" | "prettyLog" | "sessionId">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode" | "worktreePath" | "branch" | "mergeConflict" | "renderMode" | "agentBlocks" | "sessionId">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -417,33 +484,33 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 }
 
 // ═══════════════════════════════════════════════════════════
-// TERMINAL STATE
+// WORKBENCH STATE
 // ═══════════════════════════════════════════════════════════
 
-export async function getTerminalState(projectId: string): Promise<{ open: boolean; height: number | null }> {
+export async function getWorkbenchState(projectId: string): Promise<{ open: boolean; height: number | null }> {
   const data = getProjectData(projectId);
-  return { open: data.terminalOpen ?? false, height: data.terminalHeight ?? null };
+  return { open: data.workbenchOpen ?? false, height: data.workbenchHeight ?? null };
 }
 
-export async function setTerminalState(projectId: string, state: { open?: boolean; height?: number }): Promise<void> {
+export async function setWorkbenchState(projectId: string, state: { open?: boolean; height?: number }): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
-    if (state.open !== undefined) data.terminalOpen = state.open;
-    if (state.height !== undefined) data.terminalHeight = state.height;
+    if (state.open !== undefined) data.workbenchOpen = state.open;
+    if (state.height !== undefined) data.workbenchHeight = state.height;
     writeProject(projectId, data);
   });
 }
 
-export async function getTerminalTabs(projectId: string): Promise<{ tabs: import("./types").TerminalTabInfo[]; activeTabId?: string }> {
+export async function getWorkbenchTabs(projectId: string): Promise<{ tabs: import("./types").WorkbenchTabInfo[]; activeTabId?: string }> {
   const data = getProjectData(projectId);
-  return { tabs: data.terminalTabs ?? [], activeTabId: data.terminalActiveTabId };
+  return { tabs: data.workbenchTabs ?? [], activeTabId: data.workbenchActiveTabId };
 }
 
-export async function setTerminalTabs(projectId: string, tabs: import("./types").TerminalTabInfo[], activeTabId?: string): Promise<void> {
+export async function setWorkbenchTabs(projectId: string, tabs: import("./types").WorkbenchTabInfo[], activeTabId?: string): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
-    data.terminalTabs = tabs;
-    data.terminalActiveTabId = activeTabId;
+    data.workbenchTabs = tabs;
+    data.workbenchActiveTabId = activeTabId;
     writeProject(projectId, data);
   });
 }
@@ -511,14 +578,23 @@ export async function addChatMessage(
 interface SupervisorData {
   chatLog: ChatLogEntry[];
   draft?: string;
-  prettyLog?: PrettyBlock[];
+  agentBlocks?: AgentBlock[];
   sessionId?: string;
 }
 
 const SUPERVISOR_FILE = path.join(DATA_DIR, "supervisor.json");
 
 function readSupervisorData(): SupervisorData {
-  return readJSON<SupervisorData>(SUPERVISOR_FILE, { chatLog: [] });
+  const data = readJSON<SupervisorData & Record<string, unknown>>(SUPERVISOR_FILE, { chatLog: [] });
+
+  // Migrate old prettyLog → agentBlocks
+  if ('prettyLog' in data && !('agentBlocks' in data)) {
+    data.agentBlocks = data.prettyLog as AgentBlock[];
+    delete data.prettyLog;
+    writeJSON(SUPERVISOR_FILE, data);
+  }
+
+  return data as SupervisorData;
 }
 
 function writeSupervisorData(data: SupervisorData): void {
@@ -564,15 +640,15 @@ export async function setSupervisorDraft(draft: string): Promise<void> {
   });
 }
 
-export async function getSupervisorPrettyLog(): Promise<{ prettyLog?: PrettyBlock[]; sessionId?: string }> {
+export async function getSupervisorAgentBlocks(): Promise<{ agentBlocks?: AgentBlock[]; sessionId?: string }> {
   const data = readSupervisorData();
-  return { prettyLog: data.prettyLog, sessionId: data.sessionId };
+  return { agentBlocks: data.agentBlocks, sessionId: data.sessionId };
 }
 
-export async function setSupervisorPrettyLog(prettyLog: PrettyBlock[], sessionId?: string): Promise<void> {
+export async function setSupervisorAgentBlocks(agentBlocks: AgentBlock[], sessionId?: string): Promise<void> {
   return withWriteLock("supervisor", async () => {
     const state = readSupervisorData();
-    state.prettyLog = prettyLog;
+    state.agentBlocks = agentBlocks;
     if (sessionId !== undefined) state.sessionId = sessionId;
     writeSupervisorData(state);
   });
@@ -599,7 +675,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   defaultModel: "",
   systemPromptAdditions: "",
   executionMode: "sequential",
-  agentRenderMode: "pretty",
+  agentRenderMode: "structured",
 
   // Git
   autoCommit: true,
@@ -624,7 +700,18 @@ const DEFAULT_SETTINGS: ProqSettings = {
 };
 
 export async function getSettings(): Promise<ProqSettings> {
-  return { ...DEFAULT_SETTINGS, ...readJSON<Partial<ProqSettings>>(SETTINGS_FILE, {}) };
+  const stored = readJSON<Partial<ProqSettings> & Record<string, unknown>>(SETTINGS_FILE, {});
+
+  // Migrate old render mode values
+  if (stored.agentRenderMode === 'pretty' as string) {
+    stored.agentRenderMode = 'structured';
+    writeJSON(SETTINGS_FILE, stored);
+  } else if (stored.agentRenderMode === 'terminal' as string) {
+    stored.agentRenderMode = 'cli';
+    writeJSON(SETTINGS_FILE, stored);
+  }
+
+  return { ...DEFAULT_SETTINGS, ...stored };
 }
 
 export async function updateSettings(data: Partial<ProqSettings>): Promise<ProqSettings> {

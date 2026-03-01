@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "child_process";
-import type { PrettyBlock, TaskAttachment } from "./types";
-import { getAllProjects, getSupervisorPrettyLog, setSupervisorPrettyLog, getSettings } from "./db";
+import type { AgentBlock, TaskAttachment } from "./types";
+import { getAllProjects, getSupervisorAgentBlocks, setSupervisorAgentBlocks, getSettings } from "./db";
 import type WebSocket from "ws";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -8,7 +8,7 @@ const CLAUDE = process.env.CLAUDE_BIN || "claude";
 export interface SupervisorSession {
   sessionId?: string;
   queryHandle: ChildProcess | null;
-  blocks: PrettyBlock[];
+  blocks: AgentBlock[];
   clients: Set<WebSocket>;
   status: "running" | "done" | "error" | "aborted";
 }
@@ -41,7 +41,7 @@ function broadcast(session: SupervisorSession, msg: object) {
   }
 }
 
-function appendBlock(session: SupervisorSession, block: PrettyBlock) {
+function appendBlock(session: SupervisorSession, block: AgentBlock) {
   session.blocks.push(block);
   broadcast(session, { type: "block", block });
 }
@@ -99,7 +99,7 @@ Cross-project:
 - When the user asks about a project, check its tasks and status first.`;
 }
 
-// ── Stream event processing (shared with pretty-runtime) ──
+// ── Stream event processing (shared with agent-session) ──
 
 function processStreamEvent(session: SupervisorSession, event: Record<string, unknown>) {
   const type = event.type as string;
@@ -232,7 +232,7 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
     }
 
     if (session.status === "aborted") {
-      await setSupervisorPrettyLog(session.blocks, session.sessionId);
+      await setSupervisorAgentBlocks(session.blocks, session.sessionId);
       return;
     }
 
@@ -249,7 +249,7 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
       session.status = "done";
     }
 
-    await setSupervisorPrettyLog(session.blocks, session.sessionId);
+    await setSupervisorAgentBlocks(session.blocks, session.sessionId);
   });
 
   proc.on("error", async (err) => {
@@ -260,7 +260,7 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
       error: err.message,
       durationMs: Date.now() - startTime,
     });
-    await setSupervisorPrettyLog(session.blocks, session.sessionId);
+    await setSupervisorAgentBlocks(session.blocks, session.sessionId);
   });
 }
 
@@ -324,14 +324,14 @@ export async function continueSupervisorSession(
 
   // Reconstruct from DB if no in-memory session
   if (!session) {
-    const stored = await getSupervisorPrettyLog();
+    const stored = await getSupervisorAgentBlocks();
     if (!stored.sessionId) {
       throw new Error("No session to continue — no sessionId stored");
     }
     session = {
       sessionId: stored.sessionId,
       queryHandle: null,
-      blocks: stored.prettyLog || [],
+      blocks: stored.agentBlocks || [],
       clients: new Set(),
       status: "done",
     };
@@ -420,5 +420,5 @@ export async function clearSupervisorSessionData(): Promise<void> {
     session.queryHandle.kill("SIGTERM");
   }
   setSessionRef(null);
-  await setSupervisorPrettyLog([], undefined);
+  await setSupervisorAgentBlocks([], undefined);
 }

@@ -21,7 +21,7 @@ import type { Task, FollowUpDraft } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TerminalPane } from './TerminalPane';
-import { PrettyPane } from './PrettyPane';
+import { StructuredPane } from './StructuredPane';
 import { ConflictModal } from './ConflictModal';
 
 interface TaskAgentModalProps {
@@ -45,12 +45,12 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   const steps = parseLines(task.humanSteps);
   const findings = parseLines(task.findings);
   const isDispatched = task.dispatch === 'running' || task.dispatch === 'starting';
-  const isPretty = task.renderMode !== 'terminal';
-  const showPrettyPane = isPretty && !isQueued && (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done');
-  const showPrettyStatic = isPretty && task.status === 'done' && !!task.prettyLog;
+  const isStructured = task.renderMode !== 'cli';
+  const showStructuredPane = isStructured && !isQueued && (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done');
+  const showStructuredStatic = isStructured && task.status === 'done' && !!task.agentBlocks;
   // Show terminal for done tasks too; fall back to static log only after cleanup has captured agentLog
-  const showStaticLog = !isPretty && task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
-  const showTerminal = !isPretty && (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;
+  const showStaticLog = !isStructured && task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
+  const showTerminal = !isStructured && (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;
   const [countdownText, setCountdownText] = useState('');
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -154,7 +154,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Left panel: terminal or queued state (70%) ── */}
-        <div className={`flex-1 min-h-0 flex flex-col${showPrettyPane ? ' bg-bronze-50 dark:bg-[#0C0C0C]' : ''}`}>
+        <div className={`flex-1 min-h-0 flex flex-col${showStructuredPane ? ' bg-bronze-50 dark:bg-[#0C0C0C]' : ''}`}>
           {/* Worktree status — only in parallel mode */}
           {parallelMode && (
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-zinc-800 bg-bronze-100/50 dark:bg-zinc-900/50">
@@ -226,12 +226,12 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
                 Start Now
               </button>
             </div>
-          ) : showPrettyPane ? (
-            <PrettyPane
+          ) : showStructuredPane ? (
+            <StructuredPane
               taskId={task.id}
               projectId={projectId}
               visible={true}
-              prettyLog={showPrettyStatic ? task.prettyLog : undefined}
+              agentBlocks={showStructuredStatic ? task.agentBlocks : undefined}
               followUpDraft={followUpDraft}
               onFollowUpDraftChange={onFollowUpDraftChange}
             />
@@ -259,7 +259,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         </div>
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div ref={rightPanelRef} className={`${showTerminal || showPrettyPane || isQueued ? 'w-[33%] border-l border-bronze-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`}>
+        <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? 'w-[33%] border-l border-bronze-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`}>
           {/* Close button */}
           <button
             onClick={onClose}

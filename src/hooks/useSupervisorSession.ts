@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { PrettyBlock, PrettyWsServerMsg, TaskAttachment } from '@/lib/types';
+import type { AgentBlock, AgentWsServerMsg, TaskAttachment } from '@/lib/types';
 
 const WS_PORT = process.env.NEXT_PUBLIC_WS_PORT || '42069';
 
 interface UseSupervisorSessionResult {
-  blocks: PrettyBlock[];
+  blocks: AgentBlock[];
   connected: boolean;
   sessionDone: boolean;
   hasHistory: boolean;
@@ -15,7 +15,7 @@ interface UseSupervisorSessionResult {
 }
 
 export function useSupervisorSession(): UseSupervisorSessionResult {
-  const [blocks, setBlocks] = useState<PrettyBlock[]>([]);
+  const [blocks, setBlocks] = useState<AgentBlock[]>([]);
   const [connected, setConnected] = useState(false);
   const [sessionDone, setSessionDone] = useState(true);
   const wsRef = useRef<WebSocket | null>(null);
@@ -32,7 +32,7 @@ export function useSupervisorSession(): UseSupervisorSessionResult {
 
     ws.onmessage = (event) => {
       try {
-        const msg: PrettyWsServerMsg = JSON.parse(event.data);
+        const msg: AgentWsServerMsg = JSON.parse(event.data);
 
         if (msg.type === 'replay') {
           setBlocks(msg.blocks);

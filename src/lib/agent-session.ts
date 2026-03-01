@@ -2,33 +2,33 @@ import { spawn, type ChildProcess } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { PrettyBlock, TaskAttachment } from "./types";
+import type { AgentBlock, TaskAttachment } from "./types";
 import { updateTask, getTask, getProject, getSettings } from "./db";
 import { notify, buildProqSystemPrompt, writeMcpConfig } from "./agent-dispatch";
 import type WebSocket from "ws";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
-export interface PrettySession {
+export interface AgentRuntimeSession {
   taskId: string;
   projectId: string;
   sessionId?: string;
   mcpConfig?: string;
   queryHandle: ChildProcess | null;
-  blocks: PrettyBlock[];
+  blocks: AgentBlock[];
   clients: Set<WebSocket>;
   status: "running" | "done" | "error" | "aborted";
 }
 
 // ── Singleton attached to globalThis to survive HMR ──
 const g = globalThis as unknown as {
-  __proqPrettySessions?: Map<string, PrettySession>;
+  __proqAgentRuntimeSessions?: Map<string, AgentRuntimeSession>;
 };
-if (!g.__proqPrettySessions) g.__proqPrettySessions = new Map();
+if (!g.__proqAgentRuntimeSessions) g.__proqAgentRuntimeSessions = new Map();
 
-const sessions = g.__proqPrettySessions;
+const sessions = g.__proqAgentRuntimeSessions;
 
-function broadcast(session: PrettySession, msg: object) {
+function broadcast(session: AgentRuntimeSession, msg: object) {
   const data = JSON.stringify(msg);
   for (const ws of session.clients) {
     try {
@@ -39,7 +39,7 @@ function broadcast(session: PrettySession, msg: object) {
   }
 }
 
-function appendBlock(session: PrettySession, block: PrettyBlock) {
+function appendBlock(session: AgentRuntimeSession, block: AgentBlock) {
   session.blocks.push(block);
   broadcast(session, { type: "block", block });
 }
@@ -47,7 +47,7 @@ function appendBlock(session: PrettySession, block: PrettyBlock) {
 // ── Shared process wiring ──
 // Handles stdout parsing, stderr capture, close/error handlers.
 function wireProcess(
-  session: PrettySession,
+  session: AgentRuntimeSession,
   proc: ChildProcess,
   opts: { startTime: number; projectId: string; taskId: string },
 ) {
@@ -93,7 +93,7 @@ function wireProcess(
 
     if (session.status === "aborted") {
       await updateTask(projectId, taskId, {
-        prettyLog: session.blocks,
+        agentBlocks: session.blocks,
       });
       return;
     }
@@ -137,14 +137,14 @@ function wireProcess(
           ? `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`
           : undefined,
         ...questionFields,
-        prettyLog: session.blocks,
+        agentBlocks: session.blocks,
         sessionId: session.sessionId,
       });
       notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
     } else {
-      // Agent already handled status via update_task — just persist prettyLog
+      // Agent already handled status via update_task — just persist agentBlocks
       await updateTask(projectId, taskId, {
-        prettyLog: session.blocks,
+        agentBlocks: session.blocks,
         sessionId: session.sessionId,
       });
     }
@@ -165,11 +165,11 @@ function wireProcess(
         status: "verify",
         dispatch: null,
         findings: `Error: ${errorMsg}`,
-        prettyLog: session.blocks,
+        agentBlocks: session.blocks,
       });
     } else {
       await updateTask(projectId, taskId, {
-        prettyLog: session.blocks,
+        agentBlocks: session.blocks,
       });
     }
   });
@@ -182,7 +182,7 @@ export async function startSession(
   cwd: string,
   options?: { model?: string; proqSystemPrompt?: string; mcpConfig?: string },
 ): Promise<void> {
-  const session: PrettySession = {
+  const session: AgentRuntimeSession = {
     taskId,
     projectId,
     queryHandle: null,
@@ -244,7 +244,7 @@ export async function startSession(
   wireProcess(session, proc, { startTime, projectId, taskId });
 }
 
-function processStreamEvent(session: PrettySession, event: Record<string, unknown>) {
+function processStreamEvent(session: AgentRuntimeSession, event: Record<string, unknown>) {
   const type = event.type as string;
 
   if (type === "system") {
@@ -362,7 +362,7 @@ export async function continueSession(
       projectId,
       sessionId: task.sessionId,
       queryHandle: null,
-      blocks: task.prettyLog || [],
+      blocks: task.agentBlocks || [],
       clients: new Set(),
       status: "done",
     };
@@ -465,7 +465,7 @@ export function stopSession(taskId: string): void {
   }
 }
 
-export function getSession(taskId: string): PrettySession | null {
+export function getSession(taskId: string): AgentRuntimeSession | null {
   return sessions.get(taskId) ?? null;
 }
 
@@ -491,7 +491,7 @@ export function clearSession(taskId: string): void {
   }
 }
 
-export function injectBlock(taskId: string, block: PrettyBlock): void {
+export function injectBlock(taskId: string, block: AgentBlock): void {
   const session = sessions.get(taskId);
   if (session) {
     appendBlock(session, block);

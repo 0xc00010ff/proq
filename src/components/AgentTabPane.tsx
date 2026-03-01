@@ -2,16 +2,16 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
-import type { PrettyBlock, TaskAttachment } from '@/lib/types';
+import type { AgentBlock, TaskAttachment } from '@/lib/types';
 import { useAgentTabSession } from '@/hooks/useAgentTabSession';
 import { ScrambleText } from './ScrambleText';
-import { TextBlock } from './pretty/TextBlock';
-import { ThinkingBlock } from './pretty/ThinkingBlock';
-import { ToolBlock } from './pretty/ToolBlock';
-import { ToolGroupBlock } from './pretty/ToolGroupBlock';
-import type { ToolGroupItem } from './pretty/ToolGroupBlock';
-import { StatusBlock } from './pretty/StatusBlock';
-import { UserBlock } from './pretty/UserBlock';
+import { TextBlock } from './blocks/TextBlock';
+import { ThinkingBlock } from './blocks/ThinkingBlock';
+import { ToolBlock } from './blocks/ToolBlock';
+import { ToolGroupBlock } from './blocks/ToolGroupBlock';
+import type { ToolGroupItem } from './blocks/ToolGroupBlock';
+import { StatusBlock } from './blocks/StatusBlock';
+import { UserBlock } from './blocks/UserBlock';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -145,7 +145,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
   if (!visible) return null;
 
   // Build tool_use -> tool_result pairing map
-  const toolResultMap = new Map<string, Extract<PrettyBlock, { type: 'tool_result' }>>();
+  const toolResultMap = new Map<string, Extract<AgentBlock, { type: 'tool_result' }>>();
   for (const block of blocks) {
     if (block.type === 'tool_result') {
       toolResultMap.set(block.toolId, block);
@@ -163,7 +163,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
 
   // Group consecutive tool_use blocks of the same type
   type RenderItem =
-    | { kind: 'block'; block: PrettyBlock; idx: number }
+    | { kind: 'block'; block: AgentBlock; idx: number }
     | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] };
 
   const renderItems: RenderItem[] = [];

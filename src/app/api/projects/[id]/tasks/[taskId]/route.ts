@@ -3,7 +3,7 @@ import { getTask, getProject, updateTask, deleteTask, getSettings } from "@/lib/
 import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
-import { clearSession } from "@/lib/pretty-runtime";
+import { clearSession } from "@/lib/agent-session";
 import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
 
 /** Check if the main project directory is currently on a task's branch (or its preview) and switch to main if so */
@@ -54,7 +54,7 @@ export async function PATCH(request: Request, { params }: Params) {
       if (prevStatus !== "verify") {
         const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
-        const renderMode = updated.renderMode || settings.agentRenderMode || 'pretty';
+        const renderMode = updated.renderMode || settings.agentRenderMode || 'structured';
         await updateTask(id, taskId, { dispatch, renderMode });
         updated.dispatch = dispatch;
         updated.renderMode = renderMode;
@@ -73,7 +73,7 @@ export async function PATCH(request: Request, { params }: Params) {
           popAutoStash(projectPath);
         }
       }
-      const resetFields = { dispatch: null as Task["dispatch"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], prettyLog: undefined as Task["prettyLog"], sessionId: undefined as Task["sessionId"] };
+      const resetFields = { dispatch: null as Task["dispatch"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
       await updateTask(id, taskId, resetFields);
       Object.assign(updated, resetFields);
       if (prevStatus === "in-progress") {
@@ -181,8 +181,8 @@ export async function DELETE(_request: Request, { params }: Params) {
     }
   }
 
-  // Clean up SDK session if present (default pretty mode)
-  if (task?.renderMode !== "terminal") {
+  // Clean up SDK session if present (default structured mode)
+  if (task?.renderMode !== "cli") {
     clearSession(taskId);
   }
 

@@ -25,6 +25,7 @@ const IGNORED_NAMES = new Set([
   "coverage",
   ".nyc_output",
   ".parcel-cache",
+  ".proq-worktrees",
   "Thumbs.db",
 ]);
 
@@ -82,7 +83,6 @@ async function buildTree(
 
   for (const entry of sorted) {
     if (IGNORED_NAMES.has(entry.name)) continue;
-    if (entry.name.startsWith(".") && entry.name !== ".env.example") continue;
     if (matchesGitignore(entry.name, gitignorePatterns)) continue;
 
     const fullPath = path.join(dirPath, entry.name);

@@ -11,6 +11,7 @@ import {
   FileJson,
   File,
   ImageIcon,
+  SettingsIcon,
 } from 'lucide-react';
 
 export interface TreeNode {
@@ -34,6 +35,18 @@ interface TreeNodeItemProps {
 }
 
 function getFileIcon(name: string) {
+  // Dotfiles / config files
+  const nameLower = name.toLowerCase();
+  if (nameLower.startsWith('.env')) {
+    return <SettingsIcon className="w-4 h-4 text-gold flex-shrink-0" />;
+  }
+  if (nameLower === '.gitignore' || nameLower === '.eslintignore' || nameLower === '.prettierignore') {
+    return <FileText className="w-4 h-4 text-zinc-500 flex-shrink-0" />;
+  }
+  if (nameLower.startsWith('.eslint') || nameLower.startsWith('.prettier')) {
+    return <SettingsIcon className="w-4 h-4 text-zinc-400 flex-shrink-0" />;
+  }
+
   const ext = name.split('.').pop()?.toLowerCase();
   switch (ext) {
     case 'ts':
@@ -84,7 +97,7 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
     <div>
       <button
         onClick={handleClick}
-        className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[13px] hover:bg-bronze-200/60 dark:hover:bg-zinc-800/60 rounded-sm transition-colors ${
+        className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[12px] hover:bg-bronze-200/60 dark:hover:bg-zinc-800/60 rounded-sm transition-colors ${
           isSelected
             ? 'bg-steel/15 text-steel hover:bg-steel/20 dark:hover:bg-steel/20'
             : 'text-bronze-800 dark:text-zinc-300'
@@ -132,7 +145,7 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
 
 export function FileTree({ nodes, selectedPath, onSelectFile }: FileTreeProps) {
   return (
-    <div className="py-1 overflow-y-auto h-full font-mono text-sm select-none">
+    <div className="py-1 overflow-y-auto h-full text-[12px] select-none">
       {nodes.map((node) => (
         <TreeNodeItem
           key={node.path}

@@ -367,10 +367,10 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         )}
 
         {/* Footer toolbar */}
-        <div ref={toolbarRef} className="border-t border-bronze-300/60 dark:border-zinc-800/60 flex items-stretch shrink-0">
+        <div ref={toolbarRef} className="border-t border-bronze-300/60 dark:border-zinc-800/60 flex items-center shrink-0 px-2 py-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs px-4 py-3"
+            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs px-2 py-1"
           >
             <PaperclipIcon className="w-3.5 h-3.5" />
             <span>Attach file</span>

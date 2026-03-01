@@ -29,7 +29,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const MIN_MODAL_HEIGHT = 600;
+const MIN_MODAL_HEIGHT = 480;
 const MAX_MODAL_VH = 0.8;
 
 export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {

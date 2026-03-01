@@ -7,8 +7,6 @@ import { Modal } from '@/components/Modal';
 
 interface PlanApprovalBlockProps {
   input: Record<string, unknown>;
-  /** Whether the agent already got an auto-resolved answer */
-  hasResult: boolean;
   /** Markdown content of the plan file, if found */
   planContent?: string;
   /** Path to the plan file */
@@ -17,7 +15,7 @@ interface PlanApprovalBlockProps {
   onReject: (feedback: string) => void;
 }
 
-export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath, onApprove, onReject }: PlanApprovalBlockProps) {
+export function PlanApprovalBlock({ input, planContent, planFilePath, onApprove, onReject }: PlanApprovalBlockProps) {
   const [expanded, setExpanded] = useState(true);
   const [feedbackMode, setFeedbackMode] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -39,11 +37,6 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
             Plan ready for approval
           </span>
           <div className="ml-auto flex items-center gap-2">
-            {hasResult && (
-              <span className="text-[10px] text-zinc-600 italic">
-                auto-resolved
-              </span>
-            )}
             {planContent && (
               <button
                 onClick={() => setModalOpen(true)}
@@ -135,7 +128,7 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
 
       {/* Full plan modal */}
       {planContent && (
-        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} className="max-w-5xl w-full mx-4 flex flex-col max-h-[80vh] !bg-[#111] !border-zinc-800/80">
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} className="max-w-5xl w-full mx-4 flex flex-col max-h-[80vh]">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-bronze-300 dark:border-zinc-800 shrink-0">
             <ClipboardCheckIcon className="w-4 h-4 text-zinc-500" />
             <span className="text-sm font-medium text-zinc-300">Plan</span>

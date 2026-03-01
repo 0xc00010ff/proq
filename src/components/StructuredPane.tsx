@@ -367,7 +367,6 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                 <PlanApprovalBlock
                   key={`plan-${item.idx}`}
                   input={item.input}
-                  hasResult={!!item.result}
                   planContent={item.planContent}
                   planFilePath={item.planFilePath}
                   onApprove={() => sendFollowUp('Plan approved. Proceed with implementation.')}

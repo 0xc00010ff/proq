@@ -59,7 +59,7 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
               )}
             </button>
             {expanded && (
-              <div className="border-t border-zinc-800/60 max-h-80 overflow-y-auto">
+              <div className="border-t border-zinc-800/60 max-h-80 overflow-y-auto px-3">
                 <TextBlock text={planContent} />
               </div>
             )}

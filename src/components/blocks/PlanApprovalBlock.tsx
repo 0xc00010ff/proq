@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronRightIcon, ClipboardCheckIcon } from 'lucide-react';
+import { TextBlock } from './TextBlock';
 
 interface PlanApprovalBlockProps {
   input: Record<string, unknown>;
@@ -58,8 +59,8 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
               )}
             </button>
             {expanded && (
-              <div className="border-t border-zinc-800/60 px-3 py-2 max-h-80 overflow-y-auto">
-                <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono leading-relaxed">{planContent}</pre>
+              <div className="border-t border-zinc-800/60 max-h-80 overflow-y-auto">
+                <TextBlock text={planContent} />
               </div>
             )}
           </>
@@ -82,22 +83,13 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
         {/* Actions */}
         <div className="px-3 py-2.5 border-t border-zinc-800/60">
           {!feedbackMode ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onApprove}
-                className="px-3 py-1.5 rounded-md border border-bronze-500/30 bg-bronze-800/30 hover:bg-bronze-800/50 text-xs font-medium text-bronze-400 transition-colors"
-              >
+            <div className="flex items-center gap-2">
+              <button onClick={onApprove} className="btn-primary">
                 Approve Plan
               </button>
-              <span className="text-[11px] text-zinc-600">
-                or{' '}
-                <button
-                  onClick={() => setFeedbackMode(true)}
-                  className="text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors"
-                >
-                  request changes
-                </button>
-              </span>
+              <button onClick={() => setFeedbackMode(true)} className="btn-secondary">
+                Request Changes
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -112,13 +104,13 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
                 <button
                   onClick={() => { if (feedback.trim()) onReject(feedback.trim()); }}
                   disabled={!feedback.trim()}
-                  className="px-3 py-1.5 rounded-md border border-bronze-500/30 bg-bronze-800/30 hover:bg-bronze-800/50 text-xs font-medium text-bronze-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Send Feedback
                 </button>
                 <button
                   onClick={() => { setFeedbackMode(false); setFeedback(''); }}
-                  className="px-3 py-1.5 rounded-md text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>

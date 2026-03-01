@@ -246,7 +246,7 @@ export async function dispatchTask(
   // Re-read the task to check if it already has a worktree (e.g., conflict resolution re-dispatch)
   const currentTask = await getTask(projectId, taskId);
 
-  if (executionMode === "parallel" && mode !== "plan" && mode !== "answer") {
+  if (executionMode === "parallel") {
     if (currentTask?.worktreePath) {
       // Worktree already exists (conflict resolution re-dispatch) — reuse it
       effectivePath = currentTask.worktreePath;

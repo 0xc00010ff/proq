@@ -135,7 +135,7 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
 
       {/* Full plan modal */}
       {planContent && (
-        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} className="max-w-3xl w-full mx-4 flex flex-col max-h-[80vh]">
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} className="max-w-5xl w-full mx-4 flex flex-col max-h-[80vh] !bg-[#111] !border-zinc-800/80">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-bronze-300 dark:border-zinc-800 shrink-0">
             <ClipboardCheckIcon className="w-4 h-4 text-zinc-500" />
             <span className="text-sm font-medium text-zinc-300">Plan</span>

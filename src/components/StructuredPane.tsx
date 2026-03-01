@@ -14,6 +14,7 @@ import { StatusBlock } from './blocks/StatusBlock';
 import { TaskUpdateBlock } from './blocks/TaskUpdateBlock';
 import { UserBlock } from './blocks/UserBlock';
 import { AskQuestionBlock } from './blocks/AskQuestionBlock';
+import { PlanApprovalBlock } from './blocks/PlanApprovalBlock';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -217,7 +218,8 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
   type RenderItem =
     | { kind: 'block'; block: AgentBlock; idx: number }
     | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] }
-    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number };
+    | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number }
+    | { kind: 'plan_approval'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number };
 
   const renderItems: RenderItem[] = [];
   for (let i = 0; i < blocks.length; i++) {
@@ -229,6 +231,18 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
       if (block.name === 'AskUserQuestion') {
         renderItems.push({
           kind: 'ask_question',
+          toolId: block.toolId,
+          input: block.input,
+          result: toolResultMap.get(block.toolId),
+          idx: i,
+        });
+        continue;
+      }
+
+      // Render ExitPlanMode as plan approval card
+      if (block.name === 'ExitPlanMode') {
+        renderItems.push({
+          kind: 'plan_approval',
           toolId: block.toolId,
           input: block.input,
           result: toolResultMap.get(block.toolId),
@@ -325,6 +339,17 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                   onAnswer={(answer) => {
                     sendFollowUp(answer);
                   }}
+                />
+              );
+            }
+            if (item.kind === 'plan_approval') {
+              return (
+                <PlanApprovalBlock
+                  key={`plan-${item.idx}`}
+                  input={item.input}
+                  hasResult={!!item.result}
+                  onApprove={() => sendFollowUp('Plan approved. Proceed with implementation.')}
+                  onReject={(feedback) => sendFollowUp(`Plan rejected. ${feedback}`)}
                 />
               );
             }

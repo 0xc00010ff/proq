@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type DragEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { TopBar, type TabOption } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -14,7 +14,7 @@ import { ParallelModeModal } from '@/components/ParallelModeModal';
 import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
-import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft } from '@/lib/types';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment } from '@/lib/types';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -36,6 +36,8 @@ export default function ProjectPage() {
   const [branches, setBranches] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
+  const [boardDragOver, setBoardDragOver] = useState(false);
+  const boardDragCounter = useRef(0);
 
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
@@ -255,6 +257,83 @@ export default function ProjectPage() {
     refresh();
   };
 
+  const handleBoardDragEnter = useCallback((e: DragEvent) => {
+    // Only respond to file drags, not dnd-kit task drags
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    boardDragCounter.current++;
+    setBoardDragOver(true);
+  }, []);
+
+  const handleBoardDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    boardDragCounter.current--;
+    if (boardDragCounter.current <= 0) {
+      boardDragCounter.current = 0;
+      setBoardDragOver(false);
+    }
+  }, []);
+
+  const handleBoardDragOver = useCallback((e: DragEvent) => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleBoardDrop = useCallback(async (e: DragEvent) => {
+    e.preventDefault();
+    boardDragCounter.current = 0;
+    setBoardDragOver(false);
+    if (!e.dataTransfer.files.length) return;
+
+    // Create a new task
+    const res = await fetch(`/api/projects/${projectId}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '', description: '' }),
+    });
+    const newTask: Task = await res.json();
+
+    // Read files into attachments
+    const files = Array.from(e.dataTransfer.files);
+    const attachments: TaskAttachment[] = [];
+    await Promise.all(
+      files.map(
+        (f) =>
+          new Promise<void>((resolve) => {
+            const att: TaskAttachment = {
+              id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              name: f.name,
+              size: f.size,
+              type: f.type,
+            };
+            if (f.type.startsWith('image/')) {
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                att.dataUrl = ev.target?.result as string;
+                attachments.push(att);
+                resolve();
+              };
+              reader.readAsDataURL(f);
+            } else {
+              attachments.push(att);
+              resolve();
+            }
+          }),
+      ),
+    );
+
+    // Patch the task with attachments
+    await fetch(`/api/projects/${projectId}/tasks/${newTask.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attachments }),
+    });
+
+    setModalTask({ ...newTask, attachments });
+    refresh();
+  }, [projectId, refresh]);
+
   const handleTabChange = useCallback((tab: TabOption) => {
     setActiveTab(tab);
     fetch(`/api/projects/${projectId}`, {
@@ -358,9 +437,20 @@ export default function ProjectPage() {
         {activeTab === 'project' && (
           <>
             <div
-              className="flex-1 min-h-0 overflow-hidden"
+              className="flex-1 min-h-0 overflow-hidden relative"
               style={workbenchCollapsed ? undefined : { flexBasis: `${100 - chatPercent}%` }}
+              onDragEnter={handleBoardDragEnter}
+              onDragLeave={handleBoardDragLeave}
+              onDragOver={handleBoardDragOver}
+              onDrop={handleBoardDrop}
             >
+              {boardDragOver && (
+                <div className="absolute inset-0 z-40 bg-steel/10 border-2 border-dashed border-steel/40 rounded-lg flex items-center justify-center pointer-events-none">
+                  <div className="bg-zinc-900/90 border border-steel/30 rounded-lg px-6 py-4 shadow-xl">
+                    <p className="text-sm font-medium text-steel">Drop to create new task</p>
+                  </div>
+                </div>
+              )}
               <KanbanBoard
                 tasks={columns}
                 onMoveTask={moveTask}

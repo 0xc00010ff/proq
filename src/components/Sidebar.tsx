@@ -462,7 +462,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           </span>
           <button
             onClick={onAddProject}
-            className="flex items-center gap-1.5 py-1 px-2.5 rounded text-text-chrome hover:text-bronze-400 text-xs transition-colors"
+            className="btn-secondary flex items-center gap-1.5"
           >
             <PlusIcon className="w-3 h-3" />
             <span>New</span>

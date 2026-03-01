@@ -20,6 +20,7 @@ export function PlanApprovalBlock({ input, planContent, planFilePath, onApprove,
   const [feedbackMode, setFeedbackMode] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [responded, setResponded] = useState<'approved' | 'rejected' | null>(null);
 
   // Extract plan content — ExitPlanMode may include allowedPrompts in its input
   const allowedPrompts = Array.isArray(input.allowedPrompts) ? input.allowedPrompts as { tool: string; prompt: string }[] : [];
@@ -88,9 +89,13 @@ export function PlanApprovalBlock({ input, planContent, planFilePath, onApprove,
 
         {/* Actions */}
         <div className="px-3 py-2.5 border-t border-zinc-800/60">
-          {!feedbackMode ? (
+          {responded ? (
+            <span className="text-[11px] text-zinc-600 italic">
+              {responded === 'approved' ? 'Plan approved' : 'Changes requested'}
+            </span>
+          ) : !feedbackMode ? (
             <div className="flex items-center gap-2">
-              <button onClick={onApprove} className="btn-primary">
+              <button onClick={() => { setResponded('approved'); onApprove(); }} className="btn-primary">
                 Approve Plan
               </button>
               <button onClick={() => setFeedbackMode(true)} className="btn-secondary">
@@ -108,7 +113,7 @@ export function PlanApprovalBlock({ input, planContent, planFilePath, onApprove,
               />
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { if (feedback.trim()) onReject(feedback.trim()); }}
+                  onClick={() => { if (feedback.trim()) { setResponded('rejected'); onReject(feedback.trim()); } }}
                   disabled={!feedback.trim()}
                   className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                 >

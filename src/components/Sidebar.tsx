@@ -437,7 +437,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
           alt="proq"
           width={13}
           height={13}
-          className={`flex-shrink-0 ${showFull ? "translate-y-[4px]" : ""}`}
+          className="flex-shrink-0 translate-y-[4px]"
         />
         {showFull && (
           <>

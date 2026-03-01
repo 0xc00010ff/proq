@@ -14,12 +14,13 @@ interface TaskCardProps {
   task: Task;
   isDragOverlay?: boolean;
   isQueued?: boolean;
+  isPreviewActive?: boolean;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
 }
 
-export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
+export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const steps = parseLines(task.humanSteps);
   const isRunning = task.dispatch === 'running';
   const isStarting = task.dispatch === 'starting';
@@ -67,7 +68,9 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick, onU
     <div
       className={`
         group relative bg-surface-secondary border rounded-md overflow-hidden
-        ${isRunning
+        ${isPreviewActive
+          ? 'border-gold/50 shadow-[0_0_12px_rgba(201,168,76,0.15)]'
+          : isRunning
           ? 'border-steel/40 shadow-[0_0_12px_rgba(91,131,176,0.15)] animate-pulse-subtle'
           : isQueued || isStarting
           ? 'border-zinc-500/30'

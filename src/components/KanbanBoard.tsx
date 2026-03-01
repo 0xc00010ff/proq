@@ -43,6 +43,7 @@ interface KanbanBoardProps {
   onRefreshTasks?: () => void;
   executionMode?: ExecutionMode;
   onExecutionModeChange?: (mode: ExecutionMode) => void;
+  activeBranch?: string;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
@@ -92,11 +93,13 @@ function DroppableColumn({
 function SortableTaskCard({
   task,
   isQueued,
+  isPreviewActive,
   onDelete,
   onClick,
 }: {
   task: Task;
   isQueued?: boolean;
+  isPreviewActive?: boolean;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
 }) {
@@ -122,7 +125,7 @@ function SortableTaskCard({
       {...attributes}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
     >
-      <TaskCard task={task} isQueued={isQueued} onDelete={onDelete} onClick={onClick} />
+      <TaskCard task={task} isQueued={isQueued} isPreviewActive={isPreviewActive} onDelete={onDelete} onClick={onClick} />
     </div>
   );
 }
@@ -144,6 +147,7 @@ export function KanbanBoard({
   onRefreshTasks,
   executionMode = 'sequential',
   onExecutionModeChange,
+  activeBranch,
 }: KanbanBoardProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
@@ -388,11 +392,13 @@ export function KanbanBoard({
                     )}
                     {colTasks.map((task) => {
                       const isQueued = task.dispatch === 'queued';
+                      const isPreviewActive = !!(activeBranch && task.branch && task.branch === activeBranch && activeBranch !== 'main' && activeBranch !== 'master');
                       return (
                         <SortableTaskCard
                           key={task.id}
                           task={task}
                           isQueued={isQueued}
+                          isPreviewActive={isPreviewActive}
                           onDelete={onDeleteTask}
                           onClick={onClickTask}
                         />

@@ -466,6 +466,7 @@ export default function ProjectPage() {
                 onRefreshTasks={refresh}
                 executionMode={executionMode}
                 onExecutionModeChange={handleExecutionModeChange}
+                activeBranch={currentBranch}
               />
             </div>
 

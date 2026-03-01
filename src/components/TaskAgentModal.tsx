@@ -161,8 +161,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-zinc-800 bg-bronze-100/50 dark:bg-zinc-900/50">
               {task.status === 'verify' && task.branch && onSwitchBranch && currentBranch === task.branch ? (
                 <>
-                  <span className="text-xs text-steel font-medium">viewing</span>
-                  <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-steel/30 bg-steel/10 text-steel">
+                  <span className="text-xs text-gold font-medium">viewing</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-gold/30 bg-gold/10 text-gold">
                     <GitBranchIcon className="w-3 h-3" />
                     {task.branch}
                   </span>
@@ -187,7 +187,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
                   {task.status === 'verify' && task.branch && onSwitchBranch && (
                     <button
                       onClick={() => onSwitchBranch(task.branch!)}
-                      className="text-[10px] font-medium text-steel hover:text-steel/80 transition-colors px-1.5 py-0.5 rounded border border-steel/30 hover:bg-steel/10"
+                      className="text-[10px] font-medium text-gold hover:text-gold/80 transition-colors px-1.5 py-0.5 rounded border border-gold/30 hover:bg-gold/10"
                     >
                       Preview
                     </button>

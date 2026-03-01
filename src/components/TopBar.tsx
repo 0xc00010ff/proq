@@ -31,6 +31,8 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     { id: 'code', label: 'Code' },
   ];
 
+  const isOnPreviewBranch = currentBranch?.startsWith('proq/') ?? false;
+
   // Sort branches: main first, then proq/* branches, then others
   const sortedBranches = branches ? [...branches].sort((a, b) => {
     if (a === 'main' || a === 'master') return -1;
@@ -89,11 +91,17 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors outline-none"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border transition-colors outline-none ${
+                  isOnPreviewBranch
+                    ? 'border-gold/40 bg-surface-secondary text-gold shadow-[0_0_8px_rgba(201,168,76,0.1)] hover:text-gold-light hover:bg-surface-hover'
+                    : 'border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover'
+                }`}
               >
-                <GitBranchIcon className="w-3.5 h-3.5" />
-                <span className="max-w-[160px] truncate">
-                  {currentBranch}
+                <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-gold' : ''}`} />
+                <span className="max-w-[180px] truncate">
+                  {isOnPreviewBranch && taskBranchMap?.[currentBranch!]
+                    ? taskBranchMap[currentBranch!].split(/\s+/).slice(0, 4).join(' ')
+                    : currentBranch}
                 </span>
                 <ChevronDownIcon className="w-3 h-3 opacity-50" />
               </button>
@@ -156,11 +164,15 @@ function BranchItem({ branch, isCurrent, taskTitle, onSelect }: {
       ) : (
         <span className="w-3 shrink-0" />
       )}
-      <span className="font-mono truncate">{branch}</span>
-      {taskTitle && (
-        <span className="ml-auto text-[10px] text-bronze-500 dark:text-zinc-600 truncate max-w-[120px]">
-          {taskTitle}
-        </span>
+      {taskTitle ? (
+        <>
+          <span className="truncate">{taskTitle}</span>
+          <span className="ml-auto text-[10px] font-mono text-bronze-500 dark:text-zinc-600 truncate max-w-[100px]">
+            {branch.replace('proq/', '')}
+          </span>
+        </>
+      ) : (
+        <span className="font-mono truncate">{branch}</span>
       )}
     </DropdownMenuItem>
   );

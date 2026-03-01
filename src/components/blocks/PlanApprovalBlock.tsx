@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronRightIcon, ClipboardCheckIcon } from 'lucide-react';
+import { ChevronRightIcon, ClipboardCheckIcon, Maximize2Icon } from 'lucide-react';
 import { TextBlock } from './TextBlock';
+import { Modal } from '@/components/Modal';
 
 interface PlanApprovalBlockProps {
   input: Record<string, unknown>;
@@ -20,6 +21,7 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
   const [expanded, setExpanded] = useState(true);
   const [feedbackMode, setFeedbackMode] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Extract plan content — ExitPlanMode may include allowedPrompts in its input
   const allowedPrompts = Array.isArray(input.allowedPrompts) ? input.allowedPrompts as { tool: string; prompt: string }[] : [];
@@ -36,11 +38,22 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
           <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
             Plan ready for approval
           </span>
-          {hasResult && (
-            <span className="ml-auto text-[10px] text-zinc-600 italic">
-              auto-resolved
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {hasResult && (
+              <span className="text-[10px] text-zinc-600 italic">
+                auto-resolved
+              </span>
+            )}
+            {planContent && (
+              <button
+                onClick={() => setModalOpen(true)}
+                className="text-zinc-600 hover:text-zinc-400 transition-colors p-0.5"
+                title="View full plan"
+              >
+                <Maximize2Icon className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Expandable plan content */}
@@ -119,6 +132,22 @@ export function PlanApprovalBlock({ input, hasResult, planContent, planFilePath,
           )}
         </div>
       </div>
+
+      {/* Full plan modal */}
+      {planContent && (
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} className="max-w-3xl w-full mx-4 flex flex-col max-h-[80vh]">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-bronze-300 dark:border-zinc-800 shrink-0">
+            <ClipboardCheckIcon className="w-4 h-4 text-zinc-500" />
+            <span className="text-sm font-medium text-zinc-300">Plan</span>
+            {planFileName && (
+              <span className="text-xs text-zinc-600 font-mono ml-1">{planFileName}</span>
+            )}
+          </div>
+          <div className="overflow-y-auto px-5 py-3 flex-1 min-h-0">
+            <TextBlock text={planContent} />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

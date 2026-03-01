@@ -28,6 +28,8 @@ import {
   Trash2Icon,
   AlertTriangleIcon,
   PencilIcon,
+  PanelLeftCloseIcon,
+  SettingsIcon,
 } from "lucide-react";
 import type { Project, Task, TaskStatus, TaskColumns } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
@@ -40,6 +42,8 @@ function folderName(project: Project): string {
 interface SidebarProps {
   onAddProject: () => void;
   onMissingPath?: (project: Project) => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 function TaskStatusSummary({ columns }: { columns: TaskColumns }) {
@@ -314,18 +318,23 @@ function SortableProject({
 
 // ── Sidebar ──────────────────────────────────────────────
 
-export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
+export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { projects, tasksByProject, refreshProjects, setProjects } =
     useProjects();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [hovered, setHovered] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const isChatActive = pathname === "/supervisor";
+  const isSettingsActive = pathname === "/settings";
+
+  // When collapsed, expand on hover; show full content when expanded OR hovered
+  const showFull = !collapsed || hovered;
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -407,105 +416,140 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   }, []);
 
   return (
-    <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0">
-      {/* Header */}
-      <Link
-        href="/settings"
-        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative
-          ${pathname === "/settings" ? "bg-bronze-300 dark:bg-zinc-800/50" : ""}`}
+    <aside
+      className={`h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${
+        showFull ? "w-[260px]" : "w-10"
+      }`}
+      onMouseEnter={() => { if (collapsed) setHovered(true); }}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Header — collapse/expand toggle */}
+      <div
+        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0"
+        onClick={() => { if (!showFull) onToggleCollapsed(); }}
       >
-        {pathname === "/settings" && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
-        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/proq-logo-vector.svg"
           alt="proq"
           width={13}
           height={13}
-          className="translate-y-[4px]"
+          className="translate-y-[4px] flex-shrink-0"
         />
-        <span
-          className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase"
-          style={{ fontFamily: "var(--font-gemunu-libre)" }}
-        >
-          proq
-        </span>
-      </Link>
-
-      {/* Main Chat Item */}
-      <Link
-        href="/supervisor"
-        className={`w-full text-left p-3 px-4 relative group py-4 block
-          ${isChatActive ? "bg-bronze-300 dark:bg-zinc-800" : "hover:bg-bronze-300/60 dark:hover:bg-zinc-800/40"}`}
-      >
-        {isChatActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+        {showFull && (
+          <>
+            <span
+              className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase flex-1"
+              style={{ fontFamily: "var(--font-gemunu-libre)" }}
+            >
+              proq
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCollapsed();
+              }}
+              className="p-1 rounded hover:bg-bronze-300 dark:hover:bg-zinc-700 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <PanelLeftCloseIcon className="w-4 h-4" />
+            </button>
+          </>
         )}
-        <div className="flex items-center gap-2.5">
-          <SquareChevronUpIcon
-            className={`w-4 h-4 ${isChatActive ? "text-bronze-500" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
-          />
-          <span
-            className={`text-sm font-medium ${isChatActive ? "text-bronze-900 dark:text-zinc-100" : "text-bronze-700 dark:text-zinc-300 group-hover:text-bronze-900 dark:group-hover:text-zinc-100"}`}
-          >
-            Supervisor
-          </span>
-        </div>
-      </Link>
-
-      {/* Project List */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
-            Projects
-          </span>
-          <button
-            onClick={onAddProject}
-            className="btn-secondary flex items-center gap-1.5"
-          >
-            <PlusIcon className="w-3 h-3" />
-            <span>New</span>
-          </button>
-        </div>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={projects.map((p) => p.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {projects.map((project, index) => {
-              const isActive = pathname === `/projects/${project.id}`;
-              const cols = tasksByProject[project.id] || {
-                todo: [],
-                "in-progress": [],
-                verify: [],
-                done: [],
-              };
-              return (
-                <SortableProject
-                  key={project.id}
-                  project={project}
-                  index={index}
-                  isActive={isActive}
-                  columns={cols}
-                  isRenaming={renamingId === project.id}
-                  renameValue={renameValue}
-                  onRenameChange={setRenameValue}
-                  onRenameSubmit={handleRenameSubmit}
-                  onRenameCancel={handleRenameCancel}
-                  onDelete={handleDelete}
-                  onRename={handleStartRename}
-                  onMissingPath={onMissingPath}
-                />
-              );
-            })}
-          </SortableContext>
-        </DndContext>
       </div>
+
+      {showFull && (
+        <>
+          {/* Main Chat Item */}
+          <Link
+            href="/supervisor"
+            className={`w-full text-left p-3 px-4 relative group py-4 block flex-shrink-0
+              ${isChatActive ? "bg-bronze-300 dark:bg-zinc-800" : "hover:bg-bronze-300/60 dark:hover:bg-zinc-800/40"}`}
+          >
+            {isChatActive && (
+              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+            )}
+            <div className="flex items-center gap-2.5">
+              <SquareChevronUpIcon
+                className={`w-4 h-4 ${isChatActive ? "text-bronze-500" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
+              />
+              <span
+                className={`text-sm font-medium ${isChatActive ? "text-bronze-900 dark:text-zinc-100" : "text-bronze-700 dark:text-zinc-300 group-hover:text-bronze-900 dark:group-hover:text-zinc-100"}`}
+              >
+                Supervisor
+              </span>
+            </div>
+          </Link>
+
+          {/* Project List */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
+                Projects
+              </span>
+              <button
+                onClick={onAddProject}
+                className="btn-secondary flex items-center gap-1.5"
+              >
+                <PlusIcon className="w-3 h-3" />
+                <span>New</span>
+              </button>
+            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={projects.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {projects.map((project, index) => {
+                  const isActive = pathname === `/projects/${project.id}`;
+                  const cols = tasksByProject[project.id] || {
+                    todo: [],
+                    "in-progress": [],
+                    verify: [],
+                    done: [],
+                  };
+                  return (
+                    <SortableProject
+                      key={project.id}
+                      project={project}
+                      index={index}
+                      isActive={isActive}
+                      columns={cols}
+                      isRenaming={renamingId === project.id}
+                      renameValue={renameValue}
+                      onRenameChange={setRenameValue}
+                      onRenameSubmit={handleRenameSubmit}
+                      onRenameCancel={handleRenameCancel}
+                      onDelete={handleDelete}
+                      onRename={handleStartRename}
+                      onMissingPath={onMissingPath}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          </div>
+
+          {/* Fixed Settings at bottom */}
+          <Link
+            href="/settings"
+            className={`h-12 flex items-center gap-2.5 px-4 border-t border-border-default flex-shrink-0 group/settings
+              ${isSettingsActive ? "bg-bronze-300 dark:bg-zinc-800/50" : "hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40"} transition-colors relative`}
+          >
+            {isSettingsActive && (
+              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+            )}
+            <SettingsIcon className={`w-4 h-4 flex-shrink-0 ${isSettingsActive ? "text-bronze-600 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500 group-hover/settings:text-zinc-600 dark:group-hover/settings:text-zinc-300"}`} />
+            <span className={`text-sm font-medium ${isSettingsActive ? "text-bronze-900 dark:text-zinc-100" : "text-bronze-700 dark:text-zinc-300 group-hover/settings:text-bronze-900 dark:group-hover/settings:text-zinc-100"}`}>
+              Settings
+            </span>
+          </Link>
+        </>
+      )}
     </aside>
   );
 }

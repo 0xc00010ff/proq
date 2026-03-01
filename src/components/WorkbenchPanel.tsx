@@ -6,11 +6,17 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2 } from 'lucide-react';
+import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useWorkbenchTabs, type WorkbenchTab } from './WorkbenchTabsProvider';
 import { TerminalPane } from './TerminalPane';
 import { AgentTabPane } from './AgentTabPane';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface WorkbenchPanelProps {
   projectId: string;
@@ -30,12 +36,8 @@ interface WorkbenchPanelProps {
 export default function WorkbenchPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: WorkbenchPanelProps) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
-  const [menuTabId, setMenuTabId] = useState<string | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [showNewTabMenu, setShowNewTabMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const newTabMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   // Hydrate persisted tabs on mount
@@ -55,21 +57,6 @@ export default function WorkbenchPanel({ projectId, projectPath, style, collapse
       document.head.appendChild(link);
     }
   }, []);
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    if (!menuTabId && !showNewTabMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (menuTabId && menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuTabId(null);
-      }
-      if (showNewTabMenu && newTabMenuRef.current && !newTabMenuRef.current.contains(e.target as Node)) {
-        setShowNewTabMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuTabId, showNewTabMenu]);
 
   // Focus rename input when it appears
   useEffect(() => {
@@ -189,90 +176,71 @@ export default function WorkbenchPanel({ projectId, projectPath, style, collapse
                   />
                 )}
               </span>
-              {/* Dots overlay — hidden until hover */}
-              <span
-                data-clickable
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuTabId(menuTabId === tab.id ? null : tab.id);
-                }}
-                className="absolute right-0 inset-y-0 flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-zinc-500 hover:text-zinc-300 bg-gradient-to-l from-zinc-900/90 from-50% to-transparent"
-              >
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </span>
+              {/* Dots menu — hidden until hover */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <span
+                    data-clickable
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 inset-y-0 flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-zinc-500 hover:text-zinc-300 bg-gradient-to-l from-zinc-900/90 from-50% to-transparent"
+                  >
+                    <MoreHorizontal className="w-3.5 h-3.5" />
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="bottom" className="w-40">
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setRenamingTabId(tab.id);
+                      setRenameValue(tab.label);
+                    }}
+                  >
+                    <PencilIcon className="w-3.5 h-3.5" />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => removeTab(tab.id)}
+                    className="text-red-400 hover:text-red-300 focus:text-red-300"
+                  >
+                    <Trash2Icon className="w-3.5 h-3.5" />
+                    {tab.type === 'agent' ? 'Close Agent' : 'Kill Terminal'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </button>
-            {menuTabId === tab.id && (
-              <div
-                ref={menuRef}
-                className="absolute left-0 top-full mt-1 w-40 bg-bronze-50 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1"
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuTabId(null);
-                    setRenamingTabId(tab.id);
-                    setRenameValue(tab.label);
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <PencilIcon className="w-3.5 h-3.5" />
-                  Rename
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuTabId(null);
-                    removeTab(tab.id);
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {tab.type === 'agent' ? 'Close Agent' : 'Kill Terminal'}
-                </button>
-              </div>
-            )}
           </div>
         ))}
 
         {/* New tab button with dropdown */}
-        <div className="relative shrink-0">
-          <button
-            onClick={() => setShowNewTabMenu((prev) => !prev)}
-            className="flex items-center justify-center w-12 self-stretch h-full text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30"
-            title="New tab"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-          {showNewTabMenu && (
-            <div
-              ref={newTabMenuRef}
-              className="absolute left-0 top-full mt-1 w-40 bg-bronze-50 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1"
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center justify-center w-12 self-stretch h-full text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30 shrink-0"
+              title="New tab"
             >
-              <button
-                onClick={() => {
-                  setShowNewTabMenu(false);
-                  addAgentTab();
-                  if (collapsed) (onExpand ?? onToggleCollapsed)();
-                }}
-                className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
-              >
-                <SquareChevronUpIcon className="w-3.5 h-3.5" />
-                Agent
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewTabMenu(false);
-                  addShellTab();
-                  if (collapsed) (onExpand ?? onToggleCollapsed)();
-                }}
-                className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
-              >
-                <TerminalIcon className="w-3.5 h-3.5" />
-                Terminal
-              </button>
-            </div>
-          )}
-        </div>
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom" className="w-40">
+            <DropdownMenuItem
+              onSelect={() => {
+                addAgentTab();
+                if (collapsed) (onExpand ?? onToggleCollapsed)();
+              }}
+            >
+              <SquareChevronUpIcon className="w-3.5 h-3.5" />
+              Agent
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                addShellTab();
+                if (collapsed) (onExpand ?? onToggleCollapsed)();
+              }}
+            >
+              <TerminalIcon className="w-3.5 h-3.5" />
+              Terminal
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Spacer — fills remaining space for grab target */}
         <div className="flex-1" />

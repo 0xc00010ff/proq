@@ -94,6 +94,7 @@ export async function PUT(request: Request, { params }: Params) {
               error: result.error || "Merge conflict",
               files: result.conflictFiles || [],
               branch: prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`,
+              diff: result.diff,
             },
           });
           await processQueue(id);
@@ -118,6 +119,7 @@ export async function PUT(request: Request, { params }: Params) {
                 error: result.error || "Merge conflict",
                 files: result.conflictFiles || [],
                 branch: prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`,
+                diff: result.diff,
               },
             });
             await processQueue(id);

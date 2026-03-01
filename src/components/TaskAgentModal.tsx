@@ -559,20 +559,20 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         <ConflictModal
           branch={task.mergeConflict.branch}
           files={task.mergeConflict.files}
-          onRedispatch={async () => {
+          diff={task.mergeConflict.diff}
+          onResolve={async () => {
             setShowConflictModal(false);
-            // Move task to todo then to in-progress to re-dispatch
-            await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: 'todo' }),
+            // Merge main into worktree and get resolution prompt
+            const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}/resolve`, {
+              method: 'POST',
             });
-            await fetch(`/api/projects/${projectId}/tasks/reorder`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ taskId: task.id, toColumn: 'in-progress', toIndex: 0 }),
-            });
-            onClose();
+            if (res.ok) {
+              const data = await res.json();
+              // Pre-populate the chat input with the resolution prompt
+              if (data.prompt && onFollowUpDraftChange) {
+                onFollowUpDraftChange({ text: data.prompt, attachments: [] });
+              }
+            }
           }}
           onDismiss={() => setShowConflictModal(false)}
         />

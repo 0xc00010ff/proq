@@ -111,9 +111,10 @@ function wireProcess(
       session.status = "done";
     }
 
-    // Check if the last tool_use was AskUserQuestion — surface as humanSteps
+    // Check if the last tool_use was AskUserQuestion or ExitPlanMode — surface to human
     const lastToolUse = [...session.blocks].reverse().find((b) => b.type === "tool_use");
     const endedOnQuestion = lastToolUse?.type === "tool_use" && lastToolUse.name === "AskUserQuestion";
+    const endedOnPlanExit = lastToolUse?.type === "tool_use" && lastToolUse.name === "ExitPlanMode";
     let questionFields: { humanSteps?: string; findings?: string } = {};
     if (endedOnQuestion) {
       const input = lastToolUse.input as Record<string, unknown>;
@@ -122,6 +123,8 @@ function wireProcess(
       if (questionText) {
         questionFields = { humanSteps: questionText, findings: "Agent has a question — see below." };
       }
+    } else if (endedOnPlanExit) {
+      questionFields = { humanSteps: "Agent has a plan ready for approval — see below.", findings: "Agent created a plan and is waiting for approval." };
     }
 
     // Check if task is still in-progress (agent didn't call update_task)

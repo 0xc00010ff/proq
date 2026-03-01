@@ -101,6 +101,9 @@ After making substantial changes (committing code, completing a phase of work), 
   sections.push(`### Asking Questions
 When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.`);
 
+  sections.push(`### Plan Mode
+When you use \`ExitPlanMode\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
+
   return sections.join("\n\n");
 }
 

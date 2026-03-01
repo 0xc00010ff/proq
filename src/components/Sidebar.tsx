@@ -414,7 +414,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   if (collapsed) {
     return (
       <aside
-        className="w-10 h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-bronze-200 dark:hover:bg-zinc-800 transition-colors"
+        className="w-10 h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-bronze-100/40 dark:hover:bg-zinc-800/30 transition-colors"
         onClick={onToggleCollapsed}
       >
         <div className="h-16 flex items-center justify-center">

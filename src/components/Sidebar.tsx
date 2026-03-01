@@ -28,6 +28,8 @@ import {
   Trash2Icon,
   AlertTriangleIcon,
   PencilIcon,
+  PanelLeftCloseIcon,
+  SettingsIcon,
 } from "lucide-react";
 import type { Project, Task, TaskStatus, TaskColumns } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
@@ -40,6 +42,8 @@ function folderName(project: Project): string {
 interface SidebarProps {
   onAddProject: () => void;
   onMissingPath?: (project: Project) => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 function TaskStatusSummary({ columns }: { columns: TaskColumns }) {
@@ -314,7 +318,7 @@ function SortableProject({
 
 // ── Sidebar ──────────────────────────────────────────────
 
-export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
+export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { projects, tasksByProject, refreshProjects, setProjects } =
@@ -326,6 +330,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   );
 
   const isChatActive = pathname === "/supervisor";
+  const isSettingsActive = pathname === "/settings";
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -406,37 +411,54 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
     setRenamingId(null);
   }, []);
 
+  if (collapsed) {
+    return (
+      <aside
+        className="w-10 h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors"
+        onClick={onToggleCollapsed}
+      >
+        <div className="h-16 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/proq-logo-vector.svg"
+            alt="proq"
+            width={13}
+            height={13}
+            className="translate-y-[4px]"
+          />
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0">
-      {/* Header */}
-      <Link
-        href="/settings"
-        className={`h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative
-          ${pathname === "/settings" ? "bg-bronze-300 dark:bg-zinc-800/50" : ""}`}
+      {/* Header — collapse toggle */}
+      <div
+        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0"
+        onClick={onToggleCollapsed}
       >
-        {pathname === "/settings" && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
-        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/proq-logo-vector.svg"
           alt="proq"
           width={13}
           height={13}
-          className="translate-y-[4px]"
+          className="flex-shrink-0 translate-y-[4px]"
         />
         <span
-          className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase"
+          className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase flex-1"
           style={{ fontFamily: "var(--font-gemunu-libre)" }}
         >
           proq
         </span>
-      </Link>
+        <PanelLeftCloseIcon className="w-4 h-4 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+      </div>
 
       {/* Main Chat Item */}
       <Link
         href="/supervisor"
-        className={`w-full text-left p-3 px-4 relative group py-4 block
+        className={`w-full text-left p-3 px-4 relative group py-4 block flex-shrink-0
           ${isChatActive ? "bg-bronze-300 dark:bg-zinc-800" : "hover:bg-bronze-300/60 dark:hover:bg-zinc-800/40"}`}
       >
         {isChatActive && (
@@ -455,7 +477,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       </Link>
 
       {/* Project List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
             Projects
@@ -506,6 +528,21 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           </SortableContext>
         </DndContext>
       </div>
+
+      {/* Fixed Settings at bottom */}
+      <Link
+        href="/settings"
+        className={`h-12 flex items-center gap-2.5 px-4 border-t border-border-default flex-shrink-0 group/settings
+          ${isSettingsActive ? "bg-bronze-300 dark:bg-zinc-800/50" : "hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40"} transition-colors relative`}
+      >
+        {isSettingsActive && (
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+        )}
+        <SettingsIcon className={`w-4 h-4 flex-shrink-0 ${isSettingsActive ? "text-bronze-600 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500 group-hover/settings:text-zinc-600 dark:group-hover/settings:text-zinc-300"}`} />
+        <span className={`text-sm font-medium ${isSettingsActive ? "text-bronze-900 dark:text-zinc-100" : "text-bronze-700 dark:text-zinc-300 group-hover/settings:text-bronze-900 dark:group-hover/settings:text-zinc-100"}`}>
+          Settings
+        </span>
+      </Link>
     </aside>
   );
 }

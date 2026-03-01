@@ -11,6 +11,7 @@ import type { Project } from '@/lib/types';
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { refreshProjects, isLoaded } = useProjects();
   const [missingProject, setMissingProject] = useState<Project | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleAddProject = useCallback(async () => {
     const res = await fetch('/api/folder-picker', { method: 'POST' });
@@ -55,6 +56,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <Sidebar
         onAddProject={handleAddProject}
         onMissingPath={setMissingProject}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
       />
       <div className="flex-1 flex flex-col min-w-0">
         {children}

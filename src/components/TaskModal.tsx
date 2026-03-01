@@ -270,6 +270,61 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
             className="w-full min-h-[280px] bg-transparent text-sm text-bronze-700 dark:text-zinc-400 placeholder-bronze-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
             placeholder="Write something..."
           />
+
+          {/* Attachments — inside scrollable area so they don't push modal height */}
+          {attachments.length > 0 && (
+            <div className="pt-2 pb-1 flex flex-wrap gap-2">
+              {attachments.map((att) => {
+                const isImage = att.type?.startsWith('image/') || false;
+                return isImage && att.dataUrl ? (
+                  <div
+                    key={att.id}
+                    className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60 cursor-pointer"
+                    onClick={() => openDataUrl(att.dataUrl!)}
+                  >
+                    <img
+                      src={att.dataUrl}
+                      alt={att.name}
+                      className="h-20 w-auto max-w-[120px] object-cover block"
+                    />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                      className="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <XIcon className="w-3 h-3" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1">
+                      <span className="text-[10px] text-zinc-300 truncate block">
+                        {att.name}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-2 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group cursor-pointer"
+                    onClick={() => att.dataUrl && openDataUrl(att.dataUrl)}
+                  >
+                    <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px] leading-tight">
+                        {att.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-600 leading-tight">
+                        {formatSize(att.size)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                      className="text-zinc-600 hover:text-crimson transition-colors ml-1 opacity-0 group-hover:opacity-100"
+                    >
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Drag overlay hint */}
@@ -278,61 +333,6 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
             <div className="text-sm text-steel font-medium">
               Drop files here
             </div>
-          </div>
-        )}
-
-        {/* Attachments — float above footer inside the content area */}
-        {attachments.length > 0 && (
-          <div className="px-6 pb-4 flex flex-wrap gap-2 shrink-0">
-            {attachments.map((att) => {
-              const isImage = att.type?.startsWith('image/') || false;
-              return isImage && att.dataUrl ? (
-                <div
-                  key={att.id}
-                  className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60 cursor-pointer"
-                  onClick={() => openDataUrl(att.dataUrl!)}
-                >
-                  <img
-                    src={att.dataUrl}
-                    alt={att.name}
-                    className="h-20 w-auto max-w-[120px] object-cover block"
-                  />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
-                    className="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  >
-                    <XIcon className="w-3 h-3" />
-                  </button>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1">
-                    <span className="text-[10px] text-zinc-300 truncate block">
-                      {att.name}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  key={att.id}
-                  className="flex items-center gap-2 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group cursor-pointer"
-                  onClick={() => att.dataUrl && openDataUrl(att.dataUrl)}
-                >
-                  <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px] leading-tight">
-                      {att.name}
-                    </span>
-                    <span className="text-[10px] text-zinc-600 leading-tight">
-                      {formatSize(att.size)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
-                    className="text-zinc-600 hover:text-crimson transition-colors ml-1 opacity-0 group-hover:opacity-100"
-                  >
-                    <XIcon className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })}
           </div>
         )}
 

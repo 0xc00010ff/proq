@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
+import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, RotateCcwIcon } from 'lucide-react';
 import type { AgentBlock, TaskAttachment, FollowUpDraft } from '@/lib/types';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { ScrambleText } from './ScrambleText';
@@ -25,12 +25,14 @@ interface StructuredPaneProps {
   taskId: string;
   projectId: string;
   visible: boolean;
+  taskStatus?: string;
   agentBlocks?: AgentBlock[];
   followUpDraft?: FollowUpDraft;
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
+  onTaskStatusChange?: (status: string) => void;
 }
 
-export function StructuredPane({ taskId, projectId, visible, agentBlocks, followUpDraft, onFollowUpDraftChange }: StructuredPaneProps) {
+export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
   const { blocks, sessionDone, sendFollowUp, stop } = useAgentSession(taskId, projectId, agentBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -404,6 +406,19 @@ export function StructuredPane({ taskId, projectId, visible, agentBlocks, follow
 
       {/* Input area */}
       <div className="shrink-0 px-3 py-2.5">
+        {taskStatus === 'done' ? (
+          <div className="flex items-center justify-between rounded-xl border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 px-4 py-3">
+            <span className="text-xs text-bronze-500 dark:text-zinc-500">This task is read-only. Move back to Verify to resume editing.</span>
+            <button
+              onClick={() => onTaskStatusChange?.('verify')}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-bronze-700 dark:text-zinc-300 bg-bronze-200/60 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-lg hover:bg-bronze-300 dark:hover:bg-zinc-700 transition-colors"
+            >
+              <RotateCcwIcon className="w-3 h-3" />
+              Resume editing
+            </button>
+          </div>
+        ) : (
+        <>
         <div className="rounded-xl border border-bronze-300 dark:border-zinc-700 bg-bronze-50 dark:bg-zinc-900 focus-within:border-bronze-400 dark:focus-within:border-bronze-600 transition-colors overflow-hidden">
           {/* Attachment previews inside container */}
           {attachments.length > 0 && (
@@ -514,6 +529,8 @@ export function StructuredPane({ taskId, projectId, visible, agentBlocks, follow
             }
           }}
         />
+        </>
+        )}
       </div>
     </div>
   );

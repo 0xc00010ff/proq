@@ -562,10 +562,17 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           diff={task.mergeConflict.diff}
           onResolve={async () => {
             setShowConflictModal(false);
-            // Dispatch agent to resolve conflicts on the existing branch
-            await fetch(`/api/projects/${projectId}/tasks/${task.id}/resolve`, {
+            // Merge main into worktree and get resolution prompt
+            const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}/resolve`, {
               method: 'POST',
             });
+            if (res.ok) {
+              const data = await res.json();
+              // Pre-populate the chat input with the resolution prompt
+              if (data.prompt && onFollowUpDraftChange) {
+                onFollowUpDraftChange({ text: data.prompt, attachments: [] });
+              }
+            }
           }}
           onDismiss={() => setShowConflictModal(false)}
         />

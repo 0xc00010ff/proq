@@ -426,7 +426,9 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
     >
       {/* Header — collapse/expand toggle */}
       <div
-        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0"
+        className={`h-16 flex items-center group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0 ${
+          showFull ? "gap-2.5 px-4 pl-[18px]" : "justify-center px-0"
+        }`}
         onClick={onToggleCollapsed}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -435,7 +437,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
           alt="proq"
           width={13}
           height={13}
-          className="flex-shrink-0 translate-y-[4px]"
+          className={`flex-shrink-0 ${showFull ? "translate-y-[4px]" : ""}`}
         />
         {showFull && (
           <>

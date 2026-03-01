@@ -367,10 +367,10 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         )}
 
         {/* Footer toolbar */}
-        <div ref={toolbarRef} className="border-t border-bronze-300/60 dark:border-zinc-800/60 flex items-stretch shrink-0">
+        <div ref={toolbarRef} className="border-t border-bronze-300/60 dark:border-zinc-800/60 flex items-center shrink-0 px-2 py-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs px-4 py-3"
+            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs px-2 py-1"
           >
             <PaperclipIcon className="w-3.5 h-3.5" />
             <span>Attach file</span>
@@ -386,7 +386,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 await onMoveToInProgress(task.id, { title, description, attachments, mode });
               }}
               disabled={!description.trim() || dispatching}
-              className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium text-steel/80 border-l border-border-default transition-colors ${dispatching ? 'pointer-events-none' : 'hover:text-steel hover:border-steel/50 hover:bg-steel/10 disabled:opacity-30 disabled:pointer-events-none'}`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors text-steel border border-steel/20 bg-steel/10 hover:bg-steel/15 flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />

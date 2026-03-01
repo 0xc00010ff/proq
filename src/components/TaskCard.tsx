@@ -6,6 +6,7 @@ import {
   Trash2Icon,
   Loader2Icon,
   ClockIcon,
+  EyeIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { parseLines } from '@/lib/utils';
@@ -141,7 +142,14 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
         )}
 
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle">
-          {isQueued ? (
+          {isPreviewActive && !isActive && !isQueued ? (
+            <div className="flex items-center gap-1.5">
+              <EyeIcon className="w-3 h-3 text-gold" />
+              <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
+                Previewing
+              </span>
+            </div>
+          ) : isQueued ? (
             <div className="flex items-center gap-1.5">
               <ClockIcon className="w-3 h-3 text-zinc-400" />
               <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">

@@ -217,7 +217,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
                   }
                 }}
                 disabled={dispatching}
-                className="btn-primary flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors text-blue-300 bg-blue-900/40 border border-blue-700/50 hover:bg-blue-800/40 flex items-center gap-1.5 disabled:opacity-50"
               >
                 {dispatching ? (
                   <Loader2Icon className="w-3 h-3 animate-spin" />

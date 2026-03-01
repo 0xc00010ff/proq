@@ -14,6 +14,7 @@ import {
   InfoIcon,
 } from "lucide-react";
 import type { ProqSettings } from "@/lib/types";
+import { Select } from "@/components/ui/select";
 
 type SettingsSection =
   | "system"
@@ -350,37 +351,27 @@ export default function SettingsPage() {
                   label="Execution mode"
                   hint="Sequential runs one task at a time; parallel runs all queued tasks."
                 >
-                  <select
+                  <Select
                     value={settings.executionMode}
-                    onChange={(e) =>
-                      update(
-                        "executionMode",
-                        e.target.value as "sequential" | "parallel",
-                      )
-                    }
-                    className={inputClass}
-                  >
-                    <option value="sequential">Sequential</option>
-                    <option value="parallel">Parallel</option>
-                  </select>
+                    onChange={(v) => update("executionMode", v as "sequential" | "parallel")}
+                    options={[
+                      { value: "sequential", label: "Sequential" },
+                      { value: "parallel", label: "Parallel" },
+                    ]}
+                  />
                 </Field>
                 <Field
                   label="Agent render mode"
                   hint="Pretty shows structured agent output. Terminal shows raw tmux session for debugging."
                 >
-                  <select
+                  <Select
                     value={settings.agentRenderMode}
-                    onChange={(e) =>
-                      update(
-                        "agentRenderMode",
-                        e.target.value as "cli" | "structured",
-                      )
-                    }
-                    className={inputClass}
-                  >
-                    <option value="structured">Structured</option>
-                    <option value="cli">CLI</option>
-                  </select>
+                    onChange={(v) => update("agentRenderMode", v as "cli" | "structured")}
+                    options={[
+                      { value: "structured", label: "Structured" },
+                      { value: "cli", label: "CLI" },
+                    ]}
+                  />
                 </Field>
               </div>
             </section>
@@ -518,16 +509,14 @@ export default function SettingsPage() {
               </p>
               <div className="space-y-4">
                 <Field label="Theme">
-                  <select
+                  <Select
                     value={settings.theme}
-                    onChange={(e) =>
-                      update("theme", e.target.value as "dark" | "light")
-                    }
-                    className={inputClass}
-                  >
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                  </select>
+                    onChange={(v) => update("theme", v as "dark" | "light")}
+                    options={[
+                      { value: "dark", label: "Dark" },
+                      { value: "light", label: "Light" },
+                    ]}
+                  />
                 </Field>
               </div>
             </section>
@@ -546,21 +535,16 @@ export default function SettingsPage() {
               <NotImplemented />
               <div className="space-y-4">
                 <Field label="Notification method">
-                  <select
+                  <Select
                     value={settings.notificationMethod}
-                    onChange={(e) =>
-                      update(
-                        "notificationMethod",
-                        e.target.value as ProqSettings["notificationMethod"],
-                      )
-                    }
-                    className={inputClass}
-                  >
-                    <option value="none">None</option>
-                    <option value="slack">Slack</option>
-                    <option value="system">System</option>
-                    <option value="sound">Sound</option>
-                  </select>
+                    onChange={(v) => update("notificationMethod", v as ProqSettings["notificationMethod"])}
+                    options={[
+                      { value: "none", label: "None" },
+                      { value: "slack", label: "Slack" },
+                      { value: "system", label: "System" },
+                      { value: "sound", label: "Sound" },
+                    ]}
+                  />
                 </Field>
                 <Field
                   label="Slack channel"

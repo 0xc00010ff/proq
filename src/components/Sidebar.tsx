@@ -425,16 +425,18 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
     >
       {/* Header — collapse/expand toggle */}
       <div
-        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0"
+        className={`h-16 flex items-center group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0 ${
+          showFull ? "gap-2.5 px-4 pl-[18px]" : "justify-center"
+        }`}
         onClick={() => { if (!showFull) onToggleCollapsed(); }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/proq-logo-vector.svg"
           alt="proq"
-          width={13}
-          height={13}
-          className="translate-y-[4px] flex-shrink-0"
+          width={showFull ? 13 : 18}
+          height={showFull ? 13 : 18}
+          className={`flex-shrink-0 ${showFull ? "translate-y-[4px]" : ""}`}
         />
         {showFull && (
           <>

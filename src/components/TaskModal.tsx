@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
@@ -118,6 +118,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onMoveToInProgress, title, description, attachments, mode, dispatching, task.id]);
+
+  // Auto-resize textarea to fit content so modal grows naturally
+  useLayoutEffect(() => {
+    const ta = descriptionRef.current;
+    if (!ta || !isOpen) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [description, isOpen]);
 
   if (!isOpen) return null;
 
@@ -255,7 +263,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 min-h-[120px]">
+        <div className="overflow-y-auto px-6 pb-4 min-h-0" style={{ flex: '1 1 auto' }}>
           <textarea
             ref={descriptionRef}
             value={description}
@@ -270,7 +278,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 }
               }
             }}
-            className="w-full h-full min-h-[200px] bg-transparent text-sm text-bronze-700 dark:text-zinc-400 placeholder-bronze-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
+            className="w-full bg-transparent text-sm text-bronze-700 dark:text-zinc-400 placeholder-bronze-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
+            style={{ minHeight: '200px', overflow: 'hidden' }}
             placeholder="Write something..."
           />
         </div>

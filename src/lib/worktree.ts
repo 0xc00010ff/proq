@@ -59,7 +59,7 @@ export function removeWorktree(
 export function mergeWorktree(
   projectPath: string,
   shortId: string,
-): { success: boolean; error?: string; conflictFiles?: string[] } {
+): { success: boolean; error?: string; conflictFiles?: string[]; diff?: string } {
   const branch = `proq/${shortId}`;
   try {
     execSync(
@@ -72,6 +72,7 @@ export function mergeWorktree(
   } catch (err) {
     // Capture conflicting file list before aborting
     let conflictFiles: string[] = [];
+    let diff = "";
     try {
       const output = execSync(
         `git -C '${projectPath}' diff --name-only --diff-filter=U`,
@@ -80,6 +81,30 @@ export function mergeWorktree(
       conflictFiles = output.trim().split("\n").filter(Boolean);
     } catch {
       // May fail if merge didn't leave conflicts
+    }
+
+    // Capture the conflict diff (with markers) for each conflicting file
+    if (conflictFiles.length > 0) {
+      try {
+        diff = execSync(
+          `git -C '${projectPath}' diff --diff-filter=U`,
+          { timeout: 15_000, encoding: "utf-8", maxBuffer: 1024 * 1024 },
+        );
+      } catch {
+        // Best effort — fall back to empty
+      }
+    }
+
+    // If we didn't get file-level conflicts, try to get a summary diff between branches
+    if (conflictFiles.length === 0 && !diff) {
+      try {
+        diff = execSync(
+          `git -C '${projectPath}' diff HEAD...'${branch}' --stat`,
+          { timeout: 10_000, encoding: "utf-8" },
+        );
+      } catch {
+        // Best effort
+      }
     }
 
     // Abort the failed merge
@@ -95,7 +120,46 @@ export function mergeWorktree(
       success: false,
       error: `Merge conflict merging ${branch}`,
       conflictFiles,
+      diff,
     };
+  }
+}
+
+/**
+ * Merge main into the task's worktree branch so the agent can resolve conflicts there.
+ * Unlike mergeWorktree (which merges task→main), this merges main→task.
+ * We leave conflict markers in the worktree for the agent to resolve.
+ */
+export function mergeMainIntoWorktree(
+  projectPath: string,
+  shortId: string,
+): { success: boolean; error?: string } {
+  const worktreePath = join(projectPath, WORKTREE_DIR, shortId);
+  try {
+    // Merge main into the worktree branch — allow conflicts to remain
+    execSync(
+      `git -C '${worktreePath}' merge origin/main --no-ff -m 'Merge main into proq/${shortId} for conflict resolution' || git -C '${worktreePath}' merge main --no-ff -m 'Merge main into proq/${shortId} for conflict resolution'`,
+      { timeout: 30_000, shell: "/bin/bash" },
+    );
+    console.log(`[worktree] merged main into proq/${shortId}`);
+    return { success: true };
+  } catch {
+    // Merge left conflict markers — that's fine, the agent will resolve them
+    // Check if there are actually unmerged files
+    try {
+      const output = execSync(
+        `git -C '${worktreePath}' diff --name-only --diff-filter=U`,
+        { timeout: 10_000, encoding: "utf-8" },
+      );
+      const conflictFiles = output.trim().split("\n").filter(Boolean);
+      if (conflictFiles.length > 0) {
+        console.log(`[worktree] merge left ${conflictFiles.length} conflicted files for agent to resolve`);
+        return { success: true }; // Conflicts are intentional — agent will resolve
+      }
+    } catch {
+      // No conflicts found despite merge failure
+    }
+    return { success: false, error: "Failed to merge main into worktree" };
   }
 }
 

@@ -240,18 +240,27 @@ export async function dispatchTask(
   const executionMode = await getExecutionMode(projectId);
   let effectivePath = projectPath;
 
+  // Re-read the task to check if it already has a worktree (e.g., conflict resolution re-dispatch)
+  const currentTask = await getTask(projectId, taskId);
+
   if (executionMode === "parallel" && mode !== "plan" && mode !== "answer") {
-    try {
-      const worktreePath = createWorktree(projectPath, shortId);
-      const branch = `proq/${shortId}`;
-      await updateTask(projectId, taskId, { worktreePath, branch });
-      effectivePath = worktreePath;
-    } catch (err) {
-      console.error(
-        `[agent-dispatch] failed to create worktree for ${shortId}:`,
-        err,
-      );
-      // Fall back to shared directory
+    if (currentTask?.worktreePath) {
+      // Worktree already exists (conflict resolution re-dispatch) — reuse it
+      effectivePath = currentTask.worktreePath;
+      console.log(`[agent-dispatch] reusing existing worktree ${effectivePath}`);
+    } else {
+      try {
+        const worktreePath = createWorktree(projectPath, shortId);
+        const branch = `proq/${shortId}`;
+        await updateTask(projectId, taskId, { worktreePath, branch });
+        effectivePath = worktreePath;
+      } catch (err) {
+        console.error(
+          `[agent-dispatch] failed to create worktree for ${shortId}:`,
+          err,
+        );
+        // Fall back to shared directory
+      }
     }
   }
 

@@ -559,20 +559,13 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         <ConflictModal
           branch={task.mergeConflict.branch}
           files={task.mergeConflict.files}
-          onRedispatch={async () => {
+          diff={task.mergeConflict.diff}
+          onResolve={async () => {
             setShowConflictModal(false);
-            // Move task to todo then to in-progress to re-dispatch
-            await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: 'todo' }),
+            // Dispatch agent to resolve conflicts on the existing branch
+            await fetch(`/api/projects/${projectId}/tasks/${task.id}/resolve`, {
+              method: 'POST',
             });
-            await fetch(`/api/projects/${projectId}/tasks/reorder`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ taskId: task.id, toColumn: 'in-progress', toIndex: 0 }),
-            });
-            onClose();
           }}
           onDismiss={() => setShowConflictModal(false)}
         />

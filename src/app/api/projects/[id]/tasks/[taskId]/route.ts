@@ -104,6 +104,7 @@ export async function PATCH(request: Request, { params }: Params) {
                 error: result.error || "Merge conflict",
                 files: result.conflictFiles || [],
                 branch: prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`,
+                diff: result.diff,
               },
             });
             const fresh = await getTask(id, taskId);
@@ -134,6 +135,7 @@ export async function PATCH(request: Request, { params }: Params) {
                   error: result.error || "Merge conflict",
                   files: result.conflictFiles || [],
                   branch: prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`,
+                  diff: result.diff,
                 },
               });
               const fresh = await getTask(id, taskId);

@@ -29,6 +29,7 @@ import {
   AlertTriangleIcon,
   PencilIcon,
   PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   SettingsIcon,
 } from "lucide-react";
 import type { Project, Task, TaskStatus, TaskColumns } from "@/lib/types";
@@ -428,35 +429,28 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
         className={`h-16 flex items-center group/logo hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer flex-shrink-0 ${
           showFull ? "gap-2.5 px-4 pl-[18px]" : "justify-center"
         }`}
-        onClick={() => { if (!showFull) onToggleCollapsed(); }}
+        onClick={onToggleCollapsed}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/proq-logo-vector.svg"
-          alt="proq"
-          width={showFull ? 13 : 18}
-          height={showFull ? 13 : 18}
-          className={`flex-shrink-0 ${showFull ? "translate-y-[4px]" : ""}`}
-        />
-        {showFull && (
+        {showFull ? (
           <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/proq-logo-vector.svg"
+              alt="proq"
+              width={13}
+              height={13}
+              className="flex-shrink-0 translate-y-[4px]"
+            />
             <span
               className="text-lg font-[var(--font-gemunu-libre)] text-bronze-900 dark:text-zinc-100 lowercase flex-1"
               style={{ fontFamily: "var(--font-gemunu-libre)" }}
             >
               proq
             </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleCollapsed();
-              }}
-              className="p-1 rounded hover:bg-bronze-300 dark:hover:bg-zinc-700 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity"
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <PanelLeftCloseIcon className="w-4 h-4" />
-            </button>
+            <PanelLeftCloseIcon className="w-4 h-4 text-zinc-400 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover/logo:opacity-100 transition-opacity" />
           </>
+        ) : (
+          <PanelLeftOpenIcon className="w-[18px] h-[18px] text-zinc-500 hover:text-zinc-300" />
         )}
       </div>
 

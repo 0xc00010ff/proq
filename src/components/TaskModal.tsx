@@ -386,7 +386,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 await onMoveToInProgress(task.id, { title, description, attachments, mode });
               }}
               disabled={!description.trim() || dispatching}
-              className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium text-steel/80 border-l border-border-default transition-colors ${dispatching ? 'pointer-events-none' : 'hover:text-steel hover:border-steel/50 hover:bg-steel/10 disabled:opacity-30 disabled:pointer-events-none'}`}
+              className={`btn-primary flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />

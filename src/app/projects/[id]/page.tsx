@@ -417,6 +417,9 @@ export default function ProjectPage() {
             setAgentModalTask(null);
             fetchBranchState();
           }}
+          onResumeEditing={async (taskId) => {
+            await updateTask(taskId, { status: 'verify' });
+          }}
           parallelMode={executionMode === 'parallel'}
           currentBranch={currentBranch}
           onSwitchBranch={handleSwitchBranch}

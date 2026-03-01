@@ -33,13 +33,14 @@ interface TaskAgentModalProps {
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
   onClose: () => void;
   onComplete?: (taskId: string) => void;
+  onResumeEditing?: (taskId: string) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
   parallelMode?: boolean;
   currentBranch?: string;
   onSwitchBranch?: (branch: string) => void;
 }
 
-export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch }: TaskAgentModalProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
@@ -231,9 +232,13 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
               taskId={task.id}
               projectId={projectId}
               visible={true}
+              taskStatus={task.status}
               agentBlocks={showStructuredStatic ? task.agentBlocks : undefined}
               followUpDraft={followUpDraft}
               onFollowUpDraftChange={onFollowUpDraftChange}
+              onTaskStatusChange={(status) => {
+                if (status === 'verify' && onResumeEditing) onResumeEditing(task.id);
+              }}
             />
           ) : showTerminal ? (
             <div className="flex-1 relative min-h-0 flex flex-col">

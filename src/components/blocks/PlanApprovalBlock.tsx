@@ -11,16 +11,18 @@ interface PlanApprovalBlockProps {
   planContent?: string;
   /** Path to the plan file */
   planFilePath?: string;
+  /** Whether a user block exists after this one (i.e. already responded in a prior session) */
+  alreadyResponded?: boolean;
   onApprove: () => void;
   onReject: (feedback: string) => void;
 }
 
-export function PlanApprovalBlock({ input, planContent, planFilePath, onApprove, onReject }: PlanApprovalBlockProps) {
-  const [expanded, setExpanded] = useState(true);
+export function PlanApprovalBlock({ input, planContent, planFilePath, alreadyResponded, onApprove, onReject }: PlanApprovalBlockProps) {
+  const [expanded, setExpanded] = useState(!alreadyResponded);
   const [feedbackMode, setFeedbackMode] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [responded, setResponded] = useState<'approved' | 'rejected' | null>(null);
+  const [responded, setResponded] = useState<'approved' | 'rejected' | null>(alreadyResponded ? 'approved' : null);
 
   // Extract plan content — ExitPlanMode may include allowedPrompts in its input
   const allowedPrompts = Array.isArray(input.allowedPrompts) ? input.allowedPrompts as { tool: string; prompt: string }[] : [];

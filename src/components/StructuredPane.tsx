@@ -219,7 +219,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
     | { kind: 'block'; block: AgentBlock; idx: number }
     | { kind: 'tool_group'; toolName: string; items: (ToolGroupItem & { idx: number })[] }
     | { kind: 'ask_question'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; idx: number }
-    | { kind: 'plan_approval'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; planContent?: string; planFilePath?: string; idx: number };
+    | { kind: 'plan_approval'; toolId: string; input: Record<string, unknown>; result?: Extract<AgentBlock, { type: 'tool_result' }>; planContent?: string; planFilePath?: string; alreadyResponded: boolean; idx: number };
 
   const renderItems: RenderItem[] = [];
   for (let i = 0; i < blocks.length; i++) {
@@ -259,6 +259,11 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
           // Stop if we hit a non-tool block (text/thinking) — plan write should be right before
           if (prev.type === 'text' || prev.type === 'thinking') break;
         }
+        // Check if the user already responded (a user block exists after this one)
+        let alreadyResponded = false;
+        for (let j = i + 1; j < blocks.length; j++) {
+          if (blocks[j].type === 'user') { alreadyResponded = true; break; }
+        }
         renderItems.push({
           kind: 'plan_approval',
           toolId: block.toolId,
@@ -266,6 +271,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
           result: toolResultMap.get(block.toolId),
           planContent,
           planFilePath,
+          alreadyResponded,
           idx: i,
         });
         continue;
@@ -369,6 +375,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                   input={item.input}
                   planContent={item.planContent}
                   planFilePath={item.planFilePath}
+                  alreadyResponded={item.alreadyResponded}
                   onApprove={() => sendFollowUp('Plan approved. Proceed with implementation.')}
                   onReject={(feedback) => sendFollowUp(`Plan rejected. ${feedback}`)}
                 />

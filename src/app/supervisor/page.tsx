@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { SquareChevronUpIcon, Trash2Icon, SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
 import type { AgentBlock, TaskAttachment } from '@/lib/types';
+import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useSupervisorSession } from '@/hooks/useSupervisorSession';
 import { ScrambleText } from '@/components/ScrambleText';
 import { TextBlock } from '@/components/blocks/TextBlock';
@@ -65,25 +66,9 @@ export default function SupervisorPage() {
     resizeTextarea();
   };
 
-  const addFiles = useCallback((files: FileList | File[]) => {
-    Array.from(files).forEach((f) => {
-      const att: TaskAttachment = {
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: f.name,
-        size: f.size,
-        type: f.type,
-      };
-      if (f.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          att.dataUrl = e.target?.result as string;
-          setAttachments((prev) => [...prev, att]);
-        };
-        reader.readAsDataURL(f);
-      } else {
-        setAttachments((prev) => [...prev, att]);
-      }
-    });
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    const uploaded = await uploadFiles(files);
+    setAttachments((prev) => [...prev, ...uploaded]);
   }, []);
 
   const removeAttachment = useCallback((id: string) => {
@@ -364,23 +349,18 @@ export default function SupervisorPage() {
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 px-3 pt-3">
                 {attachments.map((att) => {
-                  const isImage = att.type?.startsWith('image/') && att.dataUrl;
+                  const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+                  const isImage = att.type?.startsWith('image/') && url;
                   return isImage ? (
                     <div
                       key={att.id}
                       className="relative group rounded-lg overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
                     >
                       <img
-                        src={att.dataUrl}
+                        src={url}
                         alt={att.name}
                         className="h-16 w-auto max-w-[100px] object-cover block cursor-pointer"
-                        onClick={() => {
-                          if (att.dataUrl) {
-                            fetch(att.dataUrl).then(r => r.blob()).then(blob => {
-                              window.open(URL.createObjectURL(blob), '_blank');
-                            });
-                          }
-                        }}
+                        onClick={() => window.open(url, '_blank')}
                       />
                       <button
                         onClick={() => removeAttachment(att.id)}

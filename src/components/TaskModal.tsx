@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
+import { uploadFiles, attachmentUrl } from '@/lib/upload';
 
 interface TaskModalProps {
   task: Task;
@@ -11,16 +12,6 @@ interface TaskModalProps {
   onClose: (isEmpty: boolean) => void;
   onSave: (taskId: string, updates: Partial<Task>) => void;
   onMoveToInProgress?: (taskId: string, currentData: Partial<Task>) => Promise<void>;
-}
-
-function openDataUrl(dataUrl: string) {
-  const [header, base64] = dataUrl.split(',');
-  const mime = header.match(/:(.*?);/)?.[1] || 'application/octet-stream';
-  const bin = atob(base64);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  const blob = new Blob([arr], { type: mime });
-  window.open(URL.createObjectURL(blob), '_blank');
 }
 
 function formatSize(bytes: number): string {
@@ -164,32 +155,12 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     autosave(title, description, attachments, newMode);
   };
 
-  const addFiles = (files: FileList | File[]) => {
-    Array.from(files).forEach((f) => {
-      const att: TaskAttachment = {
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: f.name,
-        size: f.size,
-        type: f.type,
-      };
-      if (f.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          att.dataUrl = e.target?.result as string;
-          setAttachments((prev) => {
-            const updated = [...prev, att];
-            autosave(title, description, updated, mode);
-            return updated;
-          });
-        };
-        reader.readAsDataURL(f);
-      } else {
-        setAttachments((prev) => {
-          const updated = [...prev, att];
-          autosave(title, description, updated);
-          return updated;
-        });
-      }
+  const addFiles = async (files: FileList | File[]) => {
+    const uploaded = await uploadFiles(files);
+    setAttachments((prev) => {
+      const updated = [...prev, ...uploaded];
+      autosave(title, description, updated, mode);
+      return updated;
     });
   };
 
@@ -308,14 +279,15 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         <div ref={attachmentsRef} className={attachments.length > 0 ? 'px-6 py-3 flex flex-wrap gap-2 shrink-0' : 'hidden'}>
           {attachments.map((att) => {
             const isImage = att.type?.startsWith('image/') || false;
-            return isImage && att.dataUrl ? (
+            const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+            return isImage && url ? (
               <div
                 key={att.id}
                 className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60 cursor-pointer"
-                onClick={() => openDataUrl(att.dataUrl!)}
+                onClick={() => window.open(url, '_blank')}
               >
                 <img
-                  src={att.dataUrl}
+                  src={url}
                   alt={att.name}
                   className="h-20 w-auto max-w-[120px] object-cover block"
                 />
@@ -335,7 +307,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               <div
                 key={att.id}
                 className="flex items-center gap-2 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group cursor-pointer"
-                onClick={() => att.dataUrl && openDataUrl(att.dataUrl)}
+                onClick={() => url && window.open(url, '_blank')}
               >
                 <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
                 <div className="flex flex-col min-w-0">

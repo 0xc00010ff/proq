@@ -18,6 +18,7 @@ import {
   GitBranchIcon,
 } from 'lucide-react';
 import type { Task, FollowUpDraft } from '@/lib/types';
+import { attachmentUrl } from '@/lib/upload';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TerminalPane } from './TerminalPane';
@@ -354,15 +355,16 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
             {task.attachments && task.attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {task.attachments.map((att) => {
+                  const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
                   const isImage = att.type?.startsWith('image/') || false;
-                  return isImage && att.dataUrl ? (
+                  return isImage && url ? (
                     <div
                       key={att.id}
                       className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60 cursor-pointer"
-                      onClick={() => window.open(att.dataUrl, '_blank')}
+                      onClick={() => window.open(url, '_blank')}
                     >
                       <img
-                        src={att.dataUrl}
+                        src={url}
                         alt={att.name}
                         className="h-20 w-auto max-w-[120px] object-cover block"
                       />

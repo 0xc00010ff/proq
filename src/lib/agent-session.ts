@@ -208,14 +208,22 @@ export async function startSession(
   const startTime = Date.now();
 
   // Build CLI args
-  const permissionsMode = options?.permissionMode || "bypassPermissions";
   const args: string[] = [
     "-p", prompt,
     "--output-format", "stream-json",
     "--verbose",
-    "--permission-mode", permissionsMode,
     "--max-turns", "200",
   ];
+
+  // Use --dangerously-skip-permissions for non-plan tasks (the flag is more
+  // reliable than --permission-mode bypassPermissions, which has race conditions
+  // where permission resolution happens before all tools are registered).
+  // Plan tasks use --permission-mode plan to restrict edits.
+  if (options?.permissionMode === "plan") {
+    args.push("--permission-mode", "plan");
+  } else {
+    args.push("--dangerously-skip-permissions");
+  }
 
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
@@ -231,9 +239,17 @@ export async function startSession(
 
   if (options?.mcpConfig) {
     args.push("--mcp-config", options.mcpConfig);
-    args.push("--allowedTools", "mcp__proq__*");
     session.mcpConfig = options.mcpConfig;
   }
+
+  // Pre-allow tools to avoid race conditions where permission resolution
+  // happens before tool registration completes. For plan mode, also allow
+  // read-only tools that plan permission mode should permit.
+  const allowedTools = ["mcp__proq__*"];
+  if (options?.permissionMode === "plan") {
+    allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
+  }
+  args.push("--allowedTools", allowedTools.join(","));
 
   // Spawn the CLI child process
   const proc = spawn(CLAUDE, args, {
@@ -411,7 +427,6 @@ export async function continueSession(
   // Build CLI args — use --resume only if we have a live in-memory session.
   // Reconstructed sessions (from DB after clearSession) likely have a dead
   // Claude CLI session, so we start fresh with task context instead.
-  const permissionsMode = taskMode === "plan" ? "plan" : "bypassPermissions";
   const args: string[] = [];
 
   if (canResume && session.sessionId) {
@@ -422,9 +437,16 @@ export async function continueSession(
     "-p", promptText,
     "--output-format", "stream-json",
     "--verbose",
-    "--permission-mode", permissionsMode,
     "--max-turns", "200",
   );
+
+  // Use --dangerously-skip-permissions for non-plan tasks (more reliable than
+  // --permission-mode bypassPermissions which has race conditions).
+  if (taskMode === "plan") {
+    args.push("--permission-mode", "plan");
+  } else {
+    args.push("--dangerously-skip-permissions");
+  }
 
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
@@ -460,7 +482,13 @@ export async function continueSession(
     session.mcpConfig = writeMcpConfig(projectId, taskId);
   }
   args.push("--mcp-config", session.mcpConfig);
-  args.push("--allowedTools", "mcp__proq__*");
+
+  // Pre-allow tools to avoid race conditions with permission resolution.
+  const allowedTools = ["mcp__proq__*"];
+  if (taskMode === "plan") {
+    allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
+  }
+  args.push("--allowedTools", allowedTools.join(","));
 
   // Emit init block for the new session turn
   if (!canResume || !session.sessionId) {

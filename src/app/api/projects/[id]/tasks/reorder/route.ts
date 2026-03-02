@@ -1,21 +1,10 @@
 import { NextResponse } from "next/server";
 import { moveTask, getProject, getTask, updateTask, getSettings } from "@/lib/db";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
-import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
+import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, popAutoStash } from "@/lib/worktree";
 import type { TaskStatus } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
-
-/** Check if the main project directory is currently on a task's branch (or its preview) and switch to main if so */
-function ensureNotOnTaskBranch(projectPath: string, taskBranch: string): void {
-  const cur = getCurrentBranch(projectPath);
-  const isOnTask = cur.branch === taskBranch
-    || (isPreviewBranch(cur.branch) && sourceProqBranch(cur.branch) === taskBranch);
-  if (isOnTask) {
-    checkoutBranch(projectPath, "main", { skipStashPop: true });
-  }
-  deletePreviewBranch(projectPath, taskBranch);
-}
 
 export async function PUT(request: Request, { params }: Params) {
   const { id } = await params;

@@ -4,19 +4,7 @@ import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
 import { clearSession } from "@/lib/agent-session";
-import { mergeWorktree, removeWorktree, getCurrentBranch, checkoutBranch, isPreviewBranch, sourceProqBranch, deletePreviewBranch, popAutoStash } from "@/lib/worktree";
-
-/** Check if the main project directory is currently on a task's branch (or its preview) and switch to main if so */
-function ensureNotOnTaskBranch(projectPath: string, taskBranch: string): void {
-  const cur = getCurrentBranch(projectPath);
-  const isOnTask = cur.branch === taskBranch
-    || (isPreviewBranch(cur.branch) && sourceProqBranch(cur.branch) === taskBranch);
-  if (isOnTask) {
-    checkoutBranch(projectPath, "main", { skipStashPop: true });
-  }
-  // Also clean up any leftover preview branch for this task
-  deletePreviewBranch(projectPath, taskBranch);
-}
+import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, popAutoStash } from "@/lib/worktree";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 

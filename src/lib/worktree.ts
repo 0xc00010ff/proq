@@ -194,9 +194,58 @@ export function listBranches(projectPath: string): string[] {
   }
 }
 
-const PROQ_STASH_MSG = "proq-auto-stash";
+const PROQ_STASH_PREFIX = "proq-auto-stash:";
 const PROQ_PREFIX = "proq/";
 const PREVIEW_PREFIX = "proq-preview/";
+
+/** Build a stash message tagged with the source branch */
+function stashMessage(branch: string): string {
+  return `${PROQ_STASH_PREFIX}${branch}`;
+}
+
+/**
+ * Find the stash index for a proq-auto-stash tagged with a specific branch.
+ * Returns the stash index (e.g. 0 for stash@{0}) or -1 if not found.
+ */
+function findAutoStash(projectPath: string, branch: string): number {
+  try {
+    const list = execSync(
+      `git -C '${projectPath}' stash list --format=%s`,
+      { timeout: 10_000, encoding: "utf-8" },
+    ).trim();
+    if (!list) return -1;
+    const target = stashMessage(branch);
+    const entries = list.split("\n");
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i] === target) return i;
+    }
+  } catch { /* no stash list */ }
+  return -1;
+}
+
+/**
+ * Pop or drop a stash at a specific index.
+ * Uses `stash pop` for index 0, `stash pop stash@{n}` for others.
+ * Returns true if successful.
+ */
+function popStashAt(projectPath: string, index: number): boolean {
+  const ref = `stash@{${index}}`;
+  try {
+    execSync(`git -C '${projectPath}' stash pop '${ref}'`, { timeout: 10_000 });
+    return true;
+  } catch {
+    // Pop failed (likely conflicts) — the stash is NOT removed by git on conflict.
+    // Reset the conflicted state and drop the stash to avoid it lingering.
+    try {
+      execSync(`git -C '${projectPath}' checkout -- .`, { timeout: 10_000 });
+      execSync(`git -C '${projectPath}' stash drop '${ref}'`, { timeout: 10_000 });
+      console.error(`[git] auto-stash for ${ref} had conflicts — changes were dropped`);
+    } catch {
+      console.error(`[git] failed to clean up conflicted stash ${ref}`);
+    }
+    return false;
+  }
+}
 
 /** Convert a proq/* branch name to its preview equivalent */
 export function previewBranchName(proqBranch: string): string {
@@ -222,33 +271,22 @@ export function checkoutBranch(
 ): void {
   const current = getCurrentBranch(projectPath);
 
-  // Check if working tree is dirty and stash if needed
-  // Only stash if there isn't already a proq-auto-stash on top (avoid stacking duplicates)
+  // Check if working tree is dirty and stash if needed.
+  // Always stash dirty changes, tagged with the current branch name, so we can
+  // pop the correct stash later even if multiple stashes accumulate.
   const status = execSync(
     `git -C '${projectPath}' status --porcelain`,
     { timeout: 10_000, encoding: "utf-8" },
   ).trim();
 
-  let needsStash = status.length > 0;
+  const needsStash = status.length > 0;
   if (needsStash) {
-    try {
-      const topStash = execSync(
-        `git -C '${projectPath}' stash list -1 --format=%s`,
-        { timeout: 10_000, encoding: "utf-8" },
-      ).trim();
-      if (topStash.includes(PROQ_STASH_MSG)) {
-        // Already have an auto-stash on top — don't stack another
-        needsStash = false;
-        console.log("[git] skipping stash — proq-auto-stash already on top");
-      }
-    } catch { /* no stash list — proceed with stash */ }
-  }
-  if (needsStash) {
+    const msg = stashMessage(current.branch);
     execSync(
-      `git -C '${projectPath}' stash push -m '${PROQ_STASH_MSG}'`,
+      `git -C '${projectPath}' stash push -u -m '${msg}'`,
       { timeout: 15_000 },
     );
-    console.log("[git] auto-stashed dirty working tree");
+    console.log(`[git] auto-stashed dirty working tree (from ${current.branch})`);
   }
 
   // If we're leaving a preview branch, clean it up after checkout
@@ -284,13 +322,12 @@ export function checkoutBranch(
       console.log(`[git] checked out ${branch}`);
     }
   } catch (err) {
-    // On failure, try to pop stash only if we're still on the original branch
+    // On failure, pop our stash back if we're still on the original branch
     if (needsStash) {
       const now = getCurrentBranch(projectPath);
       if (now.branch === current.branch) {
-        try {
-          execSync(`git -C '${projectPath}' stash pop`, { timeout: 10_000 });
-        } catch { /* stash pop may fail */ }
+        const idx = findAutoStash(projectPath, current.branch);
+        if (idx >= 0) popStashAt(projectPath, idx);
       }
     }
     throw err;
@@ -304,38 +341,32 @@ export function checkoutBranch(
     } catch { /* best effort */ }
   }
 
-  // Pop auto-stash when arriving on a non-proq branch (e.g., main).
-  // Check unconditionally — the stash may have been pushed in a previous checkoutBranch call.
+  // Pop the auto-stash for the TARGET branch when arriving on a non-proq branch (e.g., main).
+  // This restores changes that were stashed when the user previously left this branch.
   // Skip when caller will do merge/cleanup before the pop is safe (e.g., ensureNotOnTaskBranch).
   if (!branch.startsWith("proq/") && !options?.skipStashPop) {
-    try {
-      const stashMsg = execSync(
-        `git -C '${projectPath}' stash list -1 --format=%s`,
-        { timeout: 10_000, encoding: "utf-8" },
-      ).trim();
-      if (stashMsg.includes(PROQ_STASH_MSG)) {
-        execSync(`git -C '${projectPath}' stash pop`, { timeout: 10_000 });
-        console.log("[git] popped auto-stash");
+    const idx = findAutoStash(projectPath, branch);
+    if (idx >= 0) {
+      if (popStashAt(projectPath, idx)) {
+        console.log(`[git] popped auto-stash for ${branch}`);
+      } else {
+        console.error(`[git] auto-stash for ${branch} could not be applied (conflicts)`);
       }
-    } catch {
-      console.error("[git] failed to pop auto-stash");
     }
   }
 }
 
-/** Pop the top proq-auto-stash if one exists. Call after merge/cleanup completes. */
-export function popAutoStash(projectPath: string): void {
-  try {
-    const stashMsg = execSync(
-      `git -C '${projectPath}' stash list -1 --format=%s`,
-      { timeout: 10_000, encoding: "utf-8" },
-    ).trim();
-    if (stashMsg.includes(PROQ_STASH_MSG)) {
-      execSync(`git -C '${projectPath}' stash pop`, { timeout: 10_000 });
-      console.log("[git] popped auto-stash");
-    }
-  } catch {
-    console.error("[git] failed to pop auto-stash");
+/**
+ * Pop the proq-auto-stash for a specific branch (defaults to "main").
+ * Call after merge/cleanup completes to restore the user's working changes.
+ */
+export function popAutoStash(projectPath: string, branch = "main"): void {
+  const idx = findAutoStash(projectPath, branch);
+  if (idx < 0) return;
+  if (popStashAt(projectPath, idx)) {
+    console.log(`[git] popped auto-stash for ${branch}`);
+  } else {
+    console.error(`[git] auto-stash for ${branch} could not be applied (conflicts)`);
   }
 }
 
@@ -385,6 +416,22 @@ export function deletePreviewBranch(
     execSync(`git -C '${projectPath}' branch -D '${preview}'`, { timeout: 10_000 });
     console.log(`[git] deleted preview branch ${preview}`);
   } catch { /* may not exist */ }
+}
+
+/**
+ * If the main project directory is currently on a task's branch (or its preview),
+ * switch to main. Used before merge/remove operations so we don't operate on the
+ * branch we're standing on.
+ */
+export function ensureNotOnTaskBranch(projectPath: string, taskBranch: string): void {
+  const cur = getCurrentBranch(projectPath);
+  const isOnTask = cur.branch === taskBranch
+    || (isPreviewBranch(cur.branch) && sourceProqBranch(cur.branch) === taskBranch);
+  if (isOnTask) {
+    checkoutBranch(projectPath, "main", { skipStashPop: true });
+  }
+  // Also clean up any leftover preview branch for this task
+  deletePreviewBranch(projectPath, taskBranch);
 }
 
 export function ensureGitignore(projectPath: string): void {

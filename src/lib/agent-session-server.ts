@@ -66,13 +66,14 @@ export async function attachAgentWsWithProject(
       const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSession(taskId);
-      } else if (msg.type === "followup") {
+      } else if (msg.type === "followup" || msg.type === "plan-approve") {
         try {
           const task = await getTask(projectId, taskId);
           const project = await getProject(projectId);
           const projectPath = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
           const cwd = task?.worktreePath || projectPath;
-          await continueSession(projectId, taskId, msg.text, cwd, ws, msg.attachments);
+          const planApproved = msg.type === "plan-approve";
+          await continueSession(projectId, taskId, msg.text, cwd, ws, msg.type === "followup" ? msg.attachments : undefined, { planApproved });
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));

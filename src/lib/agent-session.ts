@@ -377,6 +377,7 @@ export async function continueSession(
   cwd: string,
   preAttachClient?: WebSocket,
   attachments?: TaskAttachment[],
+  options?: { planApproved?: boolean },
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
@@ -452,12 +453,14 @@ export async function continueSession(
     "--max-turns", "200",
   );
 
-  // Use --dangerously-skip-permissions for all continued sessions.
-  // Plan tasks start with --permission-mode plan, but after the agent calls
-  // ExitPlanMode and the human approves, the continuation needs full permissions
-  // to implement the plan. We detect this by checking if the session already has
-  // an ExitPlanMode tool_use block.
-  args.push("--dangerously-skip-permissions");
+  // Plan tasks stay in plan mode unless the human explicitly approved.
+  // Only switch to full permissions on plan approval.
+  const keepPlanMode = taskMode === "plan" && !options?.planApproved;
+  if (keepPlanMode) {
+    args.push("--permission-mode", "plan");
+  } else {
+    args.push("--dangerously-skip-permissions");
+  }
 
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
@@ -494,9 +497,16 @@ export async function continueSession(
   }
   args.push("--mcp-config", session.mcpConfig);
 
-  // Pre-allow MCP tools to avoid race conditions with permission resolution.
+  // Pre-allow tools to avoid race conditions with permission resolution.
+  const allowedTools: string[] = [];
   if (session.mcpConfig) {
-    args.push("--allowedTools", "mcp__proq__*");
+    allowedTools.push("mcp__proq__*");
+  }
+  if (keepPlanMode) {
+    allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
+  }
+  if (allowedTools.length > 0) {
+    args.push("--allowedTools", allowedTools.join(","));
   }
 
   // Emit init block for the new session turn

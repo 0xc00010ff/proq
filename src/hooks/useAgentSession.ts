@@ -12,6 +12,7 @@ interface UseAgentSessionResult {
   connected: boolean;
   sessionDone: boolean;
   sendFollowUp: (text: string, attachments?: TaskAttachment[]) => void;
+  approvePlan: (text: string) => void;
   stop: () => void;
 }
 
@@ -115,6 +116,13 @@ export function useAgentSession(
     }
   }, []);
 
+  const approvePlan = useCallback((text: string) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'plan-approve', text }));
+    }
+  }, []);
+
   const stop = useCallback(() => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -122,5 +130,5 @@ export function useAgentSession(
     }
   }, []);
 
-  return { blocks, connected, sessionDone, sendFollowUp, stop };
+  return { blocks, connected, sessionDone, sendFollowUp, approvePlan, stop };
 }

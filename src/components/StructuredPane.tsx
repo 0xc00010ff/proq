@@ -35,7 +35,7 @@ interface StructuredPaneProps {
 }
 
 export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
-  const { blocks, sessionDone, sendFollowUp, stop } = useAgentSession(taskId, projectId, agentBlocks);
+  const { blocks, sessionDone, sendFollowUp, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -363,7 +363,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                   planContent={item.planContent}
                   planFilePath={item.planFilePath}
                   alreadyResponded={item.alreadyResponded}
-                  onApprove={() => sendFollowUp('Plan approved. Proceed with implementation.')}
+                  onApprove={() => approvePlan('Plan approved. Proceed with implementation.')}
                   onReject={(feedback) => sendFollowUp(`Plan rejected. ${feedback}`)}
                 />
               );

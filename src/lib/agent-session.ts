@@ -245,11 +245,16 @@ export async function startSession(
   // Pre-allow tools to avoid race conditions where permission resolution
   // happens before tool registration completes. For plan mode, also allow
   // read-only tools that plan permission mode should permit.
-  const allowedTools = ["mcp__proq__*"];
+  const allowedTools: string[] = [];
+  if (options?.mcpConfig) {
+    allowedTools.push("mcp__proq__*");
+  }
   if (options?.permissionMode === "plan") {
     allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
   }
-  args.push("--allowedTools", allowedTools.join(","));
+  if (allowedTools.length > 0) {
+    args.push("--allowedTools", allowedTools.join(","));
+  }
 
   // Spawn the CLI child process
   const proc = spawn(CLAUDE, args, {
@@ -484,11 +489,16 @@ export async function continueSession(
   args.push("--mcp-config", session.mcpConfig);
 
   // Pre-allow tools to avoid race conditions with permission resolution.
-  const allowedTools = ["mcp__proq__*"];
-  if (taskMode === "plan") {
-    allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
+  const continueAllowedTools: string[] = [];
+  if (session.mcpConfig) {
+    continueAllowedTools.push("mcp__proq__*");
   }
-  args.push("--allowedTools", allowedTools.join(","));
+  if (taskMode === "plan") {
+    continueAllowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
+  }
+  if (continueAllowedTools.length > 0) {
+    args.push("--allowedTools", continueAllowedTools.join(","));
+  }
 
   // Emit init block for the new session turn
   if (!canResume || !session.sessionId) {

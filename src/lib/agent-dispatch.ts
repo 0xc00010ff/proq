@@ -315,7 +315,7 @@ export async function dispatchTask(
     writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
     writeFileSync(
       launcherFile,
-      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${cliPermFlag} --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${cliPermFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
       "utf-8",
     );
 

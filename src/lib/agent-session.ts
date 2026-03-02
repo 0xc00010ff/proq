@@ -231,6 +231,7 @@ export async function startSession(
 
   if (options?.mcpConfig) {
     args.push("--mcp-config", options.mcpConfig);
+    args.push("--allowedTools", "mcp__proq__*");
     session.mcpConfig = options.mcpConfig;
   }
 

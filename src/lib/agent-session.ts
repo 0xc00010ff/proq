@@ -181,7 +181,7 @@ export async function startSession(
   taskId: string,
   prompt: string,
   cwd: string,
-  options?: { model?: string; proqSystemPrompt?: string; mcpConfig?: string },
+  options?: { model?: string; proqSystemPrompt?: string; mcpConfig?: string; permissionMode?: string },
 ): Promise<void> {
   const session: AgentRuntimeSession = {
     taskId,
@@ -208,11 +208,12 @@ export async function startSession(
   const startTime = Date.now();
 
   // Build CLI args
+  const permMode = options?.permissionMode || "bypassPermissions";
   const args: string[] = [
     "-p", prompt,
     "--output-format", "stream-json",
     "--verbose",
-    "--dangerously-skip-permissions",
+    "--permission-mode", permMode,
     "--max-turns", "200",
   ];
 
@@ -405,12 +406,13 @@ export async function continueSession(
   }
 
   // Build CLI args for resume
+  const permMode = taskMode === "plan" ? "plan" : "bypassPermissions";
   const args: string[] = [
     "--resume", session.sessionId!,
     "-p", promptText,
     "--output-format", "stream-json",
     "--verbose",
-    "--dangerously-skip-permissions",
+    "--permission-mode", permMode,
     "--max-turns", "200",
   ];
 

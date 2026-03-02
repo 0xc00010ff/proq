@@ -73,12 +73,14 @@ You have MCP tools from the **proq** server for reporting progress. Use them ins
 - \`update_task\` — Update findings and move task to Verify for review`,
   ];
 
-  if (mode === "plan" || mode === "answer") {
-    const modeLabel = mode === "plan" ? "plan" : "answer";
-    sections.push(`### ${mode === "plan" ? "Planning" : "Research"} Mode
-This is a ${modeLabel}-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
+  if (mode === "answer") {
+    sections.push(`### Research Mode
+This is an answer-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
 
 ### Reporting Results
+When finished, use the \`read_task\` tool to check for any existing findings, then use \`update_task\` with a cumulative summary incorporating prior findings.`);
+  } else if (mode === "plan") {
+    sections.push(`### Reporting Results
 When finished, use the \`read_task\` tool to check for any existing findings, then use \`update_task\` with a cumulative summary incorporating prior findings.`);
   } else {
     sections.push(`### Code Changes
@@ -276,7 +278,7 @@ export async function dispatchTask(
     let prompt: string;
 
     if (mode === "plan") {
-      prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.\n${heading}`;
+      prompt = heading;
     } else if (mode === "answer") {
       prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.`;
     } else {
@@ -298,6 +300,11 @@ export async function dispatchTask(
       }
     }
 
+    // Use native plan permission mode for plan tasks, bypass for others
+    const cliPermFlag = mode === "plan"
+      ? `--permission-mode plan`
+      : `--dangerously-skip-permissions`;
+
     // Write prompt + system prompt to temp files to avoid shell escaping issues
     const promptDir = join(tmpdir(), "proq-prompts");
     mkdirSync(promptDir, { recursive: true });
@@ -308,7 +315,7 @@ export async function dispatchTask(
     writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
     writeFileSync(
       launcherFile,
-      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} --dangerously-skip-permissions --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${cliPermFlag} --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
       "utf-8",
     );
 
@@ -342,7 +349,7 @@ export async function dispatchTask(
 
   let prompt: string;
   if (mode === "plan") {
-    prompt = `IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan.\n${heading}`;
+    prompt = heading;
   } else if (mode === "answer") {
     prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question.`;
   } else {
@@ -364,10 +371,14 @@ export async function dispatchTask(
   const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
+  // Use native plan permission mode for plan tasks
+  const permissionMode = mode === "plan" ? "plan" : undefined;
+
   try {
     await startSession(projectId, taskId, prompt, effectivePath, {
       proqSystemPrompt,
       mcpConfig: mcpConfigPath,
+      permissionMode,
     });
     console.log(
       `[agent-dispatch] launched agent session for task ${taskId}`,

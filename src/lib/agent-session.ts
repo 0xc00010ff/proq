@@ -208,12 +208,12 @@ export async function startSession(
   const startTime = Date.now();
 
   // Build CLI args
-  const permMode = options?.permissionMode || "bypassPermissions";
+  const permissionsMode = options?.permissionMode || "bypassPermissions";
   const args: string[] = [
     "-p", prompt,
     "--output-format", "stream-json",
     "--verbose",
-    "--permission-mode", permMode,
+    "--permission-mode", permissionsMode,
     "--max-turns", "200",
   ];
 
@@ -410,7 +410,7 @@ export async function continueSession(
   // Build CLI args — use --resume only if we have a live in-memory session.
   // Reconstructed sessions (from DB after clearSession) likely have a dead
   // Claude CLI session, so we start fresh with task context instead.
-  const permMode = taskMode === "plan" ? "plan" : "bypassPermissions";
+  const permissionsMode = taskMode === "plan" ? "plan" : "bypassPermissions";
   const args: string[] = [];
 
   if (canResume && session.sessionId) {
@@ -421,7 +421,7 @@ export async function continueSession(
     "-p", promptText,
     "--output-format", "stream-json",
     "--verbose",
-    "--permission-mode", permMode,
+    "--permission-mode", permissionsMode,
     "--max-turns", "200",
   );
 

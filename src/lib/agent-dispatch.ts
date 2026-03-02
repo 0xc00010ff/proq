@@ -300,10 +300,10 @@ export async function dispatchTask(
       }
     }
 
-    // Use native plan permission mode for plan tasks, bypass for others
-    const cliPermFlag = mode === "plan"
-      ? `--permission-mode plan`
-      : `--dangerously-skip-permissions`;
+    // Always use --dangerously-skip-permissions for CLI mode.
+    // Plan mode's --permission-mode plan can't transition to implementation
+    // mode mid-session, so plan enforcement is done via the system prompt.
+    const cliPermFlag = `--dangerously-skip-permissions`;
 
     // Write prompt + system prompt to temp files to avoid shell escaping issues
     const promptDir = join(tmpdir(), "proq-prompts");

@@ -305,6 +305,13 @@ function processStreamEvent(session: AgentRuntimeSession, event: Record<string, 
             name: b.name as string,
             input: b.input as Record<string, unknown>,
           });
+
+          // Plan mode: when the agent calls ExitPlanMode, kill the process.
+          // The close handler will detect endedOnPlanExit and move to verify
+          // for human approval. The human can then continue with full permissions.
+          if (b.name === "ExitPlanMode" && session.queryHandle) {
+            session.queryHandle.kill("SIGTERM");
+          }
         }
       }
     }
@@ -445,13 +452,12 @@ export async function continueSession(
     "--max-turns", "200",
   );
 
-  // Use --dangerously-skip-permissions for non-plan tasks (more reliable than
-  // --permission-mode bypassPermissions which has race conditions).
-  if (taskMode === "plan") {
-    args.push("--permission-mode", "plan");
-  } else {
-    args.push("--dangerously-skip-permissions");
-  }
+  // Use --dangerously-skip-permissions for all continued sessions.
+  // Plan tasks start with --permission-mode plan, but after the agent calls
+  // ExitPlanMode and the human approves, the continuation needs full permissions
+  // to implement the plan. We detect this by checking if the session already has
+  // an ExitPlanMode tool_use block.
+  args.push("--dangerously-skip-permissions");
 
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
@@ -488,16 +494,9 @@ export async function continueSession(
   }
   args.push("--mcp-config", session.mcpConfig);
 
-  // Pre-allow tools to avoid race conditions with permission resolution.
-  const continueAllowedTools: string[] = [];
+  // Pre-allow MCP tools to avoid race conditions with permission resolution.
   if (session.mcpConfig) {
-    continueAllowedTools.push("mcp__proq__*");
-  }
-  if (taskMode === "plan") {
-    continueAllowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
-  }
-  if (continueAllowedTools.length > 0) {
-    args.push("--allowedTools", continueAllowedTools.join(","));
+    args.push("--allowedTools", "mcp__proq__*");
   }
 
   // Emit init block for the new session turn

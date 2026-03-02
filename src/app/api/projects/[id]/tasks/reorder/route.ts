@@ -40,7 +40,7 @@ export async function PUT(request: Request, { params }: Params) {
   if (prevStatus && prevStatus !== toColumn) {
     if (toColumn === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(taskId);
-      if (prevStatus !== "verify") {
+      if (prevStatus !== "verify" && prevStatus !== "done") {
         const settings = await getSettings();
         const dispatch = await getInitialDispatch(id, taskId);
         const renderMode = prevTask?.renderMode || settings.agentRenderMode || 'structured';
@@ -91,6 +91,8 @@ export async function PUT(request: Request, { params }: Params) {
         }
       }
       scheduleCleanup(id, taskId);
+    } else if (toColumn === "verify" && prevStatus === "done") {
+      cancelCleanup(taskId);
     } else if (toColumn === "done" && prevStatus === "verify") {
       // Merge worktree branch into main on completion
       if (prevTask?.worktreePath || prevTask?.branch) {

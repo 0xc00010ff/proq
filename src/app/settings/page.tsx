@@ -224,15 +224,16 @@ export default function SettingsPage() {
                 icon={<InfoIcon className="w-4 h-4" />}
                 label="About"
               />
+              <p className="text-sm text-bronze-700 dark:text-zinc-400 leading-relaxed mb-2">
+                A task board that runs your coding agents. You write tasks,
+                agents do the work, you review and merge. proq is a kanban
+                board that launches CLI coding agents in tmux, one per task,
+                against your actual codebase.
+              </p>
               <p className="text-sm text-bronze-700 dark:text-zinc-400 leading-relaxed mb-4">
-                proq is a vibe coding IDE built for shipping quality software.
-                It's a kanban board for CLI-based agentic coding agents. It was
-                designed to make sense of multi-agent capability and make us
-                better at our real job: defining what we want. Under the hood
-                it's a tmux task runner that bolts up to your favorite command
-                line agent. It works out of the box with subagents, MCPs,
-                worktrees, and whatever config you bring along. You can also
-                edit proq using proq.
+                Internally it&apos;s a process manager — local, self-contained,
+                no external services. It works with whatever agent config, MCPs,
+                and subagents you already have.
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-1">
                 This is version 0.1.0

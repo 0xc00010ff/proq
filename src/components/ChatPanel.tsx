@@ -5,6 +5,7 @@ import { CornerDownLeftIcon, TerminalSquareIcon, GlobeIcon, FileTextIcon, Search
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChatLogEntry, ToolCall, TaskAttachment } from '@/lib/types';
+import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { ScrambleText } from './ScrambleText';
 
 export interface StreamingMessage {
@@ -106,10 +107,11 @@ function AttachmentPreview({ attachments }: { attachments: TaskAttachment[] }) {
   return (
     <div className="flex flex-wrap gap-1.5 mt-2">
       {attachments.map((att) => {
-        const isImage = att.type?.startsWith('image/') && att.dataUrl;
+        const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+        const isImage = att.type?.startsWith('image/') && url;
         return isImage ? (
           <div key={att.id} className="rounded overflow-hidden border border-zinc-700/50 bg-zinc-800/60">
-            <img src={att.dataUrl} alt={att.name} className="h-16 w-auto max-w-[100px] object-cover block" />
+            <img src={url} alt={att.name} className="h-16 w-auto max-w-[100px] object-cover block" />
           </div>
         ) : (
           <div key={att.id} className="flex items-center gap-1.5 bg-zinc-800/60 border border-zinc-700/50 rounded px-2 py-1.5">
@@ -146,25 +148,9 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
     scrollToBottom();
   }, [messages, streamingMessage]);
 
-  const addFiles = useCallback((files: FileList | File[]) => {
-    Array.from(files).forEach((f) => {
-      const att: TaskAttachment = {
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: f.name,
-        size: f.size,
-        type: f.type,
-      };
-      if (f.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          att.dataUrl = e.target?.result as string;
-          setAttachments((prev) => [...prev, att]);
-        };
-        reader.readAsDataURL(f);
-      } else {
-        setAttachments((prev) => [...prev, att]);
-      }
-    });
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    const uploaded = await uploadFiles(files);
+    setAttachments((prev) => [...prev, ...uploaded]);
   }, []);
 
   const removeAttachment = useCallback((id: string) => {
@@ -288,14 +274,15 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
       {attachments.length > 0 && (
         <div className="px-6 pb-2 flex flex-wrap gap-2 shrink-0">
           {attachments.map((att) => {
-            const isImage = att.type?.startsWith('image/') && att.dataUrl;
+            const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+            const isImage = att.type?.startsWith('image/') && url;
             return isImage ? (
               <div
                 key={att.id}
                 className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
               >
                 <img
-                  src={att.dataUrl}
+                  src={url}
                   alt={att.name}
                   className="h-16 w-auto max-w-[100px] object-cover block"
                 />

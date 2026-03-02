@@ -15,6 +15,7 @@ import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment } from '@/lib/types';
+import { uploadFiles } from '@/lib/upload';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -297,33 +298,8 @@ export default function ProjectPage() {
     });
     const newTask: Task = await res.json();
 
-    // Read files into attachments
-    const attachments: TaskAttachment[] = [];
-    await Promise.all(
-      files.map(
-        (f) =>
-          new Promise<void>((resolve) => {
-            const att: TaskAttachment = {
-              id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-              name: f.name,
-              size: f.size,
-              type: f.type,
-            };
-            if (f.type.startsWith('image/')) {
-              const reader = new FileReader();
-              reader.onload = (ev) => {
-                att.dataUrl = ev.target?.result as string;
-                attachments.push(att);
-                resolve();
-              };
-              reader.readAsDataURL(f);
-            } else {
-              attachments.push(att);
-              resolve();
-            }
-          }),
-      ),
-    );
+    // Upload files to disk and get attachment metadata
+    const attachments = await uploadFiles(files);
 
     // Patch the task with attachments
     await fetch(`/api/projects/${projectId}/tasks/${newTask.id}`, {

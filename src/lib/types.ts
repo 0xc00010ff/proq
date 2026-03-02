@@ -56,7 +56,7 @@ export interface TaskAttachment {
   name: string;
   size: number;
   type: string;
-  dataUrl?: string;
+  filePath?: string;
 }
 
 export type TaskMode = 'answer' | 'plan' | 'build';

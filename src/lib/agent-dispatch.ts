@@ -286,30 +286,10 @@ export async function dispatchTask(
     const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
     const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
-    // Write attachments to temp files so the agent can read them
-    const imageFiles: string[] = [];
-    const otherFiles: string[] = [];
+    // Append file attachment paths to prompt
     if (attachments?.length) {
-      const attachDir = join(
-        tmpdir(),
-        "proq-prompts",
-        `${tmuxSession}-attachments`,
-      );
-      mkdirSync(attachDir, { recursive: true });
-      for (const att of attachments) {
-        if (att.dataUrl) {
-          const match = att.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
-          if (match) {
-            const filePath = join(attachDir, att.name);
-            writeFileSync(filePath, Buffer.from(match[1], "base64"));
-            if (att.type.startsWith("image/")) {
-              imageFiles.push(filePath);
-            } else {
-              otherFiles.push(filePath);
-            }
-          }
-        }
-      }
+      const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
+      const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
       if (imageFiles.length > 0) {
         prompt += `\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
       }
@@ -369,30 +349,10 @@ export async function dispatchTask(
     prompt = `${heading}\n\nWhen completely finished, stage and commit the changes with a descriptive message.`;
   }
 
-  // Append file attachments
+  // Append file attachment paths to prompt
   if (attachments?.length) {
-    const imageFiles: string[] = [];
-    const otherFiles: string[] = [];
-    const attachDir = join(
-      tmpdir(),
-      "proq-prompts",
-      `agent-${shortId}-attachments`,
-    );
-    mkdirSync(attachDir, { recursive: true });
-    for (const att of attachments) {
-      if (att.dataUrl) {
-        const match = att.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
-        if (match) {
-          const filePath = join(attachDir, att.name);
-          writeFileSync(filePath, Buffer.from(match[1], "base64"));
-          if (att.type.startsWith("image/")) {
-            imageFiles.push(filePath);
-          } else {
-            otherFiles.push(filePath);
-          }
-        }
-      }
-    }
+    const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
+    const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
     if (imageFiles.length > 0) {
       prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }

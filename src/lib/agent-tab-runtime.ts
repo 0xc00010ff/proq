@@ -1,7 +1,5 @@
 import { spawn, type ChildProcess } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
-import { tmpdir } from "os";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { getAgentTabData, setAgentTabData, getSettings, getProject } from "./db";
 import type WebSocket from "ws";
@@ -311,27 +309,11 @@ export async function continueAgentTabSession(
     throw new Error("Session is already running");
   }
 
-  // Handle attachments
+  // Append file attachment paths to prompt
   let promptText = text;
   if (attachments?.length) {
-    const imageFiles: string[] = [];
-    const otherFiles: string[] = [];
-    const attachDir = join(tmpdir(), "proq-prompts", `agent-${tabId}-${Date.now()}`);
-    mkdirSync(attachDir, { recursive: true });
-    for (const att of attachments) {
-      if (att.dataUrl) {
-        const match = att.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
-        if (match) {
-          const filePath = join(attachDir, att.name);
-          writeFileSync(filePath, Buffer.from(match[1], "base64"));
-          if (att.type.startsWith("image/")) {
-            imageFiles.push(filePath);
-          } else {
-            otherFiles.push(filePath);
-          }
-        }
-      }
-    }
+    const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
+    const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
     if (imageFiles.length > 0) {
       promptText += `\n\n## Attached Images\nThe following image files are attached to this message. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }

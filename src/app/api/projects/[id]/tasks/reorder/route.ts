@@ -91,6 +91,8 @@ export async function PUT(request: Request, { params }: Params) {
         }
       }
       scheduleCleanup(id, taskId);
+    } else if (toColumn === "verify" && prevStatus === "done") {
+      cancelCleanup(taskId);
     } else if (toColumn === "done" && prevStatus === "verify") {
       // Merge worktree branch into main on completion
       if (prevTask?.worktreePath || prevTask?.branch) {

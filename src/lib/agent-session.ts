@@ -352,20 +352,22 @@ export async function continueSession(
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
+  let canResume = true;
 
-  // If no in-memory session, reconstruct from DB
+  // If no in-memory session, reconstruct from DB.
+  // The session was cleared (e.g. task moved to done), so the Claude CLI
+  // session is likely dead.  We'll start fresh with context instead of
+  // trying --resume on a stale session ID.
   if (!session) {
     const task = await getTask(projectId, taskId);
-    if (!task?.sessionId) {
-      throw new Error("No session to continue — no sessionId on task");
-    }
-    taskMode = task.mode;
+    taskMode = task?.mode;
+    canResume = false;
     session = {
       taskId,
       projectId,
-      sessionId: task.sessionId,
+      sessionId: task?.sessionId,
       queryHandle: null,
-      blocks: task.agentBlocks || [],
+      blocks: task?.agentBlocks || [],
       clients: new Set(),
       status: "done",
     };
@@ -414,15 +416,22 @@ export async function continueSession(
     }
   }
 
-  // Build CLI args for resume
-  const args: string[] = [
-    "--resume", session.sessionId!,
+  // Build CLI args — use --resume only if we have a live in-memory session.
+  // Reconstructed sessions (from DB after clearSession) likely have a dead
+  // Claude CLI session, so we start fresh with task context instead.
+  const args: string[] = [];
+
+  if (canResume && session.sessionId) {
+    args.push("--resume", session.sessionId);
+  }
+
+  args.push(
     "-p", promptText,
     "--output-format", "stream-json",
     "--verbose",
     "--dangerously-skip-permissions",
     "--max-turns", "200",
-  ];
+  );
 
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
@@ -434,6 +443,21 @@ export async function continueSession(
   const project = await getProject(projectId);
   const proqSysPrompt = buildProqSystemPrompt(projectId, taskId, taskMode as "answer" | "plan" | "build" | undefined, project?.name);
   systemParts.push(proqSysPrompt);
+
+  // When starting fresh (no --resume), inject previous work context so the
+  // agent knows what was done before.
+  if (!canResume || !session.sessionId) {
+    const task = await getTask(projectId, taskId);
+    const contextParts: string[] = [];
+    if (task?.title) contextParts.push(`Task: ${task.title}`);
+    if (task?.description) contextParts.push(`Description: ${task.description}`);
+    if (task?.findings) contextParts.push(`Previous findings:\n${task.findings}`);
+    if (task?.humanSteps) contextParts.push(`Previous action items:\n${task.humanSteps}`);
+    if (contextParts.length > 0) {
+      systemParts.push(`## Previous work on this task\nThis task was previously worked on by an agent. Here is the context from that work:\n\n${contextParts.join("\n\n")}`);
+    }
+  }
+
   if (systemParts.length > 0) {
     args.push("--append-system-prompt", systemParts.join("\n\n"));
   }
@@ -443,6 +467,15 @@ export async function continueSession(
     session.mcpConfig = writeMcpConfig(projectId, taskId);
   }
   args.push("--mcp-config", session.mcpConfig);
+
+  // Emit init block for the new session turn
+  if (!canResume || !session.sessionId) {
+    appendBlock(session, {
+      type: "status",
+      subtype: "init",
+      model: settings.defaultModel || undefined,
+    });
+  }
 
   const proc = spawn(CLAUDE, args, {
     cwd,

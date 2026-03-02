@@ -104,6 +104,10 @@ export async function PATCH(request: Request, { params }: Params) {
       scheduleCleanup(id, taskId);
       clearSession(taskId);
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → done`);
+    } else if (body.status === "verify" && prevStatus === "done") {
+      // Moving back from done to verify — cancel any pending cleanup so
+      // the user can continue chatting without the cleanup timer interfering.
+      cancelCleanup(taskId);
     } else if (body.status === "done" && prevStatus === "verify") {
       // Merge worktree branch into main on completion
       if (prevTask?.worktreePath || prevTask?.branch) {

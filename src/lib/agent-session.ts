@@ -181,7 +181,7 @@ export async function startSession(
   taskId: string,
   prompt: string,
   cwd: string,
-  options?: { model?: string; proqSystemPrompt?: string; mcpConfig?: string },
+  options?: { model?: string; proqSystemPrompt?: string; mcpConfig?: string; permissionMode?: string },
 ): Promise<void> {
   const session: AgentRuntimeSession = {
     taskId,
@@ -208,11 +208,12 @@ export async function startSession(
   const startTime = Date.now();
 
   // Build CLI args
+  const permissionsMode = options?.permissionMode || "bypassPermissions";
   const args: string[] = [
     "-p", prompt,
     "--output-format", "stream-json",
     "--verbose",
-    "--dangerously-skip-permissions",
+    "--permission-mode", permissionsMode,
     "--max-turns", "200",
   ];
 
@@ -409,6 +410,7 @@ export async function continueSession(
   // Build CLI args — use --resume only if we have a live in-memory session.
   // Reconstructed sessions (from DB after clearSession) likely have a dead
   // Claude CLI session, so we start fresh with task context instead.
+  const permissionsMode = taskMode === "plan" ? "plan" : "bypassPermissions";
   const args: string[] = [];
 
   if (canResume && session.sessionId) {
@@ -419,7 +421,7 @@ export async function continueSession(
     "-p", promptText,
     "--output-format", "stream-json",
     "--verbose",
-    "--dangerously-skip-permissions",
+    "--permission-mode", permissionsMode,
     "--max-turns", "200",
   );
 

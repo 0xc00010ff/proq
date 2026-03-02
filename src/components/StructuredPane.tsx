@@ -226,6 +226,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
         let planContent: string | undefined;
         let planFilePath: string | undefined;
         for (let j = i - 1; j >= 0; j--) {
+          if (i - j > 20) break; // reasonable scan limit
           const prev = blocks[j];
           if (prev.type === 'tool_use' && prev.name === 'Write') {
             const fp = prev.input.file_path as string;
@@ -235,10 +236,15 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
               break;
             }
           }
-          // Also check tool_result for the Write output
-          if (prev.type === 'tool_result' && prev.name === 'Write') continue;
-          // Stop if we hit a non-tool block (text/thinking) — plan write should be right before
-          if (prev.type === 'text' || prev.type === 'thinking') break;
+          if (prev.type === 'tool_use' && prev.name === 'Edit') {
+            const fp = prev.input.file_path as string;
+            if (fp && fp.endsWith('.md') && prev.input.new_string) {
+              planContent = prev.input.new_string as string;
+              planFilePath = fp;
+              break;
+            }
+          }
+          // Skip over text, thinking, and tool_result blocks
         }
         // Check if the user already responded (a user block exists after this one)
         let alreadyResponded = false;

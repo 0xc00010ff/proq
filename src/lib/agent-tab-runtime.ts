@@ -194,6 +194,11 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
       });
     } else if (session.status === "running") {
       session.status = "done";
+      appendBlock(session, {
+        type: "status",
+        subtype: "complete",
+        durationMs: Date.now() - startTime,
+      });
     }
 
     await setAgentTabData(session.projectId, session.tabId, {

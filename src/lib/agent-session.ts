@@ -111,6 +111,11 @@ function wireProcess(
       });
     } else if (session.status === "running") {
       session.status = "done";
+      appendBlock(session, {
+        type: "status",
+        subtype: "complete",
+        durationMs: Date.now() - startTime,
+      });
     }
 
     // Check if the last tool_use was AskUserQuestion or ExitPlanMode — surface to human

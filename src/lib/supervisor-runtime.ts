@@ -250,6 +250,11 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
       });
     } else if (session.status === "running") {
       session.status = "done";
+      appendBlock(session, {
+        type: "status",
+        subtype: "complete",
+        durationMs: Date.now() - startTime,
+      });
     }
 
     await setSupervisorAgentBlocks(session.blocks, session.sessionId);

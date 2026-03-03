@@ -148,7 +148,7 @@ export default function SettingsPage() {
     );
   }
 
-  const webhooks = settings.webhooks ?? [];
+  const webhooks = Array.isArray(settings.webhooks) ? settings.webhooks : [];
 
   return (
     <>

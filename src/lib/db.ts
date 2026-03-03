@@ -690,14 +690,30 @@ const DEFAULT_SETTINGS: ProqSettings = {
 export async function getSettings(): Promise<ProqSettings> {
   const stored = readJSON<Partial<ProqSettings> & Record<string, unknown>>(SETTINGS_FILE, {});
 
+  let dirty = false;
+
   // Migrate old render mode values
   if (stored.agentRenderMode === 'pretty' as string) {
     stored.agentRenderMode = 'structured';
-    writeJSON(SETTINGS_FILE, stored);
+    dirty = true;
   } else if (stored.agentRenderMode === 'terminal' as string) {
     stored.agentRenderMode = 'cli';
-    writeJSON(SETTINGS_FILE, stored);
+    dirty = true;
   }
+
+  // Migrate webhooks from string to string[]
+  if (typeof stored.webhooks === 'string') {
+    const raw = stored.webhooks as string;
+    try {
+      const parsed = raw ? JSON.parse(raw) : [];
+      stored.webhooks = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      stored.webhooks = [];
+    }
+    dirty = true;
+  }
+
+  if (dirty) writeJSON(SETTINGS_FILE, stored);
 
   return { ...DEFAULT_SETTINGS, ...stored };
 }

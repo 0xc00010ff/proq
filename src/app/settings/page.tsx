@@ -5,25 +5,24 @@ import {
   SaveIcon,
   CheckIcon,
   Loader2Icon,
-  MonitorIcon,
   BotIcon,
   GitBranchIcon,
   PaletteIcon,
   BellIcon,
-  CogIcon,
   InfoIcon,
+  CircleHelpIcon,
+  PlusIcon,
+  XIcon,
 } from "lucide-react";
 import type { ProqSettings } from "@/lib/types";
 import { Select } from "@/components/ui/select";
 
 type SettingsSection =
-  | "system"
+  | "about"
+  | "appearance"
   | "agent"
   | "git"
-  | "appearance"
-  | "notifications"
-  | "process"
-  | "about";
+  | "notifications";
 
 const SECTIONS: {
   id: SettingsSection;
@@ -31,15 +30,13 @@ const SECTIONS: {
   icon: React.ReactNode;
 }[] = [
   { id: "about", label: "About", icon: <InfoIcon className="w-4 h-4" /> },
-  { id: "system", label: "System", icon: <MonitorIcon className="w-4 h-4" /> },
-  { id: "agent", label: "Agent", icon: <BotIcon className="w-4 h-4" /> },
-  { id: "process", label: "Process", icon: <CogIcon className="w-4 h-4" /> },
-  { id: "git", label: "Git", icon: <GitBranchIcon className="w-4 h-4" /> },
   {
     id: "appearance",
     label: "Appearance",
     icon: <PaletteIcon className="w-4 h-4" />,
   },
+  { id: "agent", label: "Agent", icon: <BotIcon className="w-4 h-4" /> },
+  { id: "git", label: "Git", icon: <GitBranchIcon className="w-4 h-4" /> },
   {
     id: "notifications",
     label: "Notifications",
@@ -47,19 +44,12 @@ const SECTIONS: {
   },
 ];
 
-function NotImplemented({ message }: { message?: string }) {
-  return (
-    <p className="text-red-400 italic text-sm mb-4">
-      {message || "Settings on this page are not yet implemented."}
-    </p>
-  );
-}
-
 export default function SettingsPage() {
   const [settings, setSettings] = useState<ProqSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<SettingsSection>("about");
+  const [activeSection, setActiveSection] =
+    useState<SettingsSection>("about");
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingTo = useRef(false);
@@ -80,12 +70,11 @@ export default function SettingsPage() {
       if (isScrollingTo.current) return;
 
       const containerTop = container.scrollTop;
-      let current: SettingsSection = "system";
+      let current: SettingsSection = "about";
 
       for (const section of SECTIONS) {
         const el = sectionRefs.current[section.id];
         if (el) {
-          // Section is "active" when its top is within 100px of the scroll container top
           if (el.offsetTop - container.offsetTop <= containerTop + 100) {
             current = section.id;
           }
@@ -158,6 +147,8 @@ export default function SettingsPage() {
       </div>
     );
   }
+
+  const webhooks = settings.webhooks ?? [];
 
   return (
     <>
@@ -269,30 +260,26 @@ export default function SettingsPage() {
               </p>
             </section>
 
-            {/* System */}
+            {/* Appearance */}
             <section
               ref={(el) => {
-                sectionRefs.current.system = el;
+                sectionRefs.current.appearance = el;
               }}
-              id="settings-system"
+              id="settings-appearance"
             >
               <SectionHeading
-                icon={<MonitorIcon className="w-4 h-4" />}
-                label="System"
+                icon={<PaletteIcon className="w-4 h-4" />}
+                label="Appearance"
               />
-              <NotImplemented />
               <div className="space-y-4">
-                <Field
-                  label="Port"
-                  hint="The port that proq itself runs on. Requires restart to take effect."
-                >
-                  <input
-                    type="number"
-                    value={settings.port}
-                    onChange={(e) =>
-                      update("port", parseInt(e.target.value) || 1337)
-                    }
-                    className={inputClass}
+                <Field label="Theme">
+                  <Select
+                    value={settings.theme}
+                    onChange={(v) => update("theme", v as "dark" | "light")}
+                    options={[
+                      { value: "dark", label: "Dark" },
+                      { value: "light", label: "Light" },
+                    ]}
                   />
                 </Field>
               </div>
@@ -309,144 +296,33 @@ export default function SettingsPage() {
                 icon={<BotIcon className="w-4 h-4" />}
                 label="Agent"
               />
-              <NotImplemented />
               <div className="space-y-4">
                 <Field
-                  label="CLI tool path"
-                  hint="Path or command name for the Claude CLI."
-                >
-                  <input
-                    type="text"
-                    value={settings.claudeBin}
-                    onChange={(e) => update("claudeBin", e.target.value)}
-                    placeholder="claude"
-                    className={inputClassMono}
-                  />
-                </Field>
-                <Field
-                  label="Default model"
-                  hint="Model to use for agent tasks. Leave empty for tool default."
-                >
-                  <input
-                    type="text"
-                    value={settings.defaultModel}
-                    onChange={(e) => update("defaultModel", e.target.value)}
-                    placeholder="Tool default"
-                    className={inputClassMono}
-                  />
-                </Field>
-                <Field
-                  label="System prompt additions"
-                  hint="Extra instructions appended to every agent prompt."
-                >
-                  <textarea
-                    value={settings.systemPromptAdditions}
-                    onChange={(e) =>
-                      update("systemPromptAdditions", e.target.value)
-                    }
-                    rows={4}
-                    className={inputClassMono}
-                  />
-                </Field>
-                <Field
-                  label="Execution mode"
-                  hint="Sequential runs one task at a time; parallel runs all queued tasks."
-                >
-                  <Select
-                    value={settings.executionMode}
-                    onChange={(v) => update("executionMode", v as "sequential" | "parallel")}
-                    options={[
-                      { value: "sequential", label: "Sequential" },
-                      { value: "parallel", label: "Parallel" },
-                    ]}
-                  />
-                </Field>
-                <Field
                   label="Agent render mode"
-                  hint="Pretty shows structured agent output. Terminal shows raw tmux session for debugging."
+                  hint="Structured shows parsed agent output. CLI shows the raw terminal session."
                 >
                   <Select
                     value={settings.agentRenderMode}
-                    onChange={(v) => update("agentRenderMode", v as "cli" | "structured")}
+                    onChange={(v) =>
+                      update("agentRenderMode", v as "cli" | "structured")
+                    }
                     options={[
                       { value: "structured", label: "Structured" },
                       { value: "cli", label: "CLI" },
                     ]}
                   />
                 </Field>
-              </div>
-            </section>
-
-            {/* Process */}
-            <section
-              ref={(el) => {
-                sectionRefs.current.process = el;
-              }}
-              id="settings-process"
-            >
-              <SectionHeading
-                icon={<CogIcon className="w-4 h-4" />}
-                label="Process"
-              />
-              <NotImplemented />
-              <div className="space-y-4">
-                <Field
-                  label="Cleanup delay"
-                  hint="Minutes before completed agent sessions are cleaned up."
-                >
-                  <input
-                    type="number"
-                    value={settings.cleanupDelay}
-                    onChange={(e) =>
-                      update("cleanupDelay", parseInt(e.target.value) || 60)
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Task poll interval"
-                  hint="Seconds between task status refreshes."
-                >
-                  <input
-                    type="number"
-                    value={settings.taskPollInterval}
-                    onChange={(e) =>
-                      update("taskPollInterval", parseInt(e.target.value) || 5)
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Deleted task retention"
-                  hint="Hours to keep deleted tasks for undo."
-                >
-                  <input
-                    type="number"
-                    value={settings.deletedTaskRetention}
-                    onChange={(e) =>
-                      update(
-                        "deletedTaskRetention",
-                        parseInt(e.target.value) || 24,
-                      )
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Terminal scrollback"
-                  hint="Scrollback buffer size in KB."
-                >
-                  <input
-                    type="number"
-                    value={settings.terminalScrollback}
-                    onChange={(e) =>
-                      update(
-                        "terminalScrollback",
-                        parseInt(e.target.value) || 50,
-                      )
-                    }
-                    className={inputClass}
-                  />
+                <Field label="Coding agent">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`${inputClass} flex-1 opacity-50 cursor-not-allowed select-none`}
+                    >
+                      Claude Code
+                    </div>
+                    <Tooltip text="Currently built for Claude Code. Codex/OpenCode coming soon.">
+                      <CircleHelpIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+                    </Tooltip>
+                  </div>
                 </Field>
               </div>
             </section>
@@ -462,61 +338,13 @@ export default function SettingsPage() {
                 icon={<GitBranchIcon className="w-4 h-4" />}
                 label="Git"
               />
-              <NotImplemented />
               <div className="space-y-4">
-                <Field label="Auto-commit">
-                  <Toggle
-                    checked={settings.autoCommit}
-                    onChange={(v) => update("autoCommit", v)}
-                  />
-                </Field>
-                <Field label="Commit style" hint="e.g. conventional commits">
+                <Field label="Default branch" hint="Default branch selection coming soon.">
                   <input
                     type="text"
-                    value={settings.commitStyle}
-                    onChange={(e) => update("commitStyle", e.target.value)}
-                    placeholder="e.g. conventional commits"
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Auto-push">
-                  <Toggle
-                    checked={settings.autoPush}
-                    onChange={(v) => update("autoPush", v)}
-                  />
-                </Field>
-                <Field label="Show git branches">
-                  <Toggle
-                    checked={settings.showGitBranches}
-                    onChange={(v) => update("showGitBranches", v)}
-                  />
-                </Field>
-              </div>
-            </section>
-
-            {/* Appearance */}
-            <section
-              ref={(el) => {
-                sectionRefs.current.appearance = el;
-              }}
-              id="settings-appearance"
-            >
-              <SectionHeading
-                icon={<PaletteIcon className="w-4 h-4" />}
-                label="Appearance"
-              />
-              <p className="text-red-400 italic text-sm mb-4">
-                Theme is active. Other appearance settings coming soon.
-              </p>
-              <div className="space-y-4">
-                <Field label="Theme">
-                  <Select
-                    value={settings.theme}
-                    onChange={(v) => update("theme", v as "dark" | "light")}
-                    options={[
-                      { value: "dark", label: "Dark" },
-                      { value: "light", label: "Light" },
-                    ]}
+                    value="main"
+                    disabled
+                    className={`${inputClass} opacity-50 cursor-not-allowed`}
                   />
                 </Field>
               </div>
@@ -533,43 +361,45 @@ export default function SettingsPage() {
                 icon={<BellIcon className="w-4 h-4" />}
                 label="Notifications"
               />
-              <NotImplemented />
-              <div className="space-y-4">
-                <Field label="Notification method">
-                  <Select
-                    value={settings.notificationMethod}
-                    onChange={(v) => update("notificationMethod", v as ProqSettings["notificationMethod"])}
-                    options={[
-                      { value: "none", label: "None" },
-                      { value: "slack", label: "Slack" },
-                      { value: "system", label: "System" },
-                      { value: "sound", label: "Sound" },
-                    ]}
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 italic mb-4">
+                Notifications coming soon.
+              </p>
+              <div className="space-y-4 opacity-50 pointer-events-none select-none">
+                <Field label="Sounds">
+                  <Toggle
+                    checked={settings.soundNotifications}
+                    onChange={(v) => update("soundNotifications", v)}
                   />
                 </Field>
-                <Field
-                  label="Slack channel"
-                  hint="Channel name for task completion notifications."
-                >
-                  <input
-                    type="text"
-                    value={settings.slackChannel}
-                    onChange={(e) => update("slackChannel", e.target.value)}
-                    placeholder="#dev-updates"
-                    className={inputClassMono}
+                <Field label="Local notifications">
+                  <Toggle
+                    checked={settings.localNotifications}
+                    onChange={(v) => update("localNotifications", v)}
                   />
                 </Field>
-                <Field
-                  label="Webhooks"
-                  hint="JSON array of webhook URLs to notify on task events."
-                >
-                  <textarea
-                    value={settings.webhooks}
-                    onChange={(e) => update("webhooks", e.target.value)}
-                    rows={4}
-                    placeholder='[{"url": "https://..."}]'
-                    className={inputClassMono}
-                  />
+                <Field label="Webhooks" hint="URLs to notify on task events.">
+                  <div className="space-y-2">
+                    {webhooks.map((url, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={url}
+                          readOnly
+                          className={`${inputClassMono} flex-1`}
+                        />
+                        <button
+                          className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400"
+                          tabIndex={-1}
+                        >
+                          <XIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <button className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 py-1">
+                      <PlusIcon className="w-3.5 h-3.5" />
+                      Add webhook
+                    </button>
+                  </div>
                 </Field>
               </div>
             </section>
@@ -653,5 +483,22 @@ function Toggle({
         }`}
       />
     </button>
+  );
+}
+
+function Tooltip({
+  text,
+  children,
+}: {
+  text: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="relative group">
+      {children}
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded bg-zinc-800 dark:bg-zinc-700 text-xs text-zinc-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+        {text}
+      </span>
+    </span>
   );
 }

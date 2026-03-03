@@ -667,36 +667,24 @@ export async function clearSupervisorSession(): Promise<void> {
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 
 const DEFAULT_SETTINGS: ProqSettings = {
-  // System
-  port: 1337,
-
   // Agent
   claudeBin: "claude",
   defaultModel: "",
   systemPromptAdditions: "",
   executionMode: "sequential",
   agentRenderMode: "structured",
+  codingAgent: "claude-code",
 
   // Git
-  autoCommit: true,
-  commitStyle: "",
-  autoPush: false,
-  showGitBranches: false,
+  defaultBranch: "main",
 
   // Appearance
   theme: "dark",
 
   // Notifications
-  notificationMethod: "none",
-  openclawBin: "",
-  slackChannel: "",
-  webhooks: "",
-
-  // Process
-  cleanupDelay: 60,
-  taskPollInterval: 5,
-  deletedTaskRetention: 24,
-  terminalScrollback: 50,
+  soundNotifications: false,
+  localNotifications: false,
+  webhooks: [],
 };
 
 export async function getSettings(): Promise<ProqSettings> {

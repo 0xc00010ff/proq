@@ -127,36 +127,24 @@ export interface DeletedTaskEntry {
 
 // ── Settings ─────────────────────────────────────────
 export interface ProqSettings {
-  // System
-  port: number;
-
   // Agent
   claudeBin: string;
   defaultModel: string;
   systemPromptAdditions: string;
   executionMode: 'sequential' | 'parallel';
   agentRenderMode: AgentRenderMode;
+  codingAgent: string;
 
   // Git
-  autoCommit: boolean;
-  commitStyle: string;
-  autoPush: boolean;
-  showGitBranches: boolean;
+  defaultBranch: string;
 
   // Appearance
   theme: 'dark' | 'light';
 
   // Notifications
-  notificationMethod: 'none' | 'slack' | 'system' | 'sound';
-  openclawBin: string;
-  slackChannel: string;
-  webhooks: string;
-
-  // Process
-  cleanupDelay: number;
-  taskPollInterval: number;
-  deletedTaskRetention: number;
-  terminalScrollback: number;
+  soundNotifications: boolean;
+  localNotifications: boolean;
+  webhooks: string[];
 }
 
 // ── Per-project state ────────────────────────────────────

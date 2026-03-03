@@ -110,7 +110,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
           </button>
         ) : (
           <>
-            {/* Left of branch selector: state indicators */}
+            {/* Status indicators */}
             <div className="flex items-center gap-3 text-xs whitespace-nowrap">
               {gitStatus && gitStatus.dirty > 0 && (
                 <span className="text-red-400">
@@ -128,6 +128,32 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 </span>
               )}
             </div>
+
+            {/* Pull / Push buttons */}
+            {gitStatus?.hasRemote && (
+              <div className="flex items-center gap-1.5">
+                {gitStatus.behind > 0 && (
+                  <button
+                    onClick={onPull}
+                    title={`Pull ${gitStatus.behind} ${gitStatus.behind === 1 ? 'commit' : 'commits'} from upstream`}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-blue-400 hover:bg-surface-hover transition-colors"
+                  >
+                    <ArrowDownIcon className="w-3.5 h-3.5" />
+                    Pull
+                  </button>
+                )}
+                {gitStatus.ahead > 0 && (
+                  <button
+                    onClick={onPush}
+                    title={`Push ${gitStatus.ahead} ${gitStatus.ahead === 1 ? 'commit' : 'commits'} to upstream`}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors"
+                  >
+                    <ArrowUpIcon className="w-3.5 h-3.5" />
+                    Push
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Branch selector */}
             {currentBranch && branches && branches.length > 0 && (
@@ -185,30 +211,6 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
-
-            {/* Right of branch selector: upstream actions */}
-            {gitStatus?.hasRemote && (
-              <div className="flex items-center gap-1">
-                {gitStatus.behind > 0 && (
-                  <button
-                    onClick={onPull}
-                    title={`Pull ${gitStatus.behind} ${gitStatus.behind === 1 ? 'commit' : 'commits'} from upstream`}
-                    className="p-1.5 text-xs rounded-md text-blue-400 hover:bg-surface-hover transition-colors"
-                  >
-                    <ArrowDownIcon className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {gitStatus.ahead > 0 && (
-                  <button
-                    onClick={onPush}
-                    title={`Push ${gitStatus.ahead} ${gitStatus.ahead === 1 ? 'commit' : 'commits'} to upstream`}
-                    className="p-1.5 text-xs rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover transition-colors"
-                  >
-                    <ArrowUpIcon className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
             )}
           </>
         )}

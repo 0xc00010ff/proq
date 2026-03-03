@@ -2,9 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  SaveIcon,
-  CheckIcon,
-  Loader2Icon,
   BotIcon,
   GitBranchIcon,
   PaletteIcon,
@@ -46,8 +43,6 @@ const SECTIONS: {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<ProqSettings | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [activeSection, setActiveSection] =
     useState<SettingsSection>("about");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -101,43 +96,27 @@ export default function SettingsPage() {
     });
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!settings) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setSettings(updated);
-
-        if (updated.theme === "light") {
-          document.documentElement.classList.remove("dark");
-          localStorage.setItem("theme", "light");
-        } else {
-          document.documentElement.classList.add("dark");
-          localStorage.setItem("theme", "dark");
-        }
-
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } catch (e) {
-      console.error("Failed to save settings:", e);
-    } finally {
-      setSaving(false);
-    }
-  }, [settings]);
-
   const update = <K extends keyof ProqSettings>(
     key: K,
     value: ProqSettings[K],
   ) => {
     if (!settings) return;
-    setSettings({ ...settings, [key]: value });
+    const next = { ...settings, [key]: value };
+    setSettings(next);
+
+    // Apply theme immediately
+    if (key === "theme") {
+      const isDark = value === "dark";
+      document.documentElement.classList.toggle("dark", isDark);
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    // Persist to API
+    fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [key]: value }),
+    }).catch((e) => console.error("Failed to save setting:", e));
   };
 
   if (!settings) {
@@ -153,7 +132,7 @@ export default function SettingsPage() {
   return (
     <>
       {/* Top bar */}
-      <header className="h-16 bg-surface-base flex items-center justify-between px-6 flex-shrink-0">
+      <header className="h-16 bg-surface-base flex items-center px-6 flex-shrink-0">
         <div className="flex flex-col justify-center">
           <h1 className="text-lg font-semibold text-bronze-900 dark:text-zinc-100">
             Settings
@@ -162,20 +141,6 @@ export default function SettingsPage() {
             Configure your proq instance
           </p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 rounded-md bg-bronze-800 dark:bg-zinc-700 text-white hover:bg-bronze-900 dark:hover:bg-zinc-600 disabled:opacity-50 text-sm font-medium transition-colors"
-        >
-          {saving ? (
-            <Loader2Icon className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <CheckIcon className="w-4 h-4" />
-          ) : (
-            <SaveIcon className="w-4 h-4" />
-          )}
-          {saved ? "Saved" : "Save settings"}
-        </button>
       </header>
 
       {/* Sidebar + scrolling content */}
@@ -299,7 +264,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <Field
                   label="Agent render mode"
-                  hint="Structured shows parsed agent output. CLI shows the raw terminal session."
+                  hint="Chat shows a formatted chat window like Claude Code desktop. CLI shows a raw terminal running the Claude Code CLI."
                 >
                   <Select
                     value={settings.agentRenderMode}
@@ -307,7 +272,7 @@ export default function SettingsPage() {
                       update("agentRenderMode", v as "cli" | "structured")
                     }
                     options={[
-                      { value: "structured", label: "Structured" },
+                      { value: "structured", label: "Chat" },
                       { value: "cli", label: "CLI" },
                     ]}
                   />

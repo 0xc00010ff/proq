@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { moveTask, getProject, getTask, updateTask, getSettings } from "@/lib/db";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
-import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, popAutoStash } from "@/lib/worktree";
+import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
 import type { TaskStatus } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
@@ -69,7 +69,7 @@ export async function PUT(request: Request, { params }: Params) {
       if (prevTask?.worktreePath || prevTask?.branch) {
         const projectPath = project!.path.replace(/^~/, process.env.HOME || "~");
         try {
-          ensureNotOnTaskBranch(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
+          ensureOnMainForMerge(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
         } catch { /* best effort */ }
         const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
         popAutoStash(projectPath);
@@ -98,9 +98,9 @@ export async function PUT(request: Request, { params }: Params) {
       if (prevTask?.worktreePath || prevTask?.branch) {
         const projectPath = project!.path.replace(/^~/, process.env.HOME || "~");
         try {
-          ensureNotOnTaskBranch(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
+          ensureOnMainForMerge(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
         } catch { /* best effort */ }
-        if (prevTask.worktreePath) {
+        if (prevTask.worktreePath || prevTask.branch) {
           const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
           popAutoStash(projectPath);
           if (!result.success) {

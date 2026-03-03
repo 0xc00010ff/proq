@@ -4,7 +4,7 @@ import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
 import { clearSession } from "@/lib/agent-session";
-import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, popAutoStash } from "@/lib/worktree";
+import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
@@ -78,7 +78,7 @@ export async function PATCH(request: Request, { params }: Params) {
         if (proj) {
           const projectPath = proj.path.replace(/^~/, process.env.HOME || "~");
           try {
-            ensureNotOnTaskBranch(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
+            ensureOnMainForMerge(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
           } catch { /* best effort */ }
           const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
           popAutoStash(projectPath);
@@ -115,9 +115,9 @@ export async function PATCH(request: Request, { params }: Params) {
         if (proj) {
           const projectPath = proj.path.replace(/^~/, process.env.HOME || "~");
           try {
-            ensureNotOnTaskBranch(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
+            ensureOnMainForMerge(projectPath, prevTask.branch || `proq/${prevTask.id.slice(0, 8)}`);
           } catch { /* best effort */ }
-          if (prevTask.worktreePath) {
+          if (prevTask.worktreePath || prevTask.branch) {
             const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
             popAutoStash(projectPath);
             if (!result.success) {

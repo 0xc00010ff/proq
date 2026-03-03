@@ -434,6 +434,21 @@ export function ensureNotOnTaskBranch(projectPath: string, taskBranch: string): 
   deletePreviewBranch(projectPath, taskBranch);
 }
 
+/**
+ * Ensure the main project directory is on `main` before merging a task branch.
+ * Unlike ensureNotOnTaskBranch (which only moves off *this* task's branch),
+ * this always checks out main if we're on any non-main branch. This prevents
+ * merging into the wrong branch (e.g., another task's preview branch).
+ */
+export function ensureOnMainForMerge(projectPath: string, taskBranch: string): void {
+  const cur = getCurrentBranch(projectPath);
+  if (cur.branch !== "main") {
+    checkoutBranch(projectPath, "main", { skipStashPop: true });
+  }
+  // Also clean up any leftover preview branch for this task
+  deletePreviewBranch(projectPath, taskBranch);
+}
+
 export function ensureGitignore(projectPath: string): void {
   const gitignorePath = join(projectPath, ".gitignore");
   try {

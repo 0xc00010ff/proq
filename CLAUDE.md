@@ -55,6 +55,8 @@ src/
 │   └── CodeTab.tsx             # Code editor launcher
 └── lib/
     ├── agent-dispatch.ts       # tmux launch + abort + processQueue + optional notifications
+    ├── agent-session.ts        # Structured agent session management (child process)
+    ├── task-events.ts          # SSE event bus for server-initiated task updates
     ├── worktree.ts             # Git worktree + branch operations (create/remove/merge/checkout)
     ├── db.ts                   # lowdb database operations
     ├── types.ts                # All TypeScript interfaces
@@ -83,21 +85,21 @@ Key functions:
 ```bash
 curl -s -X PATCH http://localhost:1337/api/projects/{projectId}/tasks/{taskId} \
   -H 'Content-Type: application/json' \
-  -d '{"status":"verify","dispatch":null}'
+  -d '{"status":"verify","agentStatus":null}'
 ```
 
 ### Task Lifecycle & Dispatch
 
 ```
 todo ──drag/API──→ in-progress ──agent callback──→ verify ──human──→ done
-                   dispatch: "queued"                │                │
-                   dispatch: "starting"              │ branch stays   │ merge branch
-                   dispatch: "running"               │ for preview    │ into main
+                   agentStatus: "queued"                │                │
+                   agentStatus: "starting"              │ branch stays   │ merge branch
+                   agentStatus: "running"               │ for preview    │ into main
 ```
 
-- `dispatch: "queued"` — waiting for another task or for processQueue to pick it up
-- `dispatch: "starting"` — processQueue selected it, tmux is launching
-- `dispatch: "running"` — agent is actively working (tmux session alive)
+- `agentStatus: "queued"` — waiting for another task or for processQueue to pick it up
+- `agentStatus: "starting"` — processQueue selected it, tmux is launching
+- `agentStatus: "running"` — agent is actively working (tmux session alive)
 - Running tasks show blue pulsing border; starting tasks show gray spinner; queued tasks show clock icon
 - Dragging back to "Todo" aborts the agent (kills tmux session), then `processQueue()` starts the next queued task
 - All API routes follow the pattern: update state → call `processQueue()`
@@ -124,7 +126,7 @@ In parallel mode, each task gets its own git worktree + branch (`proq/{shortId}`
 ### Key Types (src/lib/types.ts)
 
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
-- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, dispatch, attachments, createdAt, updatedAt }`
+- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, agentStatus, attachments, createdAt, updatedAt }`
 - **ChatLogEntry**: `{ role: 'proq'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
@@ -150,8 +152,8 @@ GET/POST       /api/projects/[id]/chat                # Chat history
 **Status change side effects in PATCH/reorder:**
 All routes follow the same pattern: update state, then call `processQueue()`.
 
-- → `in-progress`: sets `dispatch: "queued"`, `await processQueue()` handles dispatch
-- `in-progress` → `todo`: checkout main if on task branch, clears `dispatch`/findings/etc, removes worktree, `await abortTask()`, then `await processQueue()`
+- → `in-progress`: sets `agentStatus: "queued"`, `await processQueue()` handles dispatch
+- `in-progress` → `todo`: checkout main if on task branch, clears `agentStatus`/findings/etc, removes worktree, `await abortTask()`, then `await processQueue()`
 - `in-progress` → `verify`: keeps worktree alive for branch preview (deferred merge), sends notification
 - `in-progress` → `done`: checkout main → merge → remove worktree, sends notification
 - `verify` → `done`: checkout main → merge → remove worktree. On conflict, stays in verify.
@@ -160,10 +162,10 @@ All routes follow the same pattern: update state, then call `processQueue()`.
 ### Frontend Data Flow
 
 - Fetch all projects on mount, then tasks for each project
-- 5-second auto-refresh polling on tasks (picks up agent status changes) + branch state + detached HEAD refresh
-- Optimistic UI updates for drag-drop, then silent background refresh after 500ms
+- **Optimistic UI**: User actions (drag, delete, create, start) update local state instantly via `setTasksByProject`. API calls fire in the background — the UI doesn't wait for responses
+- **Targeted SSE**: Server pushes `{taskId, changes}` over SSE only for server-initiated changes (agentStatus transitions, agent completion). Client merges the fields directly into local state — no fetch, no race
+- **30s fallback poll**: Catches anything SSE misses (supervisor creates tasks, branch state, execution mode)
 - Chat loaded on project switch
-- API calls use standard fetch with JSON bodies
 - `taskBranchMap` built from tasks with `branch` field, passed to TopBar for branch annotation
 
 ## Conventions
@@ -191,7 +193,7 @@ Tasks have fields specifically for AI agent use:
 - `findings` — Agent's analysis/findings (newline-separated)
 - `humanSteps` — Action items for human review (newline-separated)
 - `agentLog` — Execution log from agent session
-- `dispatch` — Enum: `"queued"` | `"starting"` | `"running"` | null (task dispatch lifecycle)
+- `agentStatus` — Enum: `"queued"` | `"starting"` | `"running"` | null (agent lifecycle)
 - `worktreePath` — Path to git worktree (parallel mode only)
 - `branch` — Git branch name, e.g. `proq/abc12345` (parallel mode only)
 - `mergeConflict` — `{ error, files, branch }` if merge failed

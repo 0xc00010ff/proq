@@ -53,7 +53,7 @@ todo ── in-progress ── verify ── done
 
 - Worktree + branch created (parallel only).
 - Agent dispatched in worktree directory.
-- `dispatch` cycles through `"queued"` -> `"starting"` -> `"running"`.
+- `agentStatus` cycles through `"queued"` -> `"starting"` -> `"running"`.
 
 ### in-progress -> verify
 

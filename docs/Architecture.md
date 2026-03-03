@@ -12,7 +12,7 @@ How proq works under the hood. For a usage walkthrough, see [Getting Started](./
 │  │  Board    │ │  Preview │ │  Browser │ │ (shells + │  │
 │  │          │ │  (iframe)│ │  (Monaco)│ │  agents)  │  │
 │  └────┬─────┘ └──────────┘ └──────────┘ └─────┬─────┘  │
-│       │ REST + polling                   WebSocket      │
+│       │ REST + SSE                       WebSocket      │
 └───────┼──────────────────────────────────────┼──────────┘
         │                                      │
 ┌───────┴──────────────────────────────────────┴──────────┐
@@ -94,16 +94,16 @@ The database layer (`db.ts`) handles schema migration on read. Old formats (sing
 
 ```
 todo ────────→ in-progress ────────→ verify ────────→ done
-               dispatch: "queued"                │         │
-               dispatch: "starting"              │         │ merge branch
-               dispatch: "running"               │         │ into main
+               agentStatus: "queued"             │         │
+               agentStatus: "starting"           │         │ merge branch
+               agentStatus: "running"            │         │ into main
                                                  │         │ (parallel)
                ◄── abort (back to todo) ─────────┘         │
                                                            │
                ◄── reject (back to todo) ──────────────────┘
 ```
 
-### Dispatch Sub-States
+### Agent Status Sub-States
 
 When a task moves to in-progress, it enters the dispatch pipeline:
 
@@ -116,9 +116,9 @@ When a task moves to in-progress, it enters the dispatch pipeline:
 
 | Transition | What happens |
 |---|---|
-| → in-progress | Set `dispatch: "queued"`, call `processQueue()` |
+| → in-progress | Set `agentStatus: "queued"`, call `processQueue()` |
 | in-progress → verify | Keep worktree alive (parallel). Send notification |
-| in-progress → todo | Abort agent. Remove worktree/branch (parallel). Clear dispatch/findings |
+| in-progress → todo | Abort agent. Remove worktree/branch (parallel). Clear agentStatus/findings |
 | in-progress → done | Merge branch into main (parallel). Remove worktree. Send notification |
 | verify → done | Merge branch into main (parallel). Remove worktree. On conflict, stay in verify |
 | verify → todo | Remove worktree/branch (parallel). Discard work |
@@ -376,7 +376,7 @@ Setting `status: "in-progress"` dispatches the task immediately.
 
 Update a task. Status changes trigger dispatch/abort side effects.
 
-**Body:** Partial `Task` fields. Key fields: `status`, `dispatch`, `title`, `description`, `findings`, `humanSteps`, `priority`, `mode`, `renderMode`, `attachments`
+**Body:** Partial `Task` fields. Key fields: `status`, `agentStatus`, `title`, `description`, `findings`, `humanSteps`, `priority`, `mode`, `renderMode`, `attachments`
 
 **Response:** `Task`
 

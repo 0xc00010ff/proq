@@ -138,6 +138,13 @@ export default function SettingsPage() {
   ) => {
     if (!settings) return;
     setSettings({ ...settings, [key]: value });
+
+    // Apply theme immediately on selection
+    if (key === "theme") {
+      const isDark = value === "dark";
+      document.documentElement.classList.toggle("dark", isDark);
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
   };
 
   if (!settings) {

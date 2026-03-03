@@ -78,7 +78,7 @@ function wireProcess(
     stderrOutput += chunk.toString();
   });
 
-  proc.on("close", async (code) => {
+  proc.on("close", async (code, signal) => {
     // Process any remaining buffered data
     if (stdoutBuffer.trim()) {
       try {
@@ -96,7 +96,11 @@ function wireProcess(
       return;
     }
 
-    if (code !== 0 && session.status === "running") {
+    // Check if this was an intentional SIGTERM kill (e.g. ExitPlanMode or AskUserQuestion)
+    // When killed with SIGTERM, code is null — don't treat that as an error
+    const intentionalKill = code === null && signal === "SIGTERM";
+
+    if (code !== 0 && !intentionalKill && session.status === "running") {
       session.status = "error";
       const errorMsg = stderrOutput.trim() || `CLI exited with code ${code}`;
       appendBlock(session, {

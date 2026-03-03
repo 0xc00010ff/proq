@@ -221,7 +221,7 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
     stderrOutput += chunk.toString();
   });
 
-  proc.on("close", async (code) => {
+  proc.on("close", async (code, signal) => {
     if (stdoutBuffer.trim()) {
       try {
         const event = JSON.parse(stdoutBuffer.trim());
@@ -236,7 +236,10 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
       return;
     }
 
-    if (code !== 0 && session.status === "running") {
+    // When killed with SIGTERM (e.g. ExitPlanMode, AskUserQuestion), code is null — not an error
+    const intentionalKill = code === null && signal === "SIGTERM";
+
+    if (code !== 0 && !intentionalKill && session.status === "running") {
       session.status = "error";
       const errorMsg = stderrOutput.trim() || `CLI exited with code ${code}`;
       appendBlock(session, {

@@ -46,7 +46,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
   const findings = parseLines(task.findings);
-  const isDispatched = task.dispatch === 'running' || task.dispatch === 'starting';
+  const isDispatched = task.agentStatus === 'running' || task.agentStatus === 'starting';
   const isStructured = task.renderMode !== 'cli';
   const showStructuredPane = isStructured && !isQueued && (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done');
   const showStructuredStatic = isStructured && task.status === 'done' && !!task.agentBlocks;

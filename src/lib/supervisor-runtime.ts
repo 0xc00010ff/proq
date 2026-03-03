@@ -82,7 +82,7 @@ Tasks:
 
 Task lifecycle: todo → in-progress → verify → done
 When a task moves to "in-progress", it gets dispatched to a Claude Code agent automatically.
-When setting status to "in-progress", also set dispatch to "queued".
+When setting status to "in-progress", also set agentStatus to "queued".
 
 Chat:
   GET    http://localhost:1337/api/projects/{id}/chat               — Get project chat log

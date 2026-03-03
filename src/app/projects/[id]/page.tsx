@@ -16,6 +16,7 @@ import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
+import { useTaskEvents, type TaskUpdateEvent } from '@/hooks/useTaskEvents';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -112,12 +113,51 @@ export default function ProjectPage() {
     }
   }, [projectId, fetchExecutionMode, fetchBranchState]);
 
-  // Auto-refresh tasks every 5 seconds
+  // SSE delivers targeted {taskId, changes} — merge directly into local state.
+  // No fetching. Only server-initiated changes (agentStatus, status) come via SSE.
+  const handleTaskUpdate = useCallback((event: TaskUpdateEvent) => {
+    setTasksByProject((prev) => {
+      const cols = prev[projectId] || emptyColumns();
+      const { taskId, changes } = event;
+      const newStatus = changes.status as TaskStatus | undefined;
+
+      // Find the task in any column
+      for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+        const idx = cols[status].findIndex((t) => t.id === taskId);
+        if (idx === -1) continue;
+
+        const task = cols[status][idx];
+        const merged = { ...task, ...changes } as Task;
+        const updated = { ...cols };
+
+        if (newStatus && newStatus !== status) {
+          // Move between columns
+          updated[status] = cols[status].filter((t) => t.id !== taskId);
+          updated[newStatus] = [...cols[newStatus], merged];
+        } else {
+          // Update in place
+          updated[status] = [...cols[status]];
+          updated[status][idx] = merged;
+        }
+        return { ...prev, [projectId]: updated };
+      }
+      return prev; // task not found — ignore
+    });
+  }, [projectId, setTasksByProject]);
+
+  useTaskEvents(projectId, handleTaskUpdate);
+
+  // Slow fallback poll: catches anything SSE misses (supervisor creates, branch state, etc.)
   useEffect(() => {
     if (!projectId) return;
-    const interval = setInterval(refresh, 5000);
+    const interval = setInterval(() => {
+      refreshTasks(projectId);
+      fetchExecutionMode();
+      fetchBranchState();
+      refreshDetachedHead();
+    }, 30_000);
     return () => clearInterval(interval);
-  }, [projectId, refresh]);
+  }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState, refreshDetachedHead]);
 
   // Cmd+Z to undo last delete — peeks without restoring
   useEffect(() => {
@@ -158,34 +198,114 @@ export default function ProjectPage() {
   }, [columns]);
 
   const deleteTask = async (taskId: string) => {
-    await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
-      method: 'DELETE',
+    // Optimistically remove from UI
+    setTasksByProject((prev) => {
+      const cols = prev[projectId] || emptyColumns();
+      const updated: TaskColumns = { ...cols };
+      for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+        const idx = updated[status].findIndex((t) => t.id === taskId);
+        if (idx !== -1) {
+          updated[status] = [...updated[status]];
+          updated[status].splice(idx, 1);
+          break;
+        }
+      }
+      return { ...prev, [projectId]: updated };
     });
-    refresh();
+
+    await fetch(`/api/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' });
   };
 
-  const moveTask = async (taskId: string, toColumn: TaskStatus, toIndex: number) => {
-    await fetch(`/api/projects/${projectId}/tasks/reorder`, {
+  const moveTask = (taskId: string, toColumn: TaskStatus, toIndex: number) => {
+    // Optimistically update task state so the UI is instant
+    setTasksByProject((prev) => {
+      const cols = prev[projectId] || emptyColumns();
+      // Find and remove the task from its current column
+      let task: Task | undefined;
+      const updated: TaskColumns = { ...cols };
+      for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+        const idx = updated[status].findIndex((t) => t.id === taskId);
+        if (idx !== -1) {
+          task = updated[status][idx];
+          updated[status] = [...updated[status]];
+          updated[status].splice(idx, 1);
+          break;
+        }
+      }
+      if (!task) return prev;
+
+      // Apply optimistic field changes
+      const optimistic: Task = { ...task, status: toColumn };
+      if (toColumn === 'in-progress' && task.status === 'todo') {
+        optimistic.agentStatus = 'starting';
+      } else if (toColumn === 'todo') {
+        optimistic.agentStatus = null;
+        optimistic.findings = '';
+        optimistic.humanSteps = '';
+      }
+
+      // Insert at target position
+      updated[toColumn] = [...updated[toColumn]];
+      updated[toColumn].splice(toIndex, 0, optimistic);
+      return { ...prev, [projectId]: updated };
+    });
+
+    // Fire API in background
+    fetch(`/api/projects/${projectId}/tasks/reorder`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taskId, toColumn, toIndex }),
+    }).catch(() => {
+      refreshTasks(projectId);
     });
-
-    refresh();
   };
 
   const updateTask = async (taskId: string, data: Partial<Task>) => {
+    // Optimistic update for modal
     setModalTask((prev) =>
       prev && prev.id === taskId
         ? { ...prev, ...data, updatedAt: new Date().toISOString() }
         : prev
     );
+    // Optimistic update for board
+    if (data.status || data.title) {
+      setTasksByProject((prev) => {
+        const cols = prev[projectId] || emptyColumns();
+        const updated: TaskColumns = { ...cols };
+        // Find the task
+        let task: Task | undefined;
+        let fromStatus: TaskStatus | undefined;
+        for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+          const idx = updated[status].findIndex((t) => t.id === taskId);
+          if (idx !== -1) {
+            task = updated[status][idx];
+            fromStatus = status;
+            break;
+          }
+        }
+        if (!task || !fromStatus) return prev;
+
+        const merged = { ...task, ...data, updatedAt: new Date().toISOString() };
+        const toStatus = (data.status || fromStatus) as TaskStatus;
+
+        if (toStatus !== fromStatus) {
+          // Move between columns
+          updated[fromStatus] = updated[fromStatus].filter((t) => t.id !== taskId);
+          updated[toStatus] = [...updated[toStatus], merged];
+        } else {
+          // Update in place
+          updated[fromStatus] = [...updated[fromStatus]];
+          const idx = updated[fromStatus].findIndex((t) => t.id === taskId);
+          updated[fromStatus][idx] = merged;
+        }
+        return { ...prev, [projectId]: updated };
+      });
+    }
     await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    refresh();
   };
 
   // Build map of proq/* branch → task title for the branch switcher
@@ -255,7 +375,7 @@ export default function ProjectPage() {
     });
     const newTask: Task = await res.json();
     setModalTask(newTask);
-    refresh();
+    // SSE will pick up the new task
   };
 
   const handleBoardDragEnter = useCallback((e: DragEvent) => {
@@ -309,8 +429,8 @@ export default function ProjectPage() {
     });
 
     setModalTask({ ...newTask, attachments });
-    refresh();
-  }, [projectId, refresh]);
+    // SSE will pick up the new task
+  }, [projectId]);
 
   const handleTabChange = useCallback((tab: TabOption) => {
     setActiveTab(tab);
@@ -471,7 +591,7 @@ export default function ProjectPage() {
         <TaskAgentModal
           task={agentModalTask}
           projectId={projectId}
-          isQueued={agentModalTask.dispatch === 'queued'}
+          isQueued={agentModalTask.agentStatus === 'queued'}
           cleanupExpiresAt={cleanupTimes[agentModalTask.id]}
           followUpDraft={followUpDraftsRef.current.get(agentModalTask.id)}
           onFollowUpDraftChange={(draft) => {
@@ -503,7 +623,7 @@ export default function ProjectPage() {
           onRestore={async () => {
             await fetch(`/api/projects/${projectId}/tasks/undo`, { method: 'POST' });
             setUndoEntry(null);
-            refresh();
+            refreshTasks(projectId);
           }}
           onDiscard={() => {
             setUndoEntry(null);
@@ -520,24 +640,17 @@ export default function ProjectPage() {
               await deleteTask(modalTask.id);
             }
             setModalTask(null);
-            refresh();
           }}
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
-            // Save task content while modal still shows spinner
-            await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(currentData),
-            });
-            // Close modal and optimistically update
+            // Close modal and optimistically update immediately
             setModalTask(null);
             setTasksByProject((prev) => {
               const cols = prev[projectId] || emptyColumns();
               const todoCol = cols.todo.filter((t) => t.id !== taskId);
               const task = cols.todo.find((t) => t.id === taskId);
               if (!task) return prev;
-              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const, dispatch: 'starting' as const };
+              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const, agentStatus: 'starting' as const };
               return {
                 ...prev,
                 [projectId]: {
@@ -547,13 +660,18 @@ export default function ProjectPage() {
                 },
               };
             });
-            // Dispatch via moveTask API
-            await fetch(`/api/projects/${projectId}/tasks/reorder`, {
-              method: 'PUT',
+            // Save content + dispatch in background
+            fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+              method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ taskId, toColumn: 'in-progress', toIndex: 0 }),
-            });
-            refresh();
+              body: JSON.stringify(currentData),
+            }).then(() =>
+              fetch(`/api/projects/${projectId}/tasks/reorder`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId, toColumn: 'in-progress', toIndex: 0 }),
+              })
+            );
           }}
         />
       )}

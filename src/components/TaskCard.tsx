@@ -23,8 +23,8 @@ interface TaskCardProps {
 
 export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const steps = parseLines(task.humanSteps);
-  const isRunning = task.dispatch === 'running';
-  const isStarting = task.dispatch === 'starting';
+  const isRunning = task.agentStatus === 'running';
+  const isStarting = task.agentStatus === 'starting';
   const isActive = isRunning || isStarting;
   const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
 

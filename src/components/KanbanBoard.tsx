@@ -294,7 +294,7 @@ export function KanbanBoard({
         const col = [...prev[toColumn]];
         const idx = col.findIndex((t) => t.id === activeId);
         if (idx === -1) return prev;
-        col[idx] = { ...col[idx], dispatch: 'starting' };
+        col[idx] = { ...col[idx], agentStatus: 'starting' };
         return { ...prev, [toColumn]: col };
       });
     }
@@ -302,11 +302,6 @@ export function KanbanBoard({
     // Commit
     pendingCommitRef.current = true;
     onMoveTask(activeId, toColumn, toIndex);
-
-    // If moved to in-progress, refresh after API settles
-    if (fromColumn !== toColumn && toColumn === 'in-progress' && onRefreshTasks) {
-      setTimeout(onRefreshTasks, 500);
-    }
   }
 
   function handleDragCancel() {
@@ -391,7 +386,7 @@ export function KanbanBoard({
                       </button>
                     )}
                     {colTasks.map((task) => {
-                      const isQueued = task.dispatch === 'queued';
+                      const isQueued = task.agentStatus === 'queued';
                       const isPreviewActive = !!(activeBranch && task.branch && task.branch === activeBranch && activeBranch !== 'main' && activeBranch !== 'master');
                       return (
                         <SortableTaskCard
@@ -449,9 +444,6 @@ export function KanbanBoard({
                   setPendingRerun(null);
                   pendingCommitRef.current = true;
                   onMoveTask(taskId, toColumn, toIndex);
-                  if (onRefreshTasks) {
-                    setTimeout(onRefreshTasks, 500);
-                  }
                 }}
                 className="btn-primary"
               >

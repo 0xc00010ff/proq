@@ -3,6 +3,7 @@ import { join } from "path";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { updateTask, getTask, getProject, getSettings } from "./db";
 import { notify, buildProqSystemPrompt, writeMcpConfig } from "./agent-dispatch";
+import { emitTaskUpdate } from "./task-events";
 import type WebSocket from "ws";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -139,10 +140,10 @@ function wireProcess(
     const stillInProgress = task?.status === "in-progress";
 
     if (stillInProgress) {
-      // Safety net: move to verify and clear dispatch
+      // Safety net: move to verify and clear agentStatus
       await updateTask(projectId, taskId, {
         status: "verify",
-        dispatch: null,
+        agentStatus: null,
         findings: session.status === "error"
           ? `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`
           : undefined,
@@ -151,6 +152,7 @@ function wireProcess(
         sessionId: session.sessionId,
       });
       notify(`✅ *${((task?.title || task?.description || "task").slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
+      emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
     } else {
       // Agent already handled status via update_task — just persist agentBlocks
       await updateTask(projectId, taskId, {
@@ -173,10 +175,11 @@ function wireProcess(
     if (task?.status === "in-progress") {
       await updateTask(projectId, taskId, {
         status: "verify",
-        dispatch: null,
+        agentStatus: null,
         findings: `Error: ${errorMsg}`,
         agentBlocks: session.blocks,
       });
+      emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
     } else {
       await updateTask(projectId, taskId, {
         agentBlocks: session.blocks,

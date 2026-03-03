@@ -17,6 +17,7 @@ import {
   getSettings,
 } from "./db";
 import { stripAnsi } from "./utils";
+import { emitTaskUpdate } from "./task-events";
 import { createWorktree, removeWorktree } from "./worktree";
 import type { TaskAttachment, TaskMode, AgentRenderMode } from "./types";
 import {
@@ -131,9 +132,11 @@ const ga = globalThis as unknown as {
     { timer: NodeJS.Timeout; expiresAt: number }
   >;
   __proqProcessingProjects?: Set<string>;
+  __proqPendingReprocess?: Set<string>;
 };
 if (!ga.__proqCleanupTimers) ga.__proqCleanupTimers = new Map();
 if (!ga.__proqProcessingProjects) ga.__proqProcessingProjects = new Set();
+if (!ga.__proqPendingReprocess) ga.__proqPendingReprocess = new Set();
 
 const cleanupTimers = ga.__proqCleanupTimers;
 
@@ -462,10 +465,10 @@ export function isSessionAlive(taskId: string): boolean {
 }
 
 /**
- * Determine the right initial dispatch state for a task moving to in-progress.
+ * Determine the right initial agentStatus for a task moving to in-progress.
  * "starting" if it will be dispatched immediately, "queued" if it must wait.
  */
-export async function getInitialDispatch(
+export async function getInitialAgentStatus(
   projectId: string,
   excludeTaskId?: string,
 ): Promise<"queued" | "starting"> {
@@ -476,16 +479,18 @@ export async function getInitialDispatch(
   const hasActive = columns["in-progress"].some(
     (t) =>
       t.id !== excludeTaskId &&
-      (t.dispatch === "starting" || t.dispatch === "running"),
+      (t.agentStatus === "starting" || t.agentStatus === "running"),
   );
   return hasActive ? "queued" : "starting";
 }
 
 const processingProjects = ga.__proqProcessingProjects;
+const pendingReprocess = ga.__proqPendingReprocess!;
 
 export async function processQueue(projectId: string): Promise<void> {
   if (processingProjects.has(projectId)) {
-    console.log(`[processQueue] skipped (already processing ${projectId})`);
+    pendingReprocess.add(projectId);
+    console.log(`[processQueue] queued reprocess for ${projectId}`);
     return;
   }
   processingProjects.add(projectId);
@@ -497,10 +502,10 @@ export async function processQueue(projectId: string): Promise<void> {
 
     // Array order IS priority — no sort needed
     const pending = inProgress.filter(
-      (t) => t.dispatch === "queued" || t.dispatch === "starting",
+      (t) => t.agentStatus === "queued" || t.agentStatus === "starting",
     );
 
-    const running = inProgress.filter((t) => t.dispatch === "running");
+    const running = inProgress.filter((t) => t.agentStatus === "running");
 
     console.log(
       `[processQueue] ${projectId}: mode=${mode} running=${running.length} pending=${pending.length}`,
@@ -512,8 +517,9 @@ export async function processQueue(projectId: string): Promise<void> {
         console.log(
           `[processQueue] launching ${next.id.slice(0, 8)} "${next.title || next.description.slice(0, 40)}"`,
         );
-        if (next.dispatch !== "starting") {
-          await updateTask(projectId, next.id, { dispatch: "starting" });
+        if (next.agentStatus !== "starting") {
+          await updateTask(projectId, next.id, { agentStatus: "starting" });
+          emitTaskUpdate(projectId, next.id, { agentStatus: "starting" });
         }
         const result = await dispatchTask(
           projectId,
@@ -525,12 +531,14 @@ export async function processQueue(projectId: string): Promise<void> {
           next.renderMode,
         );
         if (result) {
-          await updateTask(projectId, next.id, { dispatch: "running" });
+          await updateTask(projectId, next.id, { agentStatus: "running" });
+          emitTaskUpdate(projectId, next.id, { agentStatus: "running" });
         } else {
           console.log(
             `[processQueue] dispatch failed for ${next.id.slice(0, 8)}, rolling back`,
           );
-          await updateTask(projectId, next.id, { dispatch: "queued" });
+          await updateTask(projectId, next.id, { agentStatus: "queued" });
+          emitTaskUpdate(projectId, next.id, { agentStatus: "queued" });
         }
       } else if (pending.length > 0) {
         console.log(
@@ -543,8 +551,9 @@ export async function processQueue(projectId: string): Promise<void> {
         console.log(
           `[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (parallel)`,
         );
-        if (task.dispatch !== "starting") {
-          await updateTask(projectId, task.id, { dispatch: "starting" });
+        if (task.agentStatus !== "starting") {
+          await updateTask(projectId, task.id, { agentStatus: "starting" });
+          emitTaskUpdate(projectId, task.id, { agentStatus: "starting" });
         }
         const result = await dispatchTask(
           projectId,
@@ -556,18 +565,24 @@ export async function processQueue(projectId: string): Promise<void> {
           task.renderMode,
         );
         if (result) {
-          await updateTask(projectId, task.id, { dispatch: "running" });
+          await updateTask(projectId, task.id, { agentStatus: "running" });
+          emitTaskUpdate(projectId, task.id, { agentStatus: "running" });
         } else {
           console.log(
             `[processQueue] dispatch failed for ${task.id.slice(0, 8)}, rolling back`,
           );
-          await updateTask(projectId, task.id, { dispatch: "queued" });
+          await updateTask(projectId, task.id, { agentStatus: "queued" });
+          emitTaskUpdate(projectId, task.id, { agentStatus: "queued" });
         }
       }
     }
+
   } catch (err) {
     console.error(`[processQueue] error for project ${projectId}:`, err);
   } finally {
     processingProjects.delete(projectId);
+    if (pendingReprocess.delete(projectId)) {
+      return processQueue(projectId);
+    }
   }
 }

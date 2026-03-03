@@ -11,7 +11,7 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  if (task.status !== "in-progress" || task.dispatch !== "queued") {
+  if (task.status !== "in-progress" || task.agentStatus !== "queued") {
     return NextResponse.json({ error: "Task is not queued" }, { status: 400 });
   }
 
@@ -19,13 +19,13 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task is already dispatched" }, { status: 400 });
   }
 
-  await updateTask(id, taskId, { dispatch: "starting" });
+  await updateTask(id, taskId, { agentStatus: "starting" });
   const terminalTabId = await dispatchTask(id, taskId, task.title, task.description, task.mode);
 
   if (terminalTabId) {
-    await updateTask(id, taskId, { dispatch: "running" });
+    await updateTask(id, taskId, { agentStatus: "running" });
   } else {
-    await updateTask(id, taskId, { dispatch: "queued" });
+    await updateTask(id, taskId, { agentStatus: "queued" });
   }
 
   return NextResponse.json({ success: true, terminalTabId });

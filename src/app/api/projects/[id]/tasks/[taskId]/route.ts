@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTask, getProject, updateTask, deleteTask, getSettings } from "@/lib/db";
 import type { Task } from "@/lib/types";
-import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
+import { abortTask, processQueue, getInitialAgentStatus, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
 import { clearSession } from "@/lib/agent-session";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
@@ -41,10 +41,10 @@ export async function PATCH(request: Request, { params }: Params) {
       cancelCleanup(taskId);
       if (prevStatus !== "verify" && prevStatus !== "done") {
         const settings = await getSettings();
-        const dispatch = await getInitialDispatch(id, taskId);
+        const agentStatus = await getInitialAgentStatus(id, taskId);
         const renderMode = updated.renderMode || settings.agentRenderMode || 'structured';
-        await updateTask(id, taskId, { dispatch, renderMode });
-        updated.dispatch = dispatch;
+        await updateTask(id, taskId, { agentStatus, renderMode });
+        updated.agentStatus = agentStatus;
         updated.renderMode = renderMode;
       }
     } else if (body.status === "todo" && prevStatus !== "todo") {
@@ -61,7 +61,7 @@ export async function PATCH(request: Request, { params }: Params) {
           popAutoStash(projectPath);
         }
       }
-      const resetFields = { dispatch: null as Task["dispatch"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
+      const resetFields = { agentStatus: null as Task["agentStatus"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
       await updateTask(id, taskId, resetFields);
       Object.assign(updated, resetFields);
       if (prevStatus === "in-progress") {
@@ -83,7 +83,7 @@ export async function PATCH(request: Request, { params }: Params) {
           const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
           popAutoStash(projectPath);
           if (result.success) {
-            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, mergeConflict: undefined });
+            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, mergeConflict: undefined, agentStatus: null });
           } else {
             // Can't complete with conflict — stay in verify
             await updateTask(id, taskId, {
@@ -96,11 +96,13 @@ export async function PATCH(request: Request, { params }: Params) {
               },
             });
             const fresh = await getTask(id, taskId);
+
             if (fresh) return NextResponse.json(fresh);
             return NextResponse.json(updated);
           }
         }
       }
+      await updateTask(id, taskId, { agentStatus: null });
       scheduleCleanup(id, taskId);
       clearSession(taskId);
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → done`);
@@ -131,23 +133,26 @@ export async function PATCH(request: Request, { params }: Params) {
                 },
               });
               const fresh = await getTask(id, taskId);
+  
               if (fresh) return NextResponse.json(fresh);
               return NextResponse.json(updated);
             }
-            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, mergeConflict: undefined });
+            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, mergeConflict: undefined, agentStatus: null });
           } else {
             popAutoStash(projectPath);
           }
         }
       }
+      await updateTask(id, taskId, { agentStatus: null });
       scheduleCleanup(id, taskId);
       clearSession(taskId);
     }
 
     await processQueue(id);
 
-    // Re-read task to include any dispatch state changes from processQueue
+    // Re-read task to include any agentStatus changes from processQueue
     const fresh = await getTask(id, taskId);
+
     if (fresh) return NextResponse.json(fresh);
   }
 

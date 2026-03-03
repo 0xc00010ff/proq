@@ -78,7 +78,7 @@ export interface Task {
   findings?: string;
   humanSteps?: string;
   agentLog?: string;
-  dispatch?: "queued" | "starting" | "running" | null;
+  agentStatus?: "queued" | "starting" | "running" | null;
   worktreePath?: string;
   branch?: string;
   mergeConflict?: {

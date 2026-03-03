@@ -23,21 +23,25 @@ interface WorkbenchTabsContextValue {
   openTab(projectId: string, tabId: string, label: string, type: WorkbenchTabType): void;
   closeTab(projectId: string, tabId: string): void;
   renameTab(projectId: string, tabId: string, label: string): void;
+  reorderTabs(projectId: string, tabs: WorkbenchTab[]): void;
   hydrateProject(projectId: string): void;
 }
 
 const WorkbenchTabsContext = createContext<WorkbenchTabsContextValue | null>(null);
 
-function defaultTab(projectId: string): WorkbenchTab {
-  return { id: `default-${projectId}`, label: 'Terminal', type: 'shell' };
+function defaultTabs(projectId: string): WorkbenchTab[] {
+  return [
+    { id: `default-agent-${projectId}`, label: 'Agent', type: 'agent' },
+    { id: `default-shell-${projectId}`, label: 'Terminal', type: 'shell' },
+  ];
 }
 
 function getOrCreate(
   state: Record<string, ProjectWorkbenchState>,
   projectId: string
 ): ProjectWorkbenchState {
-  const dt = defaultTab(projectId);
-  return state[projectId] || { tabs: [dt], activeTabId: dt.id };
+  const dts = defaultTabs(projectId);
+  return state[projectId] || { tabs: dts, activeTabId: dts[0].id };
 }
 
 /** Extract tabs as persistable data (includes type for agent tabs) */
@@ -80,7 +84,7 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
           if (saved.length > 0) {
             tabs = saved.map((t) => ({ id: t.id, label: t.label, type: t.type || 'shell' }));
           } else {
-            tabs = [defaultTab(projectId)];
+            tabs = defaultTabs(projectId);
           }
 
           // Restore saved active tab if it still exists, otherwise fall back
@@ -159,8 +163,8 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
       const filtered = ps.tabs.filter((t) => t.id !== tabId);
       let next: Record<string, ProjectWorkbenchState>;
       if (filtered.length === 0) {
-        const dt = defaultTab(projectId);
-        next = { ...prev, [projectId]: { ...ps, tabs: [dt], activeTabId: dt.id } };
+        const dts = defaultTabs(projectId);
+        next = { ...prev, [projectId]: { ...ps, tabs: dts, activeTabId: dts[0].id } };
       } else {
         const activeTabId = ps.activeTabId === tabId ? filtered[0].id : ps.activeTabId;
         next = { ...prev, [projectId]: { ...ps, tabs: filtered, activeTabId } };
@@ -187,9 +191,18 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
     });
   }, [persistTabs]);
 
+  const reorderTabs = useCallback((projectId: string, newTabs: WorkbenchTab[]) => {
+    setState((prev) => {
+      const ps = getOrCreate(prev, projectId);
+      const next = { ...prev, [projectId]: { ...ps, tabs: newTabs } };
+      persistTabs(projectId, next[projectId]);
+      return next;
+    });
+  }, [persistTabs]);
+
   return (
     <WorkbenchTabsContext.Provider
-      value={{ getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, hydrateProject }}
+      value={{ getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject }}
     >
       {children}
     </WorkbenchTabsContext.Provider>

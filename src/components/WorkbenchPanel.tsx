@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon, GripVerticalIcon } from 'lucide-react';
+import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   DndContext,
@@ -80,7 +80,7 @@ function SortableTab({
     : <TerminalIcon className="w-3 h-3 shrink-0" />;
 
   return (
-    <div ref={setNodeRef} style={style} className="group/tab flex items-stretch shrink-0 relative">
+    <div ref={setNodeRef} style={style} className="group/tab flex items-stretch shrink-0 relative" {...attributes} {...listeners}>
       <button
         onClick={onSelect}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
@@ -90,16 +90,6 @@ function SortableTab({
             : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-300/30 dark:hover:bg-zinc-800/30'
         }`}
       >
-        {/* Drag handle */}
-        <span
-          {...attributes}
-          {...listeners}
-          data-clickable
-          className="flex items-center cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 -ml-1"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVerticalIcon className="w-3 h-3" />
-        </span>
         {icon}
         <span className="relative">
           <span className={`max-w-[120px] truncate block ${isRenaming ? 'invisible' : ''}`}>

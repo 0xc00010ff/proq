@@ -649,6 +649,23 @@ export function gitPull(
   }
 }
 
+/** Get the full diff for a single commit */
+export function gitShowCommit(projectPath: string, hash: string): string {
+  // Sanitize: allow only hex characters (short or full SHA)
+  if (!/^[0-9a-fA-F]+$/.test(hash)) {
+    throw new Error("Invalid commit hash");
+  }
+  try {
+    return execSync(
+      `git -C '${projectPath}' show '${hash}'`,
+      { timeout: 15_000, encoding: "utf-8", maxBuffer: 2 * 1024 * 1024 },
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "git show failed";
+    throw new Error(message);
+  }
+}
+
 /** Initialize a git repo with an initial commit */
 export function gitInit(projectPath: string): void {
   execSync(`git -C '${projectPath}' init`, { timeout: 10_000 });

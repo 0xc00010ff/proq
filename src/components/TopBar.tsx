@@ -50,7 +50,11 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   const [behindCommits, setBehindCommits] = useState<{ hash: string; message: string; author: string; date: string }[] | null>(null);
 
   // Detail modal state
-  const [detailModal, setDetailModal] = useState<{ type: 'diff' | 'log'; title: string; content: string } | null>(null);
+  const [detailModal, setDetailModal] = useState<
+    | { type: 'diff'; title: string; content: string }
+    | { type: 'log'; title: string; commits: { hash: string; message: string; author: string; date: string }[] }
+    | null
+  >(null);
 
   const fetchDirtyFiles = useCallback(async () => {
     if (!projectId) return;
@@ -94,18 +98,25 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
 
   const openLogModal = useCallback(async (direction: 'ahead' | 'behind') => {
     if (!projectId) return;
+    // Use already-fetched structured commits if available, otherwise fetch them
+    const existing = direction === 'ahead' ? aheadCommits : behindCommits;
+    if (existing && existing.length > 0) {
+      const title = direction === 'ahead' ? 'Commits Ahead' : 'Commits Behind';
+      setDetailModal({ type: 'log', title, commits: existing });
+      return;
+    }
     try {
       const res = await fetch(`/api/projects/${projectId}/git`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'log-full', direction }),
+        body: JSON.stringify({ action: 'log', direction }),
       });
       if (res.ok) {
         const data = await res.json();
         const title = direction === 'ahead' ? 'Commits Ahead' : 'Commits Behind';
-        setDetailModal({ type: 'log', title, content: data.log || 'No commits.' });
+        setDetailModal({ type: 'log', title, commits: data.commits || [] });
       }
     } catch { /* best effort */ }
-  }, [projectId]);
+  }, [projectId, aheadCommits, behindCommits]);
 
   const tabs: { id: TabOption; label: string }[] = [
     { id: 'project', label: 'Project' },
@@ -316,13 +327,23 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             )}
 
             {/* Detail modal */}
-            {detailModal && (
+            {detailModal && detailModal.type === 'diff' && (
               <GitDetailModal
                 isOpen={true}
                 onClose={() => setDetailModal(null)}
                 title={detailModal.title}
                 content={detailModal.content}
-                type={detailModal.type}
+                type="diff"
+              />
+            )}
+            {detailModal && detailModal.type === 'log' && projectId && (
+              <GitDetailModal
+                isOpen={true}
+                onClose={() => setDetailModal(null)}
+                title={detailModal.title}
+                commits={detailModal.commits}
+                projectId={projectId}
+                type="log"
               />
             )}
 

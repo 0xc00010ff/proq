@@ -17,6 +17,7 @@ import {
   gitLogShort,
   gitDiffFull,
   gitLogFull,
+  gitShowCommit,
 } from "@/lib/worktree";
 
 type Params = { params: Promise<{ id: string }> };
@@ -121,6 +122,20 @@ export async function POST(request: Request, { params }: Params) {
       const direction = body.direction === "behind" ? "behind" : "ahead";
       const log = gitLogFull(projectPath, direction);
       return NextResponse.json({ log });
+    }
+
+    if (body.action === "show-commit") {
+      const hash = body.hash;
+      if (!hash || typeof hash !== "string") {
+        return NextResponse.json({ error: "hash is required" }, { status: 400 });
+      }
+      try {
+        const diff = gitShowCommit(projectPath, hash);
+        return NextResponse.json({ diff });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to show commit";
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
     }
 
     if (body.action === "fetch") {

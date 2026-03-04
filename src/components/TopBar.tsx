@@ -180,123 +180,140 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
           </button>
         ) : (
           <>
-            {/* Status indicators (clickable dropdowns) */}
-            <div className="flex items-center gap-3 text-xs whitespace-nowrap">
-              {gitStatus && gitStatus.dirty > 0 && (
-                <DropdownMenu onOpenChange={(open) => { if (open) fetchDirtyFiles(); else setDirtyFiles(null); }}>
-                  <DropdownMenuTrigger asChild>
-                    <button className="text-red-400 hover:text-red-300 hover:underline underline-offset-2 transition-colors">
+            {/* Uncommitted files dropdown */}
+            {gitStatus && gitStatus.dirty > 0 && (
+              <DropdownMenu onOpenChange={(open) => { if (open) fetchDirtyFiles(); else setDirtyFiles(null); }}>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-red-400 hover:bg-surface-hover transition-colors overflow-hidden">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                       {gitStatus.dirty} uncommitted {gitStatus.dirty === 1 ? 'file' : 'files'}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
-                    <div className="flex-shrink-0 p-1.5 pb-0">
-                      <DropdownMenuLabel>Uncommitted Changes</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                    </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
-                      {dirtyFiles === null ? (
-                        <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
-                          <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
-                        </DropdownMenuItem>
-                      ) : dirtyFiles.length === 0 ? (
-                        <DropdownMenuItem disabled className="text-xs text-zinc-500">No changes found</DropdownMenuItem>
-                      ) : (
-                        dirtyFiles.map((file, i) => (
-                          <DropdownMenuItem key={i} disabled className="text-xs gap-2 font-mono">
-                            <StatusBadge status={file.status} />
-                            <span className="truncate">{file.path}</span>
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 p-1.5 pt-0">
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={openDiffModal}>
-                        <EyeIcon className="w-3 h-3" />
-                        See Details
+                    </span>
+                    <span className="px-1.5 py-1.5 border-l border-border-default">
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
+                  <div className="flex-shrink-0 p-1.5 pb-0">
+                    <DropdownMenuLabel>Uncommitted Changes</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
+                    {dirtyFiles === null ? (
+                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                        <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                       </DropdownMenuItem>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              {gitStatus && gitStatus.behind > 0 && (
-                <DropdownMenu onOpenChange={(open) => { if (open) fetchCommits('behind'); else setBehindCommits(null); }}>
-                  <DropdownMenuTrigger asChild>
-                    <button className="text-blue-400 hover:text-blue-300 hover:underline underline-offset-2 transition-colors">
+                    ) : dirtyFiles.length === 0 ? (
+                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No changes found</DropdownMenuItem>
+                    ) : (
+                      dirtyFiles.map((file, i) => (
+                        <DropdownMenuItem key={i} disabled className="text-xs gap-2 font-mono">
+                          <StatusBadge status={file.status} />
+                          <span className="truncate">{file.path}</span>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 p-1.5 pt-0">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={openDiffModal}>
+                      <EyeIcon className="w-3 h-3" />
+                      See Details
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Commits behind dropdown */}
+            {gitStatus && gitStatus.behind > 0 && (
+              <DropdownMenu onOpenChange={(open) => { if (open) fetchCommits('behind'); else setBehindCommits(null); }}>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-blue-400 hover:bg-surface-hover transition-colors overflow-hidden">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                       {gitStatus.behind} {gitStatus.behind === 1 ? 'commit' : 'commits'} behind
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
-                    <div className="flex-shrink-0 p-1.5 pb-0">
-                      <DropdownMenuLabel>Commits Behind</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                    </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
-                      {behindCommits === null ? (
-                        <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
-                          <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
-                        </DropdownMenuItem>
-                      ) : behindCommits.length === 0 ? (
-                        <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
-                      ) : (
-                        behindCommits.map((c, i) => (
-                          <DropdownMenuItem key={i} disabled className="text-xs gap-2">
-                            <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                            <span className="truncate">{c.message}</span>
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 p-1.5 pt-0">
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={() => openLogModal('behind')}>
-                        <EyeIcon className="w-3 h-3" />
-                        See Details
+                    </span>
+                    <span className="px-1.5 py-1.5 border-l border-border-default">
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
+                  <div className="flex-shrink-0 p-1.5 pb-0">
+                    <DropdownMenuLabel>Commits Behind</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
+                    {behindCommits === null ? (
+                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                        <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                       </DropdownMenuItem>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              {gitStatus && gitStatus.ahead > 0 && (
-                <DropdownMenu onOpenChange={(open) => { if (open) fetchCommits('ahead'); else setAheadCommits(null); }}>
-                  <DropdownMenuTrigger asChild>
-                    <button className="text-zinc-400 hover:text-zinc-300 hover:underline underline-offset-2 transition-colors">
+                    ) : behindCommits.length === 0 ? (
+                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
+                    ) : (
+                      behindCommits.map((c, i) => (
+                        <DropdownMenuItem key={i} disabled className="text-xs gap-2">
+                          <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
+                          <span className="truncate">{c.message}</span>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 p-1.5 pt-0">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={() => openLogModal('behind')}>
+                      <EyeIcon className="w-3 h-3" />
+                      See Details
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Commits ahead dropdown */}
+            {gitStatus && gitStatus.ahead > 0 && (
+              <DropdownMenu onOpenChange={(open) => { if (open) fetchCommits('ahead'); else setAheadCommits(null); }}>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors overflow-hidden">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                       {gitStatus.ahead} {gitStatus.ahead === 1 ? 'commit' : 'commits'} ahead
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
-                    <div className="flex-shrink-0 p-1.5 pb-0">
-                      <DropdownMenuLabel>Commits Ahead</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                    </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
-                      {aheadCommits === null ? (
-                        <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
-                          <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
-                        </DropdownMenuItem>
-                      ) : aheadCommits.length === 0 ? (
-                        <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
-                      ) : (
-                        aheadCommits.map((c, i) => (
-                          <DropdownMenuItem key={i} disabled className="text-xs gap-2">
-                            <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                            <span className="truncate">{c.message}</span>
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 p-1.5 pt-0">
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={() => openLogModal('ahead')}>
-                        <EyeIcon className="w-3 h-3" />
-                        See Details
+                    </span>
+                    <span className="px-1.5 py-1.5 border-l border-border-default">
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
+                  <div className="flex-shrink-0 p-1.5 pb-0">
+                    <DropdownMenuLabel>Commits Ahead</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
+                    {aheadCommits === null ? (
+                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                        <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                       </DropdownMenuItem>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+                    ) : aheadCommits.length === 0 ? (
+                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
+                    ) : (
+                      aheadCommits.map((c, i) => (
+                        <DropdownMenuItem key={i} disabled className="text-xs gap-2">
+                          <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
+                          <span className="truncate">{c.message}</span>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 p-1.5 pt-0">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={() => openLogModal('ahead')}>
+                      <EyeIcon className="w-3 h-3" />
+                      See Details
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {/* Detail modal */}
             {detailModal && (
@@ -316,34 +333,28 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                   <button
                     onClick={async () => { if (pulling || !onPull) return; setPulling(true); try { await onPull(); } finally { setPulling(false); } }}
                     disabled={pulling}
-                    title={`${gitStatus.behind} ${gitStatus.behind === 1 ? 'commit' : 'commits'} behind upstream. Click to pull now.`}
-                    className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-blue-400 hover:bg-surface-hover transition-colors overflow-hidden"
+                    title="Pull from upstream"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-blue-400 hover:bg-surface-hover transition-colors"
                   >
-                    <span className="px-2 py-1.5 border-r border-border-default tabular-nums">{gitStatus.behind}</span>
-                    <span className="flex items-center gap-1.5 px-2.5 py-1.5">
-                      Pull
-                      {pulling
-                        ? <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
-                        : <ArrowDownIcon className="w-3.5 h-3.5" />
-                      }
-                    </span>
+                    Pull
+                    {pulling
+                      ? <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
+                      : <ArrowDownIcon className="w-3.5 h-3.5" />
+                    }
                   </button>
                 )}
                 {gitStatus.ahead > 0 && (
                   <button
                     onClick={async () => { if (pushing || !onPush) return; setPushing(true); try { await onPush(); } finally { setPushing(false); } }}
                     disabled={pushing}
-                    title={`${gitStatus.ahead} ${gitStatus.ahead === 1 ? 'commit' : 'commits'} ahead of upstream. Click to push now.`}
-                    className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors overflow-hidden"
+                    title="Push to upstream"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors"
                   >
-                    <span className="px-2 py-1.5 border-r border-border-default tabular-nums">{gitStatus.ahead}</span>
-                    <span className="flex items-center gap-1.5 px-2.5 py-1.5">
-                      Push
-                      {pushing
-                        ? <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
-                        : <ArrowUpIcon className="w-3.5 h-3.5" />
-                      }
-                    </span>
+                    Push
+                    {pushing
+                      ? <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
+                      : <ArrowUpIcon className="w-3.5 h-3.5" />
+                    }
                   </button>
                 )}
                 {gitStatus.ahead === 0 && gitStatus.behind === 0 && !pushing && !pulling && (

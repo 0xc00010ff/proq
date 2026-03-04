@@ -171,13 +171,13 @@ export default function ProjectPage() {
     return () => clearInterval(interval);
   }, [projectId, refreshTasks]);
 
-  // 30s poll for branch state (preview fast-forward, branch list, local dirty count)
+  // 5s poll for branch state (local dirty count, branch list, preview fast-forward)
   useEffect(() => {
     if (!projectId) return;
     const interval = setInterval(() => {
       fetchBranchState();
       refreshDetachedHead();
-    }, 30_000);
+    }, 5_000);
     return () => clearInterval(interval);
   }, [projectId, fetchBranchState, refreshDetachedHead]);
 

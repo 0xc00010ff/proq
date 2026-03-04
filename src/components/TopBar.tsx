@@ -230,7 +230,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         </div>
       </div>
 
-      <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
+      <div className="flex-1 flex items-center justify-end gap-2 whitespace-nowrap">
         {!hasGit ? (
           /* No git — show init button */
           <button

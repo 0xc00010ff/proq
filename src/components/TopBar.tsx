@@ -185,13 +185,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     if (parts.length > 0) return parts.join(', ');
     return 'Up to date';
   })();
-  // Text color: red if behind only, green if ahead only, chrome if both, bronze if up to date
+  // Text color: patina/crimson for ahead/behind, chrome for up to date or mixed
   const historyTextColor = isUpToDate
-    ? 'text-bronze-500'
+    ? 'text-text-chrome'
     : behind > 0 && ahead === 0
-      ? 'text-red-400'
+      ? 'text-crimson'
       : ahead > 0 && behind === 0
-        ? 'text-green-400'
+        ? 'text-patina'
         : 'text-text-chrome';
 
   return (
@@ -246,7 +246,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             {gitStatus && gitStatus.dirty > 0 && (
               <DropdownMenu onOpenChange={(open) => { if (open) fetchDirtyFiles(); else setDirtyFiles(null); }}>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-red-400 hover:bg-surface-hover transition-colors overflow-hidden">
+                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-crimson hover:bg-surface-hover transition-colors overflow-hidden">
                     <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                       {gitStatus.dirty} uncommitted {gitStatus.dirty === 1 ? 'file' : 'files'}
                     </span>
@@ -309,12 +309,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     {behind > 0 && (
                       <>
                         <div className="sticky top-0 z-10 bg-surface-secondary border-b border-zinc-800/50 px-2 py-1.5 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-red-400">{behind} Commits Behind</span>
+                          <span className="text-xs font-semibold text-crimson">{behind} Commits Behind</span>
                           {onPull && (
                             <button
                               onClick={async (e) => { e.stopPropagation(); if (pulling) return; setPulling(true); setSyncError(null); try { await onPull(); } catch (err) { setSyncError(err instanceof Error ? err.message : 'Pull failed'); } finally { setPulling(false); } }}
                               disabled={pulling}
-                              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-red-400 hover:bg-red-500/10 transition-colors"
+                              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-crimson hover:bg-crimson/10 transition-colors"
                             >
                               Pull
                               {pulling ? <Loader2Icon className="w-3 h-3 animate-spin" /> : <ArrowDownIcon className="w-3 h-3" />}
@@ -341,12 +341,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     {ahead > 0 && (
                       <>
                         <div className="sticky top-0 z-10 bg-surface-secondary border-b border-zinc-800/50 px-2 py-1.5 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-green-400">{ahead} Commits Ahead</span>
+                          <span className="text-xs font-semibold text-patina">{ahead} Commits Ahead</span>
                           {onPush && (
                             <button
                               onClick={async (e) => { e.stopPropagation(); if (pushing) return; setPushing(true); setSyncError(null); try { await onPush(); } catch (err) { setSyncError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushing(false); } }}
                               disabled={pushing}
-                              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-green-400 hover:bg-green-500/10 transition-colors"
+                              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-patina hover:bg-patina/10 transition-colors"
                             >
                               Push
                               {pushing ? <Loader2Icon className="w-3 h-3 animate-spin" /> : <ArrowUpIcon className="w-3 h-3" />}

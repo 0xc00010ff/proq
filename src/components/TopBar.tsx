@@ -189,28 +189,34 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                       {gitStatus.dirty} uncommitted {gitStatus.dirty === 1 ? 'file' : 'files'}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 max-h-72">
-                    <DropdownMenuLabel>Uncommitted Changes</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {dirtyFiles === null ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
-                        <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
-                      </DropdownMenuItem>
-                    ) : dirtyFiles.length === 0 ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No changes found</DropdownMenuItem>
-                    ) : (
-                      dirtyFiles.map((file, i) => (
-                        <DropdownMenuItem key={i} disabled className="text-xs gap-2 font-mono">
-                          <StatusBadge status={file.status} />
-                          <span className="truncate">{file.path}</span>
+                  <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
+                    <div className="flex-shrink-0 p-1.5 pb-0">
+                      <DropdownMenuLabel>Uncommitted Changes</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
+                      {dirtyFiles === null ? (
+                        <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                          <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                         </DropdownMenuItem>
-                      ))
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-xs gap-2 text-blue-400" onSelect={openDiffModal}>
-                      <EyeIcon className="w-3 h-3" />
-                      See Details
-                    </DropdownMenuItem>
+                      ) : dirtyFiles.length === 0 ? (
+                        <DropdownMenuItem disabled className="text-xs text-zinc-500">No changes found</DropdownMenuItem>
+                      ) : (
+                        dirtyFiles.map((file, i) => (
+                          <DropdownMenuItem key={i} disabled className="text-xs gap-2 font-mono">
+                            <StatusBadge status={file.status} />
+                            <span className="truncate">{file.path}</span>
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 p-1.5 pt-0">
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={openDiffModal}>
+                        <EyeIcon className="w-3 h-3" />
+                        See Details
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -221,28 +227,34 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                       {gitStatus.behind} {gitStatus.behind === 1 ? 'commit' : 'commits'} behind
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 max-h-72">
-                    <DropdownMenuLabel>Commits Behind</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {behindCommits === null ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
-                        <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
-                      </DropdownMenuItem>
-                    ) : behindCommits.length === 0 ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
-                    ) : (
-                      behindCommits.map((c, i) => (
-                        <DropdownMenuItem key={i} disabled className="text-xs gap-2">
-                          <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                          <span className="truncate">{c.message}</span>
+                  <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
+                    <div className="flex-shrink-0 p-1.5 pb-0">
+                      <DropdownMenuLabel>Commits Behind</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
+                      {behindCommits === null ? (
+                        <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                          <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                         </DropdownMenuItem>
-                      ))
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-xs gap-2 text-blue-400" onSelect={() => openLogModal('behind')}>
-                      <EyeIcon className="w-3 h-3" />
-                      See Details
-                    </DropdownMenuItem>
+                      ) : behindCommits.length === 0 ? (
+                        <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
+                      ) : (
+                        behindCommits.map((c, i) => (
+                          <DropdownMenuItem key={i} disabled className="text-xs gap-2">
+                            <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
+                            <span className="truncate">{c.message}</span>
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 p-1.5 pt-0">
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={() => openLogModal('behind')}>
+                        <EyeIcon className="w-3 h-3" />
+                        See Details
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -253,28 +265,34 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                       {gitStatus.ahead} {gitStatus.ahead === 1 ? 'commit' : 'commits'} ahead
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 max-h-72">
-                    <DropdownMenuLabel>Commits Ahead</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {aheadCommits === null ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
-                        <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
-                      </DropdownMenuItem>
-                    ) : aheadCommits.length === 0 ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
-                    ) : (
-                      aheadCommits.map((c, i) => (
-                        <DropdownMenuItem key={i} disabled className="text-xs gap-2">
-                          <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                          <span className="truncate">{c.message}</span>
+                  <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
+                    <div className="flex-shrink-0 p-1.5 pb-0">
+                      <DropdownMenuLabel>Commits Ahead</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
+                      {aheadCommits === null ? (
+                        <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                          <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                         </DropdownMenuItem>
-                      ))
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-xs gap-2 text-blue-400" onSelect={() => openLogModal('ahead')}>
-                      <EyeIcon className="w-3 h-3" />
-                      See Details
-                    </DropdownMenuItem>
+                      ) : aheadCommits.length === 0 ? (
+                        <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
+                      ) : (
+                        aheadCommits.map((c, i) => (
+                          <DropdownMenuItem key={i} disabled className="text-xs gap-2">
+                            <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
+                            <span className="truncate">{c.message}</span>
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 p-1.5 pt-0">
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-xs justify-center text-bronze-500" onSelect={() => openLogModal('ahead')}>
+                        <EyeIcon className="w-3 h-3" />
+                        See Details
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -367,40 +385,44 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     <ChevronDownIcon className="w-3 h-3 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 max-h-64">
-                  <DropdownMenuLabel>Branches</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {mainBranches.map((branch) => (
-                    <BranchItem
-                      key={branch}
-                      branch={branch}
-                      isCurrent={branch === currentBranch}
-                      onSelect={() => onSwitchBranch?.(branch)}
-                    />
-                  ))}
-                  {proqBranches.length > 0 && mainBranches.length > 0 && (
+                <DropdownMenuContent align="end" className="w-72 max-h-64 overflow-hidden flex flex-col p-0">
+                  <div className="flex-shrink-0 p-1.5 pb-0">
+                    <DropdownMenuLabel>Branches</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                  )}
-                  {proqBranches.map((branch) => (
-                    <BranchItem
-                      key={branch}
-                      branch={branch}
-                      isCurrent={branch === currentBranch}
-                      taskTitle={taskBranchMap?.[branch]}
-                      onSelect={() => onSwitchBranch?.(branch)}
-                    />
-                  ))}
-                  {otherBranches.length > 0 && (mainBranches.length > 0 || proqBranches.length > 0) && (
-                    <DropdownMenuSeparator />
-                  )}
-                  {otherBranches.map((branch) => (
-                    <BranchItem
-                      key={branch}
-                      branch={branch}
-                      isCurrent={branch === currentBranch}
-                      onSelect={() => onSwitchBranch?.(branch)}
-                    />
-                  ))}
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-1.5 pb-1.5">
+                    {mainBranches.map((branch) => (
+                      <BranchItem
+                        key={branch}
+                        branch={branch}
+                        isCurrent={branch === currentBranch}
+                        onSelect={() => onSwitchBranch?.(branch)}
+                      />
+                    ))}
+                    {proqBranches.length > 0 && mainBranches.length > 0 && (
+                      <DropdownMenuSeparator />
+                    )}
+                    {proqBranches.map((branch) => (
+                      <BranchItem
+                        key={branch}
+                        branch={branch}
+                        isCurrent={branch === currentBranch}
+                        taskTitle={taskBranchMap?.[branch]}
+                        onSelect={() => onSwitchBranch?.(branch)}
+                      />
+                    ))}
+                    {otherBranches.length > 0 && (mainBranches.length > 0 || proqBranches.length > 0) && (
+                      <DropdownMenuSeparator />
+                    )}
+                    {otherBranches.map((branch) => (
+                      <BranchItem
+                        key={branch}
+                        branch={branch}
+                        isCurrent={branch === currentBranch}
+                        onSelect={() => onSwitchBranch?.(branch)}
+                      />
+                    ))}
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

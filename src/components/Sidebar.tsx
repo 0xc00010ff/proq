@@ -1,7 +1,6 @@
 "use client";
 
 import React, { Fragment, useState, useRef, useCallback } from "react";
-import { useClickOutside } from "@/hooks/useClickOutside";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -33,6 +32,12 @@ import {
 } from "lucide-react";
 import type { Project, Task, TaskStatus, TaskColumns } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 function folderName(project: Project): string {
   const p = project.path.replace(/\/+$/, "");
@@ -103,52 +108,42 @@ interface ProjectMenuProps {
 }
 
 function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useClickOutside(menuRef, () => setOpen(false), open);
-
   return (
-    <div ref={menuRef} className="relative">
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(!open);
-        }}
-        className="p-1 rounded hover:bg-bronze-300 dark:hover:bg-zinc-700 text-bronze-500 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <MoreHorizontalIcon className="w-4 h-4" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-36 bg-bronze-50 dark:bg-zinc-800 border border-bronze-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setOpen(false);
-              onRename(project);
-            }}
-            className="w-full text-left px-3 py-1.5 text-sm text-bronze-700 dark:text-zinc-300 hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
-          >
-            <PencilIcon className="w-3.5 h-3.5" />
-            Rename
-          </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setOpen(false);
-              onDelete(project);
-            }}
-            className="w-full text-left px-3 py-1.5 text-sm text-crimson hover:bg-bronze-200 dark:hover:bg-zinc-700 flex items-center gap-2"
-          >
-            <Trash2Icon className="w-3.5 h-3.5" />
-            Delete
-          </button>
-        </div>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className="p-1 rounded hover:bg-bronze-300 dark:hover:bg-zinc-700 text-bronze-500 hover:text-bronze-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <MoreHorizontalIcon className="w-4 h-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-36">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            onRename(project);
+          }}
+          className="gap-2"
+        >
+          <PencilIcon className="w-3.5 h-3.5" />
+          Rename
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            onDelete(project);
+          }}
+          className="gap-2 text-crimson focus:text-crimson"
+        >
+          <Trash2Icon className="w-3.5 h-3.5" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

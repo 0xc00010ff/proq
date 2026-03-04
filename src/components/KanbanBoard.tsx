@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   DndContext,
   DragEndEvent,
@@ -33,6 +32,12 @@ import {
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
 import { TaskCard } from './TaskCard';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface KanbanBoardProps {
   tasks: TaskColumns;
@@ -158,10 +163,6 @@ export function KanbanBoard({
   const pendingCommitRef = useRef<boolean>(false);
   const lastOverIdRef = useRef<string | null>(null);
   const [pendingRerun, setPendingRerun] = useState<{ taskId: string; toColumn: TaskStatus; toIndex: number; taskTitle: string } | null>(null);
-  const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
-  const modeDropdownRef = useRef<HTMLDivElement>(null);
-
-  useClickOutside(modeDropdownRef, () => setModeDropdownOpen(false), modeDropdownOpen);
 
   // Clear localColumns once parent props reflect the committed drag result
   useEffect(() => {
@@ -340,38 +341,37 @@ export function KanbanBoard({
                     {column.icon}
                     <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{column.label}</h3>
                     {column.id === 'in-progress' && onExecutionModeChange && (
-                      <div className="relative" ref={modeDropdownRef}>
-                        <button
-                          onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
-                        >
-                          {executionMode === 'sequential' ? (
-                            <ListOrderedIcon className="w-3 h-3" />
-                          ) : (
-                            <LayersIcon className="w-3 h-3" />
-                          )}
-                          <span>{executionMode === 'sequential' ? 'Seq' : 'Par'}</span>
-                          <ChevronDownIcon className="w-3 h-3" />
-                        </button>
-                        {modeDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-xl z-50 min-w-[140px]">
-                            <button
-                              onClick={() => { onExecutionModeChange('sequential'); setModeDropdownOpen(false); }}
-                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700 transition-colors ${executionMode === 'sequential' ? 'text-steel' : 'text-zinc-300'}`}
-                            >
-                              <ListOrderedIcon className="w-3.5 h-3.5" />
-                              Sequential
-                            </button>
-                            <button
-                              onClick={() => { onExecutionModeChange('parallel'); setModeDropdownOpen(false); }}
-                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700 transition-colors ${executionMode === 'parallel' ? 'text-steel' : 'text-zinc-300'}`}
-                            >
-                              <LayersIcon className="w-3.5 h-3.5" />
-                              Parallel
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                          >
+                            {executionMode === 'sequential' ? (
+                              <ListOrderedIcon className="w-3 h-3" />
+                            ) : (
+                              <LayersIcon className="w-3 h-3" />
+                            )}
+                            <span>{executionMode === 'sequential' ? 'Seq' : 'Par'}</span>
+                            <ChevronDownIcon className="w-3 h-3" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="min-w-[140px]">
+                          <DropdownMenuItem
+                            onSelect={() => onExecutionModeChange('sequential')}
+                            className={`gap-2 text-xs ${executionMode === 'sequential' ? 'text-steel' : ''}`}
+                          >
+                            <ListOrderedIcon className="w-3.5 h-3.5" />
+                            Sequential
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => onExecutionModeChange('parallel')}
+                            className={`gap-2 text-xs ${executionMode === 'parallel' ? 'text-steel' : ''}`}
+                          >
+                            <LayersIcon className="w-3.5 h-3.5" />
+                            Parallel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                   <span className="px-2 py-0.5 rounded-full bg-surface-secondary border border-border-default text-xs text-text-chrome font-mono">

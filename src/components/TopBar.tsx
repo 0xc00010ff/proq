@@ -104,6 +104,35 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     setBehindCommits(behindRes.commits || []);
   }, [projectId, gitStatus]);
 
+  // Re-fetch commits after push/pull and update the modal in-place
+  const refreshModalAfterSync = useCallback(async () => {
+    if (!projectId) return;
+    const [aheadRes, behindRes] = await Promise.all([
+      fetch(`/api/projects/${projectId}/git`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'log', direction: 'ahead' }),
+      }).then(r => r.ok ? r.json() : { commits: [] }).catch(() => ({ commits: [] })),
+      fetch(`/api/projects/${projectId}/git`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'log', direction: 'behind' }),
+      }).then(r => r.ok ? r.json() : { commits: [] }).catch(() => ({ commits: [] })),
+    ]);
+    const newAhead = aheadRes.commits || [];
+    const newBehind = behindRes.commits || [];
+    setAheadCommits(newAhead);
+    setBehindCommits(newBehind);
+    // Update the open modal with fresh data
+    setDetailModal(prev => {
+      if (!prev || prev.type !== 'log') return prev;
+      const branchName = currentBranch ? `origin/${currentBranch}` : 'origin';
+      const parts: string[] = [];
+      if (newAhead.length > 0) parts.push(`${newAhead.length} ahead`);
+      if (newBehind.length > 0) parts.push(`${newBehind.length} behind`);
+      const title = parts.length > 0 ? parts.join(', ') + ` · ${branchName}` : `Up to date · ${branchName}`;
+      return { ...prev, title, commits: newAhead, behindCommits: newBehind };
+    });
+  }, [projectId, currentBranch]);
+
   const openHistoryModal = useCallback(() => {
     const branchName = currentBranch ? `origin/${currentBranch}` : 'origin';
     const a = gitStatus?.ahead ?? 0;
@@ -384,6 +413,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 currentBranch={currentBranch}
                 onPush={onPush}
                 onPull={onPull}
+                onSyncDone={refreshModalAfterSync}
                 type="log"
               />
             )}

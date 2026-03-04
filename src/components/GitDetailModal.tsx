@@ -22,7 +22,7 @@ type GitDetailModalProps = {
   title: string;
 } & (
   | { type: 'diff'; content: string; commits?: never; behindCommits?: never; projectId?: never; currentBranch?: never; onPush?: never; onPull?: never }
-  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; content?: never }
+  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; content?: never }
 );
 
 export function GitDetailModal(props: GitDetailModalProps) {
@@ -262,7 +262,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         if (pullingInline || !props.onPull) return;
                         setPullingInline(true);
                         setPullError(null);
-                        try { await props.onPull(); } catch (err) { setPullError(err instanceof Error ? err.message : 'Pull failed'); } finally { setPullingInline(false); }
+                        try { await props.onPull(); props.onSyncDone?.(); } catch (err) { setPullError(err instanceof Error ? err.message : 'Pull failed'); } finally { setPullingInline(false); }
                       }}
                       disabled={pullingInline}
                       className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
@@ -301,7 +301,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         if (pushingInline || !props.onPush) return;
                         setPushingInline(true);
                         setPushError(null);
-                        try { await props.onPush(); } catch (err) { setPushError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushingInline(false); }
+                        try { await props.onPush(); props.onSyncDone?.(); } catch (err) { setPushError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushingInline(false); }
                       }}
                       disabled={pushingInline}
                       className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"

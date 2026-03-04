@@ -240,7 +240,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
                   <div className="flex-shrink-0 p-1.5 pb-0">
-                    <DropdownMenuLabel>Commits Behind</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-bronze-500">Commits Behind</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                   </div>
                   <div className="flex-1 min-h-0 overflow-y-auto px-1.5">
@@ -285,7 +285,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-hidden flex flex-col p-0">
                   <div className="flex-shrink-0 p-1.5 pb-0">
-                    <DropdownMenuLabel>Commits Ahead</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-bronze-500">Commits Ahead</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                   </div>
                   <div className="flex-1 min-h-0 overflow-y-auto px-1.5">

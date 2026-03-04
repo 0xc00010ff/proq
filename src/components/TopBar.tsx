@@ -254,7 +254,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                       behindCommits.map((c, i) => (
                         <DropdownMenuItem key={i} className="text-xs gap-2 pointer-events-none">
                           <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                          <span className="truncate text-zinc-100">{c.message}</span>
+                          <span className="truncate text-zinc-400">{c.message}</span>
                         </DropdownMenuItem>
                       ))
                     )}
@@ -299,7 +299,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                       aheadCommits.map((c, i) => (
                         <DropdownMenuItem key={i} className="text-xs gap-2 pointer-events-none">
                           <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                          <span className="truncate text-zinc-100">{c.message}</span>
+                          <span className="truncate text-zinc-400">{c.message}</span>
                         </DropdownMenuItem>
                       ))
                     )}

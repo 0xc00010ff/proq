@@ -103,8 +103,11 @@ function wireProcess(
     }
 
     // Check if this was an intentional SIGTERM kill (e.g. ExitPlanMode or AskUserQuestion)
-    // When killed with SIGTERM, code is null — don't treat that as an error
-    const intentionalKill = code === null && signal === "SIGTERM";
+    // When killed with SIGTERM, code is null and signal is "SIGTERM".
+    // But if the process handles SIGTERM itself and exits, code is 143 (128+15)
+    // with signal null — treat both cases the same.
+    const intentionalKill =
+      (code === null && signal === "SIGTERM") || code === 143;
 
     if (code !== 0 && !intentionalKill && session.status === "running") {
       session.status = "error";

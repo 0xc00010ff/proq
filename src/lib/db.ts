@@ -673,6 +673,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   systemPromptAdditions: "",
   executionMode: "sequential",
   agentRenderMode: "structured",
+  showCosts: false,
   codingAgent: "claude-code",
 
   // Git

@@ -133,6 +133,7 @@ export interface ProqSettings {
   systemPromptAdditions: string;
   executionMode: 'sequential' | 'parallel';
   agentRenderMode: AgentRenderMode;
+  showCosts: boolean;
   codingAgent: string;
 
   // Git

@@ -262,6 +262,18 @@ export default function SettingsPage() {
                 label="Agent"
               />
               <div className="space-y-4">
+                <Field label="Coding agent">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`${inputClass} flex-1 opacity-50 cursor-not-allowed select-none`}
+                    >
+                      Claude Code
+                    </div>
+                    <Tooltip text="Currently built for Claude Code. Codex/OpenCode coming soon.">
+                      <CircleHelpIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+                    </Tooltip>
+                  </div>
+                </Field>
                 <Field
                   label="Agent render mode"
                   hint="Chat shows a formatted chat window like Claude Code desktop. CLI shows a raw terminal running the Claude Code CLI."
@@ -277,18 +289,17 @@ export default function SettingsPage() {
                     ]}
                   />
                 </Field>
-                <Field label="Coding agent">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`${inputClass} flex-1 opacity-50 cursor-not-allowed select-none`}
-                    >
-                      Claude Code
-                    </div>
-                    <Tooltip text="Currently built for Claude Code. Codex/OpenCode coming soon.">
-                      <CircleHelpIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                    </Tooltip>
-                  </div>
-                </Field>
+                {settings.agentRenderMode === "structured" && (
+                  <Field
+                    label="Show costs"
+                    hint="Display a calculated hypothetical token cost per turn. If you're on the Claude subscription plan, you are not billed anything extra — this is just data returned by Claude."
+                  >
+                    <Toggle
+                      checked={settings.showCosts}
+                      onChange={(v) => update("showCosts", v)}
+                    />
+                  </Field>
+                )}
               </div>
             </section>
 

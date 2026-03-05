@@ -45,6 +45,15 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
   const [attachments, setAttachments] = useState<TaskAttachment[]>(followUpDraft?.attachments ?? []);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
+  const [showCosts, setShowCosts] = useState(false);
+
+  // Fetch showCosts setting once on mount
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((s) => setShowCosts(!!s.showCosts))
+      .catch(() => {});
+  }, []);
 
   // Auto-scroll to bottom on new blocks unless user scrolled up
   useEffect(() => {
@@ -414,7 +423,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                     subtype={block.subtype}
                     sessionId={block.sessionId}
                     model={block.model}
-                    costUsd={block.costUsd}
+                    costUsd={showCosts ? block.costUsd : undefined}
                     durationMs={block.durationMs}
                     turns={block.turns}
                     error={block.error}

@@ -124,6 +124,35 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
     document.addEventListener('mouseup', onMouseUp);
   }, []);
 
+  const handleCrossResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const modal = modalRef.current;
+    const panel = rightPanelRef.current;
+    if (!modal || !panel) return;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const modalRect = modal.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const rightPct = ((modalRect.right - ev.clientX) / modalRect.width) * 100;
+      setRightPanelPercent(Math.min(Math.max(rightPct, 20), 60));
+      const topPct = ((ev.clientY - panelRect.top) / panelRect.height) * 100;
+      setTopPanelPercent(Math.min(Math.max(topPct, 15), 85));
+    };
+    const onMouseUp = () => {
+      finishDrag();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'move';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
+
   const handleModalResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -336,7 +365,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         {(showTerminal || showStructuredPane || isQueued) && (
           <div
             onMouseDown={handleHorizontalResizeMouseDown}
-            className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-bronze-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
+            className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
           >
             <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
           </div>
@@ -472,9 +501,16 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           {/* Resize handle */}
           <div
             onMouseDown={handleResizeMouseDown}
-            className="shrink-0 h-px cursor-row-resize bg-bronze-300 dark:bg-bronze-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
+            className="shrink-0 h-px cursor-row-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
           >
             <div className="absolute inset-x-0 -top-1.5 -bottom-1.5" />
+            {/* Cross-resize at intersection with vertical divider */}
+            {(showTerminal || showStructuredPane || isQueued) && (
+              <div
+                onMouseDown={(e) => { e.stopPropagation(); handleCrossResizeMouseDown(e); }}
+                className="absolute -left-3 -top-3 w-6 h-6 cursor-move z-10"
+              />
+            )}
           </div>
 
           {/* Bottom half: agent findings & summary */}

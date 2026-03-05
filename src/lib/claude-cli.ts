@@ -1,19 +1,19 @@
 import { spawn } from "child_process";
-
-const CLAUDE = process.env.CLAUDE_BIN || "claude";
+import { getClaudeBin } from "./claude-bin";
 
 /**
  * One-shot Claude CLI call. Spawns `claude -p <prompt>` and returns the text output.
  * Uses the same spawn pattern as agent-session.ts.
  */
-export function claudeOneShot(
+export async function claudeOneShot(
   prompt: string,
   options?: { model?: string },
 ): Promise<string> {
+  const claudeBin = await getClaudeBin();
   const args = ["-p", prompt, "--model", options?.model ?? "haiku"];
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(CLAUDE, args, {
+    const proc = spawn(claudeBin, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },
     });

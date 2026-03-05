@@ -26,9 +26,9 @@ import {
   isSessionRunning,
   clearSession,
 } from "./agent-session";
+import { getClaudeBin } from "./claude-bin";
 
 const MC_API = "http://localhost:1337";
-const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 /**
  * Write an MCP config JSON file that tells Claude to connect to the proq
@@ -318,9 +318,10 @@ export async function dispatchTask(
     const launcherFile = join(promptDir, `${tmuxSession}.sh`);
     writeFileSync(promptFile, prompt, "utf-8");
     writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
+    const claudeBin = await getClaudeBin();
     writeFileSync(
       launcherFile,
-      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT ${CLAUDE} ${cliPermFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT '${claudeBin}' ${cliPermFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
       "utf-8",
     );
 

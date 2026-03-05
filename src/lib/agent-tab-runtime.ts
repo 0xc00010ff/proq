@@ -2,9 +2,8 @@ import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { getAgentTabData, setAgentTabData, getSettings, getProject } from "./db";
+import { getClaudeBin } from "./claude-bin";
 import type WebSocket from "ws";
-
-const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 export interface AgentTabSession {
   tabId: string;
@@ -271,7 +270,8 @@ export async function startAgentTabSession(
   systemParts.push(`You are a coding assistant working on the "${projectName}" project in ${cwd}.`);
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
-  const proc = spawn(CLAUDE, args, {
+  const claudeBin = await getClaudeBin();
+  const proc = spawn(claudeBin, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },
@@ -357,7 +357,8 @@ export async function continueAgentTabSession(
   systemParts.push(`You are a coding assistant working on the "${projectName}" project in ${cwd}.`);
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
-  const proc = spawn(CLAUDE, args, {
+  const claudeBin = await getClaudeBin();
+  const proc = spawn(claudeBin, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },

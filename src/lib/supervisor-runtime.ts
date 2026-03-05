@@ -1,9 +1,8 @@
 import { spawn, type ChildProcess } from "child_process";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { getAllProjects, getSupervisorAgentBlocks, setSupervisorAgentBlocks, getSettings } from "./db";
+import { getClaudeBin } from "./claude-bin";
 import type WebSocket from "ws";
-
-const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 export interface SupervisorSession {
   sessionId?: string;
@@ -313,7 +312,8 @@ export async function startSupervisorSession(text: string): Promise<void> {
   systemParts.push(systemPrompt);
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
-  const proc = spawn(CLAUDE, args, {
+  const claudeBin = await getClaudeBin();
+  const proc = spawn(claudeBin, args, {
     cwd: process.cwd(),
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },
@@ -380,7 +380,8 @@ export async function continueSupervisorSession(
   systemParts.push(systemPrompt);
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
-  const proc = spawn(CLAUDE, args, {
+  const claudeBin = await getClaudeBin();
+  const proc = spawn(claudeBin, args, {
     cwd: process.cwd(),
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },

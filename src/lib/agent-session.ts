@@ -10,9 +10,8 @@ import {
 } from "./agent-dispatch";
 import { emitTaskUpdate } from "./task-events";
 import { autoCommitIfDirty } from "./worktree";
+import { getClaudeBin } from "./claude-bin";
 import type WebSocket from "ws";
-
-const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
 export interface AgentRuntimeSession {
   taskId: string;
@@ -318,7 +317,8 @@ export async function startSession(
   }
 
   // Spawn the CLI child process
-  const proc = spawn(CLAUDE, args, {
+  const claudeBin = await getClaudeBin();
+  const proc = spawn(claudeBin, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },
@@ -639,7 +639,8 @@ export async function continueSession(
     });
   }
 
-  const proc = spawn(CLAUDE, args, {
+  const claudeBin = await getClaudeBin();
+  const proc = spawn(claudeBin, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },

@@ -10,6 +10,8 @@ import {
   CircleHelpIcon,
   PlusIcon,
   XIcon,
+  SearchIcon,
+  LoaderIcon,
 } from "lucide-react";
 import type { ProqSettings } from "@/lib/types";
 import { Select } from "@/components/ui/select";
@@ -128,6 +130,8 @@ export default function SettingsPage() {
   }
 
   const webhooks = Array.isArray(settings.webhooks) ? settings.webhooks : [];
+  const [detectingBin, setDetectingBin] = useState(false);
+  const [detectMessage, setDetectMessage] = useState<string | null>(null);
 
   return (
     <>
@@ -273,6 +277,50 @@ export default function SettingsPage() {
                       <CircleHelpIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                     </Tooltip>
                   </div>
+                </Field>
+                <Field
+                  label="Claude binary"
+                  hint="Path to the Claude Code CLI. Auto-detect finds it from your shell profile, nvm, or homebrew."
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={settings.claudeBin}
+                      onChange={(e) => update("claudeBin", e.target.value)}
+                      placeholder="claude"
+                      className={`${inputClassMono} flex-1`}
+                    />
+                    <button
+                      onClick={async () => {
+                        setDetectingBin(true);
+                        setDetectMessage(null);
+                        try {
+                          const res = await fetch("/api/settings/detect-claude-bin", { method: "POST" });
+                          const data = await res.json();
+                          setSettings((s) => s ? { ...s, claudeBin: data.claudeBin } : s);
+                          setDetectMessage(data.message);
+                        } catch {
+                          setDetectMessage("Detection failed");
+                        } finally {
+                          setDetectingBin(false);
+                        }
+                      }}
+                      disabled={detectingBin}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm bg-bronze-200 dark:bg-zinc-800 border border-border-default text-bronze-800 dark:text-zinc-200 hover:bg-bronze-300 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                    >
+                      {detectingBin ? (
+                        <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <SearchIcon className="w-3.5 h-3.5" />
+                      )}
+                      Auto-detect
+                    </button>
+                  </div>
+                  {detectMessage && (
+                    <p className={`text-xs mt-1.5 ${detectMessage.startsWith("Found") ? "text-green-500" : "text-zinc-400"}`}>
+                      {detectMessage}
+                    </p>
+                  )}
                 </Field>
                 <Field
                   label="Agent render mode"

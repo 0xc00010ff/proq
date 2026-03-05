@@ -52,7 +52,7 @@ interface KanbanBoardProps {
   activeBranch?: string;
 }
 
-const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
+export const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
   { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" /> },
   { id: 'in-progress', label: 'In Progress', icon: <RefreshCwIcon className="w-3.5 h-3.5 text-steel" /> },
   { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-gold" /> },

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, type DragEvent } from 'react'
 import { useParams } from 'next/navigation';
 import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
+import { ListView } from '@/components/ListView';
 import WorkbenchPanel from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
@@ -650,24 +651,82 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
-              <KanbanBoard
-                tasks={columns}
-                onMoveTask={moveTask}
-                onAddTask={handleAddTask}
-                onDeleteTask={deleteTask}
-                onClickTask={(task) => {
-                  if (task.status === 'todo') {
-                    setModalTask(task);
-                  } else {
-                    setAgentModalTask(task);
-                  }
-                }}
-                onRefreshTasks={refresh}
-                executionMode={executionMode}
-                onExecutionModeChange={handleExecutionModeChange}
-                onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
-                activeBranch={currentBranch}
-              />
+              {(project.viewType || 'kanban') === 'kanban' ? (
+                <KanbanBoard
+                  tasks={columns}
+                  onMoveTask={moveTask}
+                  onAddTask={handleAddTask}
+                  onDeleteTask={deleteTask}
+                  onClickTask={(task) => {
+                    if (task.status === 'todo') {
+                      setModalTask(task);
+                    } else {
+                      setAgentModalTask(task);
+                    }
+                  }}
+                  onRefreshTasks={refresh}
+                  executionMode={executionMode}
+                  onExecutionModeChange={handleExecutionModeChange}
+                  onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
+                  activeBranch={currentBranch}
+                />
+              ) : (
+                <ListView
+                  tasks={columns}
+                  projectId={projectId}
+                  onAddTask={handleAddTask}
+                  onDeleteTask={deleteTask}
+                  onUpdateTask={updateTask}
+                  onMoveToInProgress={async (taskId, currentData) => {
+                    setTasksByProject((prev) => {
+                      const cols = prev[projectId] || emptyColumns();
+                      const todoCol = cols.todo.filter((t) => t.id !== taskId);
+                      const task = cols.todo.find((t) => t.id === taskId);
+                      if (!task) return prev;
+                      const updatedTask = { ...task, ...currentData, status: 'in-progress' as const, agentStatus: 'starting' as const };
+                      return {
+                        ...prev,
+                        [projectId]: {
+                          ...cols,
+                          todo: todoCol,
+                          "in-progress": [updatedTask, ...cols["in-progress"]],
+                        },
+                      };
+                    });
+                    fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(currentData),
+                    }).then(() =>
+                      fetch(`/api/projects/${projectId}/tasks/reorder`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ taskId, toColumn: 'in-progress', toIndex: 0 }),
+                      })
+                    );
+                  }}
+                  onComplete={async (taskId) => {
+                    followUpDraftsRef.current.delete(taskId);
+                    await updateTask(taskId, { status: 'done' });
+                    fetchBranchState();
+                  }}
+                  onResumeEditing={async (taskId) => {
+                    await updateTask(taskId, { status: 'verify' });
+                  }}
+                  onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
+                  executionMode={executionMode}
+                  onExecutionModeChange={handleExecutionModeChange}
+                  cleanupTimes={cleanupTimes}
+                  followUpDraftsRef={followUpDraftsRef}
+                  onFollowUpDraftChange={(taskId, draft) => {
+                    if (draft) followUpDraftsRef.current.set(taskId, draft);
+                    else followUpDraftsRef.current.delete(taskId);
+                  }}
+                  parallelMode={executionMode === 'parallel'}
+                  currentBranch={currentBranch}
+                  onSwitchBranch={handleSwitchBranch}
+                />
+              )}
             </div>
 
             <WorkbenchPanel

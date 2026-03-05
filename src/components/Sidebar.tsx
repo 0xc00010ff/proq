@@ -236,7 +236,7 @@ function SortableProject({
           if (isRenaming) return;
           router.push(`/projects/${project.id}`);
         }}
-        className={`w-full text-left py-3 px-4 relative group block cursor-grab active:cursor-grabbing
+        className={`w-full text-left py-3 px-4 relative group block cursor-pointer
           ${isActive ? "bg-bronze-300 dark:bg-zinc-800/50" : "hover:bg-bronze-300/60 dark:hover:bg-zinc-800/40"}
           `}
       >

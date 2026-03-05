@@ -122,7 +122,7 @@ function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
           <MoreHorizontalIcon className="w-4 h-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
+      <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem
           onSelect={(e) => {
             e.preventDefault();

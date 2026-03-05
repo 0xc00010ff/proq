@@ -187,6 +187,12 @@ export function ListView({
                   <div className="flex-1 h-px bg-bronze-300/40 dark:bg-zinc-800/60" />
                 </div>
 
+                {statusTasks.length === 0 && (
+                  <div className="mx-3 mb-2 h-10 border border-dashed border-bronze-300/50 dark:border-zinc-800 rounded-md flex items-center justify-center">
+                    <span className="text-[10px] text-bronze-400 dark:text-zinc-700">Empty</span>
+                  </div>
+                )}
+
                 {statusTasks.map((task) => {
                   const isSelected = task.id === selectedTaskId;
                   const isRunning = task.agentStatus === 'running';

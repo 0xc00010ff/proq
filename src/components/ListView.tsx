@@ -149,7 +149,7 @@ function SortableListRow({
     >
       <button
         onClick={() => onClick(task)}
-        className={`w-full text-left px-3 py-2.5 transition-colors ${
+        className={`w-full text-left px-6 py-2.5 transition-colors ${
           isSelected
             ? 'bg-bronze-200/60 dark:bg-zinc-800'
             : 'hover:bg-bronze-100/60 dark:hover:bg-zinc-900/60'
@@ -436,7 +436,7 @@ export function ListView({
       {/* Master panel */}
       <div data-master-panel className="shrink-0 flex flex-col border-r border-bronze-300 dark:border-zinc-800 bg-surface-base" style={{ width: masterWidth }}>
         {/* Master header */}
-        <div className="shrink-0 flex items-center gap-2 px-3 py-3 border-b border-bronze-300 dark:border-zinc-800">
+        <div className="shrink-0 flex items-center gap-2 px-6 py-3 border-b border-bronze-300 dark:border-zinc-800">
           {onExecutionModeChange && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -491,14 +491,14 @@ export function ListView({
               return (
                 <React.Fragment key={status}>
                   {status === 'todo' && onAddTask && (
-                    <div className="px-3 mt-3 mb-1">
+                    <div className="px-6 mt-4 mb-2">
                       <AddTaskButton onClick={onAddTask} />
                     </div>
                   )}
 
                 <DroppableSection id={status} isOver={isOver}>
                   {/* Section header — always shown */}
-                  <div className="flex items-center gap-2 mx-3 my-1 py-1">
+                  <div className="flex items-center gap-2 mx-6 my-2 py-1">
                     <div className="flex-1 h-px bg-bronze-300/40 dark:bg-zinc-800/60" />
                     <div className="flex items-center gap-1.5">
                       {col?.icon}
@@ -514,7 +514,7 @@ export function ListView({
 
                   <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                     {statusTasks.length === 0 && (
-                      <div className="mx-3 mb-2 h-10 border border-dashed border-bronze-300/50 dark:border-zinc-800 rounded-md flex items-center justify-center">
+                      <div className="mx-6 my-2 h-10 border border-dashed border-bronze-300/50 dark:border-zinc-800 rounded-md flex items-center justify-center">
                         <span className="text-[10px] text-bronze-400 dark:text-zinc-700">Empty</span>
                       </div>
                     )}

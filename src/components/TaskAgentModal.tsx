@@ -60,8 +60,11 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [topPanelPercent, setTopPanelPercent] = useState(30);
+  const [rightPanelPercent, setRightPanelPercent] = useState(33);
+  const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const bottomPanelRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -85,6 +88,62 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
       document.body.style.userSelect = '';
     };
     document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
+
+  const handleHorizontalResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current || !modal) return;
+      const rect = modal.getBoundingClientRect();
+      const pct = ((rect.right - ev.clientX) / rect.width) * 100;
+      setRightPanelPercent(Math.min(Math.max(pct, 20), 60));
+    };
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
+
+  const handleModalResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const modal = modalRef.current;
+    if (!modal) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = modal.offsetWidth;
+    const startH = modal.offsetHeight;
+    const minW = 600;
+    const minH = 400;
+    const maxW = window.innerWidth - 32;
+    const maxH = window.innerHeight - 32;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const newW = Math.min(Math.max(startW + (ev.clientX - startX), minW), maxW);
+      const newH = Math.min(Math.max(startH + (ev.clientY - startY), minH), maxH);
+      setModalSize({ width: newW, height: newH });
+    };
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'nwse-resize';
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
@@ -152,7 +211,9 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-7xl h-[90vh] flex flex-row rounded-lg border border-bronze-300 dark:border-[#222] bg-bronze-50 dark:bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
+        ref={modalRef}
+        className="relative flex flex-row rounded-lg border border-bronze-300 dark:border-[#222] bg-bronze-50 dark:bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
+        style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: '100%', maxWidth: '80rem', height: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Left panel: terminal or queued state (70%) ── */}
@@ -264,8 +325,18 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           ) : null}
         </div>
 
-        {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? 'w-[33%] border-l border-bronze-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`}>
+        {/* ── Horizontal resize handle ── */}
+        {(showTerminal || showStructuredPane || isQueued) && (
+          <div
+            onMouseDown={handleHorizontalResizeMouseDown}
+            className="shrink-0 w-1 cursor-col-resize border-l border-bronze-300 dark:border-zinc-800 hover:bg-steel/20 active:bg-steel/30 transition-colors group relative"
+          >
+            <div className="absolute inset-y-0 -left-1 -right-1" />
+          </div>
+        )}
+
+        {/* ── Right panel: task details ── */}
+        <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? '' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`} style={(showTerminal || showStructuredPane || isQueued) ? { width: `${rightPanelPercent}%` } : undefined}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -554,6 +625,21 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
               </button>
             </div>
           )}
+        </div>
+
+        {/* Bottom-right corner resize handle */}
+        <div
+          onMouseDown={handleModalResizeMouseDown}
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10 group"
+        >
+          <svg className="w-3 h-3 absolute bottom-0.5 right-0.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" viewBox="0 0 12 12" fill="currentColor">
+            <circle cx="10" cy="10" r="1.2" />
+            <circle cx="6" cy="10" r="1.2" />
+            <circle cx="10" cy="6" r="1.2" />
+            <circle cx="2" cy="10" r="1.2" />
+            <circle cx="6" cy="6" r="1.2" />
+            <circle cx="10" cy="2" r="1.2" />
+          </svg>
         </div>
       </div>
 

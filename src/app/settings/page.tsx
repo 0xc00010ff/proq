@@ -47,6 +47,8 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<ProqSettings | null>(null);
   const [activeSection, setActiveSection] =
     useState<SettingsSection>("about");
+  const [detectingBin, setDetectingBin] = useState(false);
+  const [detectMessage, setDetectMessage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingTo = useRef(false);
@@ -130,8 +132,6 @@ export default function SettingsPage() {
   }
 
   const webhooks = Array.isArray(settings.webhooks) ? settings.webhooks : [];
-  const [detectingBin, setDetectingBin] = useState(false);
-  const [detectMessage, setDetectMessage] = useState<string | null>(null);
 
   return (
     <>

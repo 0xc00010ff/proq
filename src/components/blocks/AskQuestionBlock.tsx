@@ -38,7 +38,7 @@ export function AskQuestionBlock({ questions, hasResult, resultText, onAnswer }:
           </span>
           {autoResolved && (
             <span className="ml-auto text-[10px] text-bronze-500 dark:text-zinc-500 italic">
-              select an option to answer
+              Select an option or provide your own answer
             </span>
           )}
         </div>

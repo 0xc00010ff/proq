@@ -687,6 +687,8 @@ export default function ProjectPage() {
                       setAgentModalTask(task);
                     }
                   }}
+                  onMoveTask={moveTask}
+                  onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
                   executionMode={executionMode}
                   onExecutionModeChange={handleExecutionModeChange}
                   cleanupTimes={cleanupTimes}

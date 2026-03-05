@@ -68,6 +68,18 @@ function deepCopyColumns(cols: TaskColumns): TaskColumns {
   };
 }
 
+export function AddTaskButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
+    >
+      <PlusIcon className="w-3.5 h-3.5" />
+      <span>New</span>
+    </button>
+  );
+}
+
 function DroppableColumn({
   id,
   isOver,
@@ -382,13 +394,7 @@ export function KanbanBoard({
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                   <div className="flex-1 space-y-3 overflow-y-auto pb-4 px-1 min-h-[80px]">
                     {column.id === 'todo' && onAddTask && (
-                      <button
-                        onClick={onAddTask}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
-                      >
-                        <PlusIcon className="w-3.5 h-3.5" />
-                        <span>Add</span>
-                      </button>
+                      <AddTaskButton onClick={onAddTask} />
                     )}
                     {colTasks.map((task) => {
                       const isQueued = task.agentStatus === 'queued';

@@ -306,6 +306,7 @@ function SortableProject({
 
         {/* Path */}
         <div
+          title={project.path}
           className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-crimson/60 dark:text-crimson/50" : "text-zinc-400 dark:text-zinc-600"}`}
         >
           {project.path}

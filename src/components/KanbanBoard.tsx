@@ -355,17 +355,17 @@ export function KanbanBoard({
                             <ChevronDownIcon className="w-3 h-3" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="min-w-[140px]">
+                        <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[140px]">
                           <DropdownMenuItem
                             onSelect={() => onExecutionModeChange('sequential')}
-                            className={`gap-2 text-xs ${executionMode === 'sequential' ? 'bg-zinc-800/60 text-text-chrome-active' : ''}`}
+                            className={`gap-2 text-xs ${executionMode === 'sequential' ? 'exec-mode-selected' : ''}`}
                           >
                             <ListOrderedIcon className="w-3.5 h-3.5" />
                             Sequential
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => onExecutionModeChange('parallel')}
-                            className={`gap-2 text-xs ${executionMode === 'parallel' ? 'bg-zinc-800/60 text-text-chrome-active' : ''}`}
+                            className={`gap-2 text-xs ${executionMode === 'parallel' ? 'exec-mode-selected' : ''}`}
                           >
                             <LayersIcon className="w-3.5 h-3.5" />
                             Parallel

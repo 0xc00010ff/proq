@@ -200,9 +200,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         <h1 className="text-lg font-semibold text-bronze-900 dark:text-zinc-100 leading-tight">
           {project.path.replace(/\/+$/, "").split("/").pop() || project.name}
         </h1>
-        <span className="text-xs font-mono text-zinc-500 mt-0.5">
+        <button
+          onClick={() => { if (projectId) fetch(`/api/projects/${projectId}/reveal`, { method: 'POST' }); }}
+          className="text-xs font-mono text-bronze-600 dark:text-bronze-500 hover:text-bronze-500 dark:hover:text-bronze-400 mt-0.5 text-left transition-colors"
+        >
           {project.path}
-        </span>
+        </button>
       </div>
 
       <div className="flex-1 flex justify-center min-w-0">

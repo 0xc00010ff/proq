@@ -29,6 +29,7 @@ import {
   PencilIcon,
   PanelLeftCloseIcon,
   SettingsIcon,
+  FolderOpenIcon,
 } from "lucide-react";
 import type { Project, Task, TaskStatus, TaskColumns } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
@@ -131,6 +132,16 @@ function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
         >
           <PencilIcon className="w-3.5 h-3.5" />
           Rename
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            fetch(`/api/projects/${project.id}/reveal`, { method: 'POST' });
+          }}
+          className="gap-2"
+        >
+          <FolderOpenIcon className="w-3.5 h-3.5" />
+          Show in Finder
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={(e) => {

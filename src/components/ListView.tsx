@@ -195,7 +195,16 @@ export function ListView({
               return (
                 <React.Fragment key={task.id}>
                   {showStatusDivider && (
-                    <div className="h-px bg-bronze-300/60 dark:bg-zinc-800/60 mx-3" />
+                    <div className="flex items-center gap-2 mx-3 my-1 py-1">
+                      <div className="flex-1 h-px bg-bronze-300/40 dark:bg-zinc-800/60" />
+                      <div className="flex items-center gap-1.5">
+                        {getStatusIcon(task.status)}
+                        <span className="text-[10px] text-bronze-500 dark:text-zinc-600 font-medium uppercase tracking-wide">
+                          {COLUMNS.find((c) => c.id === task.status)?.label}
+                        </span>
+                      </div>
+                      <div className="flex-1 h-px bg-bronze-300/40 dark:bg-zinc-800/60" />
+                    </div>
                   )}
                   <button
                     onClick={() => handleRowClick(task)}

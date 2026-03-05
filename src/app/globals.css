@@ -8,6 +8,15 @@
   }
 }
 
+/* Execution mode dropdown: selected item yields bg to hovered sibling */
+.exec-mode-selected {
+  background: rgb(39 39 42 / 0.6); /* zinc-800/60 */
+  color: var(--text-chrome-active);
+}
+.exec-mode-dropdown:has(> [data-highlighted]) .exec-mode-selected:not([data-highlighted]) {
+  background: transparent;
+}
+
 @layer base {
   :root {
     --background: 36 33% 94%;

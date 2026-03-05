@@ -336,7 +336,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         {(showTerminal || showStructuredPane || isQueued) && (
           <div
             onMouseDown={handleHorizontalResizeMouseDown}
-            className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-zinc-600 transition-colors relative"
+            className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-bronze-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
           >
             <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
           </div>
@@ -472,7 +472,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           {/* Resize handle */}
           <div
             onMouseDown={handleResizeMouseDown}
-            className="shrink-0 h-px cursor-row-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-zinc-600 transition-colors relative"
+            className="shrink-0 h-px cursor-row-resize bg-bronze-300 dark:bg-bronze-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
           >
             <div className="absolute inset-x-0 -top-1.5 -bottom-1.5" />
           </div>

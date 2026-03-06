@@ -198,12 +198,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         : 'text-bronze-500';
 
   return (
-    <header className="h-16 bg-bronze-300/20 dark:bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-bronze-300 dark:border-border-default">
+    <header className="h-[52px] bg-bronze-300/20 dark:bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-bronze-300 dark:border-border-default">
       <div className="flex-1 flex items-center min-w-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-1.5 ml-1 text-bronze-500 dark:text-bronze-500 hover:text-bronze-600 dark:hover:text-bronze-400 transition-colors">
-              <h1 className="text-lg font-semibold leading-none truncate">
+              <h1 className="text-base font-semibold leading-none truncate">
                 {project.name}
               </h1>
               <ChevronDownIcon className="w-4 h-4 shrink-0" />
@@ -244,14 +244,14 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
       </div>
 
       <div className="flex-1 flex justify-center min-w-0">
-        <div className="bg-surface-secondary p-1 rounded-lg flex items-center border border-border-default">
+        <div className="bg-surface-secondary p-0.5 rounded-md flex items-center border border-border-default">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`relative px-4 py-1.5 text-sm font-medium rounded-md z-10 ${
+                className={`relative px-3.5 py-1 text-xs font-medium rounded-md z-10 ${
                   isActive ? 'text-text-chrome-active' : 'text-bronze-500 dark:text-bronze-500 hover:text-bronze-600 dark:hover:text-bronze-400'
                 }`}
               >

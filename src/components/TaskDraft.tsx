@@ -83,6 +83,16 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
 
   const handleClose = useCallback(() => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    // If auto-title was pending (2s delay not yet elapsed), fire it now before closing
+    if (autoTitleTimeout.current && !title.trim() && description.trim()) {
+      clearTimeout(autoTitleTimeout.current);
+      autoTitleTimeout.current = null;
+      fetch(`/api/projects/${projectId}/tasks/${task.id}/auto-title`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
+      }).catch(() => {});
+    }
     const isEmpty = !title.trim() && !description.trim();
     if (!isEmpty) {
       onSave(task.id, {
@@ -93,7 +103,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
       });
     }
     onClose(isEmpty);
-  }, [task.id, title, description, attachments, mode, onSave, onClose]);
+  }, [projectId, task.id, title, description, attachments, mode, onSave, onClose]);
 
   useEscapeKey(handleClose, isOpen);
 

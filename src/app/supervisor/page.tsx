@@ -244,7 +244,7 @@ export default function SupervisorPage() {
             {/* Starting placeholder */}
             {blocks.length === 0 && !sessionDone && (
               <div className="flex items-center gap-2 py-2 text-xs text-text-tertiary">
-                <Loader2Icon className="w-3.5 h-3.5 text-steel animate-spin" />
+                <Loader2Icon className="w-3.5 h-3.5 text-lazuli animate-spin" />
                 <span>Starting session...</span>
               </div>
             )}

@@ -15,8 +15,8 @@ export function TaskUpdateBlock({ findings, humanSteps }: TaskUpdateBlockProps) 
   const hasMore = lines.length > 2;
 
   return (
-    <div className="my-2 rounded-md border border-steel/25 bg-steel/5 px-3 py-2.5">
-      <div className="flex items-center gap-2 text-xs font-medium text-steel-dark dark:text-steel mb-1">
+    <div className="my-2 rounded-md border border-lazuli/25 bg-lazuli/5 px-3 py-2.5">
+      <div className="flex items-center gap-2 text-xs font-medium text-lazuli-dark dark:text-lazuli mb-1">
         <FileTextIcon className="w-3.5 h-3.5" />
         Agent updated task
       </div>
@@ -24,7 +24,7 @@ export function TaskUpdateBlock({ findings, humanSteps }: TaskUpdateBlockProps) 
         {preview}{hasMore && <span className="text-text-placeholder"> (+{lines.length - 2} more)</span>}
       </div>
       {humanSteps && (
-        <div className="mt-1.5 pt-1.5 border-t border-steel/15 text-[11px] text-steel-dark dark:text-steel/80 font-mono">
+        <div className="mt-1.5 pt-1.5 border-t border-lazuli/15 text-[11px] text-lazuli-dark dark:text-lazuli/80 font-mono">
           Steps for you: {humanSteps.split('\n')[0]}
         </div>
       )}

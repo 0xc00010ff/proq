@@ -430,7 +430,7 @@ export default function SettingsPage() {
 // ── Shared styles ──
 
 const inputClass =
-  "w-full bg-surface-inset border border-border-default rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-steel";
+  "w-full bg-surface-inset border border-border-default rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-lazuli";
 
 const inputClassMono =
   inputClass +

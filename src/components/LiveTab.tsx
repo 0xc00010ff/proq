@@ -94,7 +94,7 @@ export function LiveTab({ project }: LiveTabProps) {
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
-            className="flex-1 bg-surface-base border border-border-default rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-placeholder focus:outline-none focus:ring-1 focus:ring-steel/50"
+            className="flex-1 bg-surface-base border border-border-default rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-placeholder focus:outline-none focus:ring-1 focus:ring-lazuli/50"
           />
           <button
             onClick={handleConnect}
@@ -115,7 +115,7 @@ export function LiveTab({ project }: LiveTabProps) {
         <div className="flex space-x-1.5">
           <div className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50" />
           <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50" />
-          <div className="w-3 h-3 rounded-full bg-patina/20 border border-patina/50" />
+          <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50" />
         </div>
         <div className="flex-1 flex items-center justify-center space-x-2">
           <button

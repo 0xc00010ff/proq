@@ -55,8 +55,8 @@ interface KanbanBoardProps {
 export const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
   { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-text-tertiary" /> },
   { id: 'in-progress', label: 'In Progress', icon: <RefreshCwIcon className="w-3.5 h-3.5 text-bronze-500" /> },
-  { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-steel" /> },
-  { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-patina" /> },
+  { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-lazuli" /> },
+  { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald" /> },
 ];
 
 function deepCopyColumns(cols: TaskColumns): TaskColumns {

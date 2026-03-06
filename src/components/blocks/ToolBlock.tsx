@@ -172,7 +172,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
           {isActive ? (
             <Loader2Icon className="w-3.5 h-3.5 text-text-chrome animate-spin" />
           ) : (
-            <span className={`block w-2 h-2 rounded-full ${isError ? 'bg-red-400' : 'bg-patina-dark dark:bg-patina'}`} />
+            <span className={`block w-2 h-2 rounded-full ${isError ? 'bg-red-400' : 'bg-emerald-dark dark:bg-emerald'}`} />
           )}
         </span>
 
@@ -220,7 +220,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
                   className="ml-auto text-text-placeholder hover:text-text-secondary p-0.5"
                 >
                   {copied ? (
-                    <CheckIcon className="w-3 h-3 text-patina" />
+                    <CheckIcon className="w-3 h-3 text-emerald" />
                   ) : (
                     <ClipboardCopyIcon className="w-3 h-3" />
                   )}
@@ -239,7 +239,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
                     e.stopPropagation();
                     setShowFullOutput(true);
                   }}
-                  className="text-[10px] text-steel hover:text-steel/80 mt-1"
+                  className="text-[10px] text-lazuli hover:text-lazuli/80 mt-1"
                 >
                   Show {outputLines.length - MAX_OUTPUT_LINES} more lines
                 </button>

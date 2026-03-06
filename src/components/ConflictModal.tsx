@@ -85,7 +85,7 @@ export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: Con
           </button>
           <button
             onClick={onResolve}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/30 rounded-md hover:bg-steel/10"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-lazuli border border-lazuli/30 rounded-md hover:bg-lazuli/10"
           >
             <WrenchIcon className="w-3 h-3" />
             Resolve

@@ -203,8 +203,8 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           <div className="shrink-0 h-10 flex items-center gap-2 px-3 border-b border-border-default bg-surface-topbar">
             {task.status === 'verify' && task.branch && onSwitchBranch && currentBranch === task.branch ? (
               <>
-                <span className="text-xs text-steel font-medium">viewing</span>
-                <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-steel/30 bg-steel/10 text-steel">
+                <span className="text-xs text-lazuli font-medium">viewing</span>
+                <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-lazuli/30 bg-lazuli/10 text-lazuli">
                   <GitBranchIcon className="w-3 h-3" />
                   {task.branch}
                 </span>
@@ -229,7 +229,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 {task.status === 'verify' && task.branch && onSwitchBranch && (
                   <button
                     onClick={() => onSwitchBranch(task.branch!)}
-                    className="text-[10px] font-medium text-steel hover:text-steel/80 px-1.5 py-0.5 rounded border border-steel/30 hover:bg-steel/10"
+                    className="text-[10px] font-medium text-lazuli hover:text-lazuli/80 px-1.5 py-0.5 rounded border border-lazuli/30 hover:bg-lazuli/10"
                   >
                     Preview
                   </button>
@@ -331,12 +331,12 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 Agent working
               </span>
             ) : task.status === 'verify' ? (
-              <span className="flex items-center gap-1.5 text-xs text-steel-dark dark:text-steel font-medium uppercase tracking-wide">
+              <span className="flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium uppercase tracking-wide">
                 <ClockIcon className="w-3 h-3" />
                 Awaiting review
               </span>
             ) : task.status === 'done' ? (
-              <span className="flex items-center gap-1.5 text-xs text-patina-dark dark:text-patina font-medium uppercase tracking-wide">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-dark dark:text-emerald font-medium uppercase tracking-wide">
                 <CheckCircle2Icon className="w-3 h-3" />
                 Completed
               </span>
@@ -382,7 +382,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                   ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
                   ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
                   li: ({ children }) => <li>{children}</li>,
-                  a: ({ href, children }) => <a href={href} className="text-steel hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                  a: ({ href, children }) => <a href={href} className="text-lazuli hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
                   h1: ({ children }) => <h1 className="text-sm font-semibold text-text-secondary mt-3 mb-1.5 first:mt-0">{children}</h1>,
                   h2: ({ children }) => <h2 className="text-sm font-semibold text-text-secondary mt-2.5 mb-1 first:mt-0">{children}</h2>,
                   h3: ({ children }) => <h3 className="text-xs font-semibold text-text-secondary mt-2 mb-1 first:mt-0">{children}</h3>,
@@ -467,7 +467,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                   title="Copy to clipboard"
                 >
                   {copied ? (
-                    <CheckIcon className="w-3.5 h-3.5 text-patina" />
+                    <CheckIcon className="w-3.5 h-3.5 text-emerald" />
                   ) : (
                     <ClipboardCopyIcon className="w-3.5 h-3.5" />
                   )}
@@ -495,7 +495,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                   ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
                   ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
                   li: ({ children }) => <li>{children}</li>,
-                  a: ({ href, children }) => <a href={href} className="text-steel hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                  a: ({ href, children }) => <a href={href} className="text-lazuli hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
                   h1: ({ children }) => <h1 className="text-sm font-semibold text-text-secondary mt-3 mb-1.5 first:mt-0">{children}</h1>,
                   h2: ({ children }) => <h2 className="text-sm font-semibold text-text-secondary mt-2.5 mb-1 first:mt-0">{children}</h2>,
                   h3: ({ children }) => <h3 className="text-xs font-semibold text-text-secondary mt-2 mb-1 first:mt-0">{children}</h3>,
@@ -593,10 +593,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Complete button pinned to bottom */}
         {task.status === 'verify' && onComplete && (
           <div className="shrink-0 group/complete">
-            <div className="h-px bg-border-default group-hover/complete:bg-patina/40" />
+            <div className="h-px bg-border-default group-hover/complete:bg-emerald/40" />
             <button
               onClick={() => onComplete(task.id)}
-              className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-patina/80 hover:text-patina hover:bg-patina/10"
+              className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-emerald/80 hover:text-emerald hover:bg-emerald/10"
             >
               <CheckCircle2Icon className="w-3.5 h-3.5" />
               {task.branch ? 'Merge & Complete' : 'Complete'}

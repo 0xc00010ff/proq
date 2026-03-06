@@ -70,13 +70,13 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
       className={`
         group relative bg-surface-secondary border rounded-md overflow-hidden
         ${isPreviewActive
-          ? 'border-steel/50 shadow-[0_0_12px_rgba(91,131,176,0.15)]'
+          ? 'border-lazuli/50 shadow-[0_0_12px_rgba(91,131,176,0.15)]'
           : isRunning
           ? 'border-bronze-500/40 shadow-[0_0_12px_rgba(228,189,137,0.15)] animate-pulse-subtle'
           : isQueued || isStarting
           ? 'border-zinc-500/30'
           : 'border-border-default'}
-        ${flash ? 'ring-1 ring-steel/50 shadow-[0_0_12px_rgba(91,131,176,0.2)]' : ''}
+        ${flash ? 'ring-1 ring-lazuli/50 shadow-[0_0_12px_rgba(91,131,176,0.2)]' : ''}
         ${isDragOverlay ? 'ring-1 ring-bronze-600 shadow-lg shadow-black/30' : `hover:bg-surface-hover/40 cursor-pointer ${isRunning ? '' : 'hover:border-border-hover/50'}`}
         transition-shadow duration-700
       `}
@@ -144,8 +144,8 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle/60">
           {isPreviewActive && !isActive && !isQueued ? (
             <div className="flex items-center gap-1.5">
-              <EyeIcon className="w-3 h-3 text-steel" />
-              <span className="text-[10px] text-steel font-medium uppercase tracking-wide">
+              <EyeIcon className="w-3 h-3 text-lazuli" />
+              <span className="text-[10px] text-lazuli font-medium uppercase tracking-wide">
                 Previewing
               </span>
             </div>

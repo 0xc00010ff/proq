@@ -60,7 +60,7 @@ function getFileIcon(name: string) {
     case 'css':
     case 'scss':
     case 'html':
-      return <FileCode className="w-4 h-4 text-steel flex-shrink-0" />;
+      return <FileCode className="w-4 h-4 text-lazuli flex-shrink-0" />;
     case 'json':
       return <FileJson className="w-4 h-4 text-gold flex-shrink-0" />;
     case 'md':
@@ -74,7 +74,7 @@ function getFileIcon(name: string) {
     case 'svg':
     case 'ico':
     case 'webp':
-      return <ImageIcon className="w-4 h-4 text-patina flex-shrink-0" />;
+      return <ImageIcon className="w-4 h-4 text-emerald flex-shrink-0" />;
     default:
       return <File className="w-4 h-4 text-zinc-500 flex-shrink-0" />;
   }
@@ -99,7 +99,7 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
         onClick={handleClick}
         className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[12px] hover:bg-surface-hover/40 rounded-sm ${
           isSelected
-            ? 'bg-steel/15 text-steel hover:bg-steel/20'
+            ? 'bg-lazuli/15 text-lazuli hover:bg-lazuli/20'
             : 'text-text-secondary'
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -112,7 +112,7 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
               <ChevronRight className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
             )}
             {expanded ? (
-              <FolderOpen className="w-4 h-4 text-steel flex-shrink-0" />
+              <FolderOpen className="w-4 h-4 text-lazuli flex-shrink-0" />
             ) : (
               <Folder className="w-4 h-4 text-zinc-400 flex-shrink-0" />
             )}

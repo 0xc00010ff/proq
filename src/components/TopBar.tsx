@@ -190,13 +190,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     if (parts.length > 0) return parts.join(', ');
     return 'Up to date';
   })();
-  // Text color: patina/crimson for ahead/behind, chrome for up to date or mixed
+  // Text color: emerald/crimson for ahead/behind, chrome for up to date or mixed
   const historyTextColor = isUpToDate
     ? 'text-text-chrome'
     : behind > 0 && ahead === 0
       ? 'text-crimson'
       : ahead > 0 && behind === 0
-        ? 'text-patina'
+        ? 'text-emerald'
         : 'text-text-chrome';
 
   return (
@@ -399,12 +399,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     {ahead > 0 && (
                       <>
                         <div className="sticky top-0 z-10 bg-surface-modal border-b border-border-subtle/60 px-2 py-1.5 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-patina">{ahead} Commits Ahead</span>
+                          <span className="text-xs font-semibold text-emerald">{ahead} Commits Ahead</span>
                           {onPush && (
                             <button
                               onClick={async (e) => { e.stopPropagation(); if (pushing) return; setPushing(true); setSyncError(null); try { await onPush(); } catch (err) { setSyncError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushing(false); } }}
                               disabled={pushing}
-                              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-patina hover:bg-patina/10"
+                              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-emerald hover:bg-emerald/10"
                             >
                               Push
                               {pushing ? <Loader2Icon className="w-3 h-3 animate-spin" /> : <ArrowUpIcon className="w-3 h-3" />}
@@ -477,11 +477,11 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                   <button
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border outline-none ${
                       isOnPreviewBranch
-                        ? 'border-steel/40 bg-surface-secondary text-steel shadow-[0_0_8px_rgba(91,131,176,0.1)] hover:text-steel-light hover:bg-surface-hover'
+                        ? 'border-lazuli/40 bg-surface-secondary text-lazuli shadow-[0_0_8px_rgba(91,131,176,0.1)] hover:text-lazuli-light hover:bg-surface-hover'
                         : 'border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover'
                     }`}
                   >
-                    <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-steel' : ''}`} />
+                    <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-lazuli' : ''}`} />
                     <span className="max-w-[180px] truncate">
                       {isOnPreviewBranch && taskBranchMap?.[currentBranch!]
                         ? taskBranchMap[currentBranch!].split(/\s+/).slice(0, 4).join(' ')

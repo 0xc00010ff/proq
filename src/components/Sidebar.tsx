@@ -72,7 +72,7 @@ function TaskStatusSummary({ columns }: { columns: TaskColumns }) {
   if (counts["verify"]) {
     segments.push(
       <span key="v" className="flex items-center gap-1">
-        <CheckCircle2Icon className="w-2.5 h-2.5 text-steel" />
+        <CheckCircle2Icon className="w-2.5 h-2.5 text-lazuli" />
         <span className="text-text-secondary">
           {counts["verify"]} to verify
         </span>

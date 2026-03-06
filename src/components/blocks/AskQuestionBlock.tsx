@@ -67,8 +67,8 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
       <div className="rounded-lg border border-border-default bg-surface-topbar overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border-subtle/60">
-          <MessageCircleQuestionIcon className="w-3.5 h-3.5 text-steel" />
-          <span className="text-xs font-medium text-steel uppercase tracking-wide">
+          <MessageCircleQuestionIcon className="w-3.5 h-3.5 text-lazuli" />
+          <span className="text-xs font-medium text-lazuli uppercase tracking-wide">
             Agent Question
           </span>
           <span className="ml-auto text-[10px] text-text-tertiary italic">

@@ -24,7 +24,7 @@ export function TextBlock({ text }: { text: string }) {
           ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
           li: ({ children }) => <li className="text-text-secondary">{children}</li>,
-          a: ({ href, children }) => <a href={href} className="text-steel hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+          a: ({ href, children }) => <a href={href} className="text-lazuli hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
           blockquote: ({ children }) => <blockquote className="border-l-2 border-border-strong pl-3 text-text-secondary italic my-2">{children}</blockquote>,
           h1: ({ children }) => <h1 className="text-base font-semibold text-text-primary mt-4 mb-2 first:mt-0">{children}</h1>,
           h2: ({ children }) => <h2 className="text-sm font-semibold text-text-primary mt-3 mb-1.5 first:mt-0">{children}</h2>,

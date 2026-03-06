@@ -23,7 +23,7 @@ const config: Config = {
   				900: '#362818',
   			},
   			// Action accents — warm, muted, imperial
-  			steel: {
+  			lazuli: {
   				DEFAULT: '#5b83b0',
   				light: '#6d94bf',
   				dark: '#4a72a0',
@@ -33,7 +33,7 @@ const config: Config = {
   				light: '#d4b85e',
   				dark: '#b8953d',
   			},
-  			patina: {
+  			emerald: {
   				DEFAULT: '#6a9a58',
   				light: '#7baa6a',
   				dark: '#5a8a48',

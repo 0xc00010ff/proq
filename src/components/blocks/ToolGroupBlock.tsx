@@ -130,7 +130,7 @@ export function ToolGroupBlock({ toolName, items, forceCollapsed }: ToolGroupBlo
           {isActive ? (
             <Loader2Icon className="w-3.5 h-3.5 text-text-chrome animate-spin" />
           ) : (
-            <span className={`block w-2 h-2 rounded-full ${anyError ? 'bg-red-400' : 'bg-patina-dark dark:bg-patina'}`} />
+            <span className={`block w-2 h-2 rounded-full ${anyError ? 'bg-red-400' : 'bg-emerald-dark dark:bg-emerald'}`} />
           )}
         </span>
 

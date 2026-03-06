@@ -293,7 +293,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
             {aheadCount > 0 && (
               <div>
                 <div className="sticky top-0 z-10 flex items-center gap-2 px-3 py-2 border-b border-border-default/50">
-                  <span className="text-[10px] text-patina font-semibold uppercase tracking-wide">
+                  <span className="text-[10px] text-emerald font-semibold uppercase tracking-wide">
                     {aheadCount} {aheadCount === 1 ? 'commit' : 'commits'} ahead
                   </span>
                   {props.onPush && (
@@ -305,7 +305,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         try { await props.onPush(); props.onSyncDone?.(); } catch (err) { setPushError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushingInline(false); }
                       }}
                       disabled={pushingInline}
-                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-patina/30 text-patina hover:bg-patina/10"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-emerald/30 text-emerald hover:bg-emerald/10"
                     >
                       Push
                       {pushingInline

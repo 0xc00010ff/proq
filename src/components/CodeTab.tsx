@@ -240,7 +240,7 @@ export function CodeTab({ project }: CodeTabProps) {
             >
               {copyStatus === 'copied' ? (
                 <>
-                  <Check className="w-3 h-3 text-patina" />
+                  <Check className="w-3 h-3 text-emerald" />
                   Copied
                 </>
               ) : (
@@ -281,7 +281,7 @@ export function CodeTab({ project }: CodeTabProps) {
           onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
           className={`w-[5px] flex-shrink-0 cursor-col-resize transition-colors ${
             isDragging
-              ? 'bg-steel-dark'
+              ? 'bg-lazuli-dark'
               : 'bg-border-default hover:bg-border-hover'
           }`}
         />
@@ -294,7 +294,7 @@ export function CodeTab({ project }: CodeTabProps) {
             </div>
           ) : isMarkdown && mdView === 'pretty' ? (
             <div className="h-full overflow-y-auto p-6">
-              <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-surface-hover prose-pre:text-text-primary prose-code:text-steel prose-headings:text-text-primary">
+              <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-surface-hover prose-pre:text-text-primary prose-code:text-lazuli prose-headings:text-text-primary">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}

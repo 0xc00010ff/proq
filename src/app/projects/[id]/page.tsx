@@ -14,6 +14,7 @@ import { UndoModal } from '@/components/UndoModal';
 import { ParallelModeModal } from '@/components/ParallelModeModal';
 import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
+import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyColumns } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
@@ -37,6 +38,7 @@ export default function ProjectPage() {
   const [showParallelModal, setShowParallelModal] = useState(false);
   const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showCommitModal, setShowCommitModal] = useState(false);
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
@@ -635,6 +637,7 @@ export default function ProjectPage() {
         viewType={project.viewType || 'kanban'}
         onViewTypeChange={handleViewTypeChange}
         onOpenSettings={() => setShowProjectSettings(true)}
+        onCommit={() => setShowCommitModal(true)}
       />
 
       <main ref={containerRef} className="flex-1 flex flex-col overflow-hidden relative">
@@ -836,6 +839,13 @@ export default function ProjectPage() {
           onSave={handleProjectSettingsSave}
         />
       )}
+
+      <CommitModal
+        isOpen={showCommitModal}
+        projectId={projectId}
+        onClose={() => setShowCommitModal(false)}
+        onCommitted={fetchBranchState}
+      />
 
       <AlertModal
         isOpen={showModeBlockedModal}

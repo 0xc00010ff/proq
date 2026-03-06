@@ -604,6 +604,15 @@ export function gitDiffFull(projectPath: string): string {
   }
 }
 
+/** Stage all changes and commit with the given message */
+export function gitCommit(projectPath: string, message: string): void {
+  execSync(`git -C '${projectPath}' add -A`, { timeout: 10_000 });
+  execSync(
+    `git -C '${projectPath}' commit -m ${JSON.stringify(message)}`,
+    { timeout: 15_000 },
+  );
+}
+
 /** Get full git log for ahead or behind commits */
 export function gitLogFull(
   projectPath: string,

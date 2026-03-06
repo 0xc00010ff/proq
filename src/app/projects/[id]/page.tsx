@@ -163,6 +163,12 @@ export default function ProjectPage() {
       }
       return prev; // task not found — ignore
     });
+
+    // Also update modalTask if the SSE is for the currently-open modal task
+    setModalTask((prev) => {
+      if (!prev || prev.id !== event.taskId) return prev;
+      return { ...prev, ...event.changes } as Task;
+    });
   }, [projectId, setTasksByProject, fetchBranchState]);
 
   useTaskEvents(projectId, handleTaskUpdate);

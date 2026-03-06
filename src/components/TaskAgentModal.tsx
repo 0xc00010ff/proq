@@ -73,17 +73,19 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative flex flex-row rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden"
+        className="relative flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: '100%', maxWidth: '80rem', height: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover z-10"
-        >
-          <XIcon className="w-4 h-4" />
-        </button>
+        {/* Modal header bar */}
+        <div className="shrink-0 flex items-center justify-end px-2 py-1.5 border-b border-border-default bg-surface-topbar">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
 
         <TaskAgentDetail
           task={task}
@@ -98,6 +100,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           parallelMode={parallelMode}
           currentBranch={currentBranch}
           onSwitchBranch={onSwitchBranch}
+          className="flex-1 min-h-0"
         />
 
         {/* Bottom-right corner resize handle */}

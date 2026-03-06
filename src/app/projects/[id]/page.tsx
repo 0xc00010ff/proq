@@ -781,6 +781,7 @@ export default function ProjectPage() {
 
       {modalTask && (
         <TaskDraft
+          projectId={projectId}
           task={modalTask}
           isOpen={true}
           onClose={(isEmpty: boolean) => {

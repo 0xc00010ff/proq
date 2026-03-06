@@ -216,7 +216,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               <DropdownMenuLabel>View</DropdownMenuLabel>
               <DropdownMenuItem
                 onSelect={() => onViewTypeChange?.('kanban')}
-                className="text-xs gap-2"
+                className={`text-xs gap-2 ${viewType === 'kanban' ? 'text-text-chrome-active' : ''}`}
               >
                 <LayoutGridIcon className="w-3.5 h-3.5" />
                 <span>Board</span>
@@ -224,7 +224,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => onViewTypeChange?.('list')}
-                className="text-xs gap-2"
+                className={`text-xs gap-2 ${viewType === 'list' ? 'text-text-chrome-active' : ''}`}
               >
                 <ListIcon className="w-3.5 h-3.5" />
                 <span>List</span>

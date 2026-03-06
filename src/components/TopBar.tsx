@@ -299,13 +299,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     <div className="sticky top-0 z-10 bg-surface-modal border-b border-border-subtle/60 px-2 py-1.5 flex items-center justify-between">
                       <span className="text-xs font-semibold text-crimson">{dirtyFiles?.length || gitStatus.dirty} Uncommitted Changes</span>
                       {onCommit && (
-                        <DropdownMenuItem
-                          onSelect={() => onCommit()}
-                          className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-crimson hover:bg-crimson/10 cursor-pointer h-auto"
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onCommit(); }}
+                          className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-crimson hover:bg-crimson/10"
                         >
                           Commit
                           <GitCommitHorizontalIcon className="w-3 h-3" />
-                        </DropdownMenuItem>
+                        </button>
                       )}
                     </div>
                     {dirtyFiles === null ? (

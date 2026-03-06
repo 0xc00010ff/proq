@@ -160,11 +160,12 @@ export function GitDetailModal(props: GitDetailModalProps) {
   const aheadCount = type === 'log' ? props.commits.length : 0;
   const headerSummary = (() => {
     if (type !== 'log') return null;
-    const parts: string[] = [];
-    if (aheadCount > 0) parts.push(`${aheadCount} ${aheadCount === 1 ? 'commit' : 'commits'} ahead`);
-    if (behindCount > 0) parts.push(`${behindCount} ${behindCount === 1 ? 'commit' : 'commits'} behind`);
-    if (parts.length > 0) return <>{parts.join(', ')}</>;
-    return <>up to date with <span className="text-text-chrome">{branchLabel}</span></>;
+    const styledBranch = <span className="text-bronze-600">{branchLabel}</span>;
+    const parts: React.ReactNode[] = [];
+    if (aheadCount > 0) parts.push(<React.Fragment key="ahead">{aheadCount} {aheadCount === 1 ? 'commit' : 'commits'} ahead of {styledBranch}</React.Fragment>);
+    if (behindCount > 0) parts.push(<React.Fragment key="behind">{behindCount} {behindCount === 1 ? 'commit' : 'commits'} behind {styledBranch}</React.Fragment>);
+    if (parts.length > 0) return <>{parts.reduce<React.ReactNode[]>((acc, p, i) => i === 0 ? [p] : [...acc, ', ', p], [])}</>;
+    return <>up to date with {styledBranch}</>;
   })();
 
   return (
@@ -172,7 +173,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
       isOpen={isOpen}
       onClose={handleClose}
       showClose={false}
-      className="w-[60vw] min-w-[50vw] max-w-[80vw] h-[80vh] flex flex-col resize overflow-auto"
+      className="w-[50vw] min-w-[40vw] max-w-[80vw] h-[80vh] flex flex-col resize overflow-auto"
     >
       <div className="px-3 border-b border-zinc-800 flex items-center gap-2 shrink-0 h-[48px]">
         {type === 'log' && selectedCommit && (
@@ -187,7 +188,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
           {type === 'log' && selectedCommit
             ? <span className="text-sm font-semibold"><span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wide leading-none mr-1.5">commit</span><span className="font-mono text-text-chrome leading-none">{selectedCommit.hash}</span></span>
             : type === 'log'
-              ? <span className="text-[10px] text-zinc-500 font-semibold leading-none flex items-center gap-1.5"><span className="uppercase tracking-wide">Git Log</span> <span className="text-zinc-600">·</span> on branch <span className="text-text-chrome">{props.currentBranch || 'main'}</span> <span className="text-zinc-600">·</span> {headerSummary}</span>
+              ? <span className="text-[10px] text-zinc-500 font-semibold leading-none flex items-center gap-1.5"><span className="uppercase tracking-wide">Git Log</span> <span className="text-zinc-600">·</span> on branch <span className="text-bronze-600">{props.currentBranch || 'main'}</span> <span className="text-zinc-600">·</span> {headerSummary}</span>
               : <span className="text-[10px] text-zinc-500 font-semibold leading-none uppercase tracking-wide">{title}</span>
           }
         </h3>
@@ -252,8 +253,8 @@ export function GitDetailModal(props: GitDetailModalProps) {
             {/* Behind commits section */}
             {behindCount > 0 && props.behindCommits && (
               <div>
-                <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-zinc-800/50">
-                  <span className="text-[10px] text-red-400 font-semibold uppercase tracking-wide">
+                <div className="sticky top-0 z-10 flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
+                  <span className="text-[10px] text-crimson font-semibold uppercase tracking-wide">
                     {behindCount} {behindCount === 1 ? 'commit' : 'commits'} behind
                   </span>
                   {props.onPull && (
@@ -265,7 +266,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         try { await props.onPull(); props.onSyncDone?.(); } catch (err) { setPullError(err instanceof Error ? err.message : 'Pull failed'); } finally { setPullingInline(false); }
                       }}
                       disabled={pullingInline}
-                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-crimson/30 text-crimson hover:bg-crimson/10"
                     >
                       Pull
                       {pullingInline
@@ -291,8 +292,8 @@ export function GitDetailModal(props: GitDetailModalProps) {
             {/* Ahead commits section */}
             {aheadCount > 0 && (
               <div>
-                <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-zinc-800/50">
-                  <span className="text-[10px] text-green-400 font-semibold uppercase tracking-wide">
+                <div className="sticky top-0 z-10 flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
+                  <span className="text-[10px] text-patina font-semibold uppercase tracking-wide">
                     {aheadCount} {aheadCount === 1 ? 'commit' : 'commits'} ahead
                   </span>
                   {props.onPush && (
@@ -304,7 +305,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         try { await props.onPush(); props.onSyncDone?.(); } catch (err) { setPushError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushingInline(false); }
                       }}
                       disabled={pushingInline}
-                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-green-500/30 text-green-400 hover:bg-green-500/10"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-patina/30 text-patina hover:bg-patina/10"
                     >
                       Push
                       {pushingInline

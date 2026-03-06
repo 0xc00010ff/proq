@@ -98,7 +98,7 @@ function DroppableSection({
   return (
     <div
       ref={setNodeRef}
-      className={`transition-colors rounded-md ${
+      className={`rounded-md ${
         isOver
           ? isInProgress
             ? 'bg-steel/5 ring-1 ring-steel/20'
@@ -152,7 +152,7 @@ function SortableListRow({
     >
       <button
         onClick={() => onClick(task)}
-        className={`relative w-full text-left px-6 py-2.5 transition-colors ${
+        className={`relative w-full text-left px-6 py-2.5 ${
           isSelected
             ? 'bg-surface-selected'
             : 'hover:bg-surface-hover/40'
@@ -464,7 +464,7 @@ export function ListView({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover"
                 >
                   {executionMode === 'sequential' ? (
                     <ListOrderedIcon className="w-3 h-3" />

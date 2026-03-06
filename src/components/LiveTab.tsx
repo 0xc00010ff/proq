@@ -121,7 +121,7 @@ export function LiveTab({ project }: LiveTabProps) {
           <button
             onClick={handleRefresh}
             title="Refresh"
-            className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover transition-colors"
+            className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
           >
             <RotateCwIcon className="w-3.5 h-3.5" />
           </button>
@@ -157,7 +157,7 @@ export function LiveTab({ project }: LiveTabProps) {
               key={key}
               onClick={() => pickViewport(key)}
               title={label}
-              className={`p-1.5 rounded transition-colors ${
+              className={`p-1.5 rounded ${
                 viewport === key
                   ? 'bg-surface-hover text-text-primary'
                   : 'text-text-placeholder hover:text-text-secondary'
@@ -198,7 +198,7 @@ export function LiveTab({ project }: LiveTabProps) {
               onMouseDown={(e) => handleResizeStart('x', e)}
               className="absolute top-0 -right-4 w-4 h-full cursor-ew-resize flex items-center justify-center group"
             >
-              <div className="w-1 h-8 rounded-full bg-border-default group-hover:bg-text-secondary transition-colors" />
+              <div className="w-1 h-8 rounded-full bg-border-default group-hover:bg-text-secondary" />
             </div>
 
             {/* Bottom resize handle */}
@@ -206,7 +206,7 @@ export function LiveTab({ project }: LiveTabProps) {
               onMouseDown={(e) => handleResizeStart('y', e)}
               className="absolute -bottom-4 left-0 w-full h-4 cursor-ns-resize flex items-center justify-center group"
             >
-              <div className="h-1 w-8 rounded-full bg-border-default group-hover:bg-text-secondary transition-colors" />
+              <div className="h-1 w-8 rounded-full bg-border-default group-hover:bg-text-secondary" />
             </div>
 
             {/* Corner resize handle */}
@@ -214,7 +214,7 @@ export function LiveTab({ project }: LiveTabProps) {
               onMouseDown={(e) => handleResizeStart('xy', e)}
               className="absolute -bottom-4 -right-4 w-4 h-4 cursor-nwse-resize flex items-center justify-center group"
             >
-              <div className="w-2 h-2 rounded-full bg-border-default group-hover:bg-text-secondary transition-colors" />
+              <div className="w-2 h-2 rounded-full bg-border-default group-hover:bg-text-secondary" />
             </div>
 
             <div className="mt-3 text-center text-[10px] text-text-tertiary font-mono select-none">

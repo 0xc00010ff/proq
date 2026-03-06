@@ -178,7 +178,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
         {type === 'log' && selectedCommit && (
           <button
             onClick={handleBack}
-            className="text-text-chrome hover:text-bronze-600 transition-colors p-1 rounded hover:bg-zinc-800/50"
+            className="text-text-chrome hover:text-bronze-600 p-1 rounded hover:bg-zinc-800/50"
           >
             <ArrowLeftIcon className="w-4 h-4" />
           </button>
@@ -194,14 +194,14 @@ export function GitDetailModal(props: GitDetailModalProps) {
         {currentFiles.length > 0 && (
           <button
             onClick={handleExpandCollapseAll}
-            className="text-xs text-text-chrome hover:text-bronze-600 transition-colors px-2 py-1 rounded border border-zinc-700/50 shrink-0"
+            className="text-xs text-text-chrome hover:text-bronze-600 px-2 py-1 rounded border border-zinc-700/50 shrink-0"
           >
             {allExpanded ? 'Collapse All' : 'Expand All'}
           </button>
         )}
         <button
           onClick={handleClose}
-          className="text-text-chrome hover:text-bronze-600 transition-colors p-1 rounded hover:bg-zinc-800/50"
+          className="text-text-chrome hover:text-bronze-600 p-1 rounded hover:bg-zinc-800/50"
         >
           <XIcon className="w-4 h-4" />
         </button>
@@ -265,7 +265,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         try { await props.onPull(); props.onSyncDone?.(); } catch (err) { setPullError(err instanceof Error ? err.message : 'Pull failed'); } finally { setPullingInline(false); }
                       }}
                       disabled={pullingInline}
-                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-red-500/30 text-red-400 hover:bg-red-500/10"
                     >
                       Pull
                       {pullingInline
@@ -304,7 +304,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                         try { await props.onPush(); props.onSyncDone?.(); } catch (err) { setPushError(err instanceof Error ? err.message : 'Push failed'); } finally { setPushingInline(false); }
                       }}
                       disabled={pushingInline}
-                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-green-500/30 text-green-400 hover:bg-green-500/10"
                     >
                       Push
                       {pushingInline
@@ -354,7 +354,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
               <div className="flex justify-center py-4">
                 <button
                   onClick={loadMore}
-                  className="text-xs text-text-chrome hover:text-bronze-600 transition-colors px-3 py-1.5 rounded border border-zinc-700/50 hover:border-zinc-600"
+                  className="text-xs text-text-chrome hover:text-bronze-600 px-3 py-1.5 rounded border border-zinc-700/50 hover:border-zinc-600"
                 >
                   Show more
                 </button>
@@ -419,7 +419,7 @@ function CommitRow({ commit, onSelect }: { commit: CommitInfo; onSelect: (hash: 
   return (
     <button
       onClick={() => onSelect(commit.hash)}
-      className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-zinc-800/40 transition-colors group"
+      className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-zinc-800/40 group"
     >
       <span className="font-mono text-xs text-text-chrome shrink-0">{commit.hash}</span>
       <span className="text-xs text-zinc-200 truncate flex-1 flex items-center gap-2">

@@ -236,7 +236,7 @@ export function CodeTab({ project }: CodeTabProps) {
           {selectedPath && (
             <button
               onClick={handleCopyFile}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-text-secondary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-text-secondary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong"
             >
               {copyStatus === 'copied' ? (
                 <>
@@ -254,7 +254,7 @@ export function CodeTab({ project }: CodeTabProps) {
 
           <button
             onClick={handleOpenWith}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-text-secondary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-text-secondary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong"
           >
             <ExternalLink className="w-3 h-3" />
             Open with...

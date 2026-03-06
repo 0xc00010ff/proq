@@ -204,7 +204,7 @@ export default function SupervisorPage() {
         {hasHistory && (
           <button
             onClick={handleClear}
-            className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+            className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary"
             title="Clear session"
           >
             <Trash2Icon className="w-3.5 h-3.5" />
@@ -335,7 +335,7 @@ export default function SupervisorPage() {
           {userScrolledUp && (
             <button
               onClick={jumpToBottom}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 text-[10px] font-medium text-text-secondary bg-surface-hover border border-border-strong rounded-full shadow-lg hover:bg-border-strong transition-colors z-10"
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 text-[10px] font-medium text-text-secondary bg-surface-hover border border-border-strong rounded-full shadow-lg hover:bg-border-strong z-10"
             >
               <ArrowDownIcon className="w-3 h-3" />
               Jump to bottom
@@ -345,7 +345,7 @@ export default function SupervisorPage() {
 
         {/* Input area */}
         <div className="shrink-0 px-3 py-2.5">
-          <div className="rounded-xl border border-border-strong bg-surface-base focus-within:border-bronze-700 transition-colors overflow-hidden">
+          <div className="rounded-xl border border-border-strong bg-surface-base focus-within:border-bronze-700 overflow-hidden">
             {/* Attachment previews */}
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 px-3 pt-3">
@@ -385,7 +385,7 @@ export default function SupervisorPage() {
                       </div>
                       <button
                         onClick={() => removeAttachment(att.id)}
-                        className="text-text-placeholder hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
+                        className="text-text-placeholder hover:text-crimson ml-0.5 opacity-0 group-hover:opacity-100"
                       >
                         <XIcon className="w-3 h-3" />
                       </button>
@@ -410,7 +410,7 @@ export default function SupervisorPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-bronze-600 hover:bg-surface-hover transition-colors"
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-bronze-600 hover:bg-surface-hover"
                 title="Attach file"
               >
                 <PaperclipIcon className="w-4 h-4" />
@@ -418,7 +418,7 @@ export default function SupervisorPage() {
               {isRunning ? (
                 <button
                   onClick={stop}
-                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20"
                   title="Stop"
                 >
                   <SquareIcon className="w-3.5 h-3.5 text-red-400 fill-red-400" />
@@ -427,7 +427,7 @@ export default function SupervisorPage() {
                 <button
                   onClick={handleSend}
                   disabled={!inputValue.trim() && attachments.length === 0}
-                  className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${inputValue.trim() || attachments.length > 0 ? 'text-text-chrome bg-bronze-400/30 dark:bg-surface-hover' : 'text-text-tertiary disabled:opacity-30'}`}
+                  className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${inputValue.trim() || attachments.length > 0 ? 'text-text-chrome bg-bronze-400/30 dark:bg-surface-hover' : 'text-text-tertiary disabled:opacity-30'}`}
                   title="Send message"
                 >
                   <SendIcon className="w-4 h-4" />

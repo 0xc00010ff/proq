@@ -210,7 +210,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 </span>
                 <button
                   onClick={() => onSwitchBranch('main')}
-                  className="text-[10px] font-medium text-text-chrome hover:text-text-chrome-hover transition-colors px-1.5 py-0.5 rounded border border-border-default hover:bg-surface-hover"
+                  className="text-[10px] font-medium text-text-chrome hover:text-text-chrome-hover px-1.5 py-0.5 rounded border border-border-default hover:bg-surface-hover"
                 >
                   Back to main
                 </button>
@@ -229,7 +229,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 {task.status === 'verify' && task.branch && onSwitchBranch && (
                   <button
                     onClick={() => onSwitchBranch(task.branch!)}
-                    className="text-[10px] font-medium text-gold hover:text-gold/80 transition-colors px-1.5 py-0.5 rounded border border-gold/30 hover:bg-gold/10"
+                    className="text-[10px] font-medium text-gold hover:text-gold/80 px-1.5 py-0.5 rounded border border-gold/30 hover:bg-gold/10"
                   >
                     Preview
                   </button>
@@ -258,7 +258,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 }
               }}
               disabled={dispatching}
-              className="px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors text-steel border border-steel/20 bg-steel/10 hover:bg-steel/15 flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium rounded-md shadow-sm text-steel border border-steel/20 bg-steel/10 hover:bg-steel/15 flex items-center gap-1.5 disabled:opacity-50"
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />
@@ -463,7 +463,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
-                  className="ml-auto text-text-chrome hover:text-text-chrome-hover transition-colors p-0.5"
+                  className="ml-auto text-text-chrome hover:text-text-chrome-hover p-0.5"
                   title="Copy to clipboard"
                 >
                   {copied ? (
@@ -562,7 +562,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               )}
               <button
                 onClick={() => setShowConflictModal(true)}
-                className="text-[11px] font-medium text-red-400 hover:text-red-300 transition-colors"
+                className="text-[11px] font-medium text-red-400 hover:text-red-300"
               >
                 View Details
               </button>
@@ -593,10 +593,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Complete button pinned to bottom */}
         {task.status === 'verify' && onComplete && (
           <div className="shrink-0 group/complete">
-            <div className="h-px bg-border-default group-hover/complete:bg-patina/40 transition-colors" />
+            <div className="h-px bg-border-default group-hover/complete:bg-patina/40" />
             <button
               onClick={() => onComplete(task.id)}
-              className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-patina/80 hover:text-patina hover:bg-patina/10 transition-colors"
+              className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-patina/80 hover:text-patina hover:bg-patina/10"
             >
               <CheckCircle2Icon className="w-3.5 h-3.5" />
               {task.branch ? 'Merge & Complete' : 'Complete'}

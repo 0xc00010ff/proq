@@ -49,7 +49,7 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong transition-colors"
+              className="w-full px-3 py-2 text-sm bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 
@@ -61,7 +61,7 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
             <div className="flex gap-2">
               <button
                 onClick={() => setViewType('kanban')}
-                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border transition-colors ${
+                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border ${
                   viewType === 'kanban'
                     ? 'border-border-strong bg-surface-hover text-text-primary'
                     : 'border-border-default text-text-tertiary hover:border-border-strong'
@@ -71,7 +71,7 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
               </button>
               <button
                 onClick={() => setViewType('list')}
-                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border transition-colors ${
+                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border ${
                   viewType === 'list'
                     ? 'border-border-strong bg-surface-hover text-text-primary'
                     : 'border-border-default text-text-tertiary hover:border-border-strong'
@@ -92,7 +92,7 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
               value={defaultBranch}
               onChange={(e) => setDefaultBranch(e.target.value)}
               placeholder="main"
-              className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong transition-colors"
+              className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 
@@ -106,7 +106,7 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3000"
-              className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong transition-colors"
+              className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 

@@ -80,7 +80,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors z-10"
+          className="absolute top-4 right-4 p-1.5 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover z-10"
         >
           <XIcon className="w-4 h-4" />
         </button>
@@ -105,7 +105,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           onMouseDown={handleModalResizeMouseDown}
           className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10 group"
         >
-          <svg className="w-3 h-3 absolute bottom-0.5 right-0.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" viewBox="0 0 12 12" fill="currentColor">
+          <svg className="w-3 h-3 absolute bottom-0.5 right-0.5 text-zinc-600 group-hover:text-zinc-400" viewBox="0 0 12 12" fill="currentColor">
             <circle cx="10" cy="10" r="1.2" />
             <circle cx="6" cy="10" r="1.2" />
             <circle cx="10" cy="6" r="1.2" />

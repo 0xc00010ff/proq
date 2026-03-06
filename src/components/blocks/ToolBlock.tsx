@@ -165,7 +165,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
     <div className="group/tool">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-surface-hover/40 rounded transition-colors"
+        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-surface-hover/40 rounded"
       >
         {/* Status dot */}
         <span className="shrink-0">
@@ -217,7 +217,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
-                  className="ml-auto text-text-placeholder hover:text-text-secondary transition-colors p-0.5"
+                  className="ml-auto text-text-placeholder hover:text-text-secondary p-0.5"
                 >
                   {copied ? (
                     <CheckIcon className="w-3 h-3 text-patina" />

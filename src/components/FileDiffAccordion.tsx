@@ -33,7 +33,7 @@ export function FileDiffAccordion({ file, isOpen, onToggle }: FileDiffAccordionP
     <div className="border-b border-zinc-800/50">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-zinc-800/30 transition-colors group"
+        className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-zinc-800/30 group"
       >
         <ChevronRightIcon
           className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${isOpen ? 'rotate-90' : ''}`}

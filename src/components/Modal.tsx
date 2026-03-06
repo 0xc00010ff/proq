@@ -50,7 +50,7 @@ export function Modal({
         {showClose && (
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary transition-colors p-1 z-10"
+            className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary p-1 z-10"
           >
             <XIcon className="w-4 h-4" />
           </button>

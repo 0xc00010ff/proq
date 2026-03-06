@@ -461,7 +461,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
         {userScrolledUp && (
           <button
             onClick={jumpToBottom}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 text-[10px] font-medium text-text-secondary bg-surface-hover border border-border-strong rounded-full shadow-lg hover:bg-border-strong transition-colors z-10"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 text-[10px] font-medium text-text-secondary bg-surface-hover border border-border-strong rounded-full shadow-lg hover:bg-border-strong z-10"
           >
             <ArrowDownIcon className="w-3 h-3" />
             Jump to bottom
@@ -476,7 +476,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
             <span className="text-xs text-text-tertiary">This task is read-only. Move back to Verify to resume editing.</span>
             <button
               onClick={() => onTaskStatusChange?.('verify')}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary bg-surface-hover border border-border-strong rounded-lg hover:bg-border-strong transition-colors"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary bg-surface-hover border border-border-strong rounded-lg hover:bg-border-strong"
             >
               <RotateCcwIcon className="w-3 h-3" />
               Resume editing
@@ -484,7 +484,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
           </div>
         ) : (
         <>
-        <div className="rounded-xl border border-border-strong bg-surface-detail focus-within:border-bronze-700 transition-colors overflow-hidden">
+        <div className="rounded-xl border border-border-strong bg-surface-detail focus-within:border-bronze-700 overflow-hidden">
           {/* Attachment previews inside container */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 px-3 pt-3">
@@ -524,7 +524,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                     </div>
                     <button
                       onClick={() => removeAttachment(att.id)}
-                      className="text-text-placeholder hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
+                      className="text-text-placeholder hover:text-crimson ml-0.5 opacity-0 group-hover:opacity-100"
                     >
                       <XIcon className="w-3 h-3" />
                     </button>
@@ -551,7 +551,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-bronze-600 hover:bg-surface-hover transition-colors"
+              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-bronze-600 hover:bg-surface-hover"
               title="Attach file"
             >
               <PaperclipIcon className="w-4 h-4" />
@@ -559,7 +559,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
             {isRunning ? (
               <button
                 onClick={stop}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20"
                 title="Stop agent"
               >
                 <SquareIcon className="w-3.5 h-3.5 text-red-400 fill-red-400" />
@@ -568,7 +568,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
               <button
                 onClick={handleSend}
                 disabled={!inputValue.trim() && attachments.length === 0}
-                className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${inputValue.trim() || attachments.length > 0 ? 'text-text-chrome bg-bronze-400/30 dark:bg-surface-hover' : 'text-text-tertiary disabled:opacity-30'}`}
+                className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${inputValue.trim() || attachments.length > 0 ? 'text-text-chrome bg-bronze-400/30 dark:bg-surface-hover' : 'text-text-tertiary disabled:opacity-30'}`}
                 title="Send message"
               >
                 <SendIcon className="w-4 h-4" />

@@ -95,7 +95,7 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 flex flex-col min-w-[240px] rounded-lg transition-colors ${
+      className={`flex-1 flex flex-col min-w-[240px] rounded-lg ${
         isOver
           ? isInProgress
             ? 'bg-steel/5 ring-2 ring-steel/20'
@@ -356,7 +356,7 @@ export function KanbanBoard({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover"
                           >
                             {executionMode === 'sequential' ? (
                               <ListOrderedIcon className="w-3 h-3" />

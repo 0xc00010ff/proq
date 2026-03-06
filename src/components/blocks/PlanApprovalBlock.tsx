@@ -43,7 +43,7 @@ export function PlanApprovalBlock({ input, planContent, planFilePath, alreadyRes
             {planContent && (
               <button
                 onClick={() => setModalOpen(true)}
-                className="text-text-tertiary hover:text-text-secondary transition-colors p-0.5"
+                className="text-text-tertiary hover:text-text-secondary p-0.5"
                 title="View full plan"
               >
                 <Maximize2Icon className="w-3 h-3" />
@@ -57,7 +57,7 @@ export function PlanApprovalBlock({ input, planContent, planFilePath, alreadyRes
           <>
             <button
               onClick={() => setExpanded(!expanded)}
-              className="w-full flex items-center gap-1.5 px-3 py-1.5 border-t border-border-subtle/60 hover:bg-surface-hover/30 transition-colors text-left"
+              className="w-full flex items-center gap-1.5 px-3 py-1.5 border-t border-border-subtle/60 hover:bg-surface-hover/30 text-left"
             >
               <ChevronRightIcon className={`w-3 h-3 text-text-placeholder transition-transform ${expanded ? 'rotate-90' : ''}`} />
               <span className="text-[11px] text-text-tertiary">

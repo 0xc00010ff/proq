@@ -194,7 +194,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
 
   return (
     <div
-      className={`w-full flex flex-col bg-surface-deep flex-shrink-0 relative transition-colors ${isDragOver ? 'ring-1 ring-bronze-600/40' : ''}`}
+      className={`w-full flex flex-col bg-surface-deep flex-shrink-0 relative ${isDragOver ? 'ring-1 ring-bronze-600/40' : ''}`}
       style={{ minHeight: 0, ...style }}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -308,7 +308,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
                 </div>
                 <button
                   onClick={() => removeAttachment(att.id)}
-                  className="text-text-placeholder hover:text-crimson transition-colors ml-0.5 opacity-0 group-hover:opacity-100"
+                  className="text-text-placeholder hover:text-crimson ml-0.5 opacity-0 group-hover:opacity-100"
                 >
                   <XIcon className="w-3 h-3" />
                 </button>
@@ -336,7 +336,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-text-placeholder hover:text-bronze-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-text-placeholder hover:text-bronze-600 disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={isLoading}
             title="Attach file"
           >

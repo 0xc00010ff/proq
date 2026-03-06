@@ -28,7 +28,7 @@ export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: Con
             <AlertTriangleIcon className="w-4 h-4 text-red-400" />
             <h3 className="text-sm font-semibold text-text-primary">Merge Conflict</h3>
           </div>
-          <button onClick={onDismiss} className="p-1 rounded text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors">
+          <button onClick={onDismiss} className="p-1 rounded text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover">
             <XIcon className="w-4 h-4" />
           </button>
         </div>
@@ -57,7 +57,7 @@ export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: Con
             <div>
               <button
                 onClick={() => setDiffExpanded(!diffExpanded)}
-                className="flex items-center gap-1 text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+                className="flex items-center gap-1 text-xs text-text-tertiary hover:text-text-secondary"
               >
                 {diffExpanded ? <ChevronDownIcon className="w-3 h-3" /> : <ChevronRightIcon className="w-3 h-3" />}
                 Diff details
@@ -79,13 +79,13 @@ export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: Con
         <div className="flex items-center justify-end gap-2 p-4 border-t border-border-default shrink-0">
           <button
             onClick={onDismiss}
-            className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary"
           >
             Dismiss
           </button>
           <button
             onClick={onResolve}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/30 rounded-md hover:bg-steel/10 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/30 rounded-md hover:bg-steel/10"
           >
             <WrenchIcon className="w-3 h-3" />
             Resolve

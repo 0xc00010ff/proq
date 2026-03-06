@@ -196,7 +196,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-surface-secondary border rounded-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150 transition-colors overflow-hidden ${isDragOver ? 'border-steel/50' : 'border-border-subtle'}`}
+        className={`relative w-full max-w-2xl bg-surface-secondary border rounded-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150 overflow-hidden ${isDragOver ? 'border-steel/50' : 'border-border-subtle'}`}
         style={{ height: modalHeight }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -204,7 +204,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
       >
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary transition-colors p-1 z-10"
+          className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary p-1 z-10"
         >
           <XIcon className="w-4 h-4" />
         </button>
@@ -221,7 +221,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 key={value}
                 onClick={() => handleModeChange(value)}
                 title={tooltip}
-                className={`relative px-3 py-1 text-xs font-medium rounded transition-colors z-10 ${
+                className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
                   mode === value
                     ? 'text-text-chrome-active'
                     : 'text-text-chrome hover:text-text-chrome-hover'
@@ -320,7 +320,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
-                  className="text-text-placeholder hover:text-crimson transition-colors ml-1 opacity-0 group-hover:opacity-100"
+                  className="text-text-placeholder hover:text-crimson ml-1 opacity-0 group-hover:opacity-100"
                 >
                   <XIcon className="w-3.5 h-3.5" />
                 </button>
@@ -342,7 +342,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         <div ref={toolbarRef} className="border-t border-border-default/60 flex items-center shrink-0 px-2 py-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-text-placeholder hover:text-text-secondary transition-colors text-xs px-2 py-1"
+            className="flex items-center gap-1.5 text-text-placeholder hover:text-text-secondary text-xs px-2 py-1"
           >
             <PaperclipIcon className="w-3.5 h-3.5" />
             <span>Attach file</span>
@@ -358,7 +358,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 await onMoveToInProgress(task.id, { title, description, attachments, mode });
               }}
               disabled={!description.trim() || dispatching}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors text-steel border border-steel/20 bg-steel/10 hover:bg-steel/15 flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md shadow-sm text-steel border border-steel/20 bg-steel/10 hover:bg-steel/15 flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />

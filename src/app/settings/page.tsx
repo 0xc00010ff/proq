@@ -148,7 +148,7 @@ export default function SettingsPage() {
             <button
               key={s.id}
               onClick={() => scrollToSection(s.id)}
-              className={`w-full flex items-center gap-2.5 px-4 py-1.5 text-xs transition-colors relative ${
+              className={`w-full flex items-center gap-2.5 px-4 py-1.5 text-xs relative ${
                 activeSection === s.id
                   ? "text-text-primary bg-surface-hover/50"
                   : "text-text-tertiary hover:text-text-primary hover:bg-surface-hover/40"
@@ -299,7 +299,7 @@ export default function SettingsPage() {
                         }
                       }}
                       disabled={detectingBin}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
                     >
                       {detectingBin ? (
                         <LoaderIcon className="w-3.5 h-3.5 animate-spin" />

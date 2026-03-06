@@ -46,7 +46,7 @@ export function MissingPathModal({ project, onClose, onRelocate, onRemove }: Mis
       <div className="relative w-full max-w-md bg-surface-modal border border-border-default rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary transition-colors p-1 z-10"
+          className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary p-1 z-10"
         >
           <XIcon className="w-4 h-4" />
         </button>
@@ -81,14 +81,14 @@ export function MissingPathModal({ project, onClose, onRelocate, onRemove }: Mis
             <button
               onClick={handleSelectFolder}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-steel-dark hover:bg-steel disabled:opacity-50 text-white text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-steel-dark hover:bg-steel disabled:opacity-50 text-white text-sm font-medium"
             >
               <FolderOpenIcon className="w-4 h-4" />
               {loading ? "Waiting for selection..." : "Select new folder"}
             </button>
             <button
               onClick={handleRemove}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border border-border-strong hover:bg-crimson/10 hover:border-crimson/30 text-text-secondary hover:text-crimson text-sm transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border border-border-strong hover:bg-crimson/10 hover:border-crimson/30 text-text-secondary hover:text-crimson text-sm"
             >
               <Trash2Icon className="w-4 h-4" />
               Remove project

@@ -13,7 +13,7 @@ export function ThinkingBlock({ thinking, forceCollapsed }: { thinking: string; 
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-surface-hover/40 rounded transition-colors"
+        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-surface-hover/40 rounded"
       >
         <BrainIcon className="w-3.5 h-3.5 shrink-0 text-text-placeholder" />
         <span className="text-xs text-text-tertiary italic truncate min-w-0 flex-1">

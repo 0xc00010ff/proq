@@ -290,7 +290,7 @@ function SortableProject({
                 e.stopPropagation();
                 onMissingPath?.(project);
               }}
-              className="p-1 text-crimson hover:text-crimson-light transition-colors"
+              className="p-1 text-crimson hover:text-crimson-light"
               title="Project folder not found"
             >
               <AlertTriangleIcon className="w-4 h-4" />
@@ -425,7 +425,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   if (collapsed) {
     return (
       <aside
-        className="w-10 h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-surface-hover/40 transition-colors"
+        className="w-10 h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-surface-hover/40"
         onClick={onToggleCollapsed}
       >
         <div className="h-16 flex items-center justify-center">
@@ -446,7 +446,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
     <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0">
       {/* Header — collapse toggle */}
       <div
-        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-surface-hover/40 transition-colors relative cursor-pointer flex-shrink-0"
+        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-surface-hover/40 relative cursor-pointer flex-shrink-0"
         onClick={onToggleCollapsed}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -544,7 +544,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
       <Link
         href="/settings"
         className={`h-12 flex items-center gap-2.5 px-4 border-t border-border-default flex-shrink-0 group/settings
-          ${isSettingsActive ? "bg-surface-selected/50" : "hover:bg-surface-hover/40"} transition-colors relative`}
+          ${isSettingsActive ? "bg-surface-selected/50" : "hover:bg-surface-hover/40"} relative`}
       >
         {isSettingsActive && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-700 dark:bg-bronze-600" />

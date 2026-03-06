@@ -455,11 +455,11 @@ export function ListView({
   };
 
   return (
-    <div className="flex-1 h-full flex overflow-hidden bg-surface-base">
+    <div className="flex-1 h-full flex overflow-hidden bg-surface-topbar">
       {/* Master panel */}
-      <div data-master-panel className="shrink-0 flex flex-col border-r border-border-default bg-surface-detail" style={{ width: masterWidth }}>
+      <div data-master-panel className="shrink-0 flex flex-col border-r border-border-default bg-surface-topbar" style={{ width: masterWidth }}>
         {/* Master header */}
-        <div className="shrink-0 h-10 flex items-center gap-2 px-6 border-b border-border-default bg-surface-detail">
+        <div className="shrink-0 h-10 flex items-center gap-2 px-6 border-b border-border-default bg-surface-topbar">
           {onExecutionModeChange && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -591,7 +591,7 @@ export function ListView({
             <span className="text-sm text-text-tertiary">Select a task</span>
           </div>
         ) : (
-          <div className="flex-1 relative bg-surface-detail">
+          <div className="flex-1 relative bg-surface-topbar">
             <TaskAgentDetail
               task={selectedTask}
               projectId={projectId}

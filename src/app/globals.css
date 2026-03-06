@@ -46,16 +46,16 @@
     --radius: 0.5rem;
 
     /* Design system — semantic tokens (light) — RGB channels for Tailwind opacity */
-    --surface-base: 245 240 230;       /* bronze-100 #f5f0e6 */
-    --surface-primary: 250 247 241;    /* bronze-50 #faf7f1 */
-    --surface-secondary: 237 231 219;  /* bronze-200 #ede7db */
-    --surface-hover: 226 219 208;      /* bronze-300 #e2dbd0 */
-    --surface-selected: 226 219 208;   /* bronze-300 #e2dbd0 */
-    --surface-modal: 250 247 241;      /* bronze-50 #faf7f1 */
-    --surface-topbar: 237 231 219;     /* bronze-200 #ede7db */
-    --surface-detail: 250 247 241;     /* bronze-50 #faf7f1 */
-    --surface-inset: 237 231 219;      /* bronze-200 #ede7db */
-    --surface-deep: 245 240 230;       /* bronze-100 #f5f0e6 */
+    --surface-deep: 237 232 223;       /* below ground — chat, terminals #ede8df */
+    --surface-inset: 239 234 225;      /* recessed input wells #efeae1 */
+    --surface-base: 242 237 229;       /* ground floor — app shell #f2ede5 */
+    --surface-topbar: 245 241 234;     /* topbar + board — slightly above base #f5f1ea */
+    --surface-secondary: 251 248 242;  /* sidebar, cards — lightest chrome #fbf8f2 */
+    --surface-detail: 250 247 241;     /* clean reading surface #faf7f1 */
+    --surface-primary: 252 249 244;    /* elevated highlights #fcf9f4 */
+    --surface-modal: 254 252 248;      /* topmost — modals #fefcf8 */
+    --surface-hover: 232 226 216;      /* hover states #e8e2d8 */
+    --surface-selected: 232 226 216;   /* selected states #e8e2d8 */
     --border-default: 226 219 208;     /* bronze-300 #e2dbd0 */
     --border-hover: 184 160 120;       /* muted gold #b8a078 */
     --border-subtle: 226 219 208;      /* bronze-300 (use /60 in classes) */
@@ -171,12 +171,12 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f5f0e6; /* bronze-100 */
+  background: #f2ede5; /* surface-base */
 }
 ::-webkit-scrollbar-thumb {
   background: #d4cbbf; /* bronze-400 */
   border-radius: 9999px;
-  border: 2px solid #f5f0e6;
+  border: 2px solid #f2ede5;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #a89d90; /* bronze-500 */

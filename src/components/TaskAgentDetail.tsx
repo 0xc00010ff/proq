@@ -200,7 +200,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       <div className={`flex-1 min-h-0 flex flex-col${showStructuredPane ? ' bg-surface-deep' : ''}`}>
         {/* Worktree status — only in parallel mode */}
         {parallelMode && (
-          <div className="shrink-0 h-10 flex items-center gap-2 px-3 border-b border-border-default bg-surface-detail">
+          <div className="shrink-0 h-10 flex items-center gap-2 px-3 border-b border-border-default bg-surface-topbar">
             {task.status === 'verify' && task.branch && onSwitchBranch && currentBranch === task.branch ? (
               <>
                 <span className="text-xs text-gold font-medium">viewing</span>
@@ -315,7 +315,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       )}
 
       {/* Right panel: task details */}
-      <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? '' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-surface-detail`} style={(showTerminal || showStructuredPane || isQueued) ? { width: `${rightPanelPercent}%` } : undefined}>
+      <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? '' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-surface-topbar`} style={(showTerminal || showStructuredPane || isQueued) ? { width: `${rightPanelPercent}%` } : undefined}>
         {/* Top half: title, status, description */}
         <div className="overflow-y-auto p-5 pt-5 space-y-4 shrink-0" style={{ height: `${topPanelPercent}%` }}>
           {/* Status badge */}

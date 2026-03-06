@@ -221,7 +221,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 <span className={`inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border ${
                   task.mergeConflict
                     ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
-                    : 'border-bronze-800/50 bg-zinc-800/60 text-text-chrome-active'
+                    : 'border-border-hover/40 bg-surface-hover/60 text-text-chrome-active'
                 }`}>
                   <GitBranchIcon className="w-3 h-3" />
                   {task.mergeConflict ? task.mergeConflict.branch : (task.branch || 'main')}

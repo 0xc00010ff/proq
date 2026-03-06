@@ -7,6 +7,7 @@ import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 
 interface TaskDraftProps {
+  projectId: string;
   task: Task;
   isOpen: boolean;
   onClose: (isEmpty: boolean) => void;
@@ -23,7 +24,7 @@ function formatSize(bytes: number): string {
 const MIN_MODAL_HEIGHT = 420;
 const MAX_MODAL_VH = 0.8;
 
-export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskDraftProps) {
+export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToInProgress }: TaskDraftProps) {
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
   const [mode, setMode] = useState<TaskMode>(task.mode || 'build');
@@ -33,7 +34,9 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   const [isDragOver, setIsDragOver] = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [modalHeight, setModalHeight] = useState(MIN_MODAL_HEIGHT);
+  const [titleGenerating, setTitleGenerating] = useState(false);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoTitleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +50,13 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
     setMode(task.mode || 'build');
     setAttachments(task.attachments || []);
   }, [task.id]);
+
+  // Sync title from props when it arrives (e.g. via SSE auto-title) and local title is still empty
+  useEffect(() => {
+    if (task.title) {
+      setTitle((cur) => cur || task.title);
+    }
+  }, [task.title]);
 
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -99,8 +109,47 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   useEffect(() => {
     return () => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      if (autoTitleTimeout.current) clearTimeout(autoTitleTimeout.current);
     };
   }, []);
+
+  // Auto-title: 2s after description stops changing, if title is still empty
+  const triggerAutoTitle = useCallback(
+    (desc: string) => {
+      if (autoTitleTimeout.current) clearTimeout(autoTitleTimeout.current);
+      if (!desc.trim()) return;
+      setTitleGenerating(true);
+      autoTitleTimeout.current = setTimeout(async () => {
+        try {
+          const res = await fetch(
+            `/api/projects/${projectId}/tasks/${task.id}/auto-title`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ description: desc }),
+            },
+          );
+          if (res.ok) {
+            const { title: generated } = await res.json();
+            if (generated) {
+              setTitle((cur) => {
+                if (!cur) {
+                  autosave(generated, desc, attachments, mode);
+                  return generated;
+                }
+                return cur;
+              });
+            }
+          }
+        } catch {
+          // ignore
+        } finally {
+          setTitleGenerating(false);
+        }
+      }, 2000);
+    },
+    [projectId, task.id, autosave, attachments, mode],
+  );
 
   // Cmd+Enter to trigger "Start Now"
   useEffect(() => {
@@ -143,11 +192,18 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   const handleTitleChange = (val: string) => {
     setTitle(val);
     autosave(val, description, attachments, mode);
+    // User is typing a title manually — cancel any pending auto-title
+    if (val && autoTitleTimeout.current) {
+      clearTimeout(autoTitleTimeout.current);
+      autoTitleTimeout.current = null;
+      setTitleGenerating(false);
+    }
   };
 
   const handleDescriptionChange = (val: string) => {
     setDescription(val);
     autosave(title, val, attachments, mode);
+    if (!title) triggerAutoTitle(val);
   };
 
   const handleModeChange = (newMode: TaskMode) => {
@@ -250,7 +306,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               }
             }}
             className="w-full bg-transparent text-xl font-semibold text-text-primary placeholder-text-placeholder focus:outline-none mb-4 pr-8"
-            placeholder="(Auto title)"
+            placeholder={titleGenerating ? 'Generating title...' : '(Auto title)'}
           />
         </div>
 

@@ -30,13 +30,12 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  // Auto-title: fire-and-forget background process when description exists but title is empty
-  if (!updated.title && updated.description?.trim()) {
-    autoTitle(id, taskId, updated.description);
-  }
-
   // Handle status transitions
   if (prevStatus && body.status && prevStatus !== body.status) {
+    // Auto-title on status change (e.g. starting a task) — draft modal handles its own auto-title
+    if (!updated.title && updated.description?.trim()) {
+      autoTitle(id, taskId, updated.description);
+    }
     if (body.status === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(taskId);
       if (prevStatus !== "verify" && prevStatus !== "done") {

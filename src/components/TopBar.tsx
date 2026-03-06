@@ -478,7 +478,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border outline-none ${
                       isOnPreviewBranch
                         ? 'border-gold/40 bg-surface-secondary text-gold shadow-[0_0_8px_rgba(201,168,76,0.1)] hover:text-gold-light hover:bg-surface-hover'
-                        : 'border-border-default bg-surface-secondary text-text-secondary hover:bg-surface-hover'
+                        : 'border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover'
                     }`}
                   >
                     <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-gold' : ''}`} />

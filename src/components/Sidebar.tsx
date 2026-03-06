@@ -241,7 +241,7 @@ function SortableProject({
           `}
       >
         {isActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-400" />
         )}
         {pathInvalid && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-crimson" />
@@ -473,7 +473,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
           ${isChatActive ? "bg-bronze-300 dark:bg-surface-selected" : "hover:bg-bronze-300/60 dark:hover:bg-surface-hover/40"}`}
       >
         {isChatActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-400" />
         )}
         <div className="flex items-center gap-2.5">
           <SquareChevronUpIcon
@@ -547,7 +547,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
           ${isSettingsActive ? "bg-bronze-300 dark:bg-surface-selected/50" : "hover:bg-bronze-100/60 dark:hover:bg-surface-hover/40"} transition-colors relative`}
       >
         {isSettingsActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-600 dark:bg-bronze-400" />
         )}
         <SettingsIcon className={`w-4 h-4 flex-shrink-0 ${isSettingsActive ? "text-bronze-600 dark:text-text-secondary" : "text-text-tertiary group-hover/settings:text-text-secondary"}`} />
         <span className={`text-sm font-medium ${isSettingsActive ? "text-bronze-900 dark:text-text-primary" : "text-bronze-700 dark:text-text-secondary group-hover/settings:text-bronze-900 dark:group-hover/settings:text-text-primary"}`}>

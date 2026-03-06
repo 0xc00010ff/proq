@@ -33,13 +33,13 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
   if (answered) {
     return (
       <div className="my-2">
-        <div className="rounded-lg border border-border-subtle bg-surface-deep/50 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border-subtle/60">
-            <MessageCircleQuestionIcon className="w-3.5 h-3.5 text-text-placeholder" />
-            <span className="text-xs font-medium text-text-placeholder uppercase tracking-wide">
+        <div className="rounded-lg border border-border-default bg-surface-deep overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border-default">
+            <MessageCircleQuestionIcon className="w-3.5 h-3.5 text-text-tertiary" />
+            <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
               Agent Question
             </span>
-            <span className="ml-auto text-[10px] text-text-placeholder italic">
+            <span className="ml-auto text-[10px] text-text-tertiary italic">
               Answered below
             </span>
           </div>
@@ -47,11 +47,11 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
             {questions.map((q, qi) => (
               <div key={qi}>
                 {q.header && (
-                  <span className="text-[10px] font-medium text-text-placeholder uppercase tracking-wide">
+                  <span className="text-[10px] font-medium text-text-tertiary uppercase tracking-wide">
                     {q.header}
                   </span>
                 )}
-                <p className="text-sm text-text-tertiary leading-relaxed">
+                <p className="text-sm text-text-secondary leading-relaxed">
                   {q.question}
                 </p>
               </div>

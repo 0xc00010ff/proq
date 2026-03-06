@@ -20,6 +20,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
   const [userTouchedTitle, setUserTouchedTitle] = useState(false);
   const [userTouchedDescription, setUserTouchedDescription] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const generate = useCallback(async () => {
@@ -64,7 +65,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
       setError(null);
       setCommitting(false);
       generate();
-      setTimeout(() => titleRef.current?.focus(), 50);
+      setTimeout(() => titleRef.current?.focus(), 300);
     } else {
       abortRef.current?.abort();
     }
@@ -141,9 +142,9 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
             e.target.style.height = e.target.scrollHeight + 'px';
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.metaKey) {
               e.preventDefault();
-              handleCommit();
+              descriptionRef.current?.focus();
             }
           }}
           className="w-full bg-transparent text-base font-semibold text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 pr-8 resize-none overflow-hidden leading-snug"
@@ -159,6 +160,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
           </div>
         ) : (
           <textarea
+            ref={descriptionRef}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             className="w-full h-full min-h-[100px] bg-transparent text-sm text-text-secondary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 resize-none leading-relaxed"

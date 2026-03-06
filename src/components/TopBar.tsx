@@ -45,6 +45,7 @@ interface TopBarProps {
 export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onCommit }: TopBarProps) {
   // Dropdown data for status labels
   const [dirtyFiles, setDirtyFiles] = useState<{ path: string; status: string }[] | null>(null);
+  const [dirtyDropdownOpen, setDirtyDropdownOpen] = useState(false);
 
   // Dropdown commit lists (fetched on open)
   const [aheadCommits, setAheadCommits] = useState<{ hash: string; message: string; author: string; date: string }[] | null>(null);
@@ -283,7 +284,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
           <>
             {/* Uncommitted files dropdown */}
             {gitStatus && gitStatus.dirty > 0 && (
-              <DropdownMenu onOpenChange={(open) => { if (open) fetchDirtyFiles(); else setDirtyFiles(null); }}>
+              <DropdownMenu open={dirtyDropdownOpen} onOpenChange={(open) => { setDirtyDropdownOpen(open); if (open) fetchDirtyFiles(); else setDirtyFiles(null); }}>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-crimson hover:bg-surface-hover hover:text-crimson overflow-hidden">
                     <span className="flex items-center gap-1.5 px-2.5 py-1.5">
@@ -300,7 +301,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                       <span className="text-xs font-semibold text-crimson">{dirtyFiles?.length || gitStatus.dirty} Uncommitted Changes</span>
                       {onCommit && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); onCommit(); }}
+                          onClick={() => { setDirtyDropdownOpen(false); onCommit(); }}
                           className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded text-crimson hover:bg-crimson/10"
                         >
                           Commit

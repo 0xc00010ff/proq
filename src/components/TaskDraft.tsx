@@ -190,7 +190,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     const headerH = headerRef.current?.offsetHeight ?? 0;
     const attachH = attachmentsRef.current?.offsetHeight ?? 0;
     const toolbarH = toolbarRef.current?.offsetHeight ?? 0;
-    const descPadding = 32; // px-6 wrapper padding top+bottom
+    const descPadding = 16; // py-2 wrapper padding top+bottom
 
     const ideal = headerH + textContentH + descPadding + attachH + toolbarH;
     const maxH = window.innerHeight * MAX_MODAL_VH;
@@ -315,7 +315,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                 descriptionRef.current?.focus();
               }
             }}
-            className="w-full bg-transparent text-xl font-semibold text-text-primary placeholder-text-placeholder focus:outline-none mb-4 pr-8"
+            className="w-full bg-transparent text-xl font-semibold text-text-primary placeholder-text-placeholder focus:outline-none mb-1 pr-8"
             placeholder={titleGenerating ? 'Generating title...' : '(Auto title)'}
           />
         </div>

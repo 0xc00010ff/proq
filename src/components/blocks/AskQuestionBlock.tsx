@@ -64,9 +64,9 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
 
   return (
     <div className="my-2">
-      <div className="rounded-lg border border-gold/30 bg-gold/5 overflow-hidden">
+      <div className="rounded-lg border border-border-default bg-surface-topbar overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-gold/20">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border-subtle/60">
           <MessageCircleQuestionIcon className="w-3.5 h-3.5 text-gold" />
           <span className="text-xs font-medium text-gold uppercase tracking-wide">
             Agent Question
@@ -93,7 +93,7 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
                   <button
                     key={oi}
                     onClick={() => onAnswer(opt.label)}
-                    className="group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border border-border-default bg-surface-hover/50 hover:border-gold/50 hover:bg-gold/10 text-left"
+                    className="group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover text-left"
                   >
                     <span className="text-xs font-medium text-text-primary group-hover/opt:text-gold">
                       {opt.label}

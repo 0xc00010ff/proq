@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ProjectsProvider } from './ProjectsProvider';
 import { WorkbenchTabsProvider } from './WorkbenchTabsProvider';
 import { Sidebar } from './Sidebar';
@@ -8,7 +9,11 @@ import { MissingPathModal } from './MissingPathModal';
 import { useProjects } from './ProjectsProvider';
 import type { Project } from '@/lib/types';
 
+const STANDALONE_ROUTES = ['/design'];
+
 function ShellInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isStandalone = STANDALONE_ROUTES.includes(pathname);
   const { refreshProjects, isLoaded } = useProjects();
   const [missingProject, setMissingProject] = useState<Project | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -42,6 +47,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     setMissingProject(null);
     await refreshProjects();
   }, [refreshProjects]);
+
+  if (isStandalone) {
+    return (
+      <div className="h-screen w-full overflow-y-auto font-sans">
+        {children}
+      </div>
+    );
+  }
 
   if (!isLoaded) {
     return (

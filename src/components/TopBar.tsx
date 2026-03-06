@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, SettingsIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, SettingsIcon, GitCommitHorizontalIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -39,9 +39,10 @@ interface TopBarProps {
   viewType?: ViewType;
   onViewTypeChange?: (viewType: ViewType) => void;
   onOpenSettings?: () => void;
+  onCommit?: () => void;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onCommit }: TopBarProps) {
   // Dropdown data for status labels
   const [dirtyFiles, setDirtyFiles] = useState<{ path: string; status: string }[] | null>(null);
 
@@ -315,11 +316,17 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     )}
                   </div>
                   <DropdownMenuSeparator />
-                  <div className="flex-shrink-0 p-1">
-                    <DropdownMenuItem className="text-xs justify-center text-text-chrome" onSelect={openDiffModal}>
+                  <div className="flex-shrink-0 p-1 flex gap-1">
+                    <DropdownMenuItem className="text-xs justify-center text-text-chrome flex-1" onSelect={openDiffModal}>
                       <DiffIcon className="!size-3" />
                       Diff
                     </DropdownMenuItem>
+                    {onCommit && (
+                      <DropdownMenuItem className="text-xs justify-center text-text-chrome flex-1" onSelect={onCommit}>
+                        <GitCommitHorizontalIcon className="!size-3" />
+                        Commit
+                      </DropdownMenuItem>
+                    )}
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>

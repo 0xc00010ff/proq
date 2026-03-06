@@ -170,6 +170,59 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json(syncStatus);
     }
 
+    if (body.action === "commit") {
+      const { title, description } = body;
+      if (!title || typeof title !== "string") {
+        return NextResponse.json({ error: "title is required" }, { status: 400 });
+      }
+      try {
+        const { gitCommit } = await import("@/lib/worktree");
+        const message = description
+          ? `${title.trim()}\n\n${description.trim()}`
+          : title.trim();
+        gitCommit(projectPath, message);
+        const syncStatus = getGitSyncStatus(projectPath);
+        return NextResponse.json({ success: true, ...syncStatus });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Commit failed";
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+    }
+
+    if (body.action === "generate-commit-message") {
+      try {
+        const diff = gitDiffFull(projectPath);
+        if (!diff || !diff.trim()) {
+          return NextResponse.json({ title: "", description: "" });
+        }
+        const { claudeOneShot } = await import("@/lib/claude-cli");
+        const prompt = `You are a commit message generator. Given the following git diff, produce a concise commit message.
+
+Respond with ONLY a JSON object with two fields:
+- "title": A single-line commit title (max 72 chars, imperative mood, no period at end)
+- "description": A brief description of what changed (1-3 sentences, or empty string if the title is sufficient)
+
+Do not include markdown formatting, code fences, or anything else. Just the JSON object.
+
+Git diff:
+${diff.slice(0, 12000)}`;
+        const raw = await claudeOneShot(prompt);
+        // Parse the JSON response, handling potential markdown wrapping
+        let cleaned = raw.trim();
+        if (cleaned.startsWith("```")) {
+          cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+        }
+        const parsed = JSON.parse(cleaned);
+        return NextResponse.json({
+          title: parsed.title || "",
+          description: parsed.description || "",
+        });
+      } catch (err) {
+        console.error("[git] generate-commit-message failed:", err);
+        return NextResponse.json({ title: "", description: "", error: "Generation failed" });
+      }
+    }
+
     return NextResponse.json({ error: `Unknown action: ${body.action}` }, { status: 400 });
   }
 

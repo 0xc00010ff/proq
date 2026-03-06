@@ -363,7 +363,7 @@ export function KanbanBoard({
                             ) : (
                               <LayersIcon className="w-3 h-3" />
                             )}
-                            <span>{executionMode === 'sequential' ? 'Seq' : 'Par'}</span>
+                            <span>{executionMode === 'sequential' ? 'Sequential' : 'Parallel'}</span>
                             <ChevronDownIcon className="w-3 h-3" />
                           </button>
                         </DropdownMenuTrigger>

@@ -159,15 +159,23 @@ function SortableListRow({
         }`}
       >
         {onDelete && (
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={(e) => {
               e.stopPropagation();
               onDelete(task.id);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                onDelete(task.id);
+              }
+            }}
             className="absolute top-2 right-2 p-1 rounded text-text-chrome hover:text-crimson hover:bg-surface-hover opacity-0 group-hover:opacity-100 transition-opacity z-10"
           >
             <Trash2Icon className="w-3.5 h-3.5" />
-          </button>
+          </div>
         )}
 
         {/* Title */}

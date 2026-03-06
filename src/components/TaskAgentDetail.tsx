@@ -258,7 +258,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 }
               }}
               disabled={dispatching}
-              className="btn-agent flex items-center gap-1.5 disabled:opacity-50"
+              className="btn-primary flex items-center gap-1.5 disabled:opacity-50"
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />

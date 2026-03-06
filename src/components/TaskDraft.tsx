@@ -424,7 +424,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                 await onMoveToInProgress(task.id, { title, description, attachments, mode });
               }}
               disabled={!description.trim() || dispatching}
-              className={`btn-agent flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}
+              className={`btn-primary flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}
             >
               {dispatching ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />

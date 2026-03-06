@@ -273,7 +273,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
           /* No git — show init button */
           <button
             onClick={onInitGit}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-bronze-500 hover:text-bronze-400 hover:bg-surface-hover transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-secondary hover:bg-surface-hover transition-colors"
           >
             <GitBranchIcon className="w-3.5 h-3.5" />
             Track changes
@@ -284,7 +284,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             {gitStatus && gitStatus.dirty > 0 && (
               <DropdownMenu onOpenChange={(open) => { if (open) fetchDirtyFiles(); else setDirtyFiles(null); }}>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-crimson hover:bg-surface-hover transition-colors overflow-hidden">
+                  <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-crimson hover:bg-surface-hover hover:text-crimson transition-colors overflow-hidden">
                     <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                       {gitStatus.dirty} uncommitted {gitStatus.dirty === 1 ? 'file' : 'files'}
                     </span>
@@ -329,7 +329,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             {gitStatus?.hasRemote && isUpToDate && (
               <button
                 onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
-                className={`flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary ${historyTextColor} hover:text-bronze-400 hover:bg-surface-hover transition-colors overflow-hidden`}
+                className={`flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary ${historyTextColor} hover:bg-surface-hover transition-colors overflow-hidden`}
               >
                 <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                   {historyLabel}
@@ -341,7 +341,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               <DropdownMenu onOpenChange={(open) => { if (open) { setAheadCommits(null); setBehindCommits(null); fetchHistoryCommits(); setSyncError(null); } }}>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={`flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary ${historyTextColor} hover:text-bronze-400 hover:bg-surface-hover transition-colors overflow-hidden`}
+                    className={`flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary ${historyTextColor} hover:bg-surface-hover transition-colors overflow-hidden`}
                   >
                     <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                       {historyLabel}
@@ -468,7 +468,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border transition-colors outline-none ${
                       isOnPreviewBranch
                         ? 'border-gold/40 bg-surface-secondary text-gold shadow-[0_0_8px_rgba(201,168,76,0.1)] hover:text-gold-light hover:bg-surface-hover'
-                        : 'border-border-default bg-surface-secondary text-bronze-500 hover:text-bronze-400 hover:bg-surface-hover'
+                        : 'border-border-default bg-surface-secondary text-text-secondary hover:bg-surface-hover'
                     }`}
                   >
                     <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-gold' : ''}`} />

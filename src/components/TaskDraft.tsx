@@ -229,7 +229,7 @@ export function TaskDraft({ task, isOpen, onClose, onSave, onMoveToInProgress }:
               >
                 {mode === value && (
                   <div
-                    className="absolute inset-0 bg-surface-modal rounded border border-bronze-800/50 shadow-sm"
+                    className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
                     style={{ zIndex: -1 }}
                   />
                 )}

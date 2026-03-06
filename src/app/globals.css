@@ -54,11 +54,11 @@
     --surface-detail: 250 247 241;     /* clean reading surface #faf7f1 */
     --surface-primary: 252 249 244;    /* elevated highlights #fcf9f4 */
     --surface-modal: 254 252 248;      /* topmost — modals #fefcf8 */
-    --surface-hover: 232 226 216;      /* hover states #e8e2d8 */
-    --surface-selected: 232 226 216;   /* selected states #e8e2d8 */
-    --border-default: 226 219 208;     /* bronze-300 #e2dbd0 */
-    --border-hover: 184 160 120;       /* muted gold #b8a078 */
-    --border-subtle: 226 219 208;      /* bronze-300 (use /60 in classes) */
+    --surface-hover: 237 232 224;      /* hover states — subtle darken #ede8e0 */
+    --surface-selected: 237 232 224;   /* selected states #ede8e0 */
+    --border-default: 234 229 221;     /* subtle bronze #eae5dd */
+    --border-hover: 210 200 184;       /* soft bronze #d2c8b8 */
+    --border-subtle: 234 229 221;      /* subtle bronze (use /60 in classes) */
     --border-strong: 184 160 120;      /* muted gold #b8a078 */
     --text-chrome: 122 112 104;        /* bronze-600 #7a7068 */
     --text-chrome-hover: 92 83 75;     /* bronze-700 #5c534b */

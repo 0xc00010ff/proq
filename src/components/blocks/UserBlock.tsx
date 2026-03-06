@@ -8,10 +8,10 @@ import { attachmentUrl } from '@/lib/upload';
 export function UserBlock({ text, attachments }: { text: string; attachments?: TaskAttachment[] }) {
   return (
     <div className="flex items-baseline gap-2 my-3">
-      <div className="inline-flex flex-col bg-bronze-200/60 dark:bg-zinc-800/50 rounded px-2.5 py-1.5">
+      <div className="inline-flex flex-col bg-bronze-200/60 dark:bg-surface-primary/50 rounded px-2.5 py-1.5">
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
-          <p className="text-sm leading-relaxed text-bronze-800 dark:text-zinc-300 whitespace-pre-wrap">{text}</p>
+          <p className="text-sm leading-relaxed text-bronze-800 dark:text-text-secondary whitespace-pre-wrap">{text}</p>
         </div>
         {attachments && attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5 ml-4">
@@ -19,13 +19,13 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
               const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
               const isImage = att.type?.startsWith('image/') && url;
               return isImage ? (
-                <div key={att.id} className="rounded overflow-hidden border border-bronze-400/40 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60">
+                <div key={att.id} className="rounded overflow-hidden border border-bronze-400/40 dark:border-border-strong/50 bg-bronze-200/60 dark:bg-surface-hover/60">
                   <img src={url} alt={att.name} className="h-16 w-auto max-w-[100px] object-cover block" />
                 </div>
               ) : (
-                <div key={att.id} className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/40 dark:border-zinc-700/50 rounded px-2 py-1">
-                  <FileIcon className="w-3 h-3 text-bronze-500 dark:text-zinc-500 shrink-0" />
-                  <span className="text-[10px] text-bronze-700 dark:text-zinc-400 truncate max-w-[100px]">{att.name}</span>
+                <div key={att.id} className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-surface-hover/60 border border-bronze-400/40 dark:border-border-strong/50 rounded px-2 py-1">
+                  <FileIcon className="w-3 h-3 text-bronze-500 dark:text-text-tertiary shrink-0" />
+                  <span className="text-[10px] text-bronze-700 dark:text-text-secondary truncate max-w-[100px]">{att.name}</span>
                 </div>
               );
             })}

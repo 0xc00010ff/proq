@@ -123,7 +123,7 @@ export function ToolGroupBlock({ toolName, items, forceCollapsed }: ToolGroupBlo
     <div className="group/toolgroup">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 rounded transition-colors"
+        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-bronze-100/60 dark:hover:bg-surface-hover/40 rounded transition-colors"
       >
         {/* Status dot */}
         <span className="shrink-0">
@@ -135,31 +135,31 @@ export function ToolGroupBlock({ toolName, items, forceCollapsed }: ToolGroupBlo
         </span>
 
         {/* Tool icon */}
-        <span className={`shrink-0 ${isActive ? 'text-bronze-500' : anyError ? 'text-red-400' : 'text-bronze-500 dark:text-zinc-500'}`}>
+        <span className={`shrink-0 ${isActive ? 'text-bronze-500' : anyError ? 'text-red-400' : 'text-bronze-500 dark:text-text-tertiary'}`}>
           {getToolIcon(toolName)}
         </span>
 
         {/* Group summary */}
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-xs font-medium text-bronze-700 dark:text-zinc-300 shrink-0">
+          <span className="text-xs font-medium text-bronze-700 dark:text-text-secondary shrink-0">
             {verb} {count} {noun}
           </span>
-          <span className="text-xs text-bronze-500 dark:text-zinc-500 truncate">
+          <span className="text-xs text-bronze-500 dark:text-text-tertiary truncate">
             {preview}
           </span>
         </span>
 
         {/* Count badge */}
-        <span className="shrink-0 text-[10px] font-medium text-bronze-400 dark:text-zinc-600 bg-bronze-200/60 dark:bg-zinc-800/60 rounded px-1.5 py-0.5 tabular-nums">
+        <span className="shrink-0 text-[10px] font-medium text-bronze-400 dark:text-text-placeholder bg-bronze-200/60 dark:bg-surface-hover/60 rounded px-1.5 py-0.5 tabular-nums">
           {count}
         </span>
 
         {/* Chevron */}
-        <ChevronRightIcon className={`w-3.5 h-3.5 shrink-0 text-bronze-400 dark:text-zinc-600 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        <ChevronRightIcon className={`w-3.5 h-3.5 shrink-0 text-bronze-400 dark:text-text-placeholder transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="ml-4 border-l border-bronze-200/60 dark:border-zinc-800/60">
+        <div className="ml-4 border-l border-bronze-200/60 dark:border-border-default/60">
           {items.map((item) => (
             <ToolBlock
               key={item.toolId}

@@ -53,7 +53,7 @@ interface KanbanBoardProps {
 }
 
 export const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
-  { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" /> },
+  { id: 'todo', label: 'To Do', icon: <CircleDotIcon className="w-3.5 h-3.5 text-text-tertiary" /> },
   { id: 'in-progress', label: 'In Progress', icon: <RefreshCwIcon className="w-3.5 h-3.5 text-steel" /> },
   { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-gold" /> },
   { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-patina" /> },
@@ -99,7 +99,7 @@ function DroppableColumn({
         isOver
           ? isInProgress
             ? 'bg-steel/5 dark:bg-steel/5 ring-2 ring-steel/20'
-            : 'bg-bronze-200/50 dark:bg-zinc-900/50 ring-2 ring-bronze-400/30 dark:ring-bronze-700/30'
+            : 'bg-bronze-200/50 dark:bg-surface-hover/30 ring-2 ring-bronze-400/30 dark:ring-bronze-700/30'
           : 'bg-transparent'
       }`}
     >
@@ -351,12 +351,12 @@ export function KanbanBoard({
                 <div className="flex items-center justify-between mb-4 px-1">
                   <div className="flex items-center gap-2">
                     {column.icon}
-                    <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{column.label}</h3>
+                    <h3 className="text-sm font-medium text-text-secondary">{column.label}</h3>
                     {column.id === 'in-progress' && onExecutionModeChange && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
                           >
                             {executionMode === 'sequential' ? (
                               <ListOrderedIcon className="w-3 h-3" />
@@ -413,7 +413,7 @@ export function KanbanBoard({
 
                     {colTasks.length === 0 && (
                       <div className="h-24 border border-dashed border-border-default rounded-lg flex items-center justify-center">
-                        <span className="text-xs text-bronze-500 dark:text-zinc-700">Empty</span>
+                        <span className="text-xs text-bronze-500 dark:text-text-placeholder">Empty</span>
                       </div>
                     )}
 
@@ -435,10 +435,10 @@ export function KanbanBoard({
 
       {pendingRerun && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-sm font-medium text-zinc-100 mb-2">Move back to In Progress?</h3>
-            <p className="text-xs text-zinc-400 mb-5">
-              <span className="text-zinc-200 font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>{' '}
+          <div className="bg-surface-modal border border-border-default rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-sm font-medium text-text-primary mb-2">Move back to In Progress?</h3>
+            <p className="text-xs text-text-secondary mb-5">
+              <span className="text-text-primary font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>{' '}
               will return to In Progress without changes. The current agent session will continue as-is.
               To reset and start fresh, move the task to Todo first.
             </p>

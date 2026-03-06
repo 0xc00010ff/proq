@@ -25,7 +25,7 @@ function formatDuration(ms: number): string {
 export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error }: StatusBlockProps) {
   if (subtype === 'init') {
     return (
-      <div className="flex items-center gap-2 py-2 text-xs text-bronze-500 dark:text-zinc-500">
+      <div className="flex items-center gap-2 py-2 text-xs text-bronze-500 dark:text-text-tertiary">
         <PlayIcon className="w-3.5 h-3.5 text-steel" />
         <span>Session started{model ? ` (${model})` : ''}</span>
       </div>
@@ -38,12 +38,12 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error 
     if (costUsd != null) parts.push(`$${costUsd.toFixed(4)}`);
     if (turns != null) parts.push(`${turns} turn${turns !== 1 ? 's' : ''}`);
     return (
-      <div className="flex items-center gap-2 py-1.5 text-[11px] text-bronze-400 dark:text-zinc-600 font-mono">
-        <div className="flex-1 border-t border-bronze-200 dark:border-zinc-800" />
+      <div className="flex items-center gap-2 py-1.5 text-[11px] text-bronze-400 dark:text-text-placeholder font-mono">
+        <div className="flex-1 border-t border-bronze-200 dark:border-border-default" />
         {parts.length > 0 && (
           <>
             <span>{parts.join(' · ')}</span>
-            <div className="flex-1 border-t border-bronze-200 dark:border-zinc-800" />
+            <div className="flex-1 border-t border-bronze-200 dark:border-border-default" />
           </>
         )}
       </div>
@@ -60,7 +60,7 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error 
         {error && (
           <p className="text-[11px] text-red-400/80 font-mono">{error}</p>
         )}
-        <div className="flex items-center gap-3 text-[11px] text-bronze-500 dark:text-zinc-500 font-mono mt-1">
+        <div className="flex items-center gap-3 text-[11px] text-bronze-500 dark:text-text-tertiary font-mono mt-1">
           {durationMs != null && <span>{formatDuration(durationMs)}</span>}
           {turns != null && <span>{turns} turn{turns !== 1 ? 's' : ''}</span>}
         </div>

@@ -109,13 +109,13 @@ function EditDiffView({ input }: { input: Record<string, unknown> }) {
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-[10px] font-medium text-bronze-500 dark:text-zinc-600 uppercase tracking-wide">Diff</span>
-        <span className="text-[10px] text-bronze-400 dark:text-zinc-600">{shortPath}</span>
-        {replaceAll && <span className="text-[9px] bg-bronze-200/60 dark:bg-zinc-800 text-bronze-500 dark:text-zinc-500 px-1 rounded">replace all</span>}
+        <span className="text-[10px] font-medium text-bronze-500 dark:text-text-placeholder uppercase tracking-wide">Diff</span>
+        <span className="text-[10px] text-bronze-400 dark:text-text-placeholder">{shortPath}</span>
+        {replaceAll && <span className="text-[9px] bg-bronze-200/60 dark:bg-surface-primary text-bronze-500 dark:text-text-tertiary px-1 rounded">replace all</span>}
       </div>
-      <div className="text-[11px] font-mono bg-bronze-200/40 dark:bg-zinc-900/60 rounded overflow-x-auto max-h-64 overflow-y-auto">
+      <div className="text-[11px] font-mono bg-bronze-200/40 dark:bg-surface-base/60 rounded overflow-x-auto max-h-64 overflow-y-auto">
         {prefixLines.map((line, i) => (
-          <div key={`ctx-pre-${i}`} className="px-2 py-px text-bronze-600 dark:text-zinc-500 whitespace-pre-wrap">{line || '\u00A0'}</div>
+          <div key={`ctx-pre-${i}`} className="px-2 py-px text-bronze-600 dark:text-text-tertiary whitespace-pre-wrap">{line || '\u00A0'}</div>
         ))}
         {removedLines.map((line, i) => (
           <div key={`rm-${i}`} className="px-2 py-px bg-red-500/15 text-red-600 dark:text-red-400 whitespace-pre-wrap">
@@ -128,7 +128,7 @@ function EditDiffView({ input }: { input: Record<string, unknown> }) {
           </div>
         ))}
         {suffixLines.map((line, i) => (
-          <div key={`ctx-suf-${i}`} className="px-2 py-px text-bronze-600 dark:text-zinc-500 whitespace-pre-wrap">{line || '\u00A0'}</div>
+          <div key={`ctx-suf-${i}`} className="px-2 py-px text-bronze-600 dark:text-text-tertiary whitespace-pre-wrap">{line || '\u00A0'}</div>
         ))}
       </div>
     </div>
@@ -165,7 +165,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
     <div className="group/tool">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-bronze-100/60 dark:hover:bg-zinc-800/40 rounded transition-colors"
+        className="flex items-center gap-2.5 w-full px-1.5 py-2 text-left hover:bg-bronze-100/60 dark:hover:bg-surface-hover/40 rounded transition-colors"
       >
         {/* Status dot */}
         <span className="shrink-0">
@@ -177,18 +177,18 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
         </span>
 
         {/* Tool icon */}
-        <span className={`shrink-0 ${isActive ? 'text-bronze-500' : isError ? 'text-red-400' : 'text-bronze-500 dark:text-zinc-500'}`}>
+        <span className={`shrink-0 ${isActive ? 'text-bronze-500' : isError ? 'text-red-400' : 'text-bronze-500 dark:text-text-tertiary'}`}>
           {getToolIcon(name)}
         </span>
 
         {/* Tool name + summary */}
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-xs font-medium text-bronze-700 dark:text-zinc-300 shrink-0">{displayName}</span>
-          <span className="text-xs text-bronze-500 dark:text-zinc-500 truncate">{summary}</span>
+          <span className="text-xs font-medium text-bronze-700 dark:text-text-secondary shrink-0">{displayName}</span>
+          <span className="text-xs text-bronze-500 dark:text-text-tertiary truncate">{summary}</span>
         </span>
 
         {/* Chevron on far right */}
-        <ChevronRightIcon className={`w-3.5 h-3.5 shrink-0 text-bronze-400 dark:text-zinc-600 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        <ChevronRightIcon className={`w-3.5 h-3.5 shrink-0 text-bronze-400 dark:text-text-placeholder transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
 
       {isOpen && (
@@ -198,8 +198,8 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
             <EditDiffView input={input} />
           ) : (
           <div>
-            <div className="text-[10px] font-medium text-bronze-500 dark:text-zinc-600 uppercase tracking-wide mb-1">Input</div>
-            <pre className="text-[11px] font-mono text-bronze-700 dark:text-zinc-400 bg-bronze-200/40 dark:bg-zinc-900/60 rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
+            <div className="text-[10px] font-medium text-bronze-500 dark:text-text-placeholder uppercase tracking-wide mb-1">Input</div>
+            <pre className="text-[11px] font-mono text-bronze-700 dark:text-text-secondary bg-bronze-200/40 dark:bg-surface-base/60 rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
               {JSON.stringify(input, null, 2)}
             </pre>
           </div>
@@ -209,7 +209,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
           {result && (
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-medium text-bronze-500 dark:text-zinc-600 uppercase tracking-wide">Output</span>
+                <span className="text-[10px] font-medium text-bronze-500 dark:text-text-placeholder uppercase tracking-wide">Output</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -217,7 +217,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
-                  className="ml-auto text-bronze-500 dark:text-zinc-600 hover:text-bronze-700 dark:hover:text-zinc-400 transition-colors p-0.5"
+                  className="ml-auto text-bronze-500 dark:text-text-placeholder hover:text-bronze-700 dark:hover:text-text-secondary transition-colors p-0.5"
                 >
                   {copied ? (
                     <CheckIcon className="w-3 h-3 text-patina" />
@@ -229,7 +229,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
               <pre className={`text-[11px] font-mono rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto ${
                 isError
                   ? 'text-red-400 bg-red-500/10'
-                  : 'text-bronze-700 dark:text-zinc-400 bg-bronze-200/40 dark:bg-zinc-900/60'
+                  : 'text-bronze-700 dark:text-text-secondary bg-bronze-200/40 dark:bg-surface-base/60'
               }`}>
                 {visibleOutput}
               </pre>

@@ -20,8 +20,8 @@ export function TaskUpdateBlock({ findings, humanSteps }: TaskUpdateBlockProps) 
         <FileTextIcon className="w-3.5 h-3.5" />
         Agent updated task
       </div>
-      <div className="text-[11px] text-bronze-600 dark:text-zinc-400 font-mono whitespace-pre-wrap">
-        {preview}{hasMore && <span className="text-bronze-400 dark:text-zinc-600"> (+{lines.length - 2} more)</span>}
+      <div className="text-[11px] text-bronze-600 dark:text-text-secondary font-mono whitespace-pre-wrap">
+        {preview}{hasMore && <span className="text-bronze-400 dark:text-text-placeholder"> (+{lines.length - 2} more)</span>}
       </div>
       {humanSteps && (
         <div className="mt-1.5 pt-1.5 border-t border-gold/15 text-[11px] text-gold-dark dark:text-gold/80 font-mono">

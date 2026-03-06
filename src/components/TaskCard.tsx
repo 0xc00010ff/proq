@@ -113,21 +113,21 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
             />
           ) : task.title ? (
             <h4
-              className={`text-sm text-bronze-800 dark:text-zinc-200 leading-snug font-normal ${canEditTitle ? 'cursor-text hover:border-b hover:border-zinc-600' : ''}`}
+              className={`text-sm text-bronze-800 dark:text-text-primary leading-snug font-normal ${canEditTitle ? 'cursor-text hover:border-b hover:border-zinc-600' : ''}`}
               onPointerDown={canEditTitle ? (e) => e.stopPropagation() : undefined}
               onClick={canEditTitle ? (e) => { e.stopPropagation(); setEditing(true); } : undefined}
             >
               {task.title}
             </h4>
           ) : (
-            <p className="text-sm text-bronze-800 dark:text-zinc-200 leading-snug font-normal line-clamp-2">
+            <p className="text-sm text-bronze-800 dark:text-text-primary leading-snug font-normal line-clamp-2">
               {task.description}
             </p>
           )}
         </div>
 
         {task.title && task.description && (
-          <p className="text-xs text-zinc-500 leading-relaxed mt-2 line-clamp-2">
+          <p className="text-xs text-text-tertiary leading-relaxed mt-2 line-clamp-2">
             {task.description}
           </p>
         )}
@@ -141,7 +141,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle">
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle/60">
           {isPreviewActive && !isActive && !isQueued ? (
             <div className="flex items-center gap-1.5">
               <EyeIcon className="w-3 h-3 text-gold" />
@@ -151,8 +151,8 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
             </div>
           ) : isQueued ? (
             <div className="flex items-center gap-1.5">
-              <ClockIcon className="w-3 h-3 text-zinc-400" />
-              <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">
+              <ClockIcon className="w-3 h-3 text-text-secondary" />
+              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">
                 Queued
               </span>
             </div>
@@ -165,15 +165,15 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
             </div>
           ) : isStarting ? (
             <div className="flex items-center gap-1.5">
-              <Loader2Icon className="w-3 h-3 text-zinc-400 animate-spin" />
-              <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">
+              <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
+              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">
                 Starting...
               </span>
             </div>
           ) : (
             <span />
           )}
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-600 font-mono">
+          <span className="text-[10px] text-text-secondary dark:text-text-tertiary font-mono">
             {task.id.slice(0, 8)}
           </span>
         </div>

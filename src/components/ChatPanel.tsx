@@ -53,11 +53,11 @@ function toolCallInfo(tc: ToolCall): { icon: React.ReactNode; label: string; det
 function ToolCallPill({ tc }: { tc: ToolCall }) {
   const { icon, label, detail } = toolCallInfo(tc);
   return (
-    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-800/60 border border-zinc-700/40 text-[11px] text-zinc-400 leading-snug">
+    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-primary/60 border border-border-subtle/60 text-[11px] text-text-secondary leading-snug">
       {icon}
-      <span className="text-zinc-500">{label}</span>
+      <span className="text-text-tertiary">{label}</span>
       {detail && (
-        <span className="text-zinc-400 font-mono text-[10px] truncate max-w-[240px]">{detail}</span>
+        <span className="text-text-secondary font-mono text-[10px] truncate max-w-[240px]">{detail}</span>
       )}
     </div>
   );
@@ -71,29 +71,29 @@ function formatSize(bytes: number): string {
 
 function MessageContent({ text }: { text: string }) {
   return (
-    <div className="prose-chat text-sm leading-relaxed text-zinc-300">
+    <div className="prose-chat text-sm leading-relaxed text-text-secondary">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-          strong: ({ children }) => <strong className="font-semibold text-zinc-200">{children}</strong>,
-          em: ({ children }) => <em className="text-zinc-300">{children}</em>,
+          strong: ({ children }) => <strong className="font-semibold text-text-primary">{children}</strong>,
+          em: ({ children }) => <em className="text-text-secondary">{children}</em>,
           code: ({ children, className }) => {
             const isBlock = className?.includes('language-');
             if (isBlock) {
-              return <code className={`${className} block bg-zinc-900 rounded px-3 py-2 text-[12px] font-mono text-zinc-300 overflow-x-auto my-2`}>{children}</code>;
+              return <code className={`${className} block bg-surface-base rounded px-3 py-2 text-[12px] font-mono text-text-secondary overflow-x-auto my-2`}>{children}</code>;
             }
-            return <code className="bg-zinc-800/70 text-zinc-300 rounded px-1 py-0.5 text-[12px] font-mono">{children}</code>;
+            return <code className="bg-surface-primary/70 text-text-secondary rounded px-1 py-0.5 text-[12px] font-mono">{children}</code>;
           },
-          pre: ({ children }) => <pre className="bg-zinc-900 rounded-md overflow-x-auto my-2">{children}</pre>,
+          pre: ({ children }) => <pre className="bg-surface-base rounded-md overflow-x-auto my-2">{children}</pre>,
           ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5">{children}</ol>,
-          li: ({ children }) => <li className="text-zinc-300">{children}</li>,
+          li: ({ children }) => <li className="text-text-secondary">{children}</li>,
           a: ({ href, children }) => <a href={href} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-          blockquote: ({ children }) => <blockquote className="border-l-2 border-zinc-700 pl-3 text-zinc-400 italic my-2">{children}</blockquote>,
-          h1: ({ children }) => <h1 className="text-base font-semibold text-zinc-200 mb-1">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-sm font-semibold text-zinc-200 mb-1">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-sm font-semibold text-zinc-300 mb-1">{children}</h3>,
+          blockquote: ({ children }) => <blockquote className="border-l-2 border-border-default pl-3 text-text-secondary italic my-2">{children}</blockquote>,
+          h1: ({ children }) => <h1 className="text-base font-semibold text-text-primary mb-1">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-sm font-semibold text-text-primary mb-1">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-semibold text-text-secondary mb-1">{children}</h3>,
         }}
       >
         {text}
@@ -194,7 +194,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
 
   return (
     <div
-      className={`w-full flex flex-col bg-bronze-100 dark:bg-black/40 flex-shrink-0 relative transition-colors ${isDragOver ? 'ring-1 ring-bronze-500/40' : ''}`}
+      className={`w-full flex flex-col bg-bronze-100 dark:bg-surface-deep flex-shrink-0 relative transition-colors ${isDragOver ? 'ring-1 ring-bronze-500/40' : ''}`}
       style={{ minHeight: 0, ...style }}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -224,16 +224,16 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
               </div>
             ) : (
               <div className="flex items-baseline gap-2">
-                <div className="inline-flex flex-col bg-zinc-800/50 rounded px-2.5 py-1">
+                <div className="inline-flex flex-col bg-surface-primary/50 rounded px-2.5 py-1">
                   <div className="flex items-baseline gap-2">
                     <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
-                    <p className="text-sm leading-relaxed text-zinc-300">{msg.message}</p>
+                    <p className="text-sm leading-relaxed text-text-secondary">{msg.message}</p>
                   </div>
                   {msg.attachments && msg.attachments.length > 0 && (
                     <AttachmentPreview attachments={msg.attachments} />
                   )}
                 </div>
-                <span className="text-[10px] text-bronze-500 dark:text-zinc-700 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
+                <span className="text-[10px] text-bronze-500 dark:text-text-placeholder ml-auto opacity-0 group-hover:opacity-100 shrink-0">
                   {formatTimestamp(msg.timestamp)}
                 </span>
               </div>
@@ -259,7 +259,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
             {streamingMessage.text ? (
               <div className="relative">
                 <MessageContent text={streamingMessage.text} />
-                <span className="inline-block w-1.5 h-4 bg-zinc-400 animate-pulse ml-0.5 align-text-bottom" />
+                <span className="inline-block w-1.5 h-4 bg-text-secondary animate-pulse ml-0.5 align-text-bottom" />
               </div>
             ) : isLoading && streamingMessage.toolCalls.length > 0 ? (
               <ScrambleText text="Working..." />
@@ -279,7 +279,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
             return isImage ? (
               <div
                 key={att.id}
-                className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60"
+                className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-border-default/50 bg-bronze-200/60 dark:bg-surface-hover/60"
               >
                 <img
                   src={url}
@@ -299,11 +299,11 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
             ) : (
               <div
                 key={att.id}
-                className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-2.5 py-2 group"
+                className="flex items-center gap-1.5 bg-bronze-200/60 dark:bg-surface-hover/60 border border-bronze-400/50 dark:border-border-default/50 rounded-md px-2.5 py-2 group"
               >
                 <FileIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] text-zinc-700 dark:text-zinc-300 truncate max-w-[120px] leading-tight">{att.name}</span>
+                  <span className="text-[10px] text-zinc-700 dark:text-text-secondary truncate max-w-[120px] leading-tight">{att.name}</span>
                   <span className="text-[9px] text-zinc-600 leading-tight">{formatSize(att.size)}</span>
                 </div>
                 <button
@@ -319,7 +319,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
       )}
 
       {/* Input */}
-      <div className="px-6 py-5 border-t border-bronze-300/60 dark:border-zinc-800/60 bg-bronze-200/20 dark:bg-black/20">
+      <div className="px-6 py-5 border-t border-bronze-300/60 dark:border-border-subtle/60 bg-bronze-200/20 dark:bg-surface-deep/50">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <span className="text-bronze-500 text-sm font-bold select-none">{'\u276F'}</span>
           <input
@@ -331,12 +331,12 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
             }}
             placeholder={isLoading ? "waiting for response..." : "message..."}
             disabled={isLoading}
-            className="flex-1 bg-transparent text-sm text-bronze-800 dark:text-zinc-200 placeholder:text-bronze-500 dark:placeholder:text-zinc-700 focus:outline-none caret-bronze-500 disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-bronze-800 dark:text-text-primary placeholder:text-bronze-500 dark:placeholder:text-text-placeholder focus:outline-none caret-bronze-500 disabled:opacity-50"
           />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-zinc-400 dark:text-zinc-600 hover:text-bronze-500 dark:hover:text-bronze-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-zinc-400 dark:text-text-placeholder hover:text-bronze-500 dark:hover:text-bronze-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={isLoading}
             title="Attach file"
           >
@@ -345,7 +345,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
           <button
             type="submit"
             disabled={(!inputValue.trim() && attachments.length === 0) || isLoading}
-            className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-zinc-400 dark:text-text-placeholder hover:text-zinc-600 dark:hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <CornerDownLeftIcon className="w-3.5 h-3.5" />
           </button>

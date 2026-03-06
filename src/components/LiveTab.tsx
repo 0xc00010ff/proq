@@ -76,14 +76,14 @@ export function LiveTab({ project }: LiveTabProps) {
 
   if (!project.serverUrl) {
     return (
-      <div className="flex-1 h-full flex flex-col items-center justify-center bg-bronze-100 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 p-8">
-        <div className="w-16 h-16 rounded-2xl bg-bronze-200 dark:bg-zinc-900 flex items-center justify-center mb-6 border border-bronze-300 dark:border-zinc-800">
-          <MonitorIcon className="w-8 h-8 text-zinc-400 dark:text-zinc-600" />
+      <div className="flex-1 h-full flex flex-col items-center justify-center bg-bronze-100 dark:bg-surface-deep text-text-tertiary dark:text-text-secondary p-8">
+        <div className="w-16 h-16 rounded-2xl bg-bronze-200 dark:bg-surface-base flex items-center justify-center mb-6 border border-bronze-300 dark:border-border-default">
+          <MonitorIcon className="w-8 h-8 text-text-secondary dark:text-text-placeholder" />
         </div>
-        <h3 className="text-lg font-medium text-bronze-800 dark:text-zinc-200 mb-2">
+        <h3 className="text-lg font-medium text-bronze-800 dark:text-text-primary mb-2">
           No preview configured
         </h3>
-        <p className="text-sm text-zinc-500 max-w-md text-center mb-8">
+        <p className="text-sm text-text-tertiary max-w-md text-center mb-8">
           Connect a development server URL to see a live preview of your
           application directly within proq.
         </p>
@@ -94,11 +94,11 @@ export function LiveTab({ project }: LiveTabProps) {
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
-            className="flex-1 bg-bronze-200 dark:bg-zinc-900 border border-bronze-300 dark:border-zinc-800 rounded-md px-3 py-2 text-sm text-bronze-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-steel/50"
+            className="flex-1 bg-bronze-200 dark:bg-surface-base border border-bronze-300 dark:border-border-default rounded-md px-3 py-2 text-sm text-bronze-800 dark:text-text-primary placeholder:text-text-secondary dark:placeholder:text-text-placeholder focus:outline-none focus:ring-1 focus:ring-steel/50"
           />
           <button
             onClick={handleConnect}
-            className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200"
+            className="bg-surface-base dark:bg-text-primary text-white dark:text-surface-base px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-hover dark:hover:bg-text-primary"
           >
             Connect
           </button>
@@ -110,8 +110,8 @@ export function LiveTab({ project }: LiveTabProps) {
   const isDevice = viewport !== 'desktop';
 
   return (
-    <div className="flex-1 h-full flex flex-col bg-bronze-100 dark:bg-zinc-950">
-      <div className="h-10 bg-bronze-200 dark:bg-zinc-900 border-b border-bronze-300 dark:border-zinc-800 flex items-center px-4 space-x-4">
+    <div className="flex-1 h-full flex flex-col bg-bronze-100 dark:bg-surface-deep">
+      <div className="h-10 bg-bronze-200 dark:bg-surface-base border-b border-bronze-300 dark:border-border-default flex items-center px-4 space-x-4">
         <div className="flex space-x-1.5">
           <div className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50" />
           <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50" />
@@ -121,11 +121,11 @@ export function LiveTab({ project }: LiveTabProps) {
           <button
             onClick={handleRefresh}
             title="Refresh"
-            className="p-1.5 rounded text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-bronze-50 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded text-text-secondary dark:text-text-placeholder hover:text-text-placeholder dark:hover:text-text-secondary hover:bg-bronze-50 dark:hover:bg-surface-hover transition-colors"
           >
             <RotateCwIcon className="w-3.5 h-3.5" />
           </button>
-          <div className="bg-bronze-50 dark:bg-zinc-950 border border-bronze-300 dark:border-zinc-800 rounded px-3 py-1 text-xs text-zinc-500 dark:text-zinc-400 flex items-center space-x-2 min-w-[300px]">
+          <div className="bg-bronze-50 dark:bg-surface-deep border border-bronze-300 dark:border-border-default rounded px-3 py-1 text-xs text-text-tertiary dark:text-text-secondary flex items-center space-x-2 min-w-[300px]">
             <GlobeIcon className="w-3 h-3 shrink-0" />
             <input
               type="text"
@@ -143,7 +143,7 @@ export function LiveTab({ project }: LiveTabProps) {
                   await refreshProjects();
                 }
               }}
-              className="flex-1 bg-transparent text-xs text-zinc-500 dark:text-zinc-400 focus:text-zinc-800 dark:focus:text-zinc-200 outline-none"
+              className="flex-1 bg-transparent text-xs text-text-tertiary dark:text-text-secondary focus:text-text-primary dark:focus:text-text-primary outline-none"
             />
           </div>
         </div>
@@ -159,8 +159,8 @@ export function LiveTab({ project }: LiveTabProps) {
               title={label}
               className={`p-1.5 rounded transition-colors ${
                 viewport === key
-                  ? 'bg-bronze-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
-                  : 'text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400'
+                  ? 'bg-bronze-50 dark:bg-surface-hover text-text-primary dark:text-text-primary'
+                  : 'text-text-secondary dark:text-text-placeholder hover:text-text-placeholder dark:hover:text-text-secondary'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -198,7 +198,7 @@ export function LiveTab({ project }: LiveTabProps) {
               onMouseDown={(e) => handleResizeStart('x', e)}
               className="absolute top-0 -right-4 w-4 h-full cursor-ew-resize flex items-center justify-center group"
             >
-              <div className="w-1 h-8 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors" />
+              <div className="w-1 h-8 rounded-full bg-border-default group-hover:bg-text-secondary transition-colors" />
             </div>
 
             {/* Bottom resize handle */}
@@ -206,7 +206,7 @@ export function LiveTab({ project }: LiveTabProps) {
               onMouseDown={(e) => handleResizeStart('y', e)}
               className="absolute -bottom-4 left-0 w-full h-4 cursor-ns-resize flex items-center justify-center group"
             >
-              <div className="h-1 w-8 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors" />
+              <div className="h-1 w-8 rounded-full bg-border-default group-hover:bg-text-secondary transition-colors" />
             </div>
 
             {/* Corner resize handle */}
@@ -214,10 +214,10 @@ export function LiveTab({ project }: LiveTabProps) {
               onMouseDown={(e) => handleResizeStart('xy', e)}
               className="absolute -bottom-4 -right-4 w-4 h-4 cursor-nwse-resize flex items-center justify-center group"
             >
-              <div className="w-2 h-2 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors" />
+              <div className="w-2 h-2 rounded-full bg-border-default group-hover:bg-text-secondary transition-colors" />
             </div>
 
-            <div className="mt-3 text-center text-[10px] text-zinc-500 font-mono select-none">
+            <div className="mt-3 text-center text-[10px] text-text-tertiary font-mono select-none">
               {size.w} × {size.h}
             </div>
           </div>

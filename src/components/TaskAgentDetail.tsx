@@ -197,10 +197,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   return (
     <div ref={containerRef} className={`flex flex-row h-full overflow-hidden ${className || ''}`}>
       {/* Left panel: terminal or queued state */}
-      <div className={`flex-1 min-h-0 flex flex-col${showStructuredPane ? ' bg-bronze-50 dark:bg-[#0C0C0C]' : ''}`}>
+      <div className={`flex-1 min-h-0 flex flex-col${showStructuredPane ? ' bg-bronze-50 dark:bg-surface-deep' : ''}`}>
         {/* Worktree status — only in parallel mode */}
         {parallelMode && (
-          <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-zinc-800 bg-bronze-100/50 dark:bg-zinc-900/50">
+          <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-bronze-300 dark:border-border-default bg-bronze-100/50 dark:bg-surface-detail">
             {task.status === 'verify' && task.branch && onSwitchBranch && currentBranch === task.branch ? (
               <>
                 <span className="text-xs text-gold font-medium">viewing</span>
@@ -217,7 +217,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               </>
             ) : (
               <>
-                <span className="text-xs text-bronze-500 dark:text-zinc-500">worktree:</span>
+                <span className="text-xs text-bronze-500 dark:text-text-tertiary">worktree:</span>
                 <span className={`inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border ${
                   task.mergeConflict
                     ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
@@ -241,10 +241,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
 
         {isQueued ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-            <ClockIcon className="w-8 h-8 text-bronze-500 dark:text-zinc-600" />
+            <ClockIcon className="w-8 h-8 text-bronze-500 dark:text-text-placeholder" />
             <div>
-              <p className="text-sm font-medium text-bronze-600 dark:text-zinc-400">Queued</p>
-              <p className="text-xs text-bronze-500 dark:text-zinc-600 mt-1">
+              <p className="text-sm font-medium text-bronze-600 dark:text-text-secondary">Queued</p>
+              <p className="text-xs text-bronze-500 dark:text-text-placeholder mt-1">
                 Waiting for the current task to finish before starting.
               </p>
             </div>
@@ -308,14 +308,14 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       {(showTerminal || showStructuredPane || isQueued) && (
         <div
           onMouseDown={handleHorizontalResizeMouseDown}
-          className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
+          className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-border-default hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
         >
           <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
         </div>
       )}
 
       {/* Right panel: task details */}
-      <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? '' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-[#141414]`} style={(showTerminal || showStructuredPane || isQueued) ? { width: `${rightPanelPercent}%` } : undefined}>
+      <div ref={rightPanelRef} className={`${showTerminal || showStructuredPane || isQueued ? '' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-bronze-50 dark:bg-surface-detail`} style={(showTerminal || showStructuredPane || isQueued) ? { width: `${rightPanelPercent}%` } : undefined}>
         {/* Top half: title, status, description */}
         <div className="overflow-y-auto p-5 pt-5 space-y-4 shrink-0" style={{ height: `${topPanelPercent}%` }}>
           {/* Status badge */}
@@ -341,11 +341,11 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 Completed
               </span>
             ) : (
-              <span className="text-xs text-bronze-600 dark:text-zinc-500 font-medium uppercase tracking-wide">
+              <span className="text-xs text-bronze-600 dark:text-text-tertiary font-medium uppercase tracking-wide">
                 {task.status}
               </span>
             )}
-            <span className="ml-auto text-[10px] text-bronze-500 dark:text-zinc-600 font-mono">{shortId}</span>
+            <span className="ml-auto text-[10px] text-bronze-500 dark:text-text-placeholder font-mono">{shortId}</span>
           </div>
 
           {/* Title */}
@@ -357,35 +357,35 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             onKeyDown={canEditTitle ? (e) => {
               if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); }
             } : undefined}
-            className={`relative text-base font-semibold text-bronze-900 dark:text-zinc-100 leading-snug outline-none ${canEditTitle ? 'cursor-text after:absolute after:left-0 after:right-0 after:bottom-[-3px] after:h-px after:bg-transparent focus:after:bg-bronze-400/40' : ''}`}
+            className={`relative text-base font-semibold text-bronze-900 dark:text-text-primary leading-snug outline-none ${canEditTitle ? 'cursor-text after:absolute after:left-0 after:right-0 after:bottom-[-3px] after:h-px after:bg-transparent focus:after:bg-bronze-400/40' : ''}`}
           >
             {task.title || 'Untitled task'}
           </h2>
 
           {/* Description */}
           {task.description && (
-            <div className="text-sm leading-relaxed text-bronze-700 dark:text-zinc-400">
+            <div className="text-sm leading-relaxed text-bronze-700 dark:text-text-secondary">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
                   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold text-bronze-800 dark:text-zinc-300">{children}</strong>,
-                  em: ({ children }) => <em className="text-bronze-600 dark:text-zinc-500">{children}</em>,
+                  strong: ({ children }) => <strong className="font-semibold text-bronze-800 dark:text-text-secondary">{children}</strong>,
+                  em: ({ children }) => <em className="text-bronze-600 dark:text-text-tertiary">{children}</em>,
                   code: ({ children, className: cn }) => {
                     const isBlock = cn?.includes('language-');
                     if (isBlock) {
-                      return <code className={`${cn} block bg-bronze-200/60 dark:bg-zinc-900 rounded px-3 py-2 text-xs font-mono text-bronze-800 dark:text-zinc-300 overflow-x-auto my-2`}>{children}</code>;
+                      return <code className={`${cn} block bg-bronze-200/60 dark:bg-surface-base rounded px-3 py-2 text-xs font-mono text-bronze-800 dark:text-text-secondary overflow-x-auto my-2`}>{children}</code>;
                     }
-                    return <code className="bg-bronze-200/60 dark:bg-zinc-800/70 text-bronze-800 dark:text-zinc-300 rounded px-1 py-0.5 text-xs font-mono">{children}</code>;
+                    return <code className="bg-bronze-200/60 dark:bg-border-default/70 text-bronze-800 dark:text-text-secondary rounded px-1 py-0.5 text-xs font-mono">{children}</code>;
                   },
-                  pre: ({ children }) => <pre className="bg-bronze-200/60 dark:bg-zinc-900 rounded-md overflow-x-auto my-2">{children}</pre>,
+                  pre: ({ children }) => <pre className="bg-bronze-200/60 dark:bg-surface-base rounded-md overflow-x-auto my-2">{children}</pre>,
                   ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
                   ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
                   li: ({ children }) => <li>{children}</li>,
                   a: ({ href, children }) => <a href={href} className="text-steel hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                  h1: ({ children }) => <h1 className="text-sm font-semibold text-bronze-800 dark:text-zinc-300 mt-3 mb-1.5 first:mt-0">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-sm font-semibold text-bronze-800 dark:text-zinc-300 mt-2.5 mb-1 first:mt-0">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-xs font-semibold text-bronze-800 dark:text-zinc-300 mt-2 mb-1 first:mt-0">{children}</h3>,
+                  h1: ({ children }) => <h1 className="text-sm font-semibold text-bronze-800 dark:text-text-secondary mt-3 mb-1.5 first:mt-0">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-semibold text-bronze-800 dark:text-text-secondary mt-2.5 mb-1 first:mt-0">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-xs font-semibold text-bronze-800 dark:text-text-secondary mt-2 mb-1 first:mt-0">{children}</h3>,
                 }}
               >
                 {task.description}
@@ -402,7 +402,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 return isImage && url ? (
                   <div
                     key={att.id}
-                    className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-zinc-700/50 bg-bronze-200/60 dark:bg-zinc-800/60 cursor-pointer"
+                    className="relative group rounded-md overflow-hidden border border-bronze-400/50 dark:border-border-default/50 bg-bronze-200/60 dark:bg-surface-hover/60 cursor-pointer"
                     onClick={() => window.open(url, '_blank')}
                   >
                     <img
@@ -419,10 +419,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 ) : (
                   <div
                     key={att.id}
-                    className="flex items-center gap-2 bg-bronze-200/60 dark:bg-zinc-800/60 border border-bronze-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5"
+                    className="flex items-center gap-2 bg-bronze-200/60 dark:bg-surface-hover/60 border border-bronze-400/50 dark:border-border-default/50 rounded-md px-3 py-2.5"
                   >
                     <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
-                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px]">
+                    <span className="text-[11px] text-zinc-700 dark:text-text-secondary truncate max-w-[140px]">
                       {att.name}
                     </span>
                   </div>
@@ -436,7 +436,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Resize handle */}
         <div
           onMouseDown={handleResizeMouseDown}
-          className="shrink-0 h-px cursor-row-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
+          className="shrink-0 h-px cursor-row-resize bg-bronze-300 dark:bg-border-default hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
         >
           <div className="absolute inset-x-0 -top-1.5 -bottom-1.5" />
           {/* Cross-resize at intersection with vertical divider */}
@@ -452,8 +452,8 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         <div ref={bottomPanelRef} className={`flex-1 min-h-0 overflow-y-auto ${isDispatched && !isQueued && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
           {findings.length > 0 || !isDispatched || isQueued ? (
             <div className="flex items-center gap-2">
-              <ClipboardListIcon className="w-3.5 h-3.5 text-bronze-600 dark:text-zinc-500" />
-              <span className="text-xs font-medium text-bronze-600 dark:text-zinc-500 uppercase tracking-wide">
+              <ClipboardListIcon className="w-3.5 h-3.5 text-bronze-600 dark:text-text-tertiary" />
+              <span className="text-xs font-medium text-bronze-600 dark:text-text-tertiary uppercase tracking-wide">
                 Agent Report
               </span>
               {findings.length > 0 && (
@@ -477,28 +477,28 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           ) : null}
 
           {findings.length > 0 ? (
-            <div className="text-sm leading-relaxed text-bronze-700 dark:text-zinc-400">
+            <div className="text-sm leading-relaxed text-bronze-700 dark:text-text-secondary">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
                   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold text-bronze-800 dark:text-zinc-300">{children}</strong>,
-                  em: ({ children }) => <em className="text-bronze-600 dark:text-zinc-500">{children}</em>,
+                  strong: ({ children }) => <strong className="font-semibold text-bronze-800 dark:text-text-secondary">{children}</strong>,
+                  em: ({ children }) => <em className="text-bronze-600 dark:text-text-tertiary">{children}</em>,
                   code: ({ children, className: cn }) => {
                     const isBlock = cn?.includes('language-');
                     if (isBlock) {
-                      return <code className={`${cn} block bg-bronze-200/60 dark:bg-zinc-900 rounded px-3 py-2 text-xs font-mono text-bronze-800 dark:text-zinc-300 overflow-x-auto my-2`}>{children}</code>;
+                      return <code className={`${cn} block bg-bronze-200/60 dark:bg-surface-base rounded px-3 py-2 text-xs font-mono text-bronze-800 dark:text-text-secondary overflow-x-auto my-2`}>{children}</code>;
                     }
-                    return <code className="bg-bronze-200/60 dark:bg-zinc-800/70 text-bronze-800 dark:text-zinc-300 rounded px-1 py-0.5 text-xs font-mono">{children}</code>;
+                    return <code className="bg-bronze-200/60 dark:bg-border-default/70 text-bronze-800 dark:text-text-secondary rounded px-1 py-0.5 text-xs font-mono">{children}</code>;
                   },
-                  pre: ({ children }) => <pre className="bg-bronze-200/60 dark:bg-zinc-900 rounded-md overflow-x-auto my-2">{children}</pre>,
+                  pre: ({ children }) => <pre className="bg-bronze-200/60 dark:bg-surface-base rounded-md overflow-x-auto my-2">{children}</pre>,
                   ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
                   ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
                   li: ({ children }) => <li>{children}</li>,
                   a: ({ href, children }) => <a href={href} className="text-steel hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                  h1: ({ children }) => <h1 className="text-sm font-semibold text-bronze-800 dark:text-zinc-300 mt-3 mb-1.5 first:mt-0">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-sm font-semibold text-bronze-800 dark:text-zinc-300 mt-2.5 mb-1 first:mt-0">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-xs font-semibold text-bronze-800 dark:text-zinc-300 mt-2 mb-1 first:mt-0">{children}</h3>,
+                  h1: ({ children }) => <h1 className="text-sm font-semibold text-bronze-800 dark:text-text-secondary mt-3 mb-1.5 first:mt-0">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-semibold text-bronze-800 dark:text-text-secondary mt-2.5 mb-1 first:mt-0">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-xs font-semibold text-bronze-800 dark:text-text-secondary mt-2 mb-1 first:mt-0">{children}</h3>,
                 }}
               >
                 {task.findings || ''}
@@ -510,16 +510,16 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               <span className="text-xs text-steel font-medium uppercase tracking-wide">
                 Agent working
               </span>
-              <p className="text-xs text-bronze-500 dark:text-zinc-600 italic text-center mt-1">
+              <p className="text-xs text-bronze-500 dark:text-text-placeholder italic text-center mt-1">
                 Agent is still working. Findings will appear here when reported.
               </p>
             </div>
           ) : isQueued ? (
-            <p className="text-xs text-bronze-500 dark:text-zinc-600 italic">
+            <p className="text-xs text-bronze-500 dark:text-text-placeholder italic">
               Task is queued. Findings will appear here once the agent starts working.
             </p>
           ) : (
-            <p className="text-xs text-bronze-500 dark:text-zinc-600 italic">
+            <p className="text-xs text-bronze-500 dark:text-text-placeholder italic">
               No findings reported.
             </p>
           )}
@@ -527,12 +527,12 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           {task.agentLog && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <FileTextIcon className="w-3.5 h-3.5 text-bronze-500 dark:text-zinc-600" />
-                <span className="text-[10px] font-medium text-bronze-500 dark:text-zinc-600 uppercase tracking-wide">
+                <FileTextIcon className="w-3.5 h-3.5 text-bronze-500 dark:text-text-placeholder" />
+                <span className="text-[10px] font-medium text-bronze-500 dark:text-text-placeholder uppercase tracking-wide">
                   Log
                 </span>
               </div>
-              <pre className="text-[11px] text-bronze-700 dark:text-zinc-500 font-mono bg-bronze-100 dark:bg-zinc-950 border border-bronze-300 dark:border-zinc-800 rounded-md p-3 overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
+              <pre className="text-[11px] text-bronze-700 dark:text-text-tertiary font-mono bg-bronze-100 dark:bg-surface-base border border-bronze-300 dark:border-border-default rounded-md p-3 overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
                 {task.agentLog}
               </pre>
             </div>
@@ -553,7 +553,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               {task.mergeConflict.files.length > 0 && (
                 <ul className="space-y-0.5 mb-2">
                   {task.mergeConflict.files.map((file) => (
-                    <li key={file} className="text-xs font-mono text-bronze-700 dark:text-zinc-400 flex items-start">
+                    <li key={file} className="text-xs font-mono text-bronze-700 dark:text-text-secondary flex items-start">
                       <span className="mr-2 text-red-400 shrink-0">-</span>
                       <span>{file}</span>
                     </li>
@@ -580,8 +580,8 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               </div>
               <ul className="space-y-1">
                 {steps.map((step, idx) => (
-                  <li key={idx} className="text-xs text-bronze-800 dark:text-zinc-300 flex items-start">
-                    <span className="mr-2 text-bronze-500 dark:text-zinc-600">&bull;</span>
+                  <li key={idx} className="text-xs text-bronze-800 dark:text-text-secondary flex items-start">
+                    <span className="mr-2 text-bronze-500 dark:text-text-placeholder">&bull;</span>
                     {step}
                   </li>
                 ))}
@@ -593,7 +593,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Complete button pinned to bottom */}
         {task.status === 'verify' && onComplete && (
           <div className="shrink-0 group/complete">
-            <div className="h-px bg-bronze-300 dark:bg-zinc-800 group-hover/complete:bg-patina/40 transition-colors" />
+            <div className="h-px bg-bronze-300 dark:bg-border-default group-hover/complete:bg-patina/40 transition-colors" />
             <button
               onClick={() => onComplete(task.id)}
               className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-patina/80 hover:text-patina hover:bg-patina/10 transition-colors"

@@ -37,25 +37,25 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-md">
       <div className="p-6">
-        <h2 className="text-sm font-semibold text-bronze-900 dark:text-zinc-100 mb-5">Project Settings</h2>
+        <h2 className="text-sm font-semibold text-bronze-900 dark:text-text-primary mb-5">Project Settings</h2>
 
         <div className="space-y-4">
           {/* Project Name */}
           <div>
-            <label className="block text-xs font-medium text-bronze-700 dark:text-zinc-400 mb-1.5">
+            <label className="block text-xs font-medium text-bronze-700 dark:text-text-secondary mb-1.5">
               Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-bronze-100 dark:bg-zinc-900 border border-bronze-300 dark:border-zinc-700 rounded-md text-bronze-900 dark:text-zinc-100 focus:outline-none focus:border-bronze-500 dark:focus:border-zinc-500 transition-colors"
+              className="w-full px-3 py-2 text-sm bg-bronze-100 dark:bg-surface-base border border-bronze-300 dark:border-border-strong rounded-md text-bronze-900 dark:text-text-primary focus:outline-none focus:border-bronze-500 dark:focus:border-border-strong transition-colors"
             />
           </div>
 
           {/* View Type */}
           <div>
-            <label className="block text-xs font-medium text-bronze-700 dark:text-zinc-400 mb-1.5">
+            <label className="block text-xs font-medium text-bronze-700 dark:text-text-secondary mb-1.5">
               Default View
             </label>
             <div className="flex gap-2">
@@ -63,8 +63,8 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
                 onClick={() => setViewType('kanban')}
                 className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border transition-colors ${
                   viewType === 'kanban'
-                    ? 'border-bronze-500 dark:border-zinc-500 bg-bronze-100 dark:bg-zinc-800 text-bronze-900 dark:text-zinc-100'
-                    : 'border-bronze-300 dark:border-zinc-700 text-bronze-600 dark:text-zinc-500 hover:border-bronze-400 dark:hover:border-zinc-600'
+                    ? 'border-bronze-500 dark:border-border-strong bg-bronze-100 dark:bg-surface-hover text-bronze-900 dark:text-text-primary'
+                    : 'border-bronze-300 dark:border-border-strong text-bronze-600 dark:text-text-tertiary hover:border-bronze-400 dark:hover:border-border-strong'
                 }`}
               >
                 Board
@@ -73,8 +73,8 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
                 onClick={() => setViewType('list')}
                 className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border transition-colors ${
                   viewType === 'list'
-                    ? 'border-bronze-500 dark:border-zinc-500 bg-bronze-100 dark:bg-zinc-800 text-bronze-900 dark:text-zinc-100'
-                    : 'border-bronze-300 dark:border-zinc-700 text-bronze-600 dark:text-zinc-500 hover:border-bronze-400 dark:hover:border-zinc-600'
+                    ? 'border-bronze-500 dark:border-border-strong bg-bronze-100 dark:bg-surface-hover text-bronze-900 dark:text-text-primary'
+                    : 'border-bronze-300 dark:border-border-strong text-bronze-600 dark:text-text-tertiary hover:border-bronze-400 dark:hover:border-border-strong'
                 }`}
               >
                 List
@@ -84,7 +84,7 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
 
           {/* Default Branch */}
           <div>
-            <label className="block text-xs font-medium text-bronze-700 dark:text-zinc-400 mb-1.5">
+            <label className="block text-xs font-medium text-bronze-700 dark:text-text-secondary mb-1.5">
               Default Branch
             </label>
             <input
@@ -92,13 +92,13 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
               value={defaultBranch}
               onChange={(e) => setDefaultBranch(e.target.value)}
               placeholder="main"
-              className="w-full px-3 py-2 text-sm font-mono bg-bronze-100 dark:bg-zinc-900 border border-bronze-300 dark:border-zinc-700 rounded-md text-bronze-900 dark:text-zinc-100 focus:outline-none focus:border-bronze-500 dark:focus:border-zinc-500 transition-colors"
+              className="w-full px-3 py-2 text-sm font-mono bg-bronze-100 dark:bg-surface-base border border-bronze-300 dark:border-border-strong rounded-md text-bronze-900 dark:text-text-primary focus:outline-none focus:border-bronze-500 dark:focus:border-border-strong transition-colors"
             />
           </div>
 
           {/* Dev Server URL */}
           <div>
-            <label className="block text-xs font-medium text-bronze-700 dark:text-zinc-400 mb-1.5">
+            <label className="block text-xs font-medium text-bronze-700 dark:text-text-secondary mb-1.5">
               Dev Server URL
             </label>
             <input
@@ -106,16 +106,16 @@ export function ProjectSettingsModal({ isOpen, project, onClose, onSave }: Proje
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3000"
-              className="w-full px-3 py-2 text-sm font-mono bg-bronze-100 dark:bg-zinc-900 border border-bronze-300 dark:border-zinc-700 rounded-md text-bronze-900 dark:text-zinc-100 focus:outline-none focus:border-bronze-500 dark:focus:border-zinc-500 transition-colors"
+              className="w-full px-3 py-2 text-sm font-mono bg-bronze-100 dark:bg-surface-base border border-bronze-300 dark:border-border-strong rounded-md text-bronze-900 dark:text-text-primary focus:outline-none focus:border-bronze-500 dark:focus:border-border-strong transition-colors"
             />
           </div>
 
           {/* Path (read-only) */}
           <div>
-            <label className="block text-xs font-medium text-bronze-700 dark:text-zinc-400 mb-1.5">
+            <label className="block text-xs font-medium text-bronze-700 dark:text-text-secondary mb-1.5">
               Path
             </label>
-            <div className="px-3 py-2 text-sm font-mono text-bronze-600 dark:text-zinc-500 bg-bronze-50 dark:bg-zinc-900/50 border border-bronze-200 dark:border-zinc-800 rounded-md truncate">
+            <div className="px-3 py-2 text-sm font-mono text-bronze-600 dark:text-text-tertiary bg-bronze-50 dark:bg-surface-base/50 border border-bronze-200 dark:border-border-default rounded-md truncate">
               {project.path}
             </div>
           </div>

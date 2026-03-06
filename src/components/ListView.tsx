@@ -102,7 +102,7 @@ function DroppableSection({
         isOver
           ? isInProgress
             ? 'bg-steel/5 ring-1 ring-steel/20'
-            : 'bg-bronze-200/30 dark:bg-zinc-800/40 ring-1 ring-bronze-400/20 dark:ring-zinc-600/30'
+            : 'bg-bronze-200/30 dark:bg-surface-hover/40 ring-1 ring-bronze-400/20 dark:ring-zinc-600/30'
           : ''
       }`}
     >
@@ -154,8 +154,8 @@ function SortableListRow({
         onClick={() => onClick(task)}
         className={`relative w-full text-left px-6 py-2.5 transition-colors ${
           isSelected
-            ? 'bg-bronze-200/60 dark:bg-zinc-800'
-            : 'hover:bg-bronze-100/60 dark:hover:bg-zinc-900/60'
+            ? 'bg-bronze-200/60 dark:bg-surface-selected'
+            : 'hover:bg-bronze-100/60 dark:hover:bg-surface-hover/40'
         }`}
       >
         {onDelete && (
@@ -173,15 +173,15 @@ function SortableListRow({
         {/* Title */}
         <div className={`text-sm leading-snug truncate ${
           task.title
-            ? 'text-bronze-800 dark:text-zinc-200'
-            : 'text-bronze-500 dark:text-zinc-500 italic'
+            ? 'text-bronze-800 dark:text-text-primary'
+            : 'text-bronze-500 dark:text-text-tertiary italic'
         }`}>
           {task.title || task.description.slice(0, 60) || 'Untitled'}
         </div>
 
         {/* Description snippet */}
         {task.title && task.description && (
-          <p className="text-xs text-bronze-600 dark:text-zinc-500 leading-relaxed mt-1 line-clamp-2">
+          <p className="text-xs text-bronze-600 dark:text-text-tertiary leading-relaxed mt-1 line-clamp-2">
             {task.description}
           </p>
         )}
@@ -190,8 +190,8 @@ function SortableListRow({
         <div className="flex items-center mt-2">
           {isQueued ? (
             <div className="flex items-center gap-1.5">
-              <ClockIcon className="w-3 h-3 text-zinc-400" />
-              <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">Queued</span>
+              <ClockIcon className="w-3 h-3 text-text-secondary" />
+              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">Queued</span>
             </div>
           ) : isRunning ? (
             <div className="flex items-center gap-1.5">
@@ -200,18 +200,18 @@ function SortableListRow({
             </div>
           ) : isStarting ? (
             <div className="flex items-center gap-1.5">
-              <Loader2Icon className="w-3 h-3 text-zinc-400 animate-spin" />
-              <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">Starting...</span>
+              <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
+              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">Starting...</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
               {col?.icon}
-              <span className="text-[10px] text-bronze-500 dark:text-zinc-500 font-medium uppercase tracking-wide">
+              <span className="text-[10px] text-bronze-500 dark:text-text-tertiary font-medium uppercase tracking-wide">
                 {col?.label}
               </span>
             </div>
           )}
-          <span className="ml-auto text-[10px] text-bronze-400 dark:text-zinc-600 font-mono">
+          <span className="ml-auto text-[10px] text-bronze-400 dark:text-text-tertiary font-mono">
             {task.id.slice(0, 8)}
           </span>
         </div>
@@ -449,14 +449,14 @@ export function ListView({
   return (
     <div className="flex-1 h-full flex overflow-hidden bg-surface-base">
       {/* Master panel */}
-      <div data-master-panel className="shrink-0 flex flex-col border-r border-bronze-300 dark:border-zinc-800 bg-surface-base" style={{ width: masterWidth }}>
+      <div data-master-panel className="shrink-0 flex flex-col border-r border-bronze-300 dark:border-border-default bg-surface-base" style={{ width: masterWidth }}>
         {/* Master header */}
-        <div className="shrink-0 flex items-center gap-2 px-6 py-3 border-b border-bronze-300 dark:border-zinc-800">
+        <div className="shrink-0 flex items-center gap-2 px-6 py-3 border-b border-bronze-300 dark:border-border-default">
           {onExecutionModeChange && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
                 >
                   {executionMode === 'sequential' ? (
                     <ListOrderedIcon className="w-3 h-3" />
@@ -514,23 +514,23 @@ export function ListView({
                 <DroppableSection id={status} isOver={isOver}>
                   {/* Section header — always shown */}
                   <div className="flex items-center gap-2 mx-6 my-2 py-1">
-                    <div className="flex-1 h-px bg-bronze-300/40 dark:bg-zinc-800/60" />
+                    <div className="flex-1 h-px bg-bronze-300/40 dark:bg-border-default/60" />
                     <div className="flex items-center gap-1.5">
                       {col?.icon}
-                      <span className="text-[10px] text-bronze-500 dark:text-zinc-600 font-medium uppercase tracking-wide">
+                      <span className="text-[10px] text-bronze-500 dark:text-text-tertiary font-medium uppercase tracking-wide">
                         {col?.label}
                       </span>
-                      <span className="text-[10px] text-bronze-400 dark:text-zinc-700 font-mono">
+                      <span className="text-[10px] text-bronze-400 dark:text-text-placeholder font-mono">
                         {statusTasks.length}
                       </span>
                     </div>
-                    <div className="flex-1 h-px bg-bronze-300/40 dark:bg-zinc-800/60" />
+                    <div className="flex-1 h-px bg-bronze-300/40 dark:bg-border-default/60" />
                   </div>
 
                   <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                     {statusTasks.length === 0 && (
-                      <div className="mx-6 my-2 h-14 border border-dashed border-bronze-300/50 dark:border-zinc-800 rounded-md flex items-center justify-center">
-                        <span className="text-[10px] text-bronze-400 dark:text-zinc-700">Empty</span>
+                      <div className="mx-6 my-2 h-14 border border-dashed border-bronze-300/50 dark:border-border-default rounded-md flex items-center justify-center">
+                        <span className="text-[10px] text-bronze-400 dark:text-text-placeholder">Empty</span>
                       </div>
                     )}
 
@@ -552,12 +552,12 @@ export function ListView({
 
             <DragOverlay>
               {activeDragTask ? (
-                <div className="bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 shadow-xl max-w-[350px]">
-                  <div className="text-sm text-zinc-200 truncate">
+                <div className="bg-surface-modal border border-border-default rounded-md px-3 py-2 shadow-xl max-w-[350px]">
+                  <div className="text-sm text-text-primary truncate">
                     {activeDragTask.title || activeDragTask.description.slice(0, 60) || 'Untitled'}
                   </div>
                   {activeDragTask.title && activeDragTask.description && (
-                    <p className="text-xs text-zinc-500 mt-1 truncate">
+                    <p className="text-xs text-text-tertiary mt-1 truncate">
                       {activeDragTask.description.slice(0, 80)}
                     </p>
                   )}
@@ -571,7 +571,7 @@ export function ListView({
       {/* Resize handle */}
       <div
         onMouseDown={handleResizeMouseDown}
-        className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-zinc-800 hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
+        className="shrink-0 w-px cursor-col-resize bg-bronze-300 dark:bg-border-default hover:bg-bronze-400 dark:hover:bg-bronze-600 transition-colors relative"
       >
         <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
       </div>
@@ -580,10 +580,10 @@ export function ListView({
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {!selectedTask ? (
           <div className="flex-1 flex items-center justify-center">
-            <span className="text-sm text-bronze-500 dark:text-zinc-600">Select a task</span>
+            <span className="text-sm text-bronze-500 dark:text-text-tertiary">Select a task</span>
           </div>
         ) : (
-          <div className="flex-1 relative bg-bronze-50 dark:bg-[#141414]">
+          <div className="flex-1 relative bg-bronze-50 dark:bg-surface-detail">
             <TaskAgentDetail
               task={selectedTask}
               projectId={projectId}
@@ -604,10 +604,10 @@ export function ListView({
 
       {pendingRerun && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-sm font-medium text-zinc-100 mb-2">Move back to In Progress?</h3>
-            <p className="text-xs text-zinc-400 mb-5">
-              <span className="text-zinc-200 font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>{' '}
+          <div className="bg-surface-modal border border-border-default rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-sm font-medium text-text-primary mb-2">Move back to In Progress?</h3>
+            <p className="text-xs text-text-secondary mb-5">
+              <span className="text-text-primary font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>{' '}
               will return to In Progress without changes. The current agent session will continue as-is.
               To reset and start fresh, move the task to Todo first.
             </p>

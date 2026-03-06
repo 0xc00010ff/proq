@@ -10,8 +10,8 @@
 
 /* Execution mode dropdown: selected item yields bg to hovered sibling */
 .exec-mode-selected {
-  background: rgb(39 39 42 / 0.6); /* zinc-800/60 */
-  color: var(--text-chrome-active);
+  background: rgb(var(--surface-hover) / 0.6);
+  color: rgb(var(--text-chrome-active));
 }
 .exec-mode-dropdown:has(> [data-highlighted]) .exec-mode-selected:not([data-highlighted]) {
   background: transparent;
@@ -45,17 +45,28 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Design system — semantic tokens (light) */
-    --surface-base: #f5f0e6;           /* bronze-100 */
-    --surface-primary: #faf7f1;        /* bronze-50 */
-    --surface-secondary: #ede7db;      /* bronze-200 */
-    --surface-hover: #e2dbd0;          /* bronze-300 */
-    --border-default: #e2dbd0;         /* bronze-300 */
-    --border-hover: #b8a078;           /* muted gold */
-    --border-subtle: rgba(226,219,208,0.6); /* bronze-300/60 */
-    --text-chrome: #7a7068;            /* bronze-600 */
-    --text-chrome-hover: #5c534b;      /* bronze-700 */
-    --text-chrome-active: #3a342e;     /* bronze-800 */
+    /* Design system — semantic tokens (light) — RGB channels for Tailwind opacity */
+    --surface-base: 245 240 230;       /* bronze-100 #f5f0e6 */
+    --surface-primary: 250 247 241;    /* bronze-50 #faf7f1 */
+    --surface-secondary: 237 231 219;  /* bronze-200 #ede7db */
+    --surface-hover: 226 219 208;      /* bronze-300 #e2dbd0 */
+    --surface-selected: 226 219 208;   /* bronze-300 #e2dbd0 */
+    --surface-modal: 250 247 241;      /* bronze-50 #faf7f1 */
+    --surface-topbar: 237 231 219;     /* bronze-200 #ede7db */
+    --surface-detail: 250 247 241;     /* bronze-50 #faf7f1 */
+    --surface-inset: 237 231 219;      /* bronze-200 #ede7db */
+    --surface-deep: 245 240 230;       /* bronze-100 #f5f0e6 */
+    --border-default: 226 219 208;     /* bronze-300 #e2dbd0 */
+    --border-hover: 184 160 120;       /* muted gold #b8a078 */
+    --border-subtle: 226 219 208;      /* bronze-300 (use /60 in classes) */
+    --border-strong: 184 160 120;      /* muted gold #b8a078 */
+    --text-chrome: 122 112 104;        /* bronze-600 #7a7068 */
+    --text-chrome-hover: 92 83 75;     /* bronze-700 #5c534b */
+    --text-chrome-active: 58 52 46;    /* bronze-800 #3a342e */
+    --text-primary: 24 24 27;          /* zinc-900 #18181b */
+    --text-secondary: 82 82 91;        /* zinc-600 #52525b */
+    --text-tertiary: 113 113 122;      /* zinc-500 #71717a */
+    --text-placeholder: 161 161 170;   /* zinc-400 #a1a1aa */
     --live-dot-color: rgba(0, 0, 0, 0.08); /* dot grid for live preview (light) */
   }
   .dark {
@@ -84,17 +95,28 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    /* Design system — semantic tokens (dark) */
-    --surface-base: #09090b;           /* zinc-950 */
-    --surface-primary: #18181b;        /* zinc-900 */
-    --surface-secondary: #0F0F11;            /* flat zinc-800/30 over zinc-950 */
-    --surface-hover: #18181b;          /* zinc-900 */
-    --border-default: #27272a;         /* zinc-800 */
-    --border-hover: #3a342e;           /* bronze-800 — the warm accent */
-    --border-subtle: rgba(39,39,42,0.6); /* zinc-800/60 */
-    --text-chrome: #7a7068;            /* bronze-600 — warm, not gray */
-    --text-chrome-hover: #a89d90;      /* bronze-500 — brighter warm */
-    --text-chrome-active: #a89d90;     /* bronze-500 — warm bright */
+    /* Design system — semantic tokens (dark) — RGB channels for Tailwind opacity */
+    --surface-base: 9 9 11;            /* zinc-950 #09090b */
+    --surface-primary: 24 24 27;       /* zinc-900 #18181b */
+    --surface-secondary: 19 19 21;     /* between zinc-950 and zinc-900 #131315 */
+    --surface-hover: 39 39 42;         /* zinc-800 #27272a */
+    --surface-selected: 39 39 42;      /* zinc-800 #27272a */
+    --surface-modal: 28 28 31;         /* elevated modal/popover #1c1c1f */
+    --surface-topbar: 16 16 18;        /* between base and sidebar #101012 */
+    --surface-detail: 17 17 19;        /* detail panel #111113 */
+    --surface-inset: 12 12 14;         /* input wells, recessed #0C0C0E */
+    --surface-deep: 8 8 9;             /* chat bg, terminals #080809 */
+    --border-default: 39 39 42;        /* zinc-800 #27272a */
+    --border-hover: 58 52 46;          /* bronze-800 #3a342e */
+    --border-subtle: 39 39 42;         /* zinc-800 (use /60 in classes) */
+    --border-strong: 63 63 70;         /* zinc-700 #3f3f46 */
+    --text-chrome: 122 112 104;        /* bronze-600 #7a7068 */
+    --text-chrome-hover: 168 157 144;  /* bronze-500 #a89d90 */
+    --text-chrome-active: 168 157 144; /* bronze-500 #a89d90 */
+    --text-primary: 244 244 245;       /* zinc-100 #f4f4f5 */
+    --text-secondary: 161 161 170;     /* zinc-400 #a1a1aa */
+    --text-tertiary: 113 113 122;      /* zinc-500 #71717a */
+    --text-placeholder: 82 82 91;      /* zinc-600 #52525b */
     --live-dot-color: rgba(63, 63, 70, 0.5); /* dot grid for live preview */
   }
 }
@@ -105,12 +127,28 @@
   /* Design system buttons */
   .btn-primary {
     @apply px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors;
-    @apply text-text-chrome-active bg-zinc-800/60 border border-bronze-800/50;
-    @apply hover:bg-zinc-700/60;
+    @apply text-text-chrome-active border;
+    background: rgb(var(--surface-hover) / 0.6);
+    border-color: rgb(var(--border-hover) / 0.5);
+  }
+  .btn-primary:hover {
+    background: rgb(var(--surface-hover));
   }
   .btn-secondary {
     @apply px-3 py-1.5 text-xs font-medium rounded-md transition-colors;
     @apply text-text-chrome hover:text-text-chrome-hover;
+  }
+  .btn-ghost {
+    @apply px-3 py-1.5 text-xs font-medium rounded-md transition-colors;
+    @apply text-text-tertiary hover:text-text-secondary hover:bg-surface-hover;
+  }
+  .btn-steel {
+    @apply px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors;
+    @apply text-steel border border-steel/20 bg-steel/10 hover:bg-steel/15;
+  }
+  .btn-danger {
+    @apply px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors;
+    @apply text-crimson border border-crimson/20 bg-crimson/10 hover:bg-crimson/15;
   }
 }
 
@@ -143,16 +181,16 @@
 /* Custom scrollbar — dark mode */
 .dark ::-webkit-scrollbar-track,
 .dark::-webkit-scrollbar-track {
-  background: #0F0F11;
+  background: rgb(var(--surface-secondary));
 }
 .dark ::-webkit-scrollbar-thumb,
 .dark::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-color: #0F0F11;
+  background: rgb(var(--border-default));
+  border-color: rgb(var(--surface-secondary));
 }
 .dark ::-webkit-scrollbar-thumb:hover,
 .dark::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: rgb(var(--border-strong));
 }
 
 /* Subtle pulse for locked/agent-working tasks */

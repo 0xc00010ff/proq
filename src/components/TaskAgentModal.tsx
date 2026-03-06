@@ -73,7 +73,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative flex flex-row rounded-lg border border-bronze-300 dark:border-[#222] bg-bronze-50 dark:bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
+        className="relative flex flex-row rounded-lg border border-bronze-300 dark:border-border-default bg-bronze-50 dark:bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: '100%', maxWidth: '80rem', height: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -198,7 +198,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         : 'text-bronze-500';
 
   return (
-    <header className="h-16 bg-bronze-300/20 dark:bg-zinc-900/20 flex items-center px-6 flex-shrink-0 border-b border-bronze-300 dark:border-zinc-800">
+    <header className="h-16 bg-bronze-300/20 dark:bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-bronze-300 dark:border-border-default">
       <div className="flex-1 flex items-center min-w-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -257,7 +257,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               >
                 {isActive && (
                   <div
-                    className="absolute inset-0 bg-bronze-50 dark:bg-zinc-800/60 rounded-md border border-bronze-400/50 dark:border-bronze-800/50 shadow-sm"
+                    className="absolute inset-0 bg-bronze-50 dark:bg-surface-primary rounded-md border border-bronze-400/50 dark:border-bronze-800/50 shadow-sm"
                     style={{ zIndex: -1 }}
                   />
                 )}
@@ -300,11 +300,11 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                   <DropdownMenuSeparator />
                   <div className="flex-1 min-h-0 overflow-y-auto">
                     {dirtyFiles === null ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                      <DropdownMenuItem disabled className="text-xs text-text-tertiary justify-center">
                         <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                       </DropdownMenuItem>
                     ) : dirtyFiles.length === 0 ? (
-                      <DropdownMenuItem disabled className="text-xs text-zinc-500">No changes found</DropdownMenuItem>
+                      <DropdownMenuItem disabled className="text-xs text-text-tertiary">No changes found</DropdownMenuItem>
                     ) : (
                       dirtyFiles.map((file, i) => (
                         <DropdownMenuItem key={i} className="text-xs gap-2 font-mono pointer-events-none">
@@ -356,7 +356,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     {/* Behind commits */}
                     {behind > 0 && (
                       <>
-                        <div className="sticky top-0 z-10 bg-surface-secondary border-b border-zinc-800/50 px-2 py-1.5 flex items-center justify-between">
+                        <div className="sticky top-0 z-10 bg-surface-secondary border-b border-border-subtle/60 px-2 py-1.5 flex items-center justify-between">
                           <span className="text-xs font-semibold text-crimson">{behind} Commits Behind</span>
                           {onPull && (
                             <button
@@ -370,16 +370,16 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                           )}
                         </div>
                         {behindCommits === null ? (
-                          <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                          <DropdownMenuItem disabled className="text-xs text-text-tertiary justify-center">
                             <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                           </DropdownMenuItem>
                         ) : behindCommits.length === 0 ? (
-                          <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
+                          <DropdownMenuItem disabled className="text-xs text-text-tertiary">No commits found</DropdownMenuItem>
                         ) : (
                           behindCommits.map((c, i) => (
                             <DropdownMenuItem key={i} className="text-xs gap-2 pointer-events-none">
                               <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                              <span className="truncate text-zinc-400">{c.message}</span>
+                              <span className="truncate text-text-secondary">{c.message}</span>
                             </DropdownMenuItem>
                           ))
                         )}
@@ -388,7 +388,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     {/* Ahead commits */}
                     {ahead > 0 && (
                       <>
-                        <div className="sticky top-0 z-10 bg-surface-secondary border-b border-zinc-800/50 px-2 py-1.5 flex items-center justify-between">
+                        <div className="sticky top-0 z-10 bg-surface-secondary border-b border-border-subtle/60 px-2 py-1.5 flex items-center justify-between">
                           <span className="text-xs font-semibold text-patina">{ahead} Commits Ahead</span>
                           {onPush && (
                             <button
@@ -402,16 +402,16 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                           )}
                         </div>
                         {aheadCommits === null ? (
-                          <DropdownMenuItem disabled className="text-xs text-zinc-500 justify-center">
+                          <DropdownMenuItem disabled className="text-xs text-text-tertiary justify-center">
                             <Loader2Icon className="w-3 h-3 animate-spin mr-2" /> Loading...
                           </DropdownMenuItem>
                         ) : aheadCommits.length === 0 ? (
-                          <DropdownMenuItem disabled className="text-xs text-zinc-500">No commits found</DropdownMenuItem>
+                          <DropdownMenuItem disabled className="text-xs text-text-tertiary">No commits found</DropdownMenuItem>
                         ) : (
                           aheadCommits.map((c, i) => (
                             <DropdownMenuItem key={i} className="text-xs gap-2 pointer-events-none">
                               <span className="font-mono text-bronze-500 shrink-0">{c.hash}</span>
-                              <span className="truncate text-zinc-400">{c.message}</span>
+                              <span className="truncate text-text-secondary">{c.message}</span>
                             </DropdownMenuItem>
                           ))
                         )}
@@ -419,7 +419,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     )}
                   </div>
                   {syncError && (
-                    <div className="flex-shrink-0 px-2 py-1.5 border-t border-zinc-800/50 text-[11px] text-red-400 whitespace-pre-wrap break-words max-h-24 overflow-y-auto">
+                    <div className="flex-shrink-0 px-2 py-1.5 border-t border-border-subtle/60 text-[11px] text-red-400 whitespace-pre-wrap break-words max-h-24 overflow-y-auto">
                       {syncError}
                     </div>
                   )}
@@ -547,7 +547,7 @@ function BranchItem({ branch, isCurrent, taskTitle, onSelect }: {
       {taskTitle ? (
         <>
           <span className="truncate">{taskTitle}</span>
-          <span className="ml-auto text-[10px] font-mono text-bronze-500 dark:text-zinc-600 truncate max-w-[100px]">
+          <span className="ml-auto text-[10px] font-mono text-bronze-500 dark:text-text-tertiary truncate max-w-[100px]">
             {branch.replace('proq/', '')}
           </span>
         </>
@@ -563,12 +563,12 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   A: { label: 'A', color: 'text-green-400' },
   D: { label: 'D', color: 'text-red-400' },
   R: { label: 'R', color: 'text-blue-400' },
-  '?': { label: '?', color: 'text-zinc-500' },
-  '??': { label: '?', color: 'text-zinc-500' },
+  '?': { label: '?', color: 'text-text-tertiary' },
+  '??': { label: '?', color: 'text-text-tertiary' },
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const info = STATUS_LABELS[status] || { label: status, color: 'text-zinc-400' };
+  const info = STATUS_LABELS[status] || { label: status, color: 'text-text-secondary' };
   return (
     <span className={`${info.color} font-mono w-4 text-center shrink-0`}>{info.label}</span>
   );

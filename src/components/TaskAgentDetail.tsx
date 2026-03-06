@@ -54,7 +54,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
-  const canEditTitle = (task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
+  const canEditTitle = (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [topPanelPercent, setTopPanelPercent] = useState(30);
   const [rightPanelPercent, setRightPanelPercent] = useState(33);

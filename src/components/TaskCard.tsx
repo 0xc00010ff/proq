@@ -77,7 +77,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
           ? 'border-zinc-500/30'
           : 'border-border-default'}
         ${flash ? 'ring-1 ring-gold/50 shadow-[0_0_12px_rgba(200,170,80,0.2)]' : ''}
-        ${isDragOverlay ? 'ring-1 ring-steel-dark shadow-lg shadow-black/30' : `hover:bg-surface-hover/50 cursor-pointer ${isRunning ? '' : 'hover:border-border-hover'}`}
+        ${isDragOverlay ? 'ring-1 ring-steel-dark shadow-lg shadow-black/30' : `hover:bg-surface-hover/50 cursor-pointer ${isRunning ? '' : 'hover:border-border-hover/50'}`}
         transition-shadow duration-700
       `}
       onClick={() => !isDragOverlay && onClick?.(task)}

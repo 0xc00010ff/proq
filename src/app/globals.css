@@ -127,12 +127,13 @@
   /* Design system buttons */
   .btn-primary {
     @apply px-3 py-1.5 text-xs font-medium rounded-md shadow-sm transition-colors;
-    @apply text-text-chrome-active border;
+    @apply text-text-chrome border border-border-strong/60;
     background: rgb(var(--surface-hover) / 0.6);
-    border-color: rgb(var(--border-hover) / 0.5);
   }
   .btn-primary:hover {
+    @apply text-text-chrome-active;
     background: rgb(var(--surface-hover));
+    border-color: rgb(var(--border-hover) / 0.5);
   }
   .btn-secondary {
     @apply px-3 py-1.5 text-xs font-medium rounded-md transition-colors;

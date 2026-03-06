@@ -54,7 +54,7 @@
     --surface-detail: 250 247 241;     /* clean reading surface #faf7f1 */
     --surface-primary: 252 249 244;    /* elevated highlights #fcf9f4 */
     --surface-modal: 254 252 248;      /* topmost — modals #fefcf8 */
-    --surface-hover: 237 232 224;      /* hover states — subtle darken #ede8e0 */
+    --surface-hover: 225 218 207;      /* hover states — subtle darken #e1dacf */
     --surface-selected: 237 232 224;   /* selected states #ede8e0 */
     --border-default: 234 229 221;     /* subtle bronze #eae5dd */
     --border-hover: 210 200 184;       /* soft bronze #d2c8b8 */

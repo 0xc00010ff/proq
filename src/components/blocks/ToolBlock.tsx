@@ -183,7 +183,7 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
 
         {/* Tool name + summary */}
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-xs font-medium text-bronze-700 dark:text-text-secondary shrink-0">{displayName}</span>
+          <span className="text-xs font-medium text-bronze-700 dark:text-text-primary shrink-0">{displayName}</span>
           <span className="text-xs text-bronze-500 dark:text-text-tertiary truncate">{summary}</span>
         </span>
 

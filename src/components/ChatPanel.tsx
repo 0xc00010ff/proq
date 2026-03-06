@@ -224,10 +224,10 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
               </div>
             ) : (
               <div className="flex items-baseline gap-2">
-                <div className="inline-flex flex-col bg-surface-primary/50 rounded px-2.5 py-1">
+                <div className="inline-flex flex-col bg-bronze-200/60 dark:bg-surface-topbar rounded px-2.5 py-1">
                   <div className="flex items-baseline gap-2">
                     <span className="text-xs font-bold text-bronze-500 shrink-0">{'\u276F'}</span>
-                    <p className="text-sm leading-relaxed text-text-secondary">{msg.message}</p>
+                    <p className="text-sm leading-relaxed text-bronze-800 dark:text-text-primary">{msg.message}</p>
                   </div>
                   {msg.attachments && msg.attachments.length > 0 && (
                     <AttachmentPreview attachments={msg.attachments} />

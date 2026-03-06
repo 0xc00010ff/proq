@@ -26,7 +26,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
   const isRunning = task.agentStatus === 'running';
   const isStarting = task.agentStatus === 'starting';
   const isActive = isRunning || isStarting;
-  const canEditTitle = (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done') && !!onUpdateTitle;
+  const canEditTitle = !!onUpdateTitle;
 
   // Track findings changes to trigger flash animation
   const [flash, setFlash] = useState(false);

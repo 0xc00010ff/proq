@@ -410,7 +410,7 @@ export default function SupervisorPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-bronze-600 hover:bg-surface-hover"
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-chrome-hover hover:bg-surface-hover"
                 title="Attach file"
               >
                 <PaperclipIcon className="w-4 h-4" />

@@ -336,7 +336,7 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-text-placeholder hover:text-bronze-600 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-text-placeholder hover:text-text-chrome-hover disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={isLoading}
             title="Attach file"
           >

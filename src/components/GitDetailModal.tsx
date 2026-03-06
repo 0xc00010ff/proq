@@ -178,7 +178,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
         {type === 'log' && selectedCommit && (
           <button
             onClick={handleBack}
-            className="text-text-chrome hover:text-bronze-600 p-1 rounded hover:bg-zinc-800/50"
+            className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-zinc-800/50"
           >
             <ArrowLeftIcon className="w-4 h-4" />
           </button>
@@ -194,14 +194,14 @@ export function GitDetailModal(props: GitDetailModalProps) {
         {currentFiles.length > 0 && (
           <button
             onClick={handleExpandCollapseAll}
-            className="text-xs text-text-chrome hover:text-bronze-600 px-2 py-1 rounded border border-zinc-700/50 shrink-0"
+            className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-zinc-700/50 shrink-0"
           >
             {allExpanded ? 'Collapse All' : 'Expand All'}
           </button>
         )}
         <button
           onClick={handleClose}
-          className="text-text-chrome hover:text-bronze-600 p-1 rounded hover:bg-zinc-800/50"
+          className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-zinc-800/50"
         >
           <XIcon className="w-4 h-4" />
         </button>
@@ -354,7 +354,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
               <div className="flex justify-center py-4">
                 <button
                   onClick={loadMore}
-                  className="text-xs text-text-chrome hover:text-bronze-600 px-3 py-1.5 rounded border border-zinc-700/50 hover:border-zinc-600"
+                  className="text-xs text-text-chrome hover:text-text-chrome-hover px-3 py-1.5 rounded border border-zinc-700/50 hover:border-zinc-600"
                 >
                   Show more
                 </button>

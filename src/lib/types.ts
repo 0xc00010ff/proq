@@ -63,7 +63,7 @@ export interface TaskAttachment {
   filePath?: string;
 }
 
-export type TaskMode = 'answer' | 'plan' | 'build';
+export type TaskMode = 'auto' | 'answer' | 'plan' | 'build';
 
 export interface FollowUpDraft {
   text: string;

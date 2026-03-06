@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import { readFile } from "fs/promises";
-import type { AgentBlock, TaskAttachment } from "./types";
+import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
 import { updateTask, getTask, getProject, getSettings } from "./db";
 import {
   notify,
@@ -587,7 +587,7 @@ export async function continueSession(
   const proqSysPrompt = buildProqSystemPrompt(
     projectId,
     taskId,
-    taskMode as "answer" | "plan" | "build" | undefined,
+    taskMode as TaskMode | undefined,
     project?.name,
   );
   systemParts.push(proqSysPrompt);

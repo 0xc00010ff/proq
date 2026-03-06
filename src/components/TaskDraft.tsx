@@ -27,7 +27,7 @@ const MAX_MODAL_VH = 0.8;
 export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToInProgress }: TaskDraftProps) {
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
-  const [mode, setMode] = useState<TaskMode>(task.mode || 'build');
+  const [mode, setMode] = useState<TaskMode>(task.mode || 'auto');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -47,7 +47,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   useEffect(() => {
     setTitle(task.title || '');
     setDescription(task.description);
-    setMode(task.mode || 'build');
+    setMode(task.mode || 'auto');
     setAttachments(task.attachments || []);
   }, [task.id]);
 
@@ -279,6 +279,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
         <div ref={headerRef} className="p-6 pt-5 pb-0 shrink-0">
           <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
             {([
+              ['auto', 'Auto', 'Bypass permissions, generic prompt.'],
               ['answer', 'Answer', 'Research only, no code changes.'],
               ['plan', 'Plan', 'Agent proposes, you approve.'],
               ['build', 'Build', 'Full autonomy. Bypass permissions.'],

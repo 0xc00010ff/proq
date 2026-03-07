@@ -216,9 +216,19 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     if (!title) triggerAutoTitle(val);
   };
 
+  const MODES: TaskMode[] = ['auto', 'answer', 'plan', 'build'];
+
   const handleModeChange = (newMode: TaskMode) => {
     setMode(newMode);
     autosave(title, description, attachments, newMode);
+  };
+
+  const cycleMode = () => {
+    setMode((cur) => {
+      const next = MODES[(MODES.indexOf(cur) + 1) % MODES.length];
+      autosave(title, description, attachments, next);
+      return next;
+    });
   };
 
   const addFiles = async (files: FileList | File[]) => {
@@ -311,7 +321,10 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Tab' && e.shiftKey) {
+                e.preventDefault();
+                cycleMode();
+              } else if (e.key === 'Enter') {
                 e.preventDefault();
                 descriptionRef.current?.focus();
               }
@@ -328,7 +341,10 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Backspace' && description === '') {
+              if (e.key === 'Tab' && e.shiftKey) {
+                e.preventDefault();
+                cycleMode();
+              } else if (e.key === 'Backspace' && description === '') {
                 e.preventDefault();
                 const input = titleRef.current;
                 if (input) {

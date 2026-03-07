@@ -533,16 +533,6 @@ export async function setAgentTabData(projectId: string, tabId: string, agentDat
   });
 }
 
-export async function deleteAgentTabData(projectId: string, tabId: string): Promise<void> {
-  return withWriteLock(`project:${projectId}`, async () => {
-    const data = getProjectData(projectId);
-    if (data.agentTabs) {
-      delete data.agentTabs[tabId];
-      writeProject(projectId, data);
-    }
-  });
-}
-
 // ═══════════════════════════════════════════════════════════
 // CHAT LOG
 // ═══════════════════════════════════════════════════════════
@@ -577,7 +567,6 @@ export async function addChatMessage(
 
 interface SupervisorData {
   chatLog: ChatLogEntry[];
-  draft?: string;
   agentBlocks?: AgentBlock[];
   sessionId?: string;
 }
@@ -599,45 +588,6 @@ function readSupervisorData(): SupervisorData {
 
 function writeSupervisorData(data: SupervisorData): void {
   writeJSON(SUPERVISOR_FILE, data);
-}
-
-export async function getSupervisorChatLog(): Promise<ChatLogEntry[]> {
-  return readSupervisorData().chatLog;
-}
-
-export async function addSupervisorMessage(
-  data: Pick<ChatLogEntry, "role" | "message" | "toolCalls">
-): Promise<ChatLogEntry> {
-  return withWriteLock("supervisor", async () => {
-    const state = readSupervisorData();
-    const entry: ChatLogEntry = {
-      role: data.role,
-      message: data.message,
-      timestamp: new Date().toISOString(),
-      toolCalls: data.toolCalls,
-    };
-    state.chatLog.push(entry);
-    writeSupervisorData(state);
-    return entry;
-  });
-}
-
-export async function clearSupervisorChatLog(): Promise<void> {
-  return withWriteLock("supervisor", async () => {
-    writeSupervisorData({ chatLog: [] });
-  });
-}
-
-export async function getSupervisorDraft(): Promise<string> {
-  return readSupervisorData().draft || "";
-}
-
-export async function setSupervisorDraft(draft: string): Promise<void> {
-  return withWriteLock("supervisor", async () => {
-    const state = readSupervisorData();
-    state.draft = draft || undefined;
-    writeSupervisorData(state);
-  });
 }
 
 export async function getSupervisorAgentBlocks(): Promise<{ agentBlocks?: AgentBlock[]; sessionId?: string }> {

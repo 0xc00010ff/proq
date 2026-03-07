@@ -693,13 +693,6 @@ export function clearSession(taskId: string): void {
   }
 }
 
-export function injectBlock(taskId: string, block: AgentBlock): void {
-  const session = sessions.get(taskId);
-  if (session) {
-    appendBlock(session, block);
-  }
-}
-
 export function isSessionRunning(taskId: string): boolean {
   const session = sessions.get(taskId);
   return session?.status === "running";

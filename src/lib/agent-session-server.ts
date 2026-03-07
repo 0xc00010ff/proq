@@ -3,43 +3,6 @@ import { getSession, attachClient, detachClient, stopSession, continueSession } 
 import { getTask, getProject } from "./db";
 import type { AgentWsClientMsg } from "./types";
 
-export async function attachAgentWs(taskId: string, ws: WebSocket): Promise<void> {
-  const session = getSession(taskId);
-
-  if (session) {
-    // Live session — replay existing blocks then subscribe
-    const replay = JSON.stringify({ type: "replay", blocks: session.blocks });
-    ws.send(replay);
-    attachClient(taskId, ws);
-  } else {
-    // No live session — try to load persisted agentBlocks from DB
-    // Parse projectId from the task by searching all projects
-    // For simplicity, we scan — the caller should pass projectId via query param
-    // We'll handle this in ws-server.ts by passing projectId
-    const sent = await tryReplayFromDb(taskId, ws);
-    if (!sent) {
-      ws.send(JSON.stringify({ type: "error", error: "No session found" }));
-    }
-  }
-
-  ws.on("message", (raw) => {
-    try {
-      const msg: AgentWsClientMsg = JSON.parse(raw.toString());
-      if (msg.type === "stop") {
-        stopSession(taskId);
-      }
-      // Follow-up not implemented in v1 — would need SDK resume support
-    } catch {
-      // ignore malformed messages
-    }
-  });
-
-  ws.on("close", () => {
-    detachClient(taskId, ws);
-  });
-}
-
-// Project ID will be passed as a query param from the client
 export async function attachAgentWsWithProject(
   taskId: string,
   projectId: string,
@@ -87,10 +50,4 @@ export async function attachAgentWsWithProject(
   ws.on("close", () => {
     detachClient(taskId, ws);
   });
-}
-
-async function tryReplayFromDb(taskId: string, ws: WebSocket): Promise<boolean> {
-  // Without projectId we can't look up the task — return false
-  // The client should use the /ws/agent?taskId=X&projectId=Y endpoint
-  return false;
 }

@@ -244,7 +244,7 @@ function popStashAt(projectPath: string, index: number): boolean {
 }
 
 /** Convert a proq/* branch name to its preview equivalent */
-export function previewBranchName(proqBranch: string): string {
+function previewBranchName(proqBranch: string): string {
   // proq/abc12345 → proq-preview/abc12345
   return PREVIEW_PREFIX + proqBranch.slice(PROQ_PREFIX.length);
 }
@@ -403,7 +403,7 @@ export function refreshPreviewBranch(
 }
 
 /** Delete a preview branch (cleanup helper) */
-export function deletePreviewBranch(
+function deletePreviewBranch(
   projectPath: string,
   proqBranch: string,
 ): void {
@@ -777,7 +777,7 @@ export function gitInit(projectPath: string): void {
   console.log(`[git] initialized repo in ${projectPath}`);
 }
 
-export function ensureGitignore(projectPath: string): void {
+function ensureGitignore(projectPath: string): void {
   const gitignorePath = join(projectPath, ".gitignore");
   try {
     if (existsSync(gitignorePath)) {

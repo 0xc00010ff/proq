@@ -1,6 +1,4 @@
 // ── Project ──────────────────────────────────────────────
-export type ProjectStatus = 'active' | 'review' | 'idle' | 'error';
-
 export type ProjectTab = 'project' | 'live' | 'code';
 export type ViewType = 'kanban' | 'list';
 
@@ -8,7 +6,7 @@ export interface Project {
   id: string;
   name: string;
   path: string;
-  status?: ProjectStatus;
+  status?: 'active' | 'review' | 'idle' | 'error';
   serverUrl?: string;
   order?: number;
   pathValid?: boolean;

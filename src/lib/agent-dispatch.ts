@@ -206,10 +206,6 @@ export function cancelCleanup(taskId: string) {
   }
 }
 
-export function getCleanupExpiresAt(taskId: string): number | null {
-  return cleanupTimers.get(taskId)?.expiresAt ?? null;
-}
-
 export function getAllCleanupTimes(): Record<string, number> {
   const result: Record<string, number> = {};
   cleanupTimers.forEach((entry, taskId) => {

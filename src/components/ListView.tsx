@@ -27,6 +27,7 @@ import {
   Loader2Icon,
   ClockIcon,
   Trash2Icon,
+  EyeIcon,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft } from '@/lib/types';
 import { COLUMNS, AddTaskButton } from './KanbanBoard';
@@ -200,7 +201,12 @@ function SortableListRow({
 
         {/* Footer: status + agent indicator + task ID */}
         <div className="flex items-center mt-2">
-          {isQueued ? (
+          {isPreviewActive && !isRunning && !isStarting && !isQueued ? (
+            <div className="flex items-center gap-1.5">
+              <EyeIcon className="w-3 h-3 text-lazuli" />
+              <span className="text-[10px] text-lazuli font-medium uppercase tracking-wide">Previewing</span>
+            </div>
+          ) : isQueued ? (
             <div className="flex items-center gap-1.5">
               <ClockIcon className="w-3 h-3 text-text-secondary" />
               <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">Queued</span>

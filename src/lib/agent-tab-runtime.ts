@@ -267,7 +267,7 @@ export async function startAgentTabSession(
 
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
-  systemParts.push(`You are a coding assistant working on the "${projectName}" project in ${cwd}.`);
+  systemParts.push(`You are a coding assistant inside proq, a kanban-style code editor that manages tasks and projects. You are working on the "${projectName}" project in ${cwd}. proq has a REST API at http://localhost:1337 — you can create tasks (POST /api/projects/{id}/tasks), list them (GET), update them (PATCH), and more. The current project ID is "${projectId}".`);
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
   const claudeBin = await getClaudeBin();
@@ -354,7 +354,7 @@ export async function continueAgentTabSession(
 
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
-  systemParts.push(`You are a coding assistant working on the "${projectName}" project in ${cwd}.`);
+  systemParts.push(`You are a coding assistant inside proq, a kanban-style code editor that manages tasks and projects. You are working on the "${projectName}" project in ${cwd}. proq has a REST API at http://localhost:1337 — you can create tasks (POST /api/projects/{id}/tasks), list them (GET), update them (PATCH), and more. The current project ID is "${projectId}".`);
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
   const claudeBin = await getClaudeBin();

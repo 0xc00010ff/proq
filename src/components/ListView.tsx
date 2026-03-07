@@ -27,6 +27,7 @@ import {
   Loader2Icon,
   ClockIcon,
   Trash2Icon,
+  EyeIcon,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft } from '@/lib/types';
 import { COLUMNS, AddTaskButton } from './KanbanBoard';
@@ -114,12 +115,14 @@ function DroppableSection({
 function SortableListRow({
   task,
   isSelected,
+  isPreviewActive,
   col,
   onClick,
   onDelete,
 }: {
   task: Task;
   isSelected: boolean;
+  isPreviewActive?: boolean;
   col: typeof COLUMNS[number] | undefined;
   onClick: (task: Task) => void;
   onDelete?: (taskId: string) => void;
@@ -153,7 +156,9 @@ function SortableListRow({
       <button
         onClick={() => onClick(task)}
         className={`relative w-full text-left px-6 py-2.5 ${
-          isSelected
+          isPreviewActive
+            ? 'bg-lazuli/5 border-l-2 border-lazuli/50'
+            : isSelected
             ? 'bg-surface-selected'
             : 'hover:bg-surface-hover/40'
         }`}
@@ -196,7 +201,12 @@ function SortableListRow({
 
         {/* Footer: status + agent indicator + task ID */}
         <div className="flex items-center mt-2">
-          {isQueued ? (
+          {isPreviewActive && !isRunning && !isStarting && !isQueued ? (
+            <div className="flex items-center gap-1.5">
+              <EyeIcon className="w-3 h-3 text-lazuli" />
+              <span className="text-[10px] text-lazuli font-medium uppercase tracking-wide">Previewing</span>
+            </div>
+          ) : isQueued ? (
             <div className="flex items-center gap-1.5">
               <ClockIcon className="w-3 h-3 text-text-secondary" />
               <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">Queued</span>
@@ -542,16 +552,20 @@ export function ListView({
                       </div>
                     )}
 
-                    {statusTasks.map((task) => (
-                      <SortableListRow
-                        key={task.id}
-                        task={task}
-                        isSelected={task.id === selectedTaskId}
-                        col={col}
-                        onClick={handleRowClick}
-                        onDelete={onDeleteTask}
-                      />
-                    ))}
+                    {statusTasks.map((task) => {
+                      const isPreviewActive = !!(currentBranch && task.branch && task.branch === currentBranch && currentBranch !== 'main' && currentBranch !== 'master');
+                      return (
+                        <SortableListRow
+                          key={task.id}
+                          task={task}
+                          isSelected={task.id === selectedTaskId}
+                          isPreviewActive={isPreviewActive}
+                          col={col}
+                          onClick={handleRowClick}
+                          onDelete={onDeleteTask}
+                        />
+                      );
+                    })}
                   </SortableContext>
                 </DroppableSection>
                 </React.Fragment>

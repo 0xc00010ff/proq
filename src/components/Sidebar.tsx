@@ -45,6 +45,10 @@ function folderName(project: Project): string {
   return p.split("/").pop() || project.name;
 }
 
+function displayPath(path: string): string {
+  return path.replace(/^\/Users\/[^/]+/, "~").replace(/^\/home\/[^/]+/, "~");
+}
+
 interface SidebarProps {
   onAddProject: () => void;
   onMissingPath?: (project: Project) => void;
@@ -307,9 +311,9 @@ function SortableProject({
         {/* Path */}
         <div
           title={project.path}
-          className={`text-[11px] font-mono mt-0.5 truncate ${pathInvalid ? "text-crimson/60 dark:text-crimson/50" : "text-text-tertiary"}`}
+          className={`text-[11px] mt-0.5 truncate ${pathInvalid ? "text-crimson/60 dark:text-crimson/50" : "text-text-placeholder"}`}
         >
-          {project.path}
+          {displayPath(project.path)}
         </div>
 
         {/* Task Summary */}

@@ -356,12 +356,13 @@ export default function SettingsPage() {
                 label="Git"
               />
               <div className="space-y-4">
-                <Field label="Default branch" hint="Default branch selection coming soon.">
+                <Field label="Default branch" hint="Global default used when a project doesn't specify its own. Override per-project in project settings.">
                   <input
                     type="text"
-                    value="main"
-                    disabled
-                    className={`${inputClass} opacity-50 cursor-not-allowed`}
+                    value={settings.defaultBranch}
+                    onChange={(e) => update("defaultBranch", e.target.value)}
+                    placeholder="main"
+                    className={inputClass}
                   />
                 </Field>
               </div>

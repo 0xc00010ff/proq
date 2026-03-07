@@ -216,7 +216,9 @@ export async function getProject(id: string): Promise<Project | undefined> {
 
 export async function getProjectDefaultBranch(projectId: string): Promise<string> {
   const project = await getProject(projectId);
-  return project?.defaultBranch || "main";
+  if (project?.defaultBranch) return project.defaultBranch;
+  const settings = await getSettings();
+  return settings.defaultBranch || "main";
 }
 
 function uniqueSlug(base: string, existing: string[]): string {

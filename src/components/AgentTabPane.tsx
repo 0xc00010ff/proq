@@ -14,6 +14,9 @@ import type { ToolGroupItem } from './blocks/ToolGroupBlock';
 import { StatusBlock } from './blocks/StatusBlock';
 import { UserBlock } from './blocks/UserBlock';
 
+// Persist drafts across project switches (survives unmount/remount)
+const draftMap = new Map<string, string>();
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -32,7 +35,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(() => draftMap.get(tabId) || '');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
@@ -63,11 +66,18 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     if (!ta) return;
     ta.style.height = '0';
     const sh = ta.scrollHeight;
-    ta.style.height = Math.max(36, Math.min(sh, 160)) + 'px';
+    ta.style.height = Math.max(36, Math.min(sh, 300)) + 'px';
+  }, []);
+
+  // Resize textarea on mount if there's a restored draft
+  useEffect(() => {
+    if (inputValue) resizeTextarea();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
+    draftMap.set(tabId, e.target.value);
     resizeTextarea();
   };
 
@@ -85,6 +95,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     if (!text && attachments.length === 0) return;
     sendMessage(text, attachments.length > 0 ? attachments : undefined);
     setInputValue('');
+    draftMap.delete(tabId);
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -362,7 +373,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
             placeholder="Send a message..."
             rows={1}
             style={{ height: '36px' }}
-            className="w-full min-h-[36px] max-h-[160px] resize-none overflow-hidden bg-transparent px-3 pt-3 pb-2 text-sm leading-[20px] text-text-secondary placeholder:text-text-placeholder focus:outline-none"
+            className="w-full min-h-[36px] max-h-[300px] resize-none overflow-y-auto bg-transparent px-3 pt-3 pb-2 text-sm leading-[20px] text-text-secondary placeholder:text-text-placeholder focus:outline-none"
           />
 
           {/* Bottom bar */}

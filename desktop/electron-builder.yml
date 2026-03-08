@@ -1,0 +1,29 @@
+appId: com.proq.desktop
+productName: proq
+directories:
+  output: release
+  buildResources: assets
+files:
+  - "dist-main/**/*"
+  - "dist-renderer/**/*"
+  - "assets/**/*"
+  - "package.json"
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - universal
+    - target: zip
+      arch:
+        - universal
+  icon: assets/icon.icns
+  hardenedRuntime: true
+  entitlements: assets/entitlements.mac.plist
+  entitlementsInherit: assets/entitlements.mac.plist
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  icon: assets/icon.png

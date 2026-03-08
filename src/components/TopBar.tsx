@@ -212,7 +212,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-1.5 ml-1 text-text-chrome hover:text-text-chrome-hover">
-              <h1 className="text-base font-semibold leading-none truncate">
+              <h1 className="text-base font-semibold leading-tight truncate">
                 {project.name}
               </h1>
               <ChevronDownIcon className="w-4 h-4 shrink-0" />

@@ -19,7 +19,6 @@ import {
   gitLogFull,
   gitShowCommit,
   gitLogPaginated,
-  gitTaskCommits,
   gitCommitsByHash,
 } from "@/lib/worktree";
 import { getTask } from "@/lib/db";
@@ -256,29 +255,9 @@ ${diff.slice(0, 12000)}`;
         return NextResponse.json({ error: "Task not found" }, { status: 404 });
       }
 
-      // Prefer explicit commitHashes (recorded by MCP commit_changes tool)
-      if (task.commitHashes?.length) {
-        const commits = gitCommitsByHash(projectPath, task.commitHashes);
-        return NextResponse.json({ commits });
-      }
-
-      // Fallback: range-based lookup (parallel mode branch range, or legacy startCommit)
-      let fromRef: string | null = null;
-      let toRef = "HEAD";
-
-      if (task.branch) {
-        fromRef = task.baseBranch || "main";
-        toRef = task.branch;
-      } else if (task.startCommit) {
-        fromRef = task.startCommit;
-        toRef = task.endCommit || "HEAD";
-      }
-
-      if (!fromRef) {
-        return NextResponse.json({ commits: [] });
-      }
-
-      const commits = gitTaskCommits(projectPath, fromRef, toRef);
+      const commits = task.commitHashes?.length
+        ? gitCommitsByHash(projectPath, task.commitHashes)
+        : [];
       return NextResponse.json({ commits });
     }
 

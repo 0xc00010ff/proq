@@ -228,9 +228,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   }, [task.title]);
 
   // Fetch commits for this task
+  const hasCommitTracking = !!(task.commitHashes?.length || task.branch || task.startCommit);
   useEffect(() => {
     if (task.status === 'todo') return;
-    if (!task.branch && !task.startCommit) return;
+    if (!hasCommitTracking && !isDispatched) return;
 
     const fetchCommits = () => {
       fetch(`/api/projects/${projectId}/git`, {
@@ -252,7 +253,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       const interval = setInterval(fetchCommits, 15_000);
       return () => clearInterval(interval);
     }
-  }, [projectId, task.id, task.status, task.branch, task.startCommit, isDispatched]);
+  }, [projectId, task.id, task.status, hasCommitTracking, isDispatched]);
 
   const commitTitle = () => {
     const trimmed = (titleRef.current?.textContent || '').trim();
@@ -590,7 +591,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             ) : commits.length === 0 ? (
               <p className="text-xs text-text-placeholder italic">
                 {task.status === 'todo' ? 'No commits yet.' :
-                  !task.branch && !task.startCommit ? 'Commit tracking not available for this task.' :
+                  !hasCommitTracking ? 'Commit tracking not available for this task.' :
                   'No commits yet.'}
               </p>
             ) : (

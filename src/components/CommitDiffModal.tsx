@@ -140,15 +140,9 @@ export function CommitDiffModal({ isOpen, onClose, projectId, commitHash, commit
   );
 }
 
-// ── All Commits Diff Modal ──────────────────────────────
+// ── All Commits Diff Modal (drill-down) ──────────────────────────────
 
-interface CommitWithDiff {
-  hash: string;
-  message: string;
-  date: string;
-  files: FileDiff[];
-  loading: boolean;
-}
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 interface AllCommitsDiffModalProps {
   isOpen: boolean;
@@ -158,78 +152,76 @@ interface AllCommitsDiffModalProps {
 }
 
 export function AllCommitsDiffModal({ isOpen, onClose, projectId, commits }: AllCommitsDiffModalProps) {
-  const [commitDiffs, setCommitDiffs] = useState<CommitWithDiff[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [files, setFiles] = useState<FileDiff[]>([]);
+  const [loading, setLoading] = useState(false);
   const [openFiles, setOpenFiles] = useState<Set<string>>(new Set());
-  const [loadingCount, setLoadingCount] = useState(0);
+  const [parsedMessage, setParsedMessage] = useState('');
   const abortRef = useRef(false);
 
+  // Cache fetched diffs so navigating back/forth doesn't re-fetch
+  const cacheRef = useRef<Map<string, { files: FileDiff[]; message: string }>>(new Map());
+
+  // Reset when modal closes/opens
   useEffect(() => {
-    if (!isOpen || commits.length === 0) return;
-    abortRef.current = false;
+    if (!isOpen) {
+      setSelectedIdx(null);
+      setFiles([]);
+      setOpenFiles(new Set());
+      setLoading(false);
+      cacheRef.current.clear();
+    }
+  }, [isOpen]);
 
-    // Initialize with loading state
-    const initial: CommitWithDiff[] = commits.map((c) => ({
-      hash: c.hash,
-      message: c.message,
-      date: c.date,
-      files: [],
-      loading: true,
-    }));
-    setCommitDiffs(initial);
+  const selectCommit = useCallback(async (idx: number) => {
+    const commit = commits[idx];
+    if (!commit) return;
+    setSelectedIdx(idx);
     setOpenFiles(new Set());
-    setLoadingCount(commits.length);
 
-    // Fetch all diffs in parallel
-    commits.forEach((commit, idx) => {
-      fetch(`/api/projects/${projectId}/git`, {
+    // Check cache first
+    const cached = cacheRef.current.get(commit.hash);
+    if (cached) {
+      setFiles(cached.files);
+      setParsedMessage(cached.message);
+      setOpenFiles(new Set(cached.files.map((f, i) => `${i}:${f.fileName}`)));
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setFiles([]);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/git`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'show-commit', hash: commit.hash }),
-      })
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (abortRef.current) return;
-          const parsed = data ? parseCommitShow(data.diff || '') : { files: [], message: '', hash: '' };
-          setCommitDiffs((prev) => {
-            const next = [...prev];
-            next[idx] = {
-              ...next[idx],
-              files: parsed.files,
-              message: parsed.message || commit.message,
-              loading: false,
-            };
-            return next;
-          });
-          // Build open files set for this commit
-          setOpenFiles((prev) => {
-            const next = new Set(prev);
-            for (let i = 0; i < parsed.files.length; i++) {
-              next.add(`${idx}:${i}:${parsed.files[i].fileName}`);
-            }
-            return next;
-          });
-          setLoadingCount((c) => c - 1);
-        })
-        .catch(() => {
-          if (abortRef.current) return;
-          setCommitDiffs((prev) => {
-            const next = [...prev];
-            next[idx] = { ...next[idx], loading: false };
-            return next;
-          });
-          setLoadingCount((c) => c - 1);
-        });
-    });
-
-    return () => { abortRef.current = true; };
-  }, [isOpen, projectId, commits]);
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const parsed = parseCommitShow(data.diff || '');
+        cacheRef.current.set(commit.hash, { files: parsed.files, message: parsed.message || commit.message });
+        setFiles(parsed.files);
+        setParsedMessage(parsed.message || commit.message);
+        setOpenFiles(new Set(parsed.files.map((f, i) => `${i}:${f.fileName}`)));
+      }
+    } catch { /* best effort */ }
+    setLoading(false);
+  }, [commits, projectId]);
 
   const handleClose = useCallback(() => {
     abortRef.current = true;
-    setCommitDiffs([]);
+    setSelectedIdx(null);
+    setFiles([]);
     setOpenFiles(new Set());
     onClose();
   }, [onClose]);
+
+  const handleBack = useCallback(() => {
+    setSelectedIdx(null);
+    setFiles([]);
+    setOpenFiles(new Set());
+  }, []);
 
   const toggleFile = useCallback((key: string) => {
     setOpenFiles((prev) => {
@@ -240,16 +232,20 @@ export function AllCommitsDiffModal({ isOpen, onClose, projectId, commits }: All
     });
   }, []);
 
-  const allFileKeys = commitDiffs.flatMap((c, ci) => c.files.map((f, fi) => `${ci}:${fi}:${f.fileName}`));
-  const allExpanded = allFileKeys.length > 0 && allFileKeys.every((k) => openFiles.has(k));
+  const allExpanded = files.length > 0 && openFiles.size >= files.length;
 
   const handleExpandCollapseAll = useCallback(() => {
     if (allExpanded) {
       setOpenFiles(new Set());
     } else {
-      setOpenFiles(new Set(allFileKeys));
+      setOpenFiles(new Set(files.map((f, i) => `${i}:${f.fileName}`)));
     }
-  }, [allExpanded, allFileKeys]);
+  }, [allExpanded, files]);
+
+  const selectedCommit = selectedIdx !== null ? commits[selectedIdx] : null;
+  const messageLines = parsedMessage.split('\n');
+  const title = messageLines[0];
+  const body = messageLines.slice(1).join('\n').replace(/^\n+/, '');
 
   return (
     <Modal
@@ -258,64 +254,104 @@ export function AllCommitsDiffModal({ isOpen, onClose, projectId, commits }: All
       showClose={false}
       className="w-[50vw] min-w-[40vw] max-w-[80vw] h-[80vh] flex flex-col resize overflow-auto"
     >
-      <div className="px-3 border-b border-border-default flex items-center gap-2 shrink-0 h-[48px]">
-        <h3 className="flex-1 min-w-0 truncate flex items-center">
-          <span className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wide leading-none">
-            All Changes
-            <span className="ml-1.5 normal-case tracking-normal text-text-placeholder font-normal">
-              ({commits.length} {commits.length === 1 ? 'commit' : 'commits'})
-            </span>
-          </span>
-        </h3>
-        {loadingCount > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-text-placeholder shrink-0">
-            <Loader2Icon className="w-3 h-3 animate-spin" />
-            {loadingCount} loading
-          </span>
-        )}
-        {allFileKeys.length > 0 && (
-          <button
-            onClick={handleExpandCollapseAll}
-            className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
-          >
-            {allExpanded ? 'Collapse All' : 'Expand All'}
-          </button>
-        )}
-        <button
-          onClick={handleClose}
-          className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
-        >
-          <XIcon className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-auto min-h-0">
-        {commitDiffs.map((commit, ci) => (
-          <div key={commit.hash}>
-            {/* Commit header */}
-            <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2.5 border-b border-border-default bg-surface-modal">
-              <GitCommitHorizontalIcon className="w-3.5 h-3.5 text-text-placeholder shrink-0" />
-              <code className="text-[10px] font-mono text-text-chrome shrink-0">{commit.hash}</code>
-              <span className="text-xs text-text-primary truncate flex-1 min-w-0">{commit.message.split('\n')[0]}</span>
-              <span className="text-[10px] text-text-placeholder shrink-0">{commit.date}</span>
-            </div>
-            {commit.loading ? (
-              <div className="flex items-center gap-2 px-5 py-3 text-text-placeholder">
-                <Loader2Icon className="w-3.5 h-3.5 animate-spin" />
+      {selectedIdx === null ? (
+        /* ── Commit list view ── */
+        <>
+          <div className="px-3 border-b border-border-default flex items-center gap-2 shrink-0 h-[48px]">
+            <h3 className="flex-1 min-w-0 truncate flex items-center">
+              <span className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wide leading-none">
+                All Changes
+                <span className="ml-1.5 normal-case tracking-normal text-text-placeholder font-normal">
+                  ({commits.length} {commits.length === 1 ? 'commit' : 'commits'})
+                </span>
+              </span>
+            </h3>
+            <button
+              onClick={handleClose}
+              className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto min-h-0">
+            {commits.map((commit, idx) => (
+              <button
+                key={commit.hash}
+                onClick={() => selectCommit(idx)}
+                className="flex items-center gap-2 px-4 py-2.5 w-full text-left border-b border-border-default hover:bg-surface-hover/40 transition-colors cursor-pointer"
+              >
+                <GitCommitHorizontalIcon className="w-3.5 h-3.5 text-text-placeholder shrink-0" />
+                <code className="text-[10px] font-mono text-text-chrome shrink-0">{commit.hash}</code>
+                <span className="text-xs text-text-secondary truncate flex-1 min-w-0">{commit.message.split('\n')[0]}</span>
+                <span className="text-[10px] text-text-placeholder shrink-0">{commit.date}</span>
+                <ChevronRightIcon className="w-3.5 h-3.5 text-text-placeholder shrink-0" />
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        /* ── Commit detail view (file diffs) ── */
+        <>
+          <div className="px-3 border-b border-border-default flex items-center gap-2 shrink-0 h-[48px]">
+            <button
+              onClick={handleBack}
+              className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50 shrink-0"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+            </button>
+            <h3 className="flex-1 min-w-0 truncate flex items-center">
+              <span className="text-sm font-semibold">
+                <span className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wide leading-none mr-1.5">commit</span>
+                <span className="font-mono text-text-chrome leading-none">{selectedCommit?.hash}</span>
+              </span>
+            </h3>
+            {files.length > 0 && (
+              <button
+                onClick={handleExpandCollapseAll}
+                className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
+              >
+                {allExpanded ? 'Collapse All' : 'Expand All'}
+              </button>
+            )}
+            <button
+              onClick={handleClose}
+              className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto min-h-0">
+            {loading && (
+              <div className="flex items-center justify-center py-12 text-text-tertiary">
+                <Loader2Icon className="w-5 h-5 animate-spin mr-2" />
                 <span className="text-xs">Loading diff...</span>
               </div>
-            ) : commit.files.length > 0 ? (
-              commit.files.map((file, fi) => {
-                const key = `${ci}:${fi}:${file.fileName}`;
-                return (
-                  <FileDiffAccordion key={key} file={file} isOpen={openFiles.has(key)} onToggle={() => toggleFile(key)} />
-                );
-              })
-            ) : (
-              <div className="px-5 py-3 text-xs text-text-placeholder italic">No file changes</div>
+            )}
+            {!loading && files.length > 0 && (
+              <>
+                <div className="px-5 py-3 border-b border-border-default space-y-3">
+                  <p className="text-sm text-text-primary font-medium">{title}</p>
+                  {body && (
+                    <p className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed">{body}</p>
+                  )}
+                  <FileStatSummary files={files} />
+                </div>
+                {files.map((file, i) => {
+                  const key = `${i}:${file.fileName}`;
+                  return (
+                    <FileDiffAccordion key={key} file={file} isOpen={openFiles.has(key)} onToggle={() => toggleFile(key)} />
+                  );
+                })}
+              </>
+            )}
+            {!loading && files.length === 0 && (
+              <div className="flex items-center justify-center py-12 text-text-tertiary text-xs">
+                No file changes
+              </div>
             )}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </Modal>
   );
 }

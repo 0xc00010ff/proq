@@ -590,7 +590,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                       onClick={() => { setSelectedCommitHash(commit.hash); setSelectedCommitMessage(commit.message); }}
                       className="flex items-start gap-2 py-1 w-full text-left rounded hover:bg-surface-hover/40 px-1 -mx-1 transition-colors cursor-pointer"
                     >
-                      <code className="text-[10px] font-mono text-text-placeholder shrink-0 mt-0.5">{commit.hash}</code>
+                      <code className="text-[10px] font-mono text-text-chrome shrink-0 mt-0.5">{commit.hash}</code>
                       <span className="text-xs text-text-secondary leading-snug flex-1 min-w-0 text-left">{commit.message}</span>
                       <span className="text-[10px] text-text-placeholder shrink-0 mt-0.5">{commit.date}</span>
                     </button>
@@ -598,7 +598,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 </div>
                 <button
                   onClick={() => setShowAllCommits(true)}
-                  className="mt-2 text-[11px] font-medium text-text-chrome hover:text-text-chrome-hover"
+                  className="mt-2 w-full text-center text-[11px] font-medium text-text-chrome hover:text-text-chrome-hover"
                 >
                   See all diffs
                 </button>

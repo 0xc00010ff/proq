@@ -556,9 +556,11 @@ export default function ProjectPage() {
       body: JSON.stringify({ title: '', description: '' }),
     });
     const newTask: Task = await res.json();
-    // Add to local state immediately so deleteTask can find it on discard
+    // Add to local state immediately so deleteTask can find it on discard.
+    // Guard against duplicates — SSE task-created may arrive before the POST response.
     setTasksByProject((prev) => {
       const cols = prev[projectId] || emptyColumns();
+      if (cols.todo.some((t) => t.id === newTask.id)) return prev;
       return { ...prev, [projectId]: { ...cols, todo: [newTask, ...cols.todo] } };
     });
     setModalTask(newTask);

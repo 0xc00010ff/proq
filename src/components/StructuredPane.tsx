@@ -46,6 +46,8 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [showCosts, setShowCosts] = useState(false);
+  // Track user-originated input changes to avoid external sync overwriting them
+  const localChangeRef = useRef(false);
 
   // Fetch showCosts setting once on mount
   useEffect(() => {
@@ -93,8 +95,14 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync input when draft is set externally (e.g., conflict resolution prompt)
+  // Skip if the change originated from user typing (localChangeRef)
   const prevDraftRef = useRef(followUpDraft?.text);
   useEffect(() => {
+    if (localChangeRef.current) {
+      localChangeRef.current = false;
+      prevDraftRef.current = followUpDraft?.text;
+      return;
+    }
     if (followUpDraft?.text && followUpDraft.text !== prevDraftRef.current) {
       setInputValue(followUpDraft.text);
       setAttachments(followUpDraft.attachments ?? []);
@@ -114,6 +122,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
+    localChangeRef.current = true;
     setInputValue(val);
     syncDraft(val, attachments);
     resizeTextarea();
@@ -121,6 +130,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const uploaded = await uploadFiles(files);
+    localChangeRef.current = true;
     setAttachments((prev) => {
       const updated = [...prev, ...uploaded];
       syncDraft(inputValue, updated);
@@ -129,6 +139,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
   }, [inputValue, syncDraft]);
 
   const removeAttachment = useCallback((id: string) => {
+    localChangeRef.current = true;
     setAttachments((prev) => {
       const updated = prev.filter((a) => a.id !== id);
       syncDraft(inputValue, updated);

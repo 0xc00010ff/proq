@@ -25,8 +25,9 @@ export function Welcome({ onNext }: WelcomeProps) {
           proq
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 15, textAlign: "center", maxWidth: 380, lineHeight: 1.6 }}>
-          proq is a vibe coding IDE built for precision.
-          Your job is to define what you want. proq orchestrates coding agents to make it real. And good.
+          proq is an agentic coding IDE.
+          <br />
+          proq simplifies local multi-agent orchestration so you can build fast and high quality software.
         </p>
       </div>
 

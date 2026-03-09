@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import logoAnimationRepeat from './assets/LogoAnimationRepeat.svg'
 
 interface SplashProps {
   onSettings?: () => void
@@ -34,18 +35,11 @@ export function Splash({ onSettings }: SplashProps): React.JSX.Element {
 
   return (
     <div className="splash-container titlebar-drag">
-      <svg
+      <img
         className="splash-logo"
-        viewBox="0 0 256 256"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M36.3813 253V16H219.618V173.41H89.6223V69.6509H165.507V121.235H128.533"
-          stroke="#E4BD89"
-          strokeWidth="27"
-        />
-      </svg>
+        src={logoAnimationRepeat}
+        alt="proq"
+      />
 
       {error ? (
         <>

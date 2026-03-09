@@ -1,0 +1,5 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M36.3813 253V16H219.618V173.41H89.6223V69.6509H165.507V121.235H128.533" stroke="#E4BD89" stroke-width="27" stroke-dasharray="976" stroke-dashoffset="976">
+<animate attributeName="stroke-dashoffset" values="976;0;-976" keyTimes="0;0.45;1" dur="2.5s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 0.58 1; 0 0 0.58 1"/>
+</path>
+</svg>

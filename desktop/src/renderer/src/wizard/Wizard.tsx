@@ -28,7 +28,13 @@ export function Wizard({ startStep, onComplete }: WizardProps): React.JSX.Elemen
     <div className="wizard-container">
       <div className="titlebar-drag" style={{ height: 28, marginTop: -16, marginBottom: -12 }} />
 
-      <div className="steps">
+      <div
+        className="steps"
+        style={{
+          opacity: step === 'welcome' ? 0 : 1,
+          transition: 'opacity 0.4s ease'
+        }}
+      >
         {STEPS.map((s, i) => (
           <div
             key={s}

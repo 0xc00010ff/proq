@@ -164,7 +164,7 @@ export function Dependencies({
           Back
         </button>
         <button className="btn-accent" onClick={onNext} disabled={!canProceed}>
-          {canProceed ? 'Next' : 'Waiting...'}
+          {canProceed ? 'Next' : 'Installing...'}
         </button>
       </div>
     </>

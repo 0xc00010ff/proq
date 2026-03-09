@@ -171,7 +171,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
           Back
         </button>
         <button className="btn-accent" onClick={handleNext} disabled={loading || !proqPath}>
-          {loading ? 'Working...' : 'Next'}
+          {loading ? 'Installing...' : 'Next'}
         </button>
       </div>
     </>

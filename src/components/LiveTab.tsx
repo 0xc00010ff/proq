@@ -6,6 +6,7 @@ import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 import WorkbenchPanel from '@/components/WorkbenchPanel';
 import { useWorkbenchTabs } from '@/components/WorkbenchTabsProvider';
+import { setAgentDraft } from '@/components/AgentTabPane';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -106,6 +107,9 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
     const tabs = getTabs(project.id, 'live');
     const target = tabs.find(t => t.type === type);
     if (target) {
+      if (type === 'agent') {
+        setAgentDraft(target.id, 'Start the dev environment');
+      }
       setActiveTabId(project.id, target.id, 'live');
     }
     onExpand();
@@ -318,7 +322,6 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
         projectPath={project.path}
         scope="live"
         agentContext="live"
-        initialAgentDraft="Start the dev environment"
         style={{ flexBasis: `${workbenchHeight}%` }}
         collapsed={workbenchCollapsed}
         onToggleCollapsed={onToggleCollapsed}

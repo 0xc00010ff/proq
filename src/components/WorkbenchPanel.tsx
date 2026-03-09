@@ -38,7 +38,6 @@ interface WorkbenchPanelProps {
   projectPath?: string;
   scope?: WorkbenchScope;
   agentContext?: string;
-  initialAgentDraft?: string;
   style?: React.CSSProperties;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -147,7 +146,7 @@ function SortableTab({
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
-export default function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, initialAgentDraft, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: WorkbenchPanelProps) {
+export default function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: WorkbenchPanelProps) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -334,7 +333,7 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
         <div className="flex-1 relative" style={{ minHeight: 0 }}>
           {tabs.map((tab) =>
             tab.type === 'agent' ? (
-              <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} visible={activeTabId === tab.id} context={agentContext} initialDraft={initialAgentDraft} />
+              <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} visible={activeTabId === tab.id} context={agentContext} />
             ) : (
               <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
             )

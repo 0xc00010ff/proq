@@ -17,6 +17,11 @@ import { UserBlock } from './blocks/UserBlock';
 // Persist drafts across project switches (survives unmount/remount)
 const draftMap = new Map<string, string>();
 
+/** Pre-fill a draft message for a given tab before it mounts */
+export function setAgentDraft(tabId: string, text: string) {
+  draftMap.set(tabId, text);
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -28,16 +33,15 @@ interface AgentTabPaneProps {
   projectId: string;
   visible: boolean;
   context?: string;
-  initialDraft?: string;
 }
 
-export function AgentTabPane({ tabId, projectId, visible, context, initialDraft }: AgentTabPaneProps) {
+export function AgentTabPane({ tabId, projectId, visible, context }: AgentTabPaneProps) {
   const { blocks, sessionDone, sendMessage, stop } = useAgentTabSession(tabId, projectId, context);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
-  const [inputValue, setInputValue] = useState(() => draftMap.get(tabId) || initialDraft || '');
+  const [inputValue, setInputValue] = useState(() => draftMap.get(tabId) || '');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);

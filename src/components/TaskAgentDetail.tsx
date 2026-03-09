@@ -513,13 +513,23 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             storageKey={`task-accordion:${task.id}:summary`}
             rightContent={
               summaryLines.length > 0 ? (
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     navigator.clipboard.writeText(task.summary || '');
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
-                  className="text-text-chrome hover:text-text-chrome-hover p-0.5"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigator.clipboard.writeText(task.summary || '');
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }
+                  }}
+                  className="text-text-chrome hover:text-text-chrome-hover p-0.5 cursor-pointer"
                   title="Copy to clipboard"
                 >
                   {copied ? (
@@ -527,7 +537,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                   ) : (
                     <ClipboardCopyIcon className="w-3.5 h-3.5" />
                   )}
-                </button>
+                </div>
               ) : undefined
             }
           >

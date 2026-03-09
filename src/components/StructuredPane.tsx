@@ -278,12 +278,12 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
       // Render proq update_task as TaskUpdateBlock instead of ToolBlock
       const isProqUpdate = block.name === 'mcp__proq__update_task';
-      if (isProqUpdate && typeof block.input.findings === 'string') {
+      if (isProqUpdate && typeof block.input.summary === 'string') {
         renderItems.push({
           kind: 'block',
           block: {
             type: 'task_update',
-            findings: block.input.findings as string,
+            summary: block.input.summary as string,
             humanSteps: block.input.humanSteps as string | undefined,
             timestamp: new Date().toISOString(),
           },
@@ -434,7 +434,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                 return (
                   <TaskUpdateBlock
                     key={idx}
-                    findings={block.findings}
+                    summary={block.summary}
                     humanSteps={block.humanSteps}
                   />
                 );

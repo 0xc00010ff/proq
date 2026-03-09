@@ -58,7 +58,7 @@ export async function PUT(request: Request, { params }: Params) {
         removeWorktree(projectPath, prevTask.id.slice(0, 8));
         popAutoStash(projectPath, prevTask.baseBranch || defaultBr);
       }
-      await updateTask(id, taskId, { agentStatus: null, findings: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, renderMode: undefined, agentBlocks: undefined, sessionId: undefined });
+      await updateTask(id, taskId, { agentStatus: null, summary: "", humanSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, renderMode: undefined, agentBlocks: undefined, sessionId: undefined });
       if (prevStatus === "in-progress") {
         await abortTask(id, taskId);
       }

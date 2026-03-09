@@ -45,7 +45,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
-  const findings = parseLines(task.findings);
+  const summaryLines = parseLines(task.summary);
   const isDispatched = task.agentStatus === 'running' || task.agentStatus === 'starting';
   const isStructured = task.renderMode !== 'cli';
   const showStructuredPane = isStructured && !isQueued && (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done');
@@ -148,7 +148,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
     document.addEventListener('mouseup', onMouseUp);
   }, [finishDrag]);
 
-  // Scroll agent report to bottom on first load
+  // Scroll agent summary to bottom on first load
   useEffect(() => {
     if (bottomPanelRef.current) {
       bottomPanelRef.current.scrollTop = bottomPanelRef.current.scrollHeight;
@@ -468,18 +468,18 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           )}
         </div>
 
-        {/* Bottom half: agent findings & summary */}
-        <div ref={bottomPanelRef} className={`flex-1 min-h-0 overflow-y-auto ${isDispatched && !isQueued && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
-          {findings.length > 0 || !isDispatched || isQueued ? (
+        {/* Bottom half: agent summary */}
+        <div ref={bottomPanelRef} className={`flex-1 min-h-0 overflow-y-auto ${isDispatched && !isQueued && summaryLines.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
+          {summaryLines.length > 0 || !isDispatched || isQueued ? (
             <div className="flex items-center gap-2">
               <ClipboardListIcon className="w-3.5 h-3.5 text-text-tertiary" />
               <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
-                Agent Report
+                Agent Summary
               </span>
-              {findings.length > 0 && (
+              {summaryLines.length > 0 && (
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(task.findings || '');
+                    navigator.clipboard.writeText(task.summary || '');
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
@@ -496,7 +496,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             </div>
           ) : null}
 
-          {findings.length > 0 ? (
+          {summaryLines.length > 0 ? (
             <div className="text-sm leading-relaxed text-text-secondary">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -521,7 +521,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                   h3: ({ children }) => <h3 className="text-xs font-semibold text-text-secondary mt-2 mb-1 first:mt-0">{children}</h3>,
                 }}
               >
-                {task.findings || ''}
+                {task.summary || ''}
               </ReactMarkdown>
             </div>
           ) : isDispatched && !isQueued ? (
@@ -531,16 +531,16 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 Agent working
               </span>
               <p className="text-xs text-text-placeholder italic text-center mt-1">
-                Agent is still working. Findings will appear here when reported.
+                Agent is still working. Summary will appear here when complete.
               </p>
             </div>
           ) : isQueued ? (
             <p className="text-xs text-text-placeholder italic">
-              Task is queued. Findings will appear here once the agent starts working.
+              Task is queued. Summary will appear here once the agent starts working.
             </p>
           ) : (
             <p className="text-xs text-text-placeholder italic">
-              No findings reported.
+              No summary yet.
             </p>
           )}
 

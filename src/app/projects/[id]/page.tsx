@@ -50,6 +50,7 @@ export default function ProjectPage() {
   const [boardDragOver, setBoardDragOver] = useState(false);
   const boardDragCounter = useRef(0);
   const kanbanDraggingRef = useRef(false);
+  const viewingTaskIdRef = useRef<string | null>(null);
 
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
@@ -130,6 +131,29 @@ export default function ProjectPage() {
     }
   }, [projectId, fetchExecutionMode, fetchBranchState]);
 
+  const dismissAttention = useCallback((taskId: string) => {
+    // Optimistically clear needsAttention in local state
+    setTasksByProject((prev) => {
+      const cols = prev[projectId] || emptyColumns();
+      for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+        const idx = cols[status].findIndex((t) => t.id === taskId);
+        if (idx === -1) continue;
+        if (!cols[status][idx].needsAttention) return prev;
+        const updated = { ...cols };
+        updated[status] = [...cols[status]];
+        updated[status][idx] = { ...cols[status][idx], needsAttention: false };
+        return { ...prev, [projectId]: updated };
+      }
+      return prev;
+    });
+    // Fire-and-forget PATCH
+    fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ needsAttention: false }),
+    }).catch(() => {});
+  }, [projectId, setTasksByProject]);
+
   // SSE delivers targeted {taskId, changes} — merge directly into local state.
   // No fetching. Only server-initiated changes (agentStatus, status) come via SSE.
   const handleTaskUpdate = useCallback((event: TaskUpdateEvent) => {
@@ -172,7 +196,12 @@ export default function ProjectPage() {
       if (!prev || prev.id !== event.taskId) return prev;
       return { ...prev, ...event.changes } as Task;
     });
-  }, [projectId, setTasksByProject, fetchBranchState]);
+
+    // Auto-dismiss needsAttention if the user is already viewing this task
+    if (event.changes.needsAttention && viewingTaskIdRef.current === event.taskId) {
+      dismissAttention(event.taskId);
+    }
+  }, [projectId, setTasksByProject, fetchBranchState, dismissAttention]);
 
   useTaskEvents(projectId, handleTaskUpdate);
 
@@ -327,7 +356,7 @@ export default function ProjectPage() {
         optimistic.agentStatus = 'starting';
       } else if (toColumn === 'todo') {
         optimistic.agentStatus = null;
-        optimistic.findings = '';
+        optimistic.summary = '';
         optimistic.humanSteps = '';
       }
 
@@ -773,9 +802,11 @@ export default function ProjectPage() {
                   onAddTask={handleAddTask}
                   onDeleteTask={deleteTask}
                   onClickTask={(task) => {
+                    if (task.needsAttention) dismissAttention(task.id);
                     if (task.status === 'todo') {
                       setModalTask(task);
                     } else {
+                      viewingTaskIdRef.current = task.id;
                       setAgentModalTask(task);
                     }
                   }}
@@ -817,6 +848,8 @@ export default function ProjectPage() {
                     await updateTask(taskId, { status: 'verify' });
                   }}
                   onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
+                  onDismissAttention={dismissAttention}
+                  onSelectedTaskChange={(id) => { viewingTaskIdRef.current = id; }}
                   parallelMode={executionMode === 'parallel'}
                   currentBranch={currentBranch}
                   onSwitchBranch={handleSwitchBranch}
@@ -865,7 +898,7 @@ export default function ProjectPage() {
             if (draft) followUpDraftsRef.current.set(agentModalTask.id, draft);
             else followUpDraftsRef.current.delete(agentModalTask.id);
           }}
-          onClose={() => setAgentModalTask(null)}
+          onClose={() => { viewingTaskIdRef.current = null; setAgentModalTask(null); }}
           onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
           onComplete={async (taskId) => {
             followUpDraftsRef.current.delete(taskId);

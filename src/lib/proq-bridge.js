@@ -154,8 +154,12 @@ const server = net.createServer((client) => {
         const jsonStr = inputBuffer.slice(0, jsonEnd);
         const parsed = JSON.parse(jsonStr);
 
-        if (parsed.type === "resize" && parsed.cols && parsed.rows) {
-          try { shell.resize(parsed.cols, parsed.rows); } catch {}
+        if (parsed.type === "resize") {
+          // Always intercept resize messages — never write them to the PTY.
+          // Only actually resize if cols/rows are valid positive numbers.
+          if (typeof parsed.cols === "number" && typeof parsed.rows === "number" && parsed.cols > 0 && parsed.rows > 0) {
+            try { shell.resize(parsed.cols, parsed.rows); } catch {}
+          }
           inputBuffer = inputBuffer.slice(jsonEnd);
           continue;
         }

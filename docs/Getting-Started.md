@@ -39,7 +39,7 @@ Click **New Task** on the board. Fill in:
 - **Description** — detailed instructions for the agent
 - **Mode** — determines what the agent is allowed to do:
   - **Build** (default) — full code changes, commits, the works
-  - **Plan** — research only, no file changes, agent reports findings
+  - **Plan** — research only, no file changes, agent reports summary
   - **Answer** — same as plan, for quick questions
 - **Attachments** — drag or paste images (screenshots, mockups) that the agent can view
 
@@ -69,7 +69,7 @@ The agent's output is parsed into discrete blocks:
 - **Thinking** — the agent's reasoning (collapsible)
 - **Tool calls** — file reads, edits, bash commands (expandable to see input/output)
 - **Text** — the agent's messages
-- **Task updates** — when the agent reports findings via MCP
+- **Task updates** — when the agent reports summary via MCP
 
 This is the recommended mode — it's easier to follow what the agent is doing.
 

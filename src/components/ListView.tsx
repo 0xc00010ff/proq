@@ -28,6 +28,7 @@ import {
   ClockIcon,
   Trash2Icon,
   EyeIcon,
+  BellDotIcon,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft } from '@/lib/types';
 import { COLUMNS, AddTaskButton } from './KanbanBoard';
@@ -56,6 +57,8 @@ interface ListViewProps {
   onComplete?: (taskId: string) => void;
   onResumeEditing?: (taskId: string) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
+  onDismissAttention?: (taskId: string) => void;
+  onSelectedTaskChange?: (taskId: string | null) => void;
   parallelMode?: boolean;
   currentBranch?: string;
   onSwitchBranch?: (branch: string) => void;
@@ -222,6 +225,11 @@ function SortableListRow({
               <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
               <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">Starting...</span>
             </div>
+          ) : task.needsAttention ? (
+            <div className="flex items-center gap-1.5">
+              <BellDotIcon className="w-3 h-3 text-lazuli" />
+              <span className="text-[10px] text-lazuli font-medium uppercase tracking-wide">Task updated</span>
+            </div>
           ) : (
             <div className="flex items-center gap-1.5">
               {col?.icon}
@@ -255,6 +263,8 @@ export function ListView({
   onComplete,
   onResumeEditing,
   onUpdateTitle,
+  onDismissAttention,
+  onSelectedTaskChange,
   parallelMode,
   currentBranch,
   onSwitchBranch,
@@ -457,13 +467,16 @@ export function ListView({
   }, [masterWidth]);
 
   const handleRowClick = (task: Task) => {
+    if (task.needsAttention) onDismissAttention?.(task.id);
     // For todo tasks, open the modal via onClickTask (same as kanban)
     if (task.status === 'todo') {
       onClickTask?.(task);
       return;
     }
     // For non-todo tasks, select inline
-    setSelectedTaskId(selectedTaskId === task.id ? null : task.id);
+    const newId = selectedTaskId === task.id ? null : task.id;
+    setSelectedTaskId(newId);
+    onSelectedTaskChange?.(newId);
   };
 
   return (

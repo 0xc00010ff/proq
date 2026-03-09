@@ -2,11 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  AlertTriangleIcon,
   Trash2Icon,
   Loader2Icon,
   ClockIcon,
   EyeIcon,
+  BellDotIcon,
+  AlertTriangleIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { parseLines } from '@/lib/utils';
@@ -29,18 +30,18 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
   const isActive = isRunning || isStarting;
   const canEditTitle = !!onUpdateTitle;
 
-  // Track findings changes to trigger flash animation
+  // Track summary changes to trigger flash animation
   const [flash, setFlash] = useState(false);
-  const prevFindingsRef = useRef(task.findings);
+  const prevSummaryRef = useRef(task.summary);
   useEffect(() => {
-    if (task.findings && task.findings !== prevFindingsRef.current) {
+    if (task.summary && task.summary !== prevSummaryRef.current) {
       setFlash(true);
       const timer = setTimeout(() => setFlash(false), 2000);
-      prevFindingsRef.current = task.findings;
+      prevSummaryRef.current = task.summary;
       return () => clearTimeout(timer);
     }
-    prevFindingsRef.current = task.findings;
-  }, [task.findings]);
+    prevSummaryRef.current = task.summary;
+  }, [task.summary]);
 
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title || '');
@@ -178,6 +179,13 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
               <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
               <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">
                 Starting...
+              </span>
+            </div>
+          ) : task.needsAttention ? (
+            <div className="flex items-center gap-1.5">
+              <BellDotIcon className="w-3 h-3 text-lazuli" />
+              <span className="text-[10px] text-lazuli font-medium uppercase tracking-wide">
+                Task updated
               </span>
             </div>
           ) : (

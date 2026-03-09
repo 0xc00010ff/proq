@@ -34,7 +34,7 @@ export type AgentBlock =
   | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort';
       sessionId?: string; model?: string; costUsd?: number;
       durationMs?: number; turns?: number; error?: string }
-  | { type: 'task_update'; findings: string; humanSteps?: string; timestamp: string }
+  | { type: 'task_update'; summary: string; humanSteps?: string; timestamp: string }
   | { type: 'stream_delta'; text: string };
 
 // ── Agent WS Protocol ───────────────────────────────────
@@ -76,8 +76,9 @@ export interface Task {
   priority?: 'low' | 'medium' | 'high';
   mode?: TaskMode;
   order?: number; // deprecated — kept for migration only
-  findings?: string;
+  summary?: string;
   humanSteps?: string;
+  needsAttention?: boolean;
   agentLog?: string;
   agentStatus?: "queued" | "starting" | "running" | null;
   worktreePath?: string;

@@ -4,13 +4,13 @@ import React from 'react';
 import { FileTextIcon } from 'lucide-react';
 
 interface TaskUpdateBlockProps {
-  findings: string;
+  summary: string;
   humanSteps?: string;
 }
 
-export function TaskUpdateBlock({ findings, humanSteps }: TaskUpdateBlockProps) {
+export function TaskUpdateBlock({ summary, humanSteps }: TaskUpdateBlockProps) {
   // Show first 2 lines as a preview
-  const lines = findings.split('\n').filter(Boolean);
+  const lines = summary.split('\n').filter(Boolean);
   const preview = lines.slice(0, 2).join('\n');
   const hasMore = lines.length > 2;
 

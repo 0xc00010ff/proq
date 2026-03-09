@@ -118,7 +118,7 @@ When a task moves to in-progress, it enters the dispatch pipeline:
 |---|---|
 | → in-progress | Set `agentStatus: "queued"`, call `processQueue()` |
 | in-progress → verify | Keep worktree alive (parallel). Send notification |
-| in-progress → todo | Abort agent. Remove worktree/branch (parallel). Clear agentStatus/findings |
+| in-progress → todo | Abort agent. Remove worktree/branch (parallel). Clear agentStatus/summary |
 | in-progress → done | Merge branch into main (parallel). Remove worktree. Send notification |
 | verify → done | Merge branch into main (parallel). Remove worktree. On conflict, stay in verify |
 | verify → todo | Remove worktree/branch (parallel). Discard work |
@@ -178,8 +178,8 @@ tmux acts purely as a process container — crash survival, enumeration (`tmux l
 
 | Tool | Description |
 |---|---|
-| `read_task` | Fetch current task state (title, description, findings, status). Agent uses this before updating to build cumulative findings |
-| `update_task` | Set findings + optional humanSteps, move task to Verify. Each call replaces the previous summary |
+| `read_task` | Fetch current task state (title, description, summary, status). Agent uses this before updating to build cumulative summary |
+| `update_task` | Set summary + optional humanSteps, move task to Verify. Each call replaces the previous summary |
 
 The MCP server communicates with the proq REST API over localhost. This replaced the earlier curl-based callback — MCP tools are more reliable and the agent discovers them automatically.
 
@@ -376,7 +376,7 @@ Setting `status: "in-progress"` dispatches the task immediately.
 
 Update a task. Status changes trigger dispatch/abort side effects.
 
-**Body:** Partial `Task` fields. Key fields: `status`, `agentStatus`, `title`, `description`, `findings`, `humanSteps`, `priority`, `mode`, `renderMode`, `attachments`
+**Body:** Partial `Task` fields. Key fields: `status`, `agentStatus`, `title`, `description`, `summary`, `humanSteps`, `priority`, `mode`, `renderMode`, `attachments`
 
 **Response:** `Task`
 

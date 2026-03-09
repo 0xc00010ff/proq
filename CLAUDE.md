@@ -126,7 +126,7 @@ In parallel mode, each task gets its own git worktree + branch (`proq/{shortId}`
 ### Key Types (src/lib/types.ts)
 
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
-- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, agentStatus, attachments, createdAt, updatedAt }`
+- **Task**: `{ id, title, description, status, priority, order, summary, humanSteps, agentLog, agentStatus, attachments, createdAt, updatedAt }`
 - **ChatLogEntry**: `{ role: 'proq'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
@@ -153,7 +153,7 @@ GET/POST       /api/projects/[id]/chat                # Chat history
 All routes follow the same pattern: update state, then call `processQueue()`.
 
 - → `in-progress`: sets `agentStatus: "queued"`, `await processQueue()` handles dispatch
-- `in-progress` → `todo`: checkout main if on task branch, clears `agentStatus`/findings/etc, removes worktree, `await abortTask()`, then `await processQueue()`
+- `in-progress` → `todo`: checkout main if on task branch, clears `agentStatus`/summary/etc, removes worktree, `await abortTask()`, then `await processQueue()`
 - `in-progress` → `verify`: keeps worktree alive for branch preview (deferred merge), sends notification
 - `in-progress` → `done`: checkout main → merge → remove worktree, sends notification
 - `verify` → `done`: checkout main → merge → remove worktree. On conflict, stays in verify.
@@ -190,7 +190,7 @@ All routes follow the same pattern: update state, then call `processQueue()`.
 
 Tasks have fields specifically for AI agent use:
 
-- `findings` — Agent's analysis/findings (newline-separated)
+- `summary` — Agent's cumulative work summary (newline-separated)
 - `humanSteps` — Action items for human review (newline-separated)
 - `agentLog` — Execution log from agent session
 - `agentStatus` — Enum: `"queued"` | `"starting"` | `"running"` | null (agent lifecycle)

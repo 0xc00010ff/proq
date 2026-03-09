@@ -156,6 +156,11 @@ function getProjectData(projectId: string): ProjectState {
           t.renderMode = 'cli';
           migrated = true;
         }
+        if ('findings' in t && !('summary' in t)) {
+          t.summary = t.findings as string;
+          delete t.findings;
+          migrated = true;
+        }
       }
     }
   }
@@ -374,7 +379,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "agentBlocks" | "sessionId">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "humanSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "agentBlocks" | "sessionId">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);

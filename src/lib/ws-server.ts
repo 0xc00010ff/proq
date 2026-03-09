@@ -46,8 +46,12 @@ export function startWsServer() {
 
           try {
             const parsed = JSON.parse(msg);
-            if (parsed.type === "resize" && parsed.cols && parsed.rows) {
-              resizePty(tabId, parsed.cols, parsed.rows);
+            if (parsed.type === "resize") {
+              // Always intercept resize messages — never write them to the PTY.
+              // Only actually resize if cols/rows are valid positive numbers.
+              if (typeof parsed.cols === "number" && typeof parsed.rows === "number" && parsed.cols > 0 && parsed.rows > 0) {
+                resizePty(tabId, parsed.cols, parsed.rows);
+              }
               return;
             }
           } catch {

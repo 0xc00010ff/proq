@@ -1,6 +1,7 @@
 import type WebSocket from "ws";
 import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
-import { getTask, getProject } from "./db";
+import { getTask, getProject, updateTask } from "./db";
+import { emitTaskUpdate } from "./task-events";
 import type { AgentWsClientMsg } from "./types";
 
 export async function attachAgentWsWithProject(
@@ -36,6 +37,16 @@ export async function attachAgentWsWithProject(
           const projectPath = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
           const cwd = task?.worktreePath || projectPath;
           const planApproved = msg.type === "plan-approve";
+
+          // Move task back to in-progress so the card shows "Agent working"
+          if (task && task.status !== "in-progress") {
+            await updateTask(projectId, taskId, { status: "in-progress", agentStatus: "running" });
+            emitTaskUpdate(projectId, taskId, { status: "in-progress", agentStatus: "running" });
+          } else if (task && task.agentStatus !== "running") {
+            await updateTask(projectId, taskId, { agentStatus: "running" });
+            emitTaskUpdate(projectId, taskId, { agentStatus: "running" });
+          }
+
           await continueSession(projectId, taskId, msg.text, cwd, ws, msg.type === "followup" ? msg.attachments : undefined, { planApproved });
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);

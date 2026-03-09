@@ -4,6 +4,7 @@ import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialAgentStatus, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
 import { clearSession } from "@/lib/agent-session";
+import { emitTaskUpdate } from "@/lib/task-events";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
@@ -28,6 +29,14 @@ export async function PATCH(request: Request, { params }: Params) {
   const updated = await updateTask(id, taskId, body);
   if (!updated) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  // Set needsAttention when summary is updated and task is (moving to) verify
+  const effectiveStatus = body.status || prevStatus;
+  if (body.summary !== undefined && effectiveStatus === "verify") {
+    await updateTask(id, taskId, { needsAttention: true });
+    updated.needsAttention = true;
+    emitTaskUpdate(id, taskId, { needsAttention: true });
   }
 
   // Handle status transitions
@@ -61,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
           popAutoStash(projectPath, prevTask.baseBranch || defaultBr);
         }
       }
-      const resetFields = { agentStatus: null as Task["agentStatus"], findings: "", humanSteps: "", agentLog: "", worktreePath: undefined as string | undefined, branch: undefined as string | undefined, baseBranch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
+      const resetFields = { agentStatus: null as Task["agentStatus"], summary: "", humanSteps: "", agentLog: "", needsAttention: undefined as boolean | undefined, worktreePath: undefined as string | undefined, branch: undefined as string | undefined, baseBranch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
       await updateTask(id, taskId, resetFields);
       Object.assign(updated, resetFields);
       if (prevStatus === "in-progress") {
@@ -84,7 +93,7 @@ export async function PATCH(request: Request, { params }: Params) {
           const result = mergeWorktree(projectPath, prevTask.id.slice(0, 8));
           popAutoStash(projectPath, mergeBranch);
           if (result.success) {
-            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, agentStatus: null });
+            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, agentStatus: null, needsAttention: undefined });
           } else {
             // Can't complete with conflict — stay in verify
             await updateTask(id, taskId, {
@@ -103,7 +112,7 @@ export async function PATCH(request: Request, { params }: Params) {
           }
         }
       }
-      await updateTask(id, taskId, { agentStatus: null });
+      await updateTask(id, taskId, { agentStatus: null, needsAttention: undefined });
       scheduleCleanup(id, taskId);
       clearSession(taskId);
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → done`);
@@ -139,13 +148,13 @@ export async function PATCH(request: Request, { params }: Params) {
               if (fresh) return NextResponse.json(fresh);
               return NextResponse.json(updated);
             }
-            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, agentStatus: null });
+            await updateTask(id, taskId, { worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, agentStatus: null, needsAttention: undefined });
           } else {
             popAutoStash(projectPath, mergeBranch);
           }
         }
       }
-      await updateTask(id, taskId, { agentStatus: null });
+      await updateTask(id, taskId, { agentStatus: null, needsAttention: undefined });
       scheduleCleanup(id, taskId);
       clearSession(taskId);
     }

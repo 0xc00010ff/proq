@@ -68,7 +68,7 @@ export function useTerminal(
 
       ws.onopen = () => {
         const dims = fitAddon.proposeDimensions();
-        if (dims) {
+        if (dims?.cols && dims?.rows) {
           ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
         }
       };
@@ -134,7 +134,7 @@ export function useTerminal(
         inst.fitAddon.fit();
         if (inst.ws.readyState === WebSocket.OPEN) {
           const dims = inst.fitAddon.proposeDimensions();
-          if (dims) {
+          if (dims?.cols && dims?.rows) {
             inst.ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
           }
         }

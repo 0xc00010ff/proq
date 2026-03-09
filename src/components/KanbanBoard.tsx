@@ -112,12 +112,14 @@ function SortableTaskCard({
   task,
   isQueued,
   isPreviewActive,
+  columnStatus,
   onDelete,
   onClick,
 }: {
   task: Task;
   isQueued?: boolean;
   isPreviewActive?: boolean;
+  columnStatus?: string;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
 }) {
@@ -143,7 +145,7 @@ function SortableTaskCard({
       {...attributes}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
     >
-      <TaskCard task={task} isQueued={isQueued} isPreviewActive={isPreviewActive} onDelete={onDelete} onClick={onClick} />
+      <TaskCard task={task} isQueued={isQueued} isPreviewActive={isPreviewActive} columnStatus={columnStatus} onDelete={onDelete} onClick={onClick} />
     </div>
   );
 }
@@ -407,6 +409,7 @@ export function KanbanBoard({
                           task={task}
                           isQueued={isQueued}
                           isPreviewActive={isPreviewActive}
+                          columnStatus={column.id}
                           onDelete={onDeleteTask}
                           onClick={onClickTask}
                         />

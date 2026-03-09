@@ -171,6 +171,8 @@ export interface ProjectState {
   workbenchHeight?: number;
   workbenchTabs?: WorkbenchTabInfo[];
   workbenchActiveTabId?: string;
+  liveWorkbenchTabs?: WorkbenchTabInfo[];
+  liveWorkbenchActiveTabId?: string;
   agentTabs?: Record<string, AgentTabData>;
   recentlyDeleted?: DeletedTaskEntry[];
   // Legacy field — present only in unmigrated files

@@ -16,6 +16,7 @@ interface UseAgentTabSessionResult {
 export function useAgentTabSession(
   tabId: string,
   projectId: string,
+  context?: string,
 ): UseAgentTabSessionResult {
   const [blocks, setBlocks] = useState<AgentBlock[]>([]);
   const [connected, setConnected] = useState(false);
@@ -24,7 +25,8 @@ export function useAgentTabSession(
 
   useEffect(() => {
     const wsHost = window.location.hostname;
-    const url = `ws://${wsHost}:${WS_PORT}/ws/agent-tab?tabId=${tabId}&projectId=${projectId}`;
+    const contextParam = context ? `&context=${context}` : '';
+    const url = `ws://${wsHost}:${WS_PORT}/ws/agent-tab?tabId=${tabId}&projectId=${projectId}${contextParam}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -74,7 +76,7 @@ export function useAgentTabSession(
       ws.close();
       wsRef.current = null;
     };
-  }, [tabId, projectId]);
+  }, [tabId, projectId, context]);
 
   const sendMessage = useCallback((text: string, attachments?: TaskAttachment[]) => {
     const ws = wsRef.current;

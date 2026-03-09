@@ -14,6 +14,16 @@ import type { ToolGroupItem } from './blocks/ToolGroupBlock';
 import { StatusBlock } from './blocks/StatusBlock';
 import { UserBlock } from './blocks/UserBlock';
 
+// Persist drafts across project switches (survives unmount/remount)
+const draftMap = new Map<string, string>();
+
+/** Pre-fill a draft message for a given tab (works whether mounted or not) */
+export function setAgentDraft(tabId: string, text: string) {
+  draftMap.set(tabId, text);
+  // Notify already-mounted components
+  window.dispatchEvent(new CustomEvent('agent-draft', { detail: { tabId, text } }));
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -24,18 +34,40 @@ interface AgentTabPaneProps {
   tabId: string;
   projectId: string;
   visible: boolean;
+  context?: string;
 }
 
-export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
-  const { blocks, sessionDone, sendMessage, stop } = useAgentTabSession(tabId, projectId);
+export function AgentTabPane({ tabId, projectId, visible, context }: AgentTabPaneProps) {
+  const { blocks, sessionDone, sendMessage, stop } = useAgentTabSession(tabId, projectId, context);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(() => draftMap.get(tabId) || '');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
+
+  // Listen for external draft injections (e.g. from the Live empty state Agent button)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { tabId: targetId, text } = (e as CustomEvent).detail;
+      if (targetId === tabId) {
+        setInputValue(text);
+        draftMap.set(tabId, text);
+        // Resize textarea to fit
+        requestAnimationFrame(() => {
+          const ta = textareaRef.current;
+          if (ta) {
+            ta.style.height = '0';
+            ta.style.height = Math.max(36, Math.min(ta.scrollHeight, 300)) + 'px';
+          }
+        });
+      }
+    };
+    window.addEventListener('agent-draft', handler);
+    return () => window.removeEventListener('agent-draft', handler);
+  }, [tabId]);
 
   // Auto-scroll to bottom on new blocks unless user scrolled up
   useEffect(() => {
@@ -63,11 +95,18 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     if (!ta) return;
     ta.style.height = '0';
     const sh = ta.scrollHeight;
-    ta.style.height = Math.max(36, Math.min(sh, 160)) + 'px';
+    ta.style.height = Math.max(36, Math.min(sh, 300)) + 'px';
+  }, []);
+
+  // Resize textarea on mount if there's a restored draft
+  useEffect(() => {
+    if (inputValue) resizeTextarea();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
+    draftMap.set(tabId, e.target.value);
     resizeTextarea();
   };
 
@@ -85,6 +124,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     if (!text && attachments.length === 0) return;
     sendMessage(text, attachments.length > 0 ? attachments : undefined);
     setInputValue('');
+    draftMap.delete(tabId);
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -362,7 +402,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
             placeholder="Send a message..."
             rows={1}
             style={{ height: '36px' }}
-            className="w-full min-h-[36px] max-h-[160px] resize-none overflow-hidden bg-transparent px-3 pt-3 pb-2 text-sm leading-[20px] text-text-secondary placeholder:text-text-placeholder focus:outline-none"
+            className="w-full min-h-[36px] max-h-[300px] resize-none overflow-y-auto bg-transparent px-3 pt-3 pb-2 text-sm leading-[20px] text-text-secondary placeholder:text-text-placeholder focus:outline-none"
           />
 
           {/* Bottom bar */}

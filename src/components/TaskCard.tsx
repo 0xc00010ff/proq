@@ -9,18 +9,21 @@ import {
   BellDotIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
+import { parseLines } from '@/lib/utils';
 
 interface TaskCardProps {
   task: Task;
   isDragOverlay?: boolean;
   isQueued?: boolean;
   isPreviewActive?: boolean;
+  columnStatus?: string;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
 }
 
-export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
+export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, columnStatus, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
+  const steps = parseLines(task.humanSteps);
   const isRunning = task.agentStatus === 'running';
   const isStarting = task.agentStatus === 'starting';
   const isActive = isRunning || isStarting;
@@ -75,7 +78,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
           ? 'border-zinc-500/30'
           : 'border-border-default'}
         ${flash ? 'ring-1 ring-lazuli/50 shadow-[0_0_12px_rgba(91,131,176,0.2)]' : ''}
-        ${isDragOverlay ? 'ring-1 ring-bronze-600 shadow-lg shadow-black/30' : `hover:bg-surface-hover/40 cursor-pointer ${isRunning ? '' : 'hover:border-border-hover/50'}`}
+        ${isDragOverlay ? 'ring-1 ring-bronze-600 shadow-lg shadow-black/30' : `hover:bg-surface-hover/40 cursor-pointer ${isRunning ? '' : columnStatus === 'in-progress' ? 'hover:border-bronze-500/30' : columnStatus === 'verify' ? 'hover:border-lazuli/30' : columnStatus === 'done' ? 'hover:border-emerald/30' : 'hover:border-border-hover/50'}`}
         transition-shadow duration-700
       `}
       onClick={() => !isDragOverlay && onClick?.(task)}

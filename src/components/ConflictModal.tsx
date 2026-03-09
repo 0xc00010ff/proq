@@ -6,13 +6,14 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface ConflictModalProps {
   branch: string;
+  baseBranch?: string;
   files: string[];
   diff?: string;
   onResolve: () => void;
   onDismiss: () => void;
 }
 
-export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: ConflictModalProps) {
+export function ConflictModal({ branch, baseBranch = 'main', files, diff, onResolve, onDismiss }: ConflictModalProps) {
   useEscapeKey(onDismiss);
   const [diffExpanded, setDiffExpanded] = useState(true);
 
@@ -71,8 +72,8 @@ export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: Con
           )}
 
           <p className="text-xs text-text-tertiary leading-relaxed">
-            This task's branch conflicts with main. Clicking <strong className="text-text-secondary">Resolve</strong> will
-            re-dispatch the agent on the existing branch to merge main and resolve the conflicts — your previous work and summary are preserved.
+            This task&apos;s branch conflicts with <code className="text-text-secondary">{baseBranch}</code>. Clicking <strong className="text-text-secondary">Resolve</strong> will
+            ask the agent to merge <code className="text-text-secondary">{baseBranch}</code> into this branch and resolve the conflicts — your previous work and findings are preserved.
           </p>
         </div>
 

@@ -7,6 +7,7 @@ import {
   ClockIcon,
   EyeIcon,
   BellDotIcon,
+  AlertTriangleIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { parseLines } from '@/lib/utils';
@@ -131,6 +132,24 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
           <p className="text-xs text-text-tertiary leading-relaxed mt-2 line-clamp-2">
             {task.description}
           </p>
+        )}
+
+        {task.mergeConflict && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <AlertTriangleIcon className="w-3 h-3 text-red-400 flex-shrink-0" />
+            <span className="text-[10px] text-red-400 font-medium uppercase tracking-wide">
+              Merge conflict
+            </span>
+          </div>
+        )}
+
+        {steps.length > 0 && task.status !== 'done' && !task.mergeConflict && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
+            <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
+              {steps.length} step{steps.length !== 1 ? 's' : ''} for you
+            </span>
+          </div>
         )}
 
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle/60">

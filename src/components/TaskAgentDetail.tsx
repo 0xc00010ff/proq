@@ -31,7 +31,7 @@ interface TaskAgentDetailProps {
   cleanupExpiresAt?: number;
   followUpDraft?: FollowUpDraft;
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
-  onComplete?: (taskId: string) => void;
+  onComplete?: (taskId: string) => void | Promise<void>;
   onResumeEditing?: (taskId: string) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
   parallelMode?: boolean;
@@ -56,6 +56,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const [merging, setMerging] = useState(false);
   const canEditTitle = !!onUpdateTitle;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [topPanelPercent, setTopPanelPercent] = useState(30);
@@ -612,13 +613,25 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Complete button pinned to bottom */}
         {task.status === 'verify' && onComplete && (
           <div className="shrink-0 group/complete">
-            <div className="h-px bg-border-default group-hover/complete:bg-emerald/40" />
+            <div className={`h-px ${merging ? 'bg-emerald/30' : 'bg-border-default group-hover/complete:bg-emerald/40'}`} />
             <button
-              onClick={() => onComplete(task.id)}
-              className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-emerald/80 hover:text-emerald hover:bg-emerald/10"
+              onClick={async () => {
+                setMerging(true);
+                try {
+                  await onComplete(task.id);
+                } finally {
+                  setMerging(false);
+                }
+              }}
+              disabled={merging}
+              className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-emerald/80 hover:text-emerald hover:bg-emerald/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle2Icon className="w-3.5 h-3.5" />
-              {task.branch ? 'Merge & Complete' : 'Complete'}
+              {merging ? (
+                <Loader2Icon className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2Icon className="w-3.5 h-3.5" />
+              )}
+              {merging ? 'Merging...' : (task.branch ? 'Merge & Complete' : 'Complete')}
             </button>
           </div>
         )}
@@ -627,6 +640,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       {showConflictModal && task.mergeConflict && (
         <ConflictModal
           branch={task.mergeConflict.branch}
+          baseBranch={task.baseBranch || defaultBranch}
           files={task.mergeConflict.files}
           diff={task.mergeConflict.diff}
           onResolve={async () => {

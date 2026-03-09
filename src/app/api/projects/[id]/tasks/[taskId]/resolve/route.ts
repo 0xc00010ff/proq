@@ -1,15 +1,15 @@
+import { execSync } from "child_process";
 import { NextResponse } from "next/server";
 import { getTask, getProject, updateTask, getProjectDefaultBranch } from "@/lib/db";
-import { mergeMainIntoWorktree } from "@/lib/worktree";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
 /**
  * POST /api/projects/[id]/tasks/[taskId]/resolve
  *
- * Prepares the worktree for conflict resolution by merging main into the
- * task branch (leaving conflict markers). Returns a suggested prompt that
- * the frontend pre-populates into the chat input for the user to send.
+ * Prepares the worktree for conflict resolution by cleaning up any stale
+ * merge state. Returns a prompt telling the agent to run `git merge`
+ * themselves so they can see and resolve real conflicts.
  *
  * Does NOT dispatch a new agent — the user sends the follow-up message
  * themselves via the existing StructuredPane session.
@@ -34,28 +34,31 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
-  const shortId = taskId.slice(0, 8);
-
-  // Merge base branch into the worktree so conflict markers appear in the working tree
   const baseBranch = task.baseBranch || await getProjectDefaultBranch(id);
-  const mergeResult = mergeMainIntoWorktree(projectPath, shortId, baseBranch);
-  if (!mergeResult.success) {
-    return NextResponse.json({ error: mergeResult.error || "Failed to merge main into worktree" }, { status: 500 });
-  }
 
-  // Build a conflict resolution prompt for the chat input
+  // Clean up any stale merge state in the worktree
+  try {
+    execSync(`git -C '${task.worktreePath}' merge --abort`, { timeout: 10_000 });
+  } catch { /* no merge in progress — fine */ }
+
+  // Build prompt telling agent to do the merge themselves
   const conflictFiles = task.mergeConflict.files;
+  const diff = task.mergeConflict.diff;
 
-  let prompt = `Resolve the merge conflicts. ${baseBranch} has been merged into this branch and conflict markers are in the working tree.\n\n`;
+  let prompt = `There was a merge conflict when trying to merge this branch into \`${baseBranch}\`. `;
+  prompt += `Please run \`git merge ${baseBranch}\` to merge ${baseBranch} into this branch, then resolve the conflicts.\n\n`;
 
   if (conflictFiles.length > 0) {
-    prompt += `Conflicting files:\n${conflictFiles.map(f => `- ${f}`).join("\n")}\n\n`;
+    prompt += `Expected conflicting files:\n${conflictFiles.map(f => `- ${f}`).join("\n")}\n\n`;
   }
 
-  prompt += `Check \`git status\`, resolve all conflict markers, stage the files, and complete the merge commit. Make sure the code builds correctly after resolution.`;
+  if (diff) {
+    prompt += `Here's the conflict diff for context:\n\`\`\`\n${diff.slice(0, 3000)}${diff.length > 3000 ? '\n... (truncated)' : ''}\n\`\`\`\n\n`;
+  }
 
-  // Clear the merge conflict from the task — it's now in the worktree for the agent to resolve
+  prompt += `After resolving all conflicts, stage the files, complete the merge commit, and make sure the code builds correctly.`;
+
+  // Clear the merge conflict from the task — agent will handle it
   // Move task back to in-progress so the agent session is active
   await updateTask(id, taskId, {
     status: "in-progress",

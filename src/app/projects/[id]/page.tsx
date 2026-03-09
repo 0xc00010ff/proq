@@ -371,6 +371,17 @@ export default function ProjectPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taskId, toColumn, toIndex }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        // Merge conflict or other server error — refresh to get real state
+        refreshTasks(projectId);
+      } else {
+        const data = await res.json();
+        if (data.success === false) {
+          // Reorder returned failure (e.g. merge conflict) — refresh
+          refreshTasks(projectId);
+        }
+      }
     }).catch(() => {
       refreshTasks(projectId);
     });
@@ -417,11 +428,31 @@ export default function ProjectPage() {
         return { ...prev, [projectId]: updated };
       });
     }
-    await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+    const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    // Reconcile local state if server disagreed (e.g. merge conflict bounced task back)
+    if (res.ok) {
+      const serverTask: Task = await res.json();
+      if (data.status && serverTask.status !== data.status) {
+        setTasksByProject((prev) => {
+          const cols = prev[projectId] || emptyColumns();
+          const updated: TaskColumns = { ...cols };
+          // Remove from the optimistic column
+          const optimisticCol = data.status as TaskStatus;
+          updated[optimisticCol] = updated[optimisticCol].filter((t) => t.id !== taskId);
+          // Place in the server's actual column with full server state
+          const serverCol = serverTask.status as TaskStatus;
+          updated[serverCol] = [...updated[serverCol].filter((t) => t.id !== taskId), serverTask];
+          return { ...prev, [projectId]: updated };
+        });
+        // Update modal if it's showing this task
+        setAgentModalTask((prev) => prev && prev.id === taskId ? serverTask : prev);
+        setModalTask((prev) => prev && prev.id === taskId ? serverTask : prev);
+      }
+    }
   };
 
   // Build map of proq/* branch → task title for the branch switcher
@@ -872,7 +903,8 @@ export default function ProjectPage() {
           onComplete={async (taskId) => {
             followUpDraftsRef.current.delete(taskId);
             await updateTask(taskId, { status: 'done' });
-            setAgentModalTask(null);
+            // Only close modal if task actually moved to done (not bounced back by merge conflict)
+            setAgentModalTask((prev) => prev && prev.status === 'done' ? null : prev);
             fetchBranchState();
           }}
           onResumeEditing={async (taskId) => {

@@ -546,7 +546,7 @@ export function gitLogShort(
   }
 }
 
-/** Get full diff of uncommitted changes */
+/** Get full diff of uncommitted changes (including untracked files) */
 export function gitDiffFull(projectPath: string): string {
   try {
     // Include both staged and unstaged changes
@@ -558,7 +558,34 @@ export function gitDiffFull(projectPath: string): string {
       `git -C '${projectPath}' diff --cached`,
       { timeout: 15_000, encoding: "utf-8", maxBuffer: 1024 * 1024 },
     );
-    return [staged, unstaged].filter(Boolean).join("\n");
+    // Include untracked files using git diff --no-index against /dev/null
+    let untrackedDiff = "";
+    try {
+      const untrackedFiles = execSync(
+        `git -C '${projectPath}' ls-files --others --exclude-standard`,
+        { timeout: 10_000, encoding: "utf-8" },
+      ).trim();
+      if (untrackedFiles) {
+        const files = untrackedFiles.split("\n").filter(Boolean);
+        const diffs: string[] = [];
+        for (const file of files) {
+          try {
+            // git diff --no-index exits with 1 when files differ (which they always will vs /dev/null)
+            const d = execSync(
+              `git -C '${projectPath}' diff --no-index /dev/null '${file}' || true`,
+              { timeout: 5_000, encoding: "utf-8", maxBuffer: 512 * 1024, shell: "/bin/sh" },
+            );
+            if (d) diffs.push(d);
+          } catch {
+            // Skip files that can't be diffed (e.g. binary)
+          }
+        }
+        untrackedDiff = diffs.join("\n");
+      }
+    } catch {
+      // If untracked diff fails, continue with tracked changes only
+    }
+    return [staged, unstaged, untrackedDiff].filter(Boolean).join("\n");
   } catch {
     return "";
   }

@@ -272,7 +272,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           <div className="shrink-0 h-10 flex items-center gap-2 px-3 border-b border-border-default bg-surface-topbar">
             <span className="text-xs font-medium text-text-secondary truncate min-w-0">{task.title || 'Untitled task'}</span>
             <div className="ml-auto flex items-center gap-2 shrink-0">
-              {task.status === 'verify' && task.branch && onSwitchBranch && currentBranch === task.branch ? (
+              {(task.status === 'verify' || task.status === 'in-progress') && task.branch && onSwitchBranch && currentBranch === task.branch ? (
                 <>
                   <span className="text-xs text-lazuli font-medium">viewing</span>
                   {task.baseBranch && task.baseBranch !== defaultBranch && (
@@ -314,7 +314,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                     <GitBranchIcon className="w-3 h-3" />
                     {task.mergeConflict ? task.mergeConflict.branch : (task.branch || defaultBranch)}
                   </span>
-                  {task.status === 'verify' && task.branch && onSwitchBranch && (
+                  {(task.status === 'verify' || task.status === 'in-progress') && task.branch && onSwitchBranch && (
                     <button
                       onClick={() => onSwitchBranch(task.branch!)}
                       className="text-[10px] font-medium text-lazuli hover:text-lazuli/80 px-1.5 py-0.5 rounded border border-lazuli/30 hover:bg-lazuli/10"

@@ -50,7 +50,7 @@ function createWindow(mode: "wizard" | "splash" | "app"): BrowserWindow {
     case "wizard":
       Object.assign(windowOptions, {
         width: 620,
-        height: 700,
+        height: 620,
         resizable: false,
         maximizable: false,
         titleBarStyle: "hiddenInset" as const,

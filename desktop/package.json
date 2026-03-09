@@ -9,9 +9,9 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
-    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:mac": "source .env 2>/dev/null; electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "build:all": "electron-vite build && electron-builder -ml"
+    "build:all": "source .env 2>/dev/null; electron-vite build && electron-builder -ml"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

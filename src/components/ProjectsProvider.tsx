@@ -37,7 +37,15 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     const res = await fetch(`/api/projects/${projectId}/tasks`);
     if (!res.ok) return;
     const columns: TaskColumns = await res.json();
-    setTasksByProject((prev) => ({ ...prev, [projectId]: columns }));
+    setTasksByProject((prev) => {
+      const existing = prev[projectId];
+      // Skip update if data hasn't changed — prevents unnecessary re-renders
+      // that break text selection and cause task cards to jump
+      if (existing && JSON.stringify(existing) === JSON.stringify(columns)) {
+        return prev;
+      }
+      return { ...prev, [projectId]: columns };
+    });
   }, []);
 
   const refreshProjects = useCallback(async () => {

@@ -15,8 +15,8 @@
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
   --border: #27272a;
-  --accent: #c9a84c;
-  --accent-hover: #b8953d;
+  --accent: #CDAA78;
+  --accent-hover: #b8a078;
   --success: #4ade80;
   --error: #f87171;
   --warning: #fbbf24;
@@ -299,7 +299,7 @@ input:focus {
   width: 24px;
   height: 24px;
   border: 2px solid var(--bg-elevated);
-  border-top-color: #E4BD89;
+  border-top-color: #CDAA78;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

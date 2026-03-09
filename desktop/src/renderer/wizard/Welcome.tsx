@@ -21,11 +21,12 @@ export function Welcome({ onNext }: WelcomeProps) {
           />
         </svg>
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, fontFamily: "var(--font-display)", textTransform: "lowercase" }}>
-          Welcome to proq
+        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 16, fontFamily: "var(--font-display)", textTransform: "lowercase" }}>
+          proq
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 15, textAlign: "center", maxWidth: 380, lineHeight: 1.6 }}>
-          The command center for AI-assisted development. Create tasks, let agents code autonomously, review and approve.
+          proq is a vibe coding IDE built for precision.
+          Your job is to define what you want. proq orchestrates coding agents to make it real. And good.
         </p>
       </div>
 

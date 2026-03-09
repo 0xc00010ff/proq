@@ -55,6 +55,7 @@ function AccordionSection({
   title,
   defaultOpen = false,
   open: controlledOpen,
+  storageKey,
   rightContent,
   children,
 }: {
@@ -62,16 +63,35 @@ function AccordionSection({
   title: string;
   defaultOpen?: boolean;
   open?: boolean;
+  storageKey?: string;
   rightContent?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(() => {
+    if (storageKey) {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored !== null) return stored === '1';
+      } catch {}
+    }
+    return defaultOpen;
+  });
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  const toggle = useCallback(() => {
+    setInternalOpen((v) => {
+      const next = !v;
+      if (storageKey) {
+        try { localStorage.setItem(storageKey, next ? '1' : '0'); } catch {}
+      }
+      return next;
+    });
+  }, [storageKey]);
 
   return (
     <div className="border-b border-border-default last:border-b-0">
       <button
-        onClick={() => setInternalOpen((v) => !v)}
+        onClick={toggle}
         className="flex items-center gap-2 w-full px-4 py-3.5 text-left hover:bg-surface-hover/50 transition-colors"
       >
         <ChevronRightIcon className={`w-3 h-3 text-text-placeholder shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`} />
@@ -415,6 +435,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             icon={<FileTextIcon className="w-3.5 h-3.5 text-text-tertiary" />}
             title="Initial Task"
             defaultOpen={true}
+            storageKey={`task-accordion:${task.id}:task`}
           >
             {/* Title */}
             <h2
@@ -482,6 +503,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             icon={<ClipboardListIcon className="w-3.5 h-3.5 text-text-tertiary" />}
             title="Agent Summary"
             defaultOpen={true}
+            storageKey={`task-accordion:${task.id}:summary`}
             rightContent={
               summaryLines.length > 0 ? (
                 <button
@@ -545,6 +567,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             icon={<GitCommitHorizontalIcon className="w-3.5 h-3.5 text-text-tertiary" />}
             title={`Changes${commits && commits.length > 0 ? ` (${commits.length})` : ''}`}
             defaultOpen={true}
+            storageKey={`task-accordion:${task.id}:changes`}
           >
             {commits === null ? (
               <p className="text-xs text-text-placeholder italic">Loading commits...</p>
@@ -573,6 +596,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               icon={<ListChecksIcon className="w-3.5 h-3.5 text-text-tertiary" />}
               title="Next Steps"
               defaultOpen={true}
+              storageKey={`task-accordion:${task.id}:steps`}
             >
               <ul className="space-y-1">
                 {steps.map((step, idx) => (

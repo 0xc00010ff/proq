@@ -574,11 +574,14 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               title="Next Steps"
               defaultOpen={true}
             >
-              <div className="text-sm leading-relaxed text-text-secondary">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-                  {task.humanSteps || ''}
-                </ReactMarkdown>
-              </div>
+              <ul className="space-y-1">
+                {steps.map((step, idx) => (
+                  <li key={idx} className="text-xs text-text-secondary flex items-start">
+                    <span className="mr-2 text-text-placeholder">&bull;</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ul>
             </AccordionSection>
           )}
 

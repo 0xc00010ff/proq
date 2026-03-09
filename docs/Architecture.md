@@ -179,7 +179,7 @@ tmux acts purely as a process container — crash survival, enumeration (`tmux l
 | Tool | Description |
 |---|---|
 | `read_task` | Fetch current task state (title, description, summary, status). Agent uses this before updating to build cumulative summary |
-| `update_task` | Set summary + optional humanSteps, move task to Verify. Each call replaces the previous summary |
+| `update_task` | Set summary + optional nextSteps, move task to Verify. Each call replaces the previous summary |
 
 The MCP server communicates with the proq REST API over localhost. This replaced the earlier curl-based callback — MCP tools are more reliable and the agent discovers them automatically.
 
@@ -391,7 +391,7 @@ Setting `status: "in-progress"` dispatches the task immediately.
 
 Update a task. Status changes trigger dispatch/abort side effects.
 
-**Body:** Partial `Task` fields. Key fields: `status`, `agentStatus`, `title`, `description`, `summary`, `humanSteps`, `priority`, `mode`, `renderMode`, `attachments`
+**Body:** Partial `Task` fields. Key fields: `status`, `agentStatus`, `title`, `description`, `summary`, `nextSteps`, `priority`, `mode`, `renderMode`, `attachments`
 
 **Response:** `Task`
 

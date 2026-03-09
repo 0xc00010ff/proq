@@ -31,9 +31,9 @@ server.tool(
   "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new summary. Each call replaces the previous summary.",
   {
     summary: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
-    humanSteps: z.string().optional().describe("Newline-separated action items the human needs to do, if any"),
+    nextSteps: z.string().optional().describe("Suggested next steps such as testing, refinements, or follow-up work"),
   },
-  async ({ summary, humanSteps }) => {
+  async ({ summary, nextSteps }) => {
     try {
       const res = await fetch(taskUrl, {
         method: "PATCH",
@@ -42,7 +42,7 @@ server.tool(
           status: "verify",
           agentStatus: null,
           summary,
-          humanSteps: humanSteps || "",
+          nextSteps: nextSteps || "",
         }),
       });
       if (!res.ok) {

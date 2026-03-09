@@ -126,7 +126,7 @@ In parallel mode, each task gets its own git worktree + branch (`proq/{shortId}`
 ### Key Types (src/lib/types.ts)
 
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
-- **Task**: `{ id, title, description, status, priority, order, summary, humanSteps, agentLog, agentStatus, attachments, createdAt, updatedAt }`
+- **Task**: `{ id, title, description, status, priority, order, summary, nextSteps, agentLog, agentStatus, attachments, createdAt, updatedAt }`
 - **ChatLogEntry**: `{ role: 'proq'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
@@ -191,7 +191,7 @@ All routes follow the same pattern: update state, then call `processQueue()`.
 Tasks have fields specifically for AI agent use:
 
 - `summary` — Agent's cumulative work summary (newline-separated)
-- `humanSteps` — Action items for human review (newline-separated)
+- `nextSteps` — Suggested next steps: testing, refinements, or follow-up work (newline-separated)
 - `agentLog` — Execution log from agent session
 - `agentStatus` — Enum: `"queued"` | `"starting"` | `"running"` | null (agent lifecycle)
 - `worktreePath` — Path to git worktree (parallel mode only)

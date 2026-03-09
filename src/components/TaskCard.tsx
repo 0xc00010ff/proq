@@ -7,10 +7,8 @@ import {
   ClockIcon,
   EyeIcon,
   BellDotIcon,
-  AlertTriangleIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
-import { parseLines } from '@/lib/utils';
 
 interface TaskCardProps {
   task: Task;
@@ -24,7 +22,6 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, columnStatus, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
-  const steps = parseLines(task.humanSteps);
   const isRunning = task.agentStatus === 'running';
   const isStarting = task.agentStatus === 'starting';
   const isActive = isRunning || isStarting;
@@ -139,15 +136,6 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
             <AlertTriangleIcon className="w-3 h-3 text-red-400 flex-shrink-0" />
             <span className="text-[10px] text-red-400 font-medium uppercase tracking-wide">
               Merge conflict
-            </span>
-          </div>
-        )}
-
-        {steps.length > 0 && task.status !== 'done' && !task.mergeConflict && (
-          <div className="mt-2 flex items-center gap-1.5">
-            <AlertTriangleIcon className="w-3 h-3 text-gold flex-shrink-0" />
-            <span className="text-[10px] text-gold font-medium uppercase tracking-wide">
-              {steps.length} step{steps.length !== 1 ? 's' : ''} for you
             </span>
           </div>
         )}

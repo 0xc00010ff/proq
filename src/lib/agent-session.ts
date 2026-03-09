@@ -136,7 +136,7 @@ function wireProcess(
       lastToolUse.name === "AskUserQuestion";
     const endedOnPlanExit =
       lastToolUse?.type === "tool_use" && lastToolUse.name === "ExitPlanMode";
-    let questionFields: { humanSteps?: string; summary?: string } = {};
+    let questionFields: { nextSteps?: string; summary?: string } = {};
     if (endedOnQuestion) {
       const input = lastToolUse.input as Record<string, unknown>;
       const questions = Array.isArray(input.questions)
@@ -145,13 +145,13 @@ function wireProcess(
       const questionText = questions.map((q) => q.question).join("\n");
       if (questionText) {
         questionFields = {
-          humanSteps: questionText,
+          nextSteps: questionText,
           summary: "Agent has a question — respond in chat window ←.",
         };
       }
     } else if (endedOnPlanExit) {
       questionFields = {
-        humanSteps:
+        nextSteps:
           "Agent has a plan ready for approval — review plan in chat window ←.",
         summary: "Agent created a plan and is waiting for approval.",
       };
@@ -602,8 +602,8 @@ export async function continueSession(
       contextParts.push(`Description: ${task.description}`);
     if (task?.summary)
       contextParts.push(`Previous summary:\n${task.summary}`);
-    if (task?.humanSteps)
-      contextParts.push(`Previous action items:\n${task.humanSteps}`);
+    if (task?.nextSteps)
+      contextParts.push(`Previous next steps:\n${task.nextSteps}`);
     if (contextParts.length > 0) {
       systemParts.push(
         `## Previous work on this task\nThis task was previously worked on by an agent. Here is the context from that work:\n\n${contextParts.join("\n\n")}`,

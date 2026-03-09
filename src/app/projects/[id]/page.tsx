@@ -376,7 +376,7 @@ export default function ProjectPage() {
       } else if (toColumn === 'todo') {
         optimistic.agentStatus = null;
         optimistic.summary = '';
-        optimistic.humanSteps = '';
+        optimistic.nextSteps = '';
       }
 
       // Insert at target position

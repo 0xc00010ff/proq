@@ -141,7 +141,7 @@ interface TaskAgentDetailProps {
 export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch = 'main', className }: TaskAgentDetailProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
-  const steps = parseLines(task.humanSteps);
+  const steps = parseLines(task.nextSteps);
   const summaryLines = parseLines(task.summary);
   const isDispatched = task.agentStatus === 'running' || task.agentStatus === 'starting';
   const isStructured = task.renderMode !== 'cli';

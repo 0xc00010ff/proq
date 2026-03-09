@@ -92,7 +92,7 @@ While the agent is running, you can send follow-up messages from the agent modal
 When the agent finishes, it calls back via MCP to move the task to **Verify**. The task card shows:
 
 - **Findings** — the agent's summary of what it did
-- **Human Steps** — action items for you (if any)
+- **Next Steps** — suggested testing, refinements, or follow-up work (if any)
 
 From Verify, you can:
 

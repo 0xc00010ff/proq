@@ -5,10 +5,10 @@ import { FileTextIcon } from 'lucide-react';
 
 interface TaskUpdateBlockProps {
   summary: string;
-  humanSteps?: string;
+  nextSteps?: string;
 }
 
-export function TaskUpdateBlock({ summary, humanSteps }: TaskUpdateBlockProps) {
+export function TaskUpdateBlock({ summary, nextSteps }: TaskUpdateBlockProps) {
   // Show first 2 lines as a preview
   const lines = summary.split('\n').filter(Boolean);
   const preview = lines.slice(0, 2).join('\n');
@@ -23,9 +23,9 @@ export function TaskUpdateBlock({ summary, humanSteps }: TaskUpdateBlockProps) {
       <div className="text-[11px] text-text-secondary font-mono whitespace-pre-wrap">
         {preview}{hasMore && <span className="text-text-placeholder"> (+{lines.length - 2} more)</span>}
       </div>
-      {humanSteps && (
+      {nextSteps && (
         <div className="mt-1.5 pt-1.5 border-t border-lazuli/15 text-[11px] text-lazuli-dark dark:text-lazuli/80 font-mono">
-          Steps for you: {humanSteps.split('\n')[0]}
+          Next steps: {nextSteps.split('\n')[0]}
         </div>
       )}
     </div>

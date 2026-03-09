@@ -295,7 +295,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
           block: {
             type: 'task_update',
             summary: block.input.summary as string,
-            humanSteps: block.input.humanSteps as string | undefined,
+            nextSteps: block.input.nextSteps as string | undefined,
             timestamp: new Date().toISOString(),
           },
           idx: i,
@@ -446,7 +446,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                   <TaskUpdateBlock
                     key={idx}
                     summary={block.summary}
-                    humanSteps={block.humanSteps}
+                    nextSteps={block.nextSteps}
                   />
                 );
               case 'stream_delta':

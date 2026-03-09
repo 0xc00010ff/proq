@@ -1,29 +1,34 @@
 appId: com.proq.desktop
 productName: proq
 directories:
-  output: release
-  buildResources: assets
+  buildResources: build
 files:
-  - "dist-main/**/*"
-  - "dist-renderer/**/*"
-  - "assets/**/*"
-  - "package.json"
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+asarUnpack:
+  - resources/**
 mac:
   category: public.app-category.developer-tools
   target:
     - target: dmg
-      arch:
-        - universal
+      arch: [universal]
     - target: zip
-      arch:
-        - universal
-  icon: assets/icon.icns
+      arch: [universal]
+  icon: build/icon.png
   hardenedRuntime: true
-  entitlements: assets/entitlements.mac.plist
-  entitlementsInherit: assets/entitlements.mac.plist
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
 linux:
   target:
     - AppImage
     - deb
   category: Development
-  icon: assets/icon.png
+  icon: build/icon.png
+dmg:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false

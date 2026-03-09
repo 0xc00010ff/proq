@@ -1,32 +1,30 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 
-export function Splash() {
-  const [status, setStatus] = useState("Starting server...");
-  const [error, setError] = useState<string | null>(null);
+export function Splash(): React.JSX.Element {
+  const [status, setStatus] = useState('Starting server...')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const cleanupLog = window.proqDesktop.onServerLog((_e, line) => {
-      // Show last meaningful line
-      const trimmed = line.trim();
-      if (trimmed) setStatus(trimmed.slice(0, 60));
-    });
+      const trimmed = line.trim()
+      if (trimmed) setStatus(trimmed.slice(0, 60))
+    })
 
     const cleanupError = window.proqDesktop.onServerError((_e, err) => {
-      setError(err);
-    });
+      setError(err)
+    })
 
     window.proqDesktop.startServer().then((result) => {
       if (!result.ok) {
-        setError(result.error || "Failed to start server");
+        setError(result.error || 'Failed to start server')
       }
-      // On success, main process replaces this window with the app
-    });
+    })
 
-    return () => {
-      cleanupLog();
-      cleanupError();
-    };
-  }, []);
+    return (): void => {
+      cleanupLog()
+      cleanupError()
+    }
+  }, [])
 
   return (
     <div className="splash-container titlebar-drag">
@@ -45,13 +43,13 @@ export function Splash() {
 
       {error ? (
         <>
-          <p style={{ color: "var(--error)", fontSize: 14, marginBottom: 16 }}>{error}</p>
+          <p style={{ color: 'var(--error)', fontSize: 14, marginBottom: 16 }}>{error}</p>
           <button
             className="btn-primary"
-            onClick={() => {
-              setError(null);
-              setStatus("Restarting...");
-              window.proqDesktop.startServer();
+            onClick={(): void => {
+              setError(null)
+              setStatus('Restarting...')
+              window.proqDesktop.startServer()
             }}
           >
             Retry
@@ -60,9 +58,9 @@ export function Splash() {
       ) : (
         <>
           <div className="spinner" style={{ marginBottom: 20 }} />
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{status}</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{status}</p>
         </>
       )}
     </div>
-  );
+  )
 }

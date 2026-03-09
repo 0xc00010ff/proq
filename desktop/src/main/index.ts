@@ -1,6 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
-import path from "path";
-import { getConfig, setConfig } from "./config";
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { join } from 'path'
+import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import icon from '../../resources/icon.png?asset'
+import { getConfig, setConfig } from './config'
 import {
   checkNodeVersion,
   checkTmux,
@@ -11,54 +13,47 @@ import {
   validateExistingInstall,
   runNpmInstall,
   runNpmBuild,
-  persistClaudePath,
-} from "./setup";
-import { startServer, stopServer } from "./server";
-import { checkForUpdates, applyUpdate } from "./updater";
+  persistClaudePath
+} from './setup'
+import { startServer, stopServer } from './server'
+import { checkForUpdates, applyUpdate } from './updater'
 
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
 try {
-  require("fix-path")();
+  require('fix-path')()
 } catch {
   // fix-path may fail in some environments, proceed without it
 }
 
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | null = null
 
-function getPreloadPath(): string {
-  return path.join(__dirname, "preload.js");
-}
-
-function getRendererPath(file: string): string {
-  return path.join(__dirname, "..", "dist-renderer", file);
-}
-
-function createWindow(mode: "wizard" | "splash" | "app"): BrowserWindow {
-  const config = getConfig();
+function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
+  const config = getConfig()
 
   const windowOptions: Electron.BrowserWindowConstructorOptions = {
     show: false,
-    backgroundColor: "#09090b", // zinc-950
+    backgroundColor: '#09090b',
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: getPreloadPath(),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  };
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  }
 
   switch (mode) {
-    case "wizard":
+    case 'wizard':
       Object.assign(windowOptions, {
         width: 620,
         height: 620,
         resizable: false,
         maximizable: false,
-        titleBarStyle: "hiddenInset" as const,
-        trafficLightPosition: { x: 16, y: 16 },
-      });
-      break;
+        titleBarStyle: 'hiddenInset' as const,
+        trafficLightPosition: { x: 16, y: 16 }
+      })
+      break
 
-    case "splash":
+    case 'splash':
       Object.assign(windowOptions, {
         width: 400,
         height: 320,
@@ -66,12 +61,12 @@ function createWindow(mode: "wizard" | "splash" | "app"): BrowserWindow {
         maximizable: false,
         frame: false,
         transparent: true,
-        alwaysOnTop: true,
-      });
-      break;
+        alwaysOnTop: true
+      })
+      break
 
-    case "app":
-      const bounds = config.windowBounds;
+    case 'app': {
+      const bounds = config.windowBounds
       Object.assign(windowOptions, {
         width: bounds?.width || 1400,
         height: bounds?.height || 900,
@@ -79,150 +74,169 @@ function createWindow(mode: "wizard" | "splash" | "app"): BrowserWindow {
         y: bounds?.y,
         minWidth: 800,
         minHeight: 600,
-        titleBarStyle: "hiddenInset" as const,
-        trafficLightPosition: { x: 16, y: 16 },
-      });
-      break;
+        titleBarStyle: 'hiddenInset' as const,
+        trafficLightPosition: { x: 16, y: 16 }
+      })
+      break
+    }
   }
 
-  const win = new BrowserWindow(windowOptions);
+  const win = new BrowserWindow(windowOptions)
 
-  win.once("ready-to-show", () => win.show());
+  win.once('ready-to-show', () => win.show())
 
   // Save window bounds on resize/move
-  if (mode === "app") {
-    const saveBounds = () => {
+  if (mode === 'app') {
+    const saveBounds = (): void => {
       if (!win.isMaximized() && !win.isMinimized()) {
-        setConfig({ windowBounds: win.getBounds() });
+        setConfig({ windowBounds: win.getBounds() })
       }
-    };
-    win.on("resize", saveBounds);
-    win.on("move", saveBounds);
+    }
+    win.on('resize', saveBounds)
+    win.on('move', saveBounds)
   }
 
-  return win;
+  return win
+}
+
+function loadRendererPage(win: BrowserWindow, hash?: string): void {
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    const url = hash
+      ? `${process.env['ELECTRON_RENDERER_URL']}#${hash}`
+      : process.env['ELECTRON_RENDERER_URL']
+    win.loadURL(url)
+  } else {
+    win.loadFile(join(__dirname, '../renderer/index.html'), hash ? { hash } : undefined)
+  }
 }
 
 // ── IPC Handlers ──────────────────────────────────────────────────────
 
 function registerIpcHandlers(): void {
   // Setup
-  ipcMain.handle("setup:check-node", () => checkNodeVersion());
-  ipcMain.handle("setup:check-tmux", () => checkTmux());
-  ipcMain.handle("setup:install-tmux", () => installTmux());
-  ipcMain.handle("setup:check-claude", () => checkClaudeCli());
-  ipcMain.handle("setup:check-xcode", () => checkXcodeTools());
-  ipcMain.handle("setup:clone", (_e, targetDir: string) => cloneProq(targetDir));
-  ipcMain.handle("setup:validate", (_e, dirPath: string) => validateExistingInstall(dirPath));
+  ipcMain.handle('setup:check-node', () => checkNodeVersion())
+  ipcMain.handle('setup:check-tmux', () => checkTmux())
+  ipcMain.handle('setup:install-tmux', () => installTmux())
+  ipcMain.handle('setup:check-claude', () => checkClaudeCli())
+  ipcMain.handle('setup:check-xcode', () => checkXcodeTools())
+  ipcMain.handle('setup:clone', (_e, targetDir: string) => cloneProq(targetDir))
+  ipcMain.handle('setup:validate', (_e, dirPath: string) => validateExistingInstall(dirPath))
 
-  ipcMain.handle("setup:npm-install", async () => {
-    const { proqPath } = getConfig();
+  ipcMain.handle('setup:npm-install', async () => {
+    const { proqPath } = getConfig()
     return runNpmInstall(proqPath, (line) => {
-      mainWindow?.webContents.send("setup:log", line);
-    });
-  });
+      mainWindow?.webContents.send('setup:log', line)
+    })
+  })
 
-  ipcMain.handle("setup:build", async () => {
-    const { proqPath } = getConfig();
+  ipcMain.handle('setup:build', async () => {
+    const { proqPath } = getConfig()
     return runNpmBuild(proqPath, (line) => {
-      mainWindow?.webContents.send("setup:log", line);
-    });
-  });
+      mainWindow?.webContents.send('setup:log', line)
+    })
+  })
 
-  ipcMain.handle("setup:persist-claude", async (_e, claudePath: string) => {
-    const { proqPath } = getConfig();
-    await persistClaudePath(proqPath, claudePath);
-  });
+  ipcMain.handle('setup:persist-claude', async (_e, claudePath: string) => {
+    const { proqPath } = getConfig()
+    await persistClaudePath(proqPath, claudePath)
+  })
 
   // Config
-  ipcMain.handle("config:get", () => getConfig());
-  ipcMain.handle("config:set", (_e, partial) => setConfig(partial));
+  ipcMain.handle('config:get', () => getConfig())
+  ipcMain.handle('config:set', (_e, partial) => setConfig(partial))
 
   // Directory picker
-  ipcMain.handle("dialog:select-directory", async () => {
+  ipcMain.handle('dialog:select-directory', async () => {
     const result = await dialog.showOpenDialog({
-      properties: ["openDirectory", "createDirectory"],
-      title: "Choose proq install location",
-    });
-    if (result.canceled || result.filePaths.length === 0) return null;
-    return result.filePaths[0];
-  });
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Choose proq install location'
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
 
   // Server
-  ipcMain.handle("server:start", async () => {
+  ipcMain.handle('server:start', async () => {
     return startServer((line) => {
-      mainWindow?.webContents.send("server:log", line);
-    });
-  });
+      mainWindow?.webContents.send('server:log', line)
+    })
+  })
 
   // Updates
-  ipcMain.handle("updates:check", () => checkForUpdates());
-  ipcMain.handle("updates:apply", () =>
-    applyUpdate((line) => mainWindow?.webContents.send("setup:log", line))
-  );
+  ipcMain.handle('updates:check', () => checkForUpdates())
+  ipcMain.handle('updates:apply', () =>
+    applyUpdate((line) => mainWindow?.webContents.send('setup:log', line))
+  )
 
   // App info
-  ipcMain.handle("app:version", () => app.getVersion());
+  ipcMain.handle('app:version', () => app.getVersion())
 }
 
 // ── App Lifecycle ─────────────────────────────────────────────────────
 
 async function launchApp(): Promise<void> {
-  const config = getConfig();
+  const config = getConfig()
 
   if (!config.setupComplete) {
     // First run — show wizard
-    mainWindow = createWindow("wizard");
-    mainWindow.loadFile(getRendererPath("index.html"), { hash: "wizard" });
+    mainWindow = createWindow('wizard')
+    loadRendererPage(mainWindow, 'wizard')
   } else {
     // Normal launch — show splash, start server, then navigate to app
-    mainWindow = createWindow("splash");
-    mainWindow.loadFile(getRendererPath("index.html"), { hash: "splash" });
+    mainWindow = createWindow('splash')
+    loadRendererPage(mainWindow, 'splash')
 
     try {
       const result = await startServer((line) => {
-        mainWindow?.webContents.send("server:log", line);
-      });
+        mainWindow?.webContents.send('server:log', line)
+      })
 
       if (result.ok) {
         // Replace splash with main app window
-        const appWindow = createWindow("app");
-        appWindow.loadURL(`http://localhost:${config.port}`);
+        const appWindow = createWindow('app')
+        appWindow.loadURL(`http://localhost:${config.port}`)
 
-        appWindow.webContents.on("did-finish-load", () => {
-          mainWindow?.close();
-          mainWindow = appWindow;
-        });
+        appWindow.webContents.on('did-finish-load', () => {
+          mainWindow?.close()
+          mainWindow = appWindow
+        })
 
         // Open external links in default browser
         appWindow.webContents.setWindowOpenHandler(({ url }) => {
-          if (url.startsWith("http")) shell.openExternal(url);
-          return { action: "deny" };
-        });
+          if (url.startsWith('http')) shell.openExternal(url)
+          return { action: 'deny' }
+        })
       } else {
-        mainWindow?.webContents.send("server:error", result.error || "Server failed to start");
+        mainWindow?.webContents.send('server:error', result.error || 'Server failed to start')
       }
-    } catch (err: any) {
-      mainWindow?.webContents.send("server:error", err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      mainWindow?.webContents.send('server:error', message)
     }
   }
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers();
-  launchApp();
-});
+  electronApp.setAppUserModelId('com.proq.desktop')
 
-app.on("window-all-closed", () => {
-  app.quit();
-});
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
+  })
 
-app.on("before-quit", async () => {
-  await stopServer();
-});
+  registerIpcHandlers()
+  launchApp()
+})
 
-app.on("activate", () => {
+app.on('window-all-closed', () => {
+  app.quit()
+})
+
+app.on('before-quit', async () => {
+  await stopServer()
+})
+
+app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    launchApp();
+    launchApp()
   }
-});
+})

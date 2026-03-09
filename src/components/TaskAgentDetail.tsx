@@ -26,6 +26,7 @@ import remarkGfm from 'remark-gfm';
 import { TerminalPane } from './TerminalPane';
 import { StructuredPane } from './StructuredPane';
 import { ConflictModal } from './ConflictModal';
+import { CommitDiffModal } from './CommitDiffModal';
 
 // ── Shared markdown components ──────────────────────────
 const mdComponents = {
@@ -154,6 +155,8 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [merging, setMerging] = useState(false);
   const [commits, setCommits] = useState<CommitInfo[] | null>(null);
+  const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null);
+  const [selectedCommitMessage, setSelectedCommitMessage] = useState<string | undefined>(undefined);
   const canEditTitle = !!onUpdateTitle;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [rightPanelPercent, setRightPanelPercent] = useState(33);
@@ -580,11 +583,15 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             ) : (
               <div className="space-y-1">
                 {commits.map((commit) => (
-                  <div key={commit.hash} className="flex items-start gap-2 py-1">
+                  <button
+                    key={commit.hash}
+                    onClick={() => { setSelectedCommitHash(commit.hash); setSelectedCommitMessage(commit.message); }}
+                    className="flex items-start gap-2 py-1 w-full text-left rounded hover:bg-surface-hover/40 px-1 -mx-1 transition-colors cursor-pointer"
+                  >
                     <code className="text-[10px] font-mono text-text-placeholder shrink-0 mt-0.5">{commit.hash}</code>
-                    <span className="text-xs text-text-secondary leading-snug flex-1 min-w-0">{commit.message}</span>
+                    <span className="text-xs text-text-secondary leading-snug flex-1 min-w-0 text-left">{commit.message}</span>
                     <span className="text-[10px] text-text-placeholder shrink-0 mt-0.5">{commit.date}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -669,6 +676,16 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           </div>
         )}
       </div>
+
+      {selectedCommitHash && (
+        <CommitDiffModal
+          isOpen={true}
+          onClose={() => { setSelectedCommitHash(null); setSelectedCommitMessage(undefined); }}
+          projectId={projectId}
+          commitHash={selectedCommitHash}
+          commitMessage={selectedCommitMessage}
+        />
+      )}
 
       {showConflictModal && task.mergeConflict && (
         <ConflictModal

@@ -531,9 +531,8 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                 </ReactMarkdown>
               </div>
             ) : isDispatched && !isQueued ? (
-              <div className="flex items-center gap-2 py-2">
-                <Loader2Icon className="w-4 h-4 text-bronze-500 animate-spin" />
-                <span className="text-xs text-text-placeholder italic">
+              <div className="py-2">
+                <span className="text-xs italic animate-bronze-ripple">
                   Agent is working. Summary will appear here.
                 </span>
               </div>

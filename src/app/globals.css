@@ -202,3 +202,35 @@
 .animate-pulse-subtle {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
+
+/* Bronze shimmer ripple for agent working text */
+@keyframes bronze-ripple {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+.animate-bronze-ripple {
+  --bronze-dim: #9B948A;
+  --bronze-bright: #E4BD89;
+  background: linear-gradient(
+    90deg,
+    var(--bronze-dim) 0%,
+    var(--bronze-dim) 35%,
+    var(--bronze-bright) 50%,
+    var(--bronze-dim) 65%,
+    var(--bronze-dim) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: bronze-ripple 4s linear infinite;
+}
+
+:root:not(.dark) .animate-bronze-ripple {
+  --bronze-dim: #ACa394;
+  --bronze-bright: #5C4628;
+}

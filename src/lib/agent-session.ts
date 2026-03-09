@@ -174,17 +174,17 @@ function wireProcess(
 
     if (stillInProgress) {
       // Safety net: move to verify and clear agentStatus
-      await updateTask(projectId, taskId, {
+      const closeUpdate: Record<string, unknown> = {
         status: "verify",
         agentStatus: null,
-        summary:
-          session.status === "error"
-            ? `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`
-            : undefined,
         ...questionFields,
         agentBlocks: session.blocks,
         sessionId: session.sessionId,
-      });
+      };
+      if (session.status === "error") {
+        closeUpdate.summary = `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`;
+      }
+      await updateTask(projectId, taskId, closeUpdate as Parameters<typeof updateTask>[2]);
       notify(
         `✅ *${(task?.title || task?.description || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
       );

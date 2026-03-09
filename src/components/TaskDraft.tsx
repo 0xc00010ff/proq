@@ -192,7 +192,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     const toolbarH = toolbarRef.current?.offsetHeight ?? 0;
     const descPadding = 16; // py-2 wrapper padding top+bottom
 
-    const ideal = headerH + textContentH + descPadding + attachH + toolbarH;
+    const ideal = headerH + textContentH + descPadding + attachH + toolbarH + 2; // +2 prevents sub-pixel scrollbar
     const maxH = window.innerHeight * MAX_MODAL_VH;
     setModalHeight(Math.max(MIN_MODAL_HEIGHT, Math.min(Math.ceil(ideal), maxH)));
   }, [description, attachments.length, isOpen]);
@@ -353,7 +353,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                 }
               }
             }}
-            className="block w-full h-full bg-transparent text-sm text-text-secondary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 resize-none leading-relaxed"
+            className="block w-full h-full bg-transparent text-sm text-text-secondary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 resize-none leading-relaxed overflow-hidden"
             placeholder="Write something..."
           />
         </div>

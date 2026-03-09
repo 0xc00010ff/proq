@@ -34,7 +34,7 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
     show: false,
     backgroundColor: '#09090b',
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -216,6 +216,11 @@ async function launchApp(): Promise<void> {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.proq.desktop')
+
+  // Set dock icon on macOS (in dev mode it doesn't come from the app bundle)
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(icon)
+  }
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

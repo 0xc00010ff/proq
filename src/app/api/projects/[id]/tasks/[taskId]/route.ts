@@ -79,6 +79,12 @@ export async function PATCH(request: Request, { params }: Params) {
     } else if (prevStatus === "in-progress" && body.status === "verify") {
       // Deferred merge: keep worktree alive for branch preview
       // No merge here — branch stays available for preview until "done"
+      // Emit SSE so client updates immediately (agent-initiated via MCP)
+      const sseChanges: Record<string, unknown> = { status: "verify" };
+      if (body.agentStatus !== undefined) sseChanges.agentStatus = body.agentStatus;
+      if (body.summary !== undefined) sseChanges.summary = body.summary;
+      if (body.nextSteps !== undefined) sseChanges.nextSteps = body.nextSteps;
+      emitTaskUpdate(id, taskId, sseChanges);
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
     } else if (prevStatus === "in-progress" && body.status === "done") {
       // Merge worktree when skipping verify

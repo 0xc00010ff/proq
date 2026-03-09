@@ -47,7 +47,7 @@ export function Welcome({ onNext }: WelcomeProps): React.JSX.Element {
             lineHeight: 1.6
           }}
         >
-          proq is an agentic coding IDE.
+          <strong>An agentic coding IDE.</strong>
           <br />
           proq simplifies local multi-agent orchestration so you can build fast and high quality
           software.
@@ -55,7 +55,7 @@ export function Welcome({ onNext }: WelcomeProps): React.JSX.Element {
       </div>
 
       <div className="wizard-footer" style={{ justifyContent: 'center', borderTop: 'none' }}>
-        <button className="btn-primary" onClick={onNext} style={{ minWidth: 160 }}>
+        <button className="btn-accent" onClick={onNext} style={{ minWidth: 160 }}>
           Get Started
         </button>
       </div>

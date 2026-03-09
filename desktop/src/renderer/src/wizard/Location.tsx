@@ -82,7 +82,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
                   onChange={(e): void => setProqPath(e.target.value)}
                   placeholder="~/proq"
                 />
-                <button className="btn-secondary titlebar-no-drag" onClick={handleBrowse}>
+                <button className="btn-primary titlebar-no-drag" onClick={handleBrowse}>
                   Browse
                 </button>
               </div>
@@ -107,12 +107,12 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
             </div>
 
             <button
-              className="btn-ghost"
+              className="btn-secondary"
               onClick={(): void => {
                 setMode('existing')
                 setError(null)
               }}
-              style={{ fontSize: 13, padding: '6px 0', color: 'var(--text-muted)' }}
+              style={{ padding: '6px 0' }}
             >
               I already have proq installed &rarr;
             </button>
@@ -128,7 +128,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
                   onChange={(e): void => setProqPath(e.target.value)}
                   placeholder="/path/to/proq"
                 />
-                <button className="btn-secondary titlebar-no-drag" onClick={handleBrowse}>
+                <button className="btn-primary titlebar-no-drag" onClick={handleBrowse}>
                   Browse
                 </button>
               </div>
@@ -139,18 +139,26 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
               <p style={{ color: 'var(--error)', fontSize: 13, marginTop: 8 }}>{error}</p>
             )}
 
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                margin: '28px 0 16px'
+              }}
+            >
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+
             <button
-              className="btn-ghost"
+              className="btn-secondary"
               onClick={(): void => {
                 setMode('clone')
                 setError(null)
               }}
-              style={{
-                fontSize: 13,
-                padding: '6px 0',
-                color: 'var(--text-muted)',
-                marginTop: 8
-              }}
+              style={{ padding: '6px 0' }}
             >
               &larr; Back to fresh install
             </button>
@@ -162,7 +170,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
         <button className="btn-ghost" onClick={onBack}>
           Back
         </button>
-        <button className="btn-primary" onClick={handleNext} disabled={loading || !proqPath}>
+        <button className="btn-accent" onClick={handleNext} disabled={loading || !proqPath}>
           {loading ? 'Working...' : 'Next'}
         </button>
       </div>

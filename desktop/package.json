@@ -16,7 +16,8 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "fix-path": "^4.0.0"
+    "fix-path": "^4.0.0",
+    "lucide-react": "^0.577.0"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",

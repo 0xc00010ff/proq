@@ -121,14 +121,14 @@ export function Installing({
             <button className="btn-ghost" onClick={onBack}>
               Back
             </button>
-            <button className="btn-primary" onClick={handleRetry}>
+            <button className="btn-accent" onClick={handleRetry}>
               Retry
             </button>
           </>
         ) : phase === 'done' ? (
           <>
             <div />
-            <button className="btn-primary" onClick={onComplete} style={{ minWidth: 160 }}>
+            <button className="btn-accent" onClick={onComplete} style={{ minWidth: 160 }}>
               Launch proq
             </button>
           </>

@@ -7,6 +7,7 @@ import {
   ClockIcon,
   EyeIcon,
   BellDotIcon,
+  AlertTriangleIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 

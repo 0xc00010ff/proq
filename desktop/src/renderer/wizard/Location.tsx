@@ -66,50 +66,91 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
       <div className="wizard-content">
         <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Install Location</h2>
         <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 24 }}>
-          Choose where to install proq, or point to an existing clone.
+          Choose where to install proq.
         </p>
 
-        <div className="radio-group" style={{ marginBottom: 24 }}>
-          <div
-            className={`radio-option ${mode === "clone" ? "selected" : ""}`}
-            onClick={() => setMode("clone")}
-          >
-            <div className="label">Fresh Install</div>
-            <div className="desc">Clone from GitHub</div>
-          </div>
-          <div
-            className={`radio-option ${mode === "existing" ? "selected" : ""}`}
-            onClick={() => setMode("existing")}
-          >
-            <div className="label">Existing Clone</div>
-            <div className="desc">I already have proq</div>
-          </div>
-        </div>
-
-        <div className="field">
-          <label className="field-label">
-            {mode === "clone" ? "Install directory" : "proq directory"}
-          </label>
-          <div className="field-row">
-            <input
-              type="text"
-              value={proqPath}
-              onChange={(e) => setProqPath(e.target.value)}
-              placeholder={mode === "clone" ? "~/proq" : "/path/to/proq"}
-            />
-            <button className="btn-secondary titlebar-no-drag" onClick={handleBrowse}>
-              Browse
-            </button>
-          </div>
-          {mode === "clone" && (
-            <div className="field-hint">
-              proq will be cloned into this directory
+        {mode === "clone" ? (
+          <>
+            <div className="field">
+              <label className="field-label">Install directory</label>
+              <div className="field-row">
+                <input
+                  type="text"
+                  value={proqPath}
+                  onChange={(e) => setProqPath(e.target.value)}
+                  placeholder="~/proq"
+                />
+                <button className="btn-secondary titlebar-no-drag" onClick={handleBrowse}>
+                  Browse
+                </button>
+              </div>
+              <div className="field-hint">
+                proq will be cloned into this directory
+              </div>
             </div>
-          )}
-        </div>
 
-        {error && (
-          <p style={{ color: "var(--error)", fontSize: 13, marginTop: 8 }}>{error}</p>
+            {error && (
+              <p style={{ color: "var(--error)", fontSize: 13, marginTop: 8 }}>{error}</p>
+            )}
+
+            {/* Divider */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              margin: "28px 0 16px",
+            }}>
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            </div>
+
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                setMode("existing");
+                setError(null);
+              }}
+              style={{ fontSize: 13, padding: "6px 0", color: "var(--text-muted)" }}
+            >
+              I already have proq installed &rarr;
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="field">
+              <label className="field-label">proq directory</label>
+              <div className="field-row">
+                <input
+                  type="text"
+                  value={proqPath}
+                  onChange={(e) => setProqPath(e.target.value)}
+                  placeholder="/path/to/proq"
+                />
+                <button className="btn-secondary titlebar-no-drag" onClick={handleBrowse}>
+                  Browse
+                </button>
+              </div>
+              <div className="field-hint">
+                Point to your existing proq clone
+              </div>
+            </div>
+
+            {error && (
+              <p style={{ color: "var(--error)", fontSize: 13, marginTop: 8 }}>{error}</p>
+            )}
+
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                setMode("clone");
+                setError(null);
+              }}
+              style={{ fontSize: 13, padding: "6px 0", color: "var(--text-muted)", marginTop: 8 }}
+            >
+              &larr; Back to fresh install
+            </button>
+          </>
         )}
       </div>
 

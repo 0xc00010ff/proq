@@ -136,7 +136,7 @@ function wireProcess(
       lastToolUse.name === "AskUserQuestion";
     const endedOnPlanExit =
       lastToolUse?.type === "tool_use" && lastToolUse.name === "ExitPlanMode";
-    let questionFields: { humanSteps?: string; findings?: string } = {};
+    let questionFields: { humanSteps?: string; summary?: string } = {};
     if (endedOnQuestion) {
       const input = lastToolUse.input as Record<string, unknown>;
       const questions = Array.isArray(input.questions)
@@ -146,14 +146,14 @@ function wireProcess(
       if (questionText) {
         questionFields = {
           humanSteps: questionText,
-          findings: "Agent has a question — respond in chat window ←.",
+          summary: "Agent has a question — respond in chat window ←.",
         };
       }
     } else if (endedOnPlanExit) {
       questionFields = {
         humanSteps:
           "Agent has a plan ready for approval — review plan in chat window ←.",
-        findings: "Agent created a plan and is waiting for approval.",
+        summary: "Agent created a plan and is waiting for approval.",
       };
     }
 
@@ -177,7 +177,7 @@ function wireProcess(
       await updateTask(projectId, taskId, {
         status: "verify",
         agentStatus: null,
-        findings:
+        summary:
           session.status === "error"
             ? `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`
             : undefined,
@@ -215,7 +215,7 @@ function wireProcess(
       await updateTask(projectId, taskId, {
         status: "verify",
         agentStatus: null,
-        findings: `Error: ${errorMsg}`,
+        summary: `Error: ${errorMsg}`,
         agentBlocks: session.blocks,
       });
       emitTaskUpdate(projectId, taskId, {
@@ -600,8 +600,8 @@ export async function continueSession(
     if (task?.title) contextParts.push(`Task: ${task.title}`);
     if (task?.description)
       contextParts.push(`Description: ${task.description}`);
-    if (task?.findings)
-      contextParts.push(`Previous findings:\n${task.findings}`);
+    if (task?.summary)
+      contextParts.push(`Previous findings:\n${task.summary}`);
     if (task?.humanSteps)
       contextParts.push(`Previous action items:\n${task.humanSteps}`);
     if (contextParts.length > 0) {

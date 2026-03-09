@@ -31,9 +31,9 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  // Set needsAttention when findings are updated and task is (moving to) verify
+  // Set needsAttention when summary is updated and task is (moving to) verify
   const effectiveStatus = body.status || prevStatus;
-  if (body.findings !== undefined && effectiveStatus === "verify") {
+  if (body.summary !== undefined && effectiveStatus === "verify") {
     await updateTask(id, taskId, { needsAttention: true });
     updated.needsAttention = true;
     emitTaskUpdate(id, taskId, { needsAttention: true });
@@ -70,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
           popAutoStash(projectPath, prevTask.baseBranch || defaultBr);
         }
       }
-      const resetFields = { agentStatus: null as Task["agentStatus"], findings: "", humanSteps: "", agentLog: "", needsAttention: undefined as boolean | undefined, worktreePath: undefined as string | undefined, branch: undefined as string | undefined, baseBranch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
+      const resetFields = { agentStatus: null as Task["agentStatus"], summary: "", humanSteps: "", agentLog: "", needsAttention: undefined as boolean | undefined, worktreePath: undefined as string | undefined, branch: undefined as string | undefined, baseBranch: undefined as string | undefined, mergeConflict: undefined as Task["mergeConflict"], renderMode: undefined as Task["renderMode"], agentBlocks: undefined as Task["agentBlocks"], sessionId: undefined as Task["sessionId"] };
       await updateTask(id, taskId, resetFields);
       Object.assign(updated, resetFields);
       if (prevStatus === "in-progress") {

@@ -28,12 +28,12 @@ const server = new McpServer({
 
 server.tool(
   "update_task",
-  "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new findings. Each call replaces the previous summary.",
+  "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new summary. Each call replaces the previous summary.",
   {
-    findings: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
+    summary: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
     humanSteps: z.string().optional().describe("Newline-separated action items the human needs to do, if any"),
   },
-  async ({ findings, humanSteps }) => {
+  async ({ summary, humanSteps }) => {
     try {
       const res = await fetch(taskUrl, {
         method: "PATCH",
@@ -41,7 +41,7 @@ server.tool(
         body: JSON.stringify({
           status: "verify",
           agentStatus: null,
-          findings,
+          summary,
           humanSteps: humanSteps || "",
         }),
       });
@@ -57,7 +57,7 @@ server.tool(
 
 server.tool(
   "read_task",
-  "Read the current task state, including any existing findings from prior work. Use this before updating to see what has already been reported, so you can write a cumulative summary.",
+  "Read the current task state, including any existing summary from prior work. Use this before updating to see what has already been reported, so you can write a cumulative summary.",
   {},
   async () => {
     try {

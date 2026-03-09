@@ -75,7 +75,7 @@ Projects:
 Tasks:
   GET    http://localhost:1337/api/projects/{id}/tasks              — List tasks (returns columns: todo, in-progress, verify, done)
   POST   http://localhost:1337/api/projects/{id}/tasks              — Create task { title?, description, priority?, mode? }
-  PATCH  http://localhost:1337/api/projects/{id}/tasks/{taskId}     — Update task (status, title, description, findings, etc.)
+  PATCH  http://localhost:1337/api/projects/{id}/tasks/{taskId}     — Update task (status, title, description, summary, etc.)
   DELETE http://localhost:1337/api/projects/{id}/tasks/{taskId}     — Delete task
   PUT    http://localhost:1337/api/projects/{id}/tasks/reorder      — Bulk reorder tasks
 

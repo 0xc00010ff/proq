@@ -26,18 +26,18 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, onDel
   const isActive = isRunning || isStarting;
   const canEditTitle = !!onUpdateTitle;
 
-  // Track findings changes to trigger flash animation
+  // Track summary changes to trigger flash animation
   const [flash, setFlash] = useState(false);
-  const prevFindingsRef = useRef(task.findings);
+  const prevSummaryRef = useRef(task.summary);
   useEffect(() => {
-    if (task.findings && task.findings !== prevFindingsRef.current) {
+    if (task.summary && task.summary !== prevSummaryRef.current) {
       setFlash(true);
       const timer = setTimeout(() => setFlash(false), 2000);
-      prevFindingsRef.current = task.findings;
+      prevSummaryRef.current = task.summary;
       return () => clearTimeout(timer);
     }
-    prevFindingsRef.current = task.findings;
-  }, [task.findings]);
+    prevSummaryRef.current = task.summary;
+  }, [task.summary]);
 
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title || '');

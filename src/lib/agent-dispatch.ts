@@ -71,30 +71,30 @@ You are working on a task assigned to you by proq, an agentic coding task board.
 You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.
 
 ### Task Tools
-- \`read_task\` — Read current task state and any existing findings
-- \`update_task\` — Update findings and move task to Verify for review
+- \`read_task\` — Read current task state and any existing summary
+- \`update_task\` — Update summary and move task to Verify for review
 - \`commit_changes\` — Stage and commit all current changes with a message`,
   ];
 
   if (mode === "auto") {
     sections.push(`### Workflow
 If you make code changes, use \`commit_changes\` to commit them before reporting.
-When the task is complete, use \`read_task\` to check existing findings, then \`update_task\` to report and move to Verify.`);
+When the task is complete, use \`read_task\` to check existing summary, then \`update_task\` to report and move to Verify.`);
   } else if (mode === "answer") {
     sections.push(`### Research Mode
-This is an answer-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your findings.
+This is an answer-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your summary.
 
 ### Reporting Results
-When finished, use the \`read_task\` tool to check for any existing findings, then use \`update_task\` with a cumulative summary incorporating prior findings.`);
+When finished, use the \`read_task\` tool to check for any existing summary, then use \`update_task\` with a cumulative summary incorporating prior work.`);
   } else if (mode === "plan") {
     sections.push(`### Reporting Results
-When finished, use the \`read_task\` tool to check for any existing findings, then use \`update_task\` with a cumulative summary incorporating prior findings.`);
+When finished, use the \`read_task\` tool to check for any existing summary, then use \`update_task\` with a cumulative summary incorporating prior work.`);
   } else {
     sections.push(`### Code Changes
 Use the \`commit_changes\` tool to commit after each logical unit of work. Always commit your code changes before reporting — don't leave uncommitted work behind.
 
 ### Reporting Progress
-After making substantial changes (committing code, completing a phase of work), use the \`update_task\` tool to update the task board and move the task to Verify for human review. Before reporting, use \`read_task\` to see existing findings so you can write a cumulative summary.
+After making substantial changes (committing code, completing a phase of work), use the \`update_task\` tool to update the task board and move the task to Verify for human review. Before reporting, use \`read_task\` to see existing summary so you can write a cumulative summary.
 
 **When to report:**
 - After committing code changes
@@ -104,7 +104,7 @@ After making substantial changes (committing code, completing a phase of work), 
 **When NOT to report:**
 - Simple clarifying responses or short answers
 - Asking questions back to the user
-- Minor adjustments that don't change the overall findings`);
+- Minor adjustments that don't change the overall summary`);
   }
 
   sections.push(`### Asking Questions
@@ -294,7 +294,7 @@ export async function dispatchTask(
     if (mode === "plan") {
       prompt = heading;
     } else if (mode === "answer") {
-      prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.`;
+      prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as a summary.`;
     } else {
       prompt = `${heading}\n\nWhen completely finished, use the commit_changes tool to commit your changes with a descriptive message.`;
     }

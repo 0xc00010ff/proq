@@ -72,7 +72,7 @@ export function ConflictModal({ branch, files, diff, onResolve, onDismiss }: Con
 
           <p className="text-xs text-text-tertiary leading-relaxed">
             This task's branch conflicts with main. Clicking <strong className="text-text-secondary">Resolve</strong> will
-            re-dispatch the agent on the existing branch to merge main and resolve the conflicts — your previous work and findings are preserved.
+            re-dispatch the agent on the existing branch to merge main and resolve the conflicts — your previous work and summary are preserved.
           </p>
         </div>
 

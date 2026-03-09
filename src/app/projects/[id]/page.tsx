@@ -353,7 +353,7 @@ export default function ProjectPage() {
         optimistic.agentStatus = 'starting';
       } else if (toColumn === 'todo') {
         optimistic.agentStatus = null;
-        optimistic.findings = '';
+        optimistic.summary = '';
         optimistic.humanSteps = '';
       }
 

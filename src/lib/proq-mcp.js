@@ -124,6 +124,25 @@ server.tool(
       const hashMatch = result.match(/\[[\w/.-]+ ([a-f0-9]+)\]/);
       const hash = hashMatch ? hashMatch[1] : "";
 
+      // Record commit hash on the task for accurate commit tracking
+      if (hash) {
+        try {
+          const taskRes = await fetch(taskUrl);
+          if (taskRes.ok) {
+            const task = await taskRes.json();
+            const hashes = task.commitHashes || [];
+            hashes.push(hash);
+            await fetch(taskUrl, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ commitHashes: hashes }),
+            });
+          }
+        } catch {
+          // Best effort — don't fail the commit over tracking
+        }
+      }
+
       return { content: [{ type: "text", text: `Committed${hash ? ` (${hash})` : ""}: ${message}` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Commit failed: ${err.message}` }], isError: true };

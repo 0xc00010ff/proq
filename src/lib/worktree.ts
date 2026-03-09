@@ -737,20 +737,18 @@ export function gitLogPaginated(
   }
 }
 
-/** Get commits for a task: between two refs (branch range or startCommit..HEAD) */
-export function gitTaskCommits(
+/** Get commit details for specific hashes (newest first) */
+export function gitCommitsByHash(
   projectPath: string,
-  fromRef: string,
-  toRef = "HEAD",
-  count = 50,
+  hashes: string[],
 ): { hash: string; message: string; author: string; date: string }[] {
+  if (!hashes.length) return [];
   try {
-    // Sanitize refs: only allow alphanumeric, /, -, _, .
-    if (!/^[\w/.\-^~@{}]+$/.test(fromRef) || !/^[\w/.\-^~@{}]+$/.test(toRef)) {
-      throw new Error("Invalid ref");
-    }
+    // Sanitize: only hex characters
+    const safe = hashes.filter((h) => /^[0-9a-fA-F]+$/.test(h));
+    if (!safe.length) return [];
     const output = execSync(
-      `git -C '${projectPath}' log '${fromRef}..${toRef}' --format='%x1e%h%x1f%s%x1f%an%x1f%ar' -n ${count}`,
+      `git -C '${projectPath}' log --no-walk --format='%x1e%h%x1f%s%x1f%an%x1f%ar' ${safe.join(" ")}`,
       { timeout: 15_000, encoding: "utf-8" },
     ).trim();
     if (!output) return [];

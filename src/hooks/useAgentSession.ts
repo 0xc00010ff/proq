@@ -74,7 +74,7 @@ export function useAgentSession(
               // (e.g. server may re-broadcast an enriched ExitPlanMode block)
               if (msg.block.type === 'tool_use' && msg.block.toolId) {
                 const existingIdx = prev.findIndex(
-                  (b) => b.type === 'tool_use' && b.toolId === msg.block.toolId
+                  (b) => b.type === 'tool_use' && (b as Extract<typeof b, { type: 'tool_use' }>).toolId === (msg.block as Extract<typeof msg.block, { type: 'tool_use' }>).toolId
                 );
                 if (existingIdx !== -1) {
                   const updated = [...prev];

@@ -30,6 +30,9 @@ export default function ProjectPage() {
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
   const [workbenchCollapsed, setTerminalCollapsed] = useState(true);
+  const [liveWorkbenchCollapsed, setLiveWorkbenchCollapsed] = useState(true);
+  const [liveChatPercent, setLiveChatPercent] = useState(40);
+  const [liveIsDragging, setLiveIsDragging] = useState(false);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
@@ -588,6 +591,57 @@ export default function ProjectPage() {
     setChatPercent((prev) => Math.max(prev, 25));
   }, [patchWorkbenchState]);
 
+  // ── Live workbench controls ──
+
+  const toggleLiveWorkbenchCollapsed = useCallback(() => {
+    setLiveWorkbenchCollapsed((prev) => !prev);
+  }, []);
+
+  const expandLiveWorkbench = useCallback(() => {
+    setLiveWorkbenchCollapsed((prev) => {
+      if (!prev) return prev;
+      return false;
+    });
+    setLiveChatPercent((prev) => Math.max(prev, 25));
+  }, []);
+
+  const handleLiveResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setLiveIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!liveIsDragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const percent = ((rect.height - y) / rect.height) * 100;
+      if (liveWorkbenchCollapsed && percent > 5) {
+        toggleLiveWorkbenchCollapsed();
+      }
+      setLiveChatPercent(Math.min(100, Math.max(3, percent)));
+    };
+    const handleMouseUp = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const pixelHeight = rect.height - y;
+        if (pixelHeight < 200) {
+          setLiveWorkbenchCollapsed(true);
+          setLiveChatPercent(40);
+        }
+      }
+      setLiveIsDragging(false);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [liveIsDragging, liveWorkbenchCollapsed, toggleLiveWorkbenchCollapsed]);
+
   // Resize handle (tab bar is the drag target)
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -753,11 +807,21 @@ export default function ProjectPage() {
           </>
         )}
 
-        {activeTab === 'live' && project && <LiveTab project={project} />}
+        {activeTab === 'live' && project && (
+          <LiveTab
+            project={project}
+            workbenchCollapsed={liveWorkbenchCollapsed}
+            workbenchHeight={liveChatPercent}
+            isDragging={liveIsDragging}
+            onToggleCollapsed={toggleLiveWorkbenchCollapsed}
+            onExpand={expandLiveWorkbench}
+            onResizeStart={handleLiveResizeStart}
+          />
+        )}
         {activeTab === 'code' && project && <CodeTab project={project} />}
       </main>
 
-      {isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
+      {(isDragging || liveIsDragging) && <div className="fixed inset-0 z-50 cursor-grabbing" />}
 
       {agentModalTask && (
         <TaskAgentModal

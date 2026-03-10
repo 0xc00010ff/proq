@@ -240,7 +240,7 @@ function SortableProject({
           if (isRenaming) return;
           router.push(`/projects/${project.id}`);
         }}
-        className={`w-full text-left py-3 px-4 relative group block cursor-pointer
+        className={`w-full text-left py-2.5 px-4 relative group block cursor-pointer
           ${isActive ? "bg-surface-selected/50" : "hover:bg-surface-hover/40"}
           `}
       >

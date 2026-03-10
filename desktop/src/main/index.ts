@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell, powerMonitor } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -15,7 +15,7 @@ import {
   runNpmBuild,
   persistClaudePath
 } from './setup'
-import { startServer, stopServer } from './server'
+import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit } from './server'
 import { checkForUpdates, applyUpdate } from './updater'
 
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
@@ -27,6 +27,9 @@ try {
 
 let mainWindow: BrowserWindow | null = null
 let isResetting = false
+let healthInterval: ReturnType<typeof setInterval> | null = null
+let consecutiveFailures = 0
+let isRecovering = false
 
 function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
   const config = getConfig()
@@ -177,6 +180,47 @@ function registerIpcHandlers(): void {
   ipcMain.handle('app:version', () => app.getVersion())
 }
 
+// ── Health Monitor & Recovery ─────────────────────────────────────────
+
+async function recoverServer(): Promise<void> {
+  if (isRecovering) return
+  isRecovering = true
+  try {
+    const config = getConfig()
+    const result = await restartServer()
+    if (result.ok && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadURL(`http://localhost:${config.port}`)
+    }
+  } finally {
+    isRecovering = false
+    consecutiveFailures = 0
+  }
+}
+
+function startHealthMonitor(): void {
+  stopHealthMonitor()
+  consecutiveFailures = 0
+  const config = getConfig()
+  healthInterval = setInterval(async () => {
+    const healthy = await healthCheck(config.port)
+    if (healthy) {
+      consecutiveFailures = 0
+    } else {
+      consecutiveFailures++
+      if (consecutiveFailures >= 3) {
+        recoverServer()
+      }
+    }
+  }, 10_000)
+}
+
+function stopHealthMonitor(): void {
+  if (healthInterval) {
+    clearInterval(healthInterval)
+    healthInterval = null
+  }
+}
+
 // ── App Lifecycle ─────────────────────────────────────────────────────
 
 function transitionToApp(): void {
@@ -190,6 +234,8 @@ function transitionToApp(): void {
       previousWindow.close()
     }
     mainWindow = appWindow
+    startHealthMonitor()
+    onServerExit(() => recoverServer())
   })
 
   // Retry loading if the page fails (e.g. Cmd-R while server is slow)
@@ -216,6 +262,13 @@ async function launchApp(): Promise<void> {
     mainWindow = createWindow('wizard')
     loadRendererPage(mainWindow, 'wizard')
   } else {
+    // Check if server is already running (e.g. orphan from previous session)
+    const alreadyHealthy = await tryConnectToExisting(config.port)
+    if (alreadyHealthy) {
+      transitionToApp()
+      return
+    }
+
     // Normal launch — show splash, start server, then navigate to app
     mainWindow = createWindow('splash')
     loadRendererPage(mainWindow, 'splash')
@@ -309,6 +362,21 @@ app.whenReady().then(() => {
     )
   }
 
+  // Power monitor — handle sleep/wake
+  powerMonitor.on('suspend', () => {
+    stopHealthMonitor()
+  })
+
+  powerMonitor.on('resume', async () => {
+    const config = getConfig()
+    if (!config.setupComplete) return
+    const healthy = await healthCheck(config.port)
+    if (!healthy) {
+      recoverServer()
+    }
+    startHealthMonitor()
+  })
+
   registerIpcHandlers()
   launchApp()
 })
@@ -318,6 +386,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  stopHealthMonitor()
   await stopServer()
 })
 

@@ -3,6 +3,8 @@ import http from 'http'
 import { getConfig } from './config'
 
 let serverProcess: ChildProcess | null = null
+let intentionalStop = false
+let exitCallback: (() => void) | null = null
 
 function killProcessOnPort(port: number): void {
   try {
@@ -21,6 +23,8 @@ export async function startServer(
   const config = getConfig()
   const { proqPath, port, wsPort, devMode } = config
   const command = devMode ? 'dev' : 'start'
+
+  intentionalStop = false
 
   // Kill anything already on the port for a clean start
   if (serverProcess) {
@@ -75,6 +79,9 @@ export async function startServer(
         resolve({ ok: false, error: earlyError })
       } else if (code !== null && code !== 0) {
         onLog?.(`Server process exited with code ${code}`)
+        if (!intentionalStop && exitCallback) {
+          exitCallback()
+        }
       }
     })
 
@@ -94,6 +101,7 @@ export async function startServer(
 }
 
 export function stopServer(): Promise<void> {
+  intentionalStop = true
   return new Promise((resolve) => {
     if (!serverProcess) {
       resolve()
@@ -117,6 +125,35 @@ export function stopServer(): Promise<void> {
 
 export function isServerRunning(): boolean {
   return serverProcess !== null && !serverProcess.killed
+}
+
+export function healthCheck(port: number, timeoutMs = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.get(`http://localhost:${port}`, (res) => {
+      res.resume()
+      resolve(res.statusCode !== undefined && res.statusCode < 500)
+    })
+    req.on('error', () => resolve(false))
+    req.setTimeout(timeoutMs, () => {
+      req.destroy()
+      resolve(false)
+    })
+  })
+}
+
+export async function tryConnectToExisting(port: number): Promise<boolean> {
+  return healthCheck(port)
+}
+
+export async function restartServer(
+  onLog?: (line: string) => void
+): Promise<{ ok: boolean; error?: string }> {
+  await stopServer()
+  return startServer(onLog)
+}
+
+export function onServerExit(cb: () => void): void {
+  exitCallback = cb
 }
 
 function pollUntilReady(port: number, timeoutMs: number): Promise<void> {

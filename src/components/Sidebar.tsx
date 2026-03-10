@@ -476,7 +476,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
       {/* Main Chat Item */}
       <Link
         href="/supervisor"
-        className={`w-full text-left p-3 px-4 relative group py-4 block flex-shrink-0
+        className={`w-full text-left px-4 relative group block flex-shrink-0 h-[52px] flex items-center
           ${isChatActive ? "bg-surface-selected" : "hover:bg-surface-hover/40"}`}
       >
         {isChatActive && (
@@ -496,7 +496,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
 
       {/* Project List */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 h-[52px] flex items-center justify-between flex-shrink-0">
           <span className="text-[10px] font-medium text-text-tertiary uppercase tracking-widest">
             Projects
           </span>

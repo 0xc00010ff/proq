@@ -240,7 +240,7 @@ function SortableProject({
           if (isRenaming) return;
           router.push(`/projects/${project.id}`);
         }}
-        className={`w-full text-left py-3 px-4 relative group block cursor-pointer
+        className={`w-full text-left py-2.5 px-4 relative group block cursor-pointer
           ${isActive ? "bg-surface-selected/50" : "hover:bg-surface-hover/40"}
           `}
       >
@@ -435,7 +435,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
         style={isElectron ? { paddingTop: 38 } : undefined}
         onClick={onToggleCollapsed}
       >
-        <div className="h-16 flex items-center justify-center">
+        <div className="h-[52px] flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/proq-logo-vector.svg"
@@ -453,7 +453,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
     <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0" style={isElectron ? { paddingTop: 38 } : undefined}>
       {/* Header — collapse toggle */}
       <div
-        className="h-16 flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-surface-hover/40 relative cursor-pointer flex-shrink-0"
+        className="h-[52px] flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-surface-hover/40 relative cursor-pointer flex-shrink-0"
         onClick={onToggleCollapsed}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -476,7 +476,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
       {/* Main Chat Item */}
       <Link
         href="/supervisor"
-        className={`w-full text-left p-3 px-4 relative group py-4 block flex-shrink-0
+        className={`w-full text-left px-4 relative group block flex-shrink-0 h-[52px] flex items-center
           ${isChatActive ? "bg-surface-selected" : "hover:bg-surface-hover/40"}`}
       >
         {isChatActive && (
@@ -496,7 +496,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
 
       {/* Project List */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 h-[52px] flex items-center justify-between flex-shrink-0">
           <span className="text-[10px] font-medium text-text-tertiary uppercase tracking-widest">
             Projects
           </span>

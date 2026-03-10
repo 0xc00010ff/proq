@@ -50,7 +50,15 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
 
   const handleBrowse = async (): Promise<void> => {
     const dir = await window.proqDesktop.selectDirectory()
-    if (dir) setInstallDir(dir)
+    if (!dir) return
+
+    // If they selected a proq directory itself, use its parent
+    if (dir.replace(/\/+$/, '').endsWith('/proq') || dir.replace(/\/+$/, '') === 'proq') {
+      const parent = dir.replace(/\/+$/, '').replace(/\/proq$/, '')
+      setInstallDir(parent || '/')
+    } else {
+      setInstallDir(dir)
+    }
   }
 
   const handleNext = async (action: 'use-existing' | 'clone' | 'overwrite'): Promise<void> => {

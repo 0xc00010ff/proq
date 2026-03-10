@@ -1,21 +1,37 @@
-import { ChildProcess, spawn } from 'child_process'
+import { ChildProcess, spawn, execSync } from 'child_process'
 import http from 'http'
 import { getConfig } from './config'
 
 let serverProcess: ChildProcess | null = null
 
-export function startServer(
+function killProcessOnPort(port: number): void {
+  try {
+    const pids = execSync(`lsof -ti:${port}`, { encoding: 'utf-8' }).trim()
+    if (pids) {
+      execSync(`kill -9 ${pids.split('\n').join(' ')}`)
+    }
+  } catch {
+    // No process on port, or kill failed — either way, proceed
+  }
+}
+
+export async function startServer(
   onLog?: (line: string) => void
 ): Promise<{ ok: boolean; error?: string }> {
   const config = getConfig()
   const { proqPath, port, wsPort, devMode } = config
   const command = devMode ? 'dev' : 'start'
 
+  // Kill anything already on the port for a clean start
+  if (serverProcess) {
+    serverProcess.kill('SIGKILL')
+    serverProcess = null
+  }
+  killProcessOnPort(port)
+  // Brief pause to let the port free up
+  await new Promise((r) => setTimeout(r, 500))
+
   return new Promise((resolve) => {
-    if (serverProcess) {
-      resolve({ ok: true })
-      return
-    }
 
     const child = spawn('npm', ['run', command], {
       cwd: proqPath,

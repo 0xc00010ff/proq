@@ -184,9 +184,7 @@ input:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 16px;
   padding-right: 40px;
-  border-top: 1px solid var(--border);
   margin-top: 16px;
 }
 

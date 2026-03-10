@@ -226,6 +226,8 @@ async function launchApp(): Promise<void> {
       })
 
       if (result.ok) {
+        // Brief pause so "Projecting..." is visible on the splash
+        await new Promise((r) => setTimeout(r, 1500))
         transitionToApp()
       } else {
         mainWindow?.webContents.send('server:error', result.error || 'Server failed to start')

@@ -9,19 +9,18 @@ function friendlyStatus(line: string, port: number, wsPort: number): string | nu
   // Strip ANSI escape sequences
   const t = line.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim()
   if (!t) return null
-  if (t.includes('WS server')) return `Starting WebSocket on port ${wsPort}...`
-  if (t.includes('Ready in') || t.includes('ready started')) return 'Almost ready...'
-  if (t.includes('Listening') || t.includes('started server')) return `Starting server on port ${port}...`
-  if (t.includes('Compiling') || t.includes('compiling')) return 'Compiling...'
-  if (t.includes('Loading')) return 'Loading...'
-  // Strip leading > and other noise
-  const clean = t.replace(/^[>\s▲⚠]+/, '').trim()
-  if (clean) return clean.slice(0, 60)
+  if (t.includes('WS server')) return `WebSocket on port ${wsPort}`
+  if (t.includes('Ready in') || t.includes('ready started')) return 'Ready'
+  if (t.includes('Listening') || t.includes('started server')) return `Server on port ${port}`
+  if (t.includes('Compiling') || t.includes('compiling')) return 'Compiling'
+  if (t.includes('Loading')) return 'Loading modules'
+  if (t.includes('next dev') || t.includes('next start')) return 'Starting Next.js'
   return null
 }
 
 export function Splash({ onSettings }: SplashProps): React.JSX.Element {
-  const [status, setStatus] = useState('Starting server...')
+  const [status, setStatus] = useState('Initializing')
+  const [phases, setPhases] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const isPortError =
     error?.includes('already in use') || error?.includes('EADDRINUSE') || false
@@ -37,7 +36,10 @@ export function Splash({ onSettings }: SplashProps): React.JSX.Element {
 
     const cleanupLog = window.proqDesktop.onServerLog((_e, line) => {
       const friendly = friendlyStatus(line, port, wsPort)
-      if (friendly) setStatus(friendly)
+      if (friendly) {
+        setStatus(friendly)
+        setPhases((prev) => prev.includes(friendly) ? prev : [...prev.slice(-3), friendly])
+      }
     })
 
     const cleanupError = window.proqDesktop.onServerError((_e, err) => {
@@ -47,6 +49,8 @@ export function Splash({ onSettings }: SplashProps): React.JSX.Element {
     window.proqDesktop.startServer().then((result) => {
       if (!result.ok) {
         setError(result.error || 'Failed to start server')
+      } else {
+        setStatus('Projecting...')
       }
     })
 
@@ -91,7 +95,18 @@ export function Splash({ onSettings }: SplashProps): React.JSX.Element {
           </div>
         </>
       ) : (
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{status}</p>
+        <div style={{ textAlign: 'center' }}>
+          {phases.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              {phases.slice(0, -1).map((p, i) => (
+                <p key={i} style={{ color: 'var(--text-muted)', fontSize: 11, opacity: 0.4, lineHeight: 1.8 }}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          )}
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{status}</p>
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface LocationProps {
   proqPath: string
@@ -8,9 +8,10 @@ interface LocationProps {
 }
 
 export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProps): React.JSX.Element {
-  const [mode, setMode] = useState<'clone' | 'existing'>('clone')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [existingInstall, setExistingInstall] = useState<boolean | null>(null)
+  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!proqPath) {
@@ -20,33 +21,47 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
     }
   }, [])
 
+  // Auto-detect existing install when path changes
+  useEffect(() => {
+    if (!proqPath) {
+      setExistingInstall(null)
+      return
+    }
+
+    if (checkTimer.current) clearTimeout(checkTimer.current)
+    checkTimer.current = setTimeout(async () => {
+      try {
+        const valid = await window.proqDesktop.validateInstall(proqPath)
+        setExistingInstall(valid)
+      } catch {
+        setExistingInstall(false)
+      }
+    }, 300)
+
+    return () => {
+      if (checkTimer.current) clearTimeout(checkTimer.current)
+    }
+  }, [proqPath])
+
   const handleBrowse = async (): Promise<void> => {
     const dir = await window.proqDesktop.selectDirectory()
-    if (dir) {
-      if (mode === 'existing') {
-        setProqPath(dir)
-      } else {
-        setProqPath(dir + '/proq')
-      }
-    }
+    if (dir) setProqPath(dir)
   }
 
-  const handleNext = async (): Promise<void> => {
+  const handleNext = async (action: 'use-existing' | 'clone' | 'overwrite'): Promise<void> => {
     setLoading(true)
     setError(null)
 
     try {
-      if (mode === 'existing') {
+      if (action === 'use-existing') {
         const valid = await window.proqDesktop.validateInstall(proqPath)
         if (!valid) {
-          setError(
-            "Not a valid proq installation. Make sure the directory contains proq's package.json."
-          )
+          setError("Not a valid proq installation. Make sure the directory contains proq's package.json.")
           setLoading(false)
           return
         }
       } else {
-        const result = await window.proqDesktop.cloneRepo(proqPath)
+        const result = await window.proqDesktop.cloneRepo(proqPath, action === 'overwrite')
         if (!result.ok) {
           setError(result.error || 'Failed to clone repository')
           setLoading(false)
@@ -71,98 +86,63 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
           Choose where to install proq.
         </p>
 
-        {mode === 'clone' ? (
-          <>
-            <div className="field">
-              <label className="field-label">Install directory</label>
-              <div className="field-row">
-                <input
-                  type="text"
-                  value={proqPath}
-                  onChange={(e): void => setProqPath(e.target.value)}
-                  placeholder="~/proq"
-                />
-                <button className="btn-primary titlebar-no-drag" onClick={handleBrowse}>
-                  Browse
-                </button>
-              </div>
-              <div className="field-hint">proq will be cloned into this directory</div>
-            </div>
-
-            {error && (
-              <p style={{ color: 'var(--error)', fontSize: 13, marginTop: 8 }}>{error}</p>
-            )}
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                margin: '28px 0 16px'
-              }}
-            >
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>or</span>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-
-            <button
-              className="btn-secondary"
-              onClick={(): void => {
-                setMode('existing')
-                setError(null)
-              }}
-              style={{ padding: '6px 0' }}
-            >
-              I already have proq installed &rarr;
+        <div className="field">
+          <label className="field-label">Install directory</label>
+          <div className="field-row">
+            <input
+              type="text"
+              value={proqPath}
+              onChange={(e): void => setProqPath(e.target.value)}
+              placeholder="~/proq"
+            />
+            <button className="btn-primary titlebar-no-drag" onClick={handleBrowse}>
+              Browse
             </button>
-          </>
-        ) : (
-          <>
-            <div className="field">
-              <label className="field-label">proq directory</label>
-              <div className="field-row">
-                <input
-                  type="text"
-                  value={proqPath}
-                  onChange={(e): void => setProqPath(e.target.value)}
-                  placeholder="/path/to/proq"
-                />
-                <button className="btn-primary titlebar-no-drag" onClick={handleBrowse}>
-                  Browse
-                </button>
-              </div>
-              <div className="field-hint">Point to your existing proq clone</div>
+          </div>
+          {!existingInstall && (
+            <div className="field-hint">proq will be cloned into this directory</div>
+          )}
+        </div>
+
+        {existingInstall && (
+          <div
+            style={{
+              marginTop: 24,
+              padding: '14px 16px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'rgba(255,255,255,0.03)'
+            }}
+          >
+            <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 6 }}>
+              proq is already installed here
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
+              Use the existing installation or overwrite with a fresh clone.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn-accent"
+                onClick={() => handleNext('use-existing')}
+                disabled={loading}
+                style={{ flex: 1 }}
+              >
+                {loading ? 'Setting up...' : 'Use existing'}
+              </button>
+              <button
+                className="btn-overwrite"
+                onClick={() => handleNext('overwrite')}
+                disabled={loading}
+                style={{ flex: 1 }}
+              >
+                {loading ? 'Cloning...' : 'Overwrite'}
+              </button>
             </div>
+          </div>
+        )}
 
-            {error && (
-              <p style={{ color: 'var(--error)', fontSize: 13, marginTop: 8 }}>{error}</p>
-            )}
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                margin: '28px 0 16px'
-              }}
-            >
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>or</span>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-
-            <button
-              className="btn-secondary"
-              onClick={(): void => {
-                setMode('clone')
-                setError(null)
-              }}
-              style={{ padding: '6px 0' }}
-            >
-              &larr; Back to fresh install
-            </button>
-          </>
+        {error && (
+          <p style={{ color: 'var(--error)', fontSize: 13, marginTop: 12 }}>{error}</p>
         )}
       </div>
 
@@ -170,9 +150,11 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
         <button className="btn-ghost" onClick={onBack}>
           Back
         </button>
-        <button className="btn-accent" onClick={handleNext} disabled={loading || !proqPath}>
-          {loading ? 'Installing...' : 'Next'}
-        </button>
+        {!existingInstall && (
+          <button className="btn-accent" onClick={() => handleNext('clone')} disabled={loading || !proqPath}>
+            {loading ? 'Cloning...' : 'Next'}
+          </button>
+        )}
       </div>
     </>
   )

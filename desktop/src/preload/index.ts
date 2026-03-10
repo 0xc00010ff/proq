@@ -8,7 +8,7 @@ const proqDesktopAPI = {
   installTmux: (): Promise<unknown> => ipcRenderer.invoke('setup:install-tmux'),
   checkClaude: (): Promise<unknown> => ipcRenderer.invoke('setup:check-claude'),
   checkXcode: (): Promise<unknown> => ipcRenderer.invoke('setup:check-xcode'),
-  cloneRepo: (targetDir: string): Promise<unknown> => ipcRenderer.invoke('setup:clone', targetDir),
+  cloneRepo: (targetDir: string, overwrite?: boolean): Promise<unknown> => ipcRenderer.invoke('setup:clone', targetDir, overwrite),
   validateInstall: (dirPath: string): Promise<unknown> =>
     ipcRenderer.invoke('setup:validate', dirPath),
   npmInstall: (): Promise<unknown> => ipcRenderer.invoke('setup:npm-install'),

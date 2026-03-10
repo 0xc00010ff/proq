@@ -112,19 +112,24 @@ export async function checkXcodeTools(): Promise<CheckResult> {
   }
 }
 
-export async function cloneProq(targetDir: string): Promise<{ ok: boolean; error?: string }> {
-  const pkgPath = path.join(targetDir, 'package.json')
-  try {
-    const raw = await fs.promises.readFile(pkgPath, 'utf-8')
-    const pkg = JSON.parse(raw)
-    if (pkg.name === 'proq') {
-      return { ok: true }
+export async function cloneProq(targetDir: string, overwrite = false): Promise<{ ok: boolean; error?: string }> {
+  if (!overwrite) {
+    const pkgPath = path.join(targetDir, 'package.json')
+    try {
+      const raw = await fs.promises.readFile(pkgPath, 'utf-8')
+      const pkg = JSON.parse(raw)
+      if (pkg.name === 'proq') {
+        return { ok: true }
+      }
+    } catch {
+      // Not cloned yet
     }
-  } catch {
-    // Not cloned yet
   }
 
   try {
+    if (overwrite) {
+      await fs.promises.rm(targetDir, { recursive: true, force: true })
+    }
     const parentDir = path.dirname(targetDir)
     const dirName = path.basename(targetDir)
     await fs.promises.mkdir(parentDir, { recursive: true })

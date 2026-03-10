@@ -30,7 +30,7 @@ interface ProqDesktopAPI {
   installTmux: () => Promise<CheckResult>
   checkClaude: () => Promise<CheckResult>
   checkXcode: () => Promise<CheckResult>
-  cloneRepo: (targetDir: string) => Promise<{ ok: boolean; error?: string }>
+  cloneRepo: (targetDir: string, overwrite?: boolean) => Promise<{ ok: boolean; error?: string }>
   validateInstall: (dirPath: string) => Promise<boolean>
   npmInstall: () => Promise<{ ok: boolean; error?: string }>
   buildProq: () => Promise<{ ok: boolean; error?: string }>

@@ -26,6 +26,7 @@ try {
 }
 
 let mainWindow: BrowserWindow | null = null
+let isResetting = false
 
 function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
   const config = getConfig()
@@ -119,7 +120,7 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:install-tmux', () => installTmux())
   ipcMain.handle('setup:check-claude', () => checkClaudeCli())
   ipcMain.handle('setup:check-xcode', () => checkXcodeTools())
-  ipcMain.handle('setup:clone', (_e, targetDir: string) => cloneProq(targetDir))
+  ipcMain.handle('setup:clone', (_e, targetDir: string, overwrite?: boolean) => cloneProq(targetDir, overwrite))
   ipcMain.handle('setup:validate', (_e, dirPath: string) => validateExistingInstall(dirPath))
 
   ipcMain.handle('setup:npm-install', async () => {
@@ -282,10 +283,15 @@ app.whenReady().then(() => {
                   detail: 'This will clear all settings and restart the setup wizard.'
                 })
                 if (response === 1) {
+                  isResetting = true
                   await stopServer()
                   resetConfig()
-                  mainWindow?.close()
+                  // Close all existing windows before relaunching
+                  for (const win of BrowserWindow.getAllWindows()) {
+                    win.destroy()
+                  }
                   mainWindow = null
+                  isResetting = false
                   launchApp()
                 }
               }
@@ -306,7 +312,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  app.quit()
+  if (!isResetting) app.quit()
 })
 
 app.on('before-quit', async () => {

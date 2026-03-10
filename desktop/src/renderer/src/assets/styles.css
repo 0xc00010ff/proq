@@ -94,6 +94,23 @@ button:disabled {
   border-color: #CDAA78;
 }
 
+.btn-overwrite {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  color: var(--error);
+  border: 1px solid rgba(63, 63, 70, 0.6);
+  background: rgba(39, 39, 42, 0.6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+
+.btn-overwrite:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
 .btn-secondary {
   padding: 8px 16px;
   font-size: 13px;

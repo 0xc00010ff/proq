@@ -32,7 +32,8 @@ export async function startServer(
     serverProcess = null
   }
   killProcessOnPort(port)
-  // Brief pause to let the port free up
+  killProcessOnPort(wsPort)
+  // Brief pause to let the ports free up
   await new Promise((r) => setTimeout(r, 500))
 
   return new Promise((resolve) => {
@@ -52,21 +53,26 @@ export async function startServer(
     serverProcess = child
     let earlyError: string | null = null
 
+    const detectPortError = (text: string): void => {
+      if (earlyError) return
+      if (text.includes('EADDRINUSE') || text.includes('address already in use')) {
+        // Try to extract the actual port from the error message
+        const portMatch = text.match(/:(\d+)/)
+        const failedPort = portMatch ? portMatch[1] : String(port)
+        earlyError = `Port ${failedPort} is already in use. Change the port in Settings or stop the other process.`
+      }
+    }
+
     child.stdout?.on('data', (data: Buffer) => {
       const text = data.toString()
       onLog?.(text)
-      // Detect port-in-use errors from Next.js output
-      if (text.includes('EADDRINUSE') || text.includes('address already in use')) {
-        earlyError = `Port ${port} is already in use. Change the port in Settings or stop the other process.`
-      }
+      detectPortError(text)
     })
 
     child.stderr?.on('data', (data: Buffer) => {
       const text = data.toString()
       onLog?.(text)
-      if (text.includes('EADDRINUSE') || text.includes('address already in use')) {
-        earlyError = `Port ${port} is already in use. Change the port in Settings or stop the other process.`
-      }
+      detectPortError(text)
     })
 
     child.on('error', (err) => {

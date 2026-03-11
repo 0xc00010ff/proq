@@ -24,8 +24,9 @@ export async function POST(request: Request, { params }: Params) {
   const body = await request.json();
   const title = body.title ?? "";
   const description = body.description ?? "";
+  const mode = body.mode;
 
-  const task = await createTask(id, { title, description });
+  const task = await createTask(id, { title, description, mode });
   emitTaskCreated(id, task as unknown as Record<string, unknown>);
   return NextResponse.json(task, { status: 201 });
 }

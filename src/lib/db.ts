@@ -326,7 +326,7 @@ export async function getTask(
 
 export async function createTask(
   projectId: string,
-  data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"] }
+  data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"]; mode?: Task["mode"] }
 ): Promise<Task> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -337,6 +337,7 @@ export async function createTask(
       description: data.description,
       status: "todo",
       priority: data.priority,
+      mode: data.mode,
       createdAt: now,
       updatedAt: now,
     };

@@ -127,19 +127,20 @@ server.tool(
 
 server.tool(
   "create_task",
-  "Create a new task in the Todo column of a project.",
+  "Create a new task in a project.",
   {
     projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
     title: z.string().describe("Task title"),
     description: z.string().describe("Task description with details about what needs to be done"),
+    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Claude Code execution mode (default: auto)"),
   },
-  async ({ projectId, title, description }) => {
+  async ({ projectId, title, description, mode }) => {
     try {
       const pid = resolveProjectId(projectId);
       const res = await fetch(`${API}/api/projects/${pid}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title, description, mode }),
       });
       if (!res.ok) {
         return { content: [{ type: "text", text: `Failed to create task: ${res.status}` }], isError: true };

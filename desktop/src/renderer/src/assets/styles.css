@@ -164,7 +164,7 @@ input:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 48px 0 32px 40px;
+  padding: 48px 0 20px 40px;
 }
 
 .wizard-header {
@@ -185,7 +185,7 @@ input:focus {
   justify-content: space-between;
   align-items: center;
   padding-right: 40px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 /* Splash screen */

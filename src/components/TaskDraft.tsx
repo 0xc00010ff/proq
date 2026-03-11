@@ -366,7 +366,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
               }
             }}
             onPaste={handlePaste}
-            className="block w-full h-full bg-transparent text-sm text-text-secondary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 resize-none leading-relaxed overflow-hidden"
+            className="block w-full h-full bg-transparent text-sm text-text-secondary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 resize-none leading-relaxed overflow-y-auto"
             placeholder="Write something..."
           />
         </div>

@@ -48,7 +48,8 @@ export type AgentWsServerMsg =
 export type AgentWsClientMsg =
   | { type: 'followup'; text: string; attachments?: TaskAttachment[] }
   | { type: 'plan-approve'; text: string }
-  | { type: 'stop' };
+  | { type: 'stop' }
+  | { type: 'clear' };
 
 // ── Task ─────────────────────────────────────────────────
 export type TaskStatus = "todo" | "in-progress" | "verify" | "done";

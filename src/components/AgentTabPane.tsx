@@ -38,7 +38,17 @@ interface AgentTabPaneProps {
 }
 
 export function AgentTabPane({ tabId, projectId, visible, context }: AgentTabPaneProps) {
-  const { blocks, sessionDone, loaded, sendMessage, stop } = useAgentTabSession(tabId, projectId, context);
+  const { blocks, sessionDone, loaded, sendMessage, stop, clear } = useAgentTabSession(tabId, projectId, context);
+
+  // Listen for clear events from the tab dropdown
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { tabId: targetId, type } = (e as CustomEvent).detail;
+      if (targetId === tabId && type === 'agent') clear();
+    };
+    window.addEventListener('workbench-clear-tab', handler);
+    return () => window.removeEventListener('workbench-clear-tab', handler);
+  }, [tabId, clear]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

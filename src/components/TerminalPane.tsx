@@ -159,7 +159,17 @@ export function useTerminal(
     }
   }, []);
 
-  return { sendData };
+  /** Clear the terminal display and send `clear` to the shell */
+  const clearTerminal = useCallback(() => {
+    const inst = instanceRef.current;
+    if (!inst) return;
+    inst.terminal.clear();
+    if (inst.ws.readyState === WebSocket.OPEN) {
+      inst.ws.send('clear\r');
+    }
+  }, []);
+
+  return { sendData, clearTerminal };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -178,8 +188,18 @@ export function TerminalPane({
   cwd?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { sendData } = useTerminal(tabId, containerRef, visible, cwd);
+  const { sendData, clearTerminal } = useTerminal(tabId, containerRef, visible, cwd);
   const [dropping, setDropping] = useState(false);
+
+  // Listen for clear events from the tab dropdown
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { tabId: targetId, type } = (e as CustomEvent).detail;
+      if (targetId === tabId && type === 'shell') clearTerminal();
+    };
+    window.addEventListener('workbench-clear-tab', handler);
+    return () => window.removeEventListener('workbench-clear-tab', handler);
+  }, [tabId, clearTerminal]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (!enableDrop) return;

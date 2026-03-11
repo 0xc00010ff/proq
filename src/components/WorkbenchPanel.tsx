@@ -152,7 +152,7 @@ function SortableTab({
 /* -------------------------------------------------------------------------- */
 
 export default function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: WorkbenchPanelProps) {
-  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, replaceTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
+  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -217,17 +217,9 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
 
   const clearTab = useCallback(
     (tab: WorkbenchTab) => {
-      const newId = `${tab.type}-${uuidv4().slice(0, 8)}`;
-      // Kill old backend session
-      if (tab.type === 'agent') {
-        fetch(`/api/agent-tab/${tab.id}?projectId=${projectId}`, { method: 'DELETE' }).catch(() => {});
-      } else {
-        fetch(`/api/shell/${tab.id}`, { method: 'DELETE' }).catch(() => {});
-      }
-      // Swap to a new ID — React unmounts the old pane and mounts a fresh one
-      replaceTab(projectId, tab.id, newId, scope);
+      window.dispatchEvent(new CustomEvent('workbench-clear-tab', { detail: { tabId: tab.id, type: tab.type } }));
     },
-    [projectId, replaceTab, scope]
+    []
   );
 
   // DnD sensors — require 5px movement before activating to avoid blocking clicks

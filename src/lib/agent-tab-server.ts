@@ -6,6 +6,7 @@ import {
   stopAgentTabSession,
   startAgentTabSession,
   continueAgentTabSession,
+  clearAgentTabSession,
 } from "./agent-tab-runtime";
 import { getAgentTabData, getProject } from "./db";
 import type { AgentWsClientMsg } from "./types";
@@ -36,7 +37,10 @@ export async function attachAgentTabWs(
   ws.on("message", async (raw) => {
     try {
       const msg: AgentWsClientMsg = JSON.parse(raw.toString());
-      if (msg.type === "stop") {
+      if (msg.type === "clear") {
+        await clearAgentTabSession(tabId, projectId);
+        ws.send(JSON.stringify({ type: "replay", blocks: [] }));
+      } else if (msg.type === "stop") {
         stopAgentTabSession(tabId);
       } else if (msg.type === "followup") {
         try {

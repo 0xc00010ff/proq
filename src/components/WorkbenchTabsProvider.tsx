@@ -23,7 +23,6 @@ interface WorkbenchTabsContextValue {
   openTab(projectId: string, tabId: string, label: string, type: WorkbenchTabType, scope?: WorkbenchScope): void;
   closeTab(projectId: string, tabId: string, scope?: WorkbenchScope): void;
   renameTab(projectId: string, tabId: string, label: string, scope?: WorkbenchScope): void;
-  replaceTab(projectId: string, oldTabId: string, newTabId: string, scope?: WorkbenchScope): void;
   reorderTabs(projectId: string, tabs: WorkbenchTab[], scope?: WorkbenchScope): void;
   hydrateProject(projectId: string, scope?: WorkbenchScope): void;
 }
@@ -216,23 +215,6 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
     });
   }, [persistTabs]);
 
-  const replaceTab = useCallback((projectId: string, oldTabId: string, newTabId: string, scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
-    setState((prev) => {
-      const ps = getOrCreate(prev, projectId, scope);
-      const next = {
-        ...prev,
-        [key]: {
-          ...ps,
-          tabs: ps.tabs.map((t) => t.id === oldTabId ? { ...t, id: newTabId } : t),
-          activeTabId: ps.activeTabId === oldTabId ? newTabId : ps.activeTabId,
-        },
-      };
-      persistTabs(projectId, next[key], scope);
-      return next;
-    });
-  }, [persistTabs]);
-
   const reorderTabs = useCallback((projectId: string, newTabs: WorkbenchTab[], scope: WorkbenchScope = 'project') => {
     const key = scopedKey(projectId, scope);
     setState((prev) => {
@@ -245,7 +227,7 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
 
   return (
     <WorkbenchTabsContext.Provider
-      value={{ getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, replaceTab, reorderTabs, hydrateProject }}
+      value={{ getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject }}
     >
       {children}
     </WorkbenchTabsContext.Provider>

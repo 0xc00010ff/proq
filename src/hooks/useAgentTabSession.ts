@@ -12,6 +12,7 @@ interface UseAgentTabSessionResult {
   loaded: boolean;
   sendMessage: (text: string, attachments?: TaskAttachment[]) => void;
   stop: () => void;
+  clear: () => void;
 }
 
 export function useAgentTabSession(
@@ -95,5 +96,12 @@ export function useAgentTabSession(
     }
   }, []);
 
-  return { blocks, connected, sessionDone, loaded, sendMessage, stop };
+  const clear = useCallback(() => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'clear' }));
+    }
+  }, []);
+
+  return { blocks, connected, sessionDone, loaded, sendMessage, stop, clear };
 }

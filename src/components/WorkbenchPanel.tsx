@@ -219,13 +219,16 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
     (tab: WorkbenchTab) => {
       if (tab.type === 'agent') {
         // Clear agent session server-side, then reset blocks via WS reconnect
-        fetch(`/api/agent-tab/${tab.id}?projectId=${projectId}`, { method: 'DELETE' }).catch(() => {});
-        // Dispatch event so the AgentTabPane resets
-        window.dispatchEvent(new CustomEvent('agent-tab-clear', { detail: { tabId: tab.id } }));
+        fetch(`/api/agent-tab/${tab.id}?projectId=${projectId}`, { method: 'DELETE' })
+          .then(() => {
+            // Dispatch after server confirms clear so reconnect gets empty state
+            window.dispatchEvent(new CustomEvent('agent-tab-clear', { detail: { tabId: tab.id } }));
+          })
+          .catch(() => {});
       } else {
         // Kill and respawn the terminal
         fetch(`/api/shell/${tab.id}`, { method: 'DELETE' }).then(() => {
-          // Small delay to let tmux session die before respawn
+          // Delay to let tmux session fully terminate before respawn
           setTimeout(() => {
             fetch('/api/shell/spawn', {
               method: 'POST',

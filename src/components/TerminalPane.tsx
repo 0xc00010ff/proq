@@ -26,6 +26,9 @@ export function useTerminal(
     const container = containerRef.current;
     if (!container) return;
 
+    // Clear any leftover DOM from previous terminal instance
+    container.innerHTML = '';
+
     let cancelled = false;
     let instance: TerminalInstance | null = null;
 

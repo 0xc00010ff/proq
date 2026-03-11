@@ -187,10 +187,17 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
 
     setState((prev) => {
       const ps = getOrCreate(prev, projectId, scope);
+      const closedIndex = ps.tabs.findIndex((t) => t.id === tabId);
       const filtered = ps.tabs.filter((t) => t.id !== tabId);
-      const activeTabId = filtered.length === 0
-        ? ''
-        : ps.activeTabId === tabId ? filtered[0].id : ps.activeTabId;
+      let activeTabId: string;
+      if (filtered.length === 0) {
+        activeTabId = '';
+      } else if (ps.activeTabId !== tabId) {
+        activeTabId = ps.activeTabId;
+      } else {
+        // Select the previous tab, or the next if closing the first tab
+        activeTabId = filtered[closedIndex > 0 ? closedIndex - 1 : 0].id;
+      }
       const next = { ...prev, [key]: { ...ps, tabs: filtered, activeTabId } };
       persistTabs(projectId, next[key], scope);
       return next;

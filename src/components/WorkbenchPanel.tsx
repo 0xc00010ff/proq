@@ -119,7 +119,9 @@ function SortableTab({
             <span
               data-clickable
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 inset-y-0 flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-text-tertiary hover:text-text-secondary bg-gradient-to-l from-surface-topbar from-50% to-transparent"
+              className={`absolute right-0 inset-y-0 flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-text-tertiary hover:text-text-secondary bg-gradient-to-l from-50% to-transparent ${
+                isActive ? 'from-surface-hover/60' : 'from-surface-topbar group-hover/tab:from-surface-hover/30'
+              }`}
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </span>

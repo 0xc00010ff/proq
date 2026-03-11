@@ -174,10 +174,13 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
     }
 
     if (session.status === "aborted") {
-      await setAgentTabData(session.projectId, session.tabId, {
-        agentBlocks: session.blocks,
-        sessionId: session.sessionId,
-      });
+      // Only persist if session is still tracked (skip if it was cleared)
+      if (sessions.get(session.tabId) === session) {
+        await setAgentTabData(session.projectId, session.tabId, {
+          agentBlocks: session.blocks,
+          sessionId: session.sessionId,
+        });
+      }
       return;
     }
 

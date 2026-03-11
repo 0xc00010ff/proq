@@ -18,6 +18,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { isElectron } from "@/lib/utils";
 import {
   PlusIcon,
   SquareChevronUpIcon,
@@ -332,8 +333,6 @@ function SortableProject({
 }
 
 // ── Sidebar ──────────────────────────────────────────────
-
-const isElectron = process.env.NEXT_PUBLIC_ELECTRON === '1';
 
 export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();

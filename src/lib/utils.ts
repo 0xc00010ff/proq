@@ -14,6 +14,9 @@ export function stripAnsi(str: string): string {
   return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07)/g, '');
 }
 
+export const isElectron =
+  typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
+
 export function slugify(name: string): string {
   return name
     .toLowerCase()

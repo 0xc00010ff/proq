@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { GitDetailModal } from '@/components/GitDetailModal';
+import { isElectron } from '@/lib/utils';
 
 export type TabOption = ProjectTab;
 
@@ -207,7 +208,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         : 'text-text-chrome';
 
   return (
-    <header className={`h-[48px] bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-border-default${process.env.NEXT_PUBLIC_ELECTRON === '1' ? ' electron-drag' : ''}`}>
+    <header className={`h-[48px] bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-border-default${isElectron ? ' electron-drag' : ''}`}>
       <div className="flex-1 flex items-center min-w-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

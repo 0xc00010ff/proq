@@ -25,7 +25,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function SupervisorPage() {
-  const { blocks, sessionDone, hasHistory, sendMessage, stop, clear } = useSupervisorSession();
+  const { blocks, streamingText, sessionDone, hasHistory, sendMessage, stop, clear } = useSupervisorSession();
   const { projects } = useProjects();
   const { addProject } = useShellActions();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -37,12 +37,12 @@ export default function SupervisorPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
-  // Auto-scroll to bottom on new blocks
+  // Auto-scroll to bottom on new blocks or streaming text
   useEffect(() => {
     if (!userScrolledUp && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [blocks, userScrolledUp]);
+  }, [blocks, streamingText, userScrolledUp]);
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -141,7 +141,7 @@ export default function SupervisorPage() {
 
   const isRunning = !sessionDone;
   const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
-  const isThinking = isRunning && blocks.length > 0 && (
+  const isThinking = isRunning && !streamingText && blocks.length > 0 && (
     (lastBlock?.type === 'status' && lastBlock.subtype === 'init') ||
     (lastBlock?.type === 'tool_result') ||
     (lastBlock?.type === 'text') ||
@@ -327,6 +327,9 @@ export default function SupervisorPage() {
                   return null;
               }
             })}
+
+            {/* Streaming text (live partial response) */}
+            {streamingText && <TextBlock text={streamingText} />}
 
             {/* Thinking indicator */}
             {isThinking && (

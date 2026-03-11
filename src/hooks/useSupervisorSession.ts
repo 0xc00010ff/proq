@@ -9,6 +9,7 @@ function getWsPort(): string {
 
 interface UseSupervisorSessionResult {
   blocks: AgentBlock[];
+  streamingText: string;
   connected: boolean;
   sessionDone: boolean;
   hasHistory: boolean;
@@ -19,6 +20,7 @@ interface UseSupervisorSessionResult {
 
 export function useSupervisorSession(): UseSupervisorSessionResult {
   const [blocks, setBlocks] = useState<AgentBlock[]>([]);
+  const [streamingText, setStreamingText] = useState('');
   const [connected, setConnected] = useState(false);
   const [sessionDone, setSessionDone] = useState(true);
   const wsRef = useRef<WebSocket | null>(null);
@@ -39,6 +41,7 @@ export function useSupervisorSession(): UseSupervisorSessionResult {
 
         if (msg.type === 'replay') {
           setBlocks(msg.blocks);
+          setStreamingText('');
           // Determine session done state
           const statusBlocks = msg.blocks.filter(
             (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
@@ -48,7 +51,12 @@ export function useSupervisorSession(): UseSupervisorSessionResult {
           const hasUserAfter = msg.blocks.slice(lastStatusIdx + 1).some((b) => b.type === 'user');
           const isDone = !lastStatus || (lastStatus.type === 'status' && lastStatus.subtype !== 'init' && !hasUserAfter);
           setSessionDone(isDone);
+        } else if (msg.type === 'stream_delta') {
+          setStreamingText((prev) => prev + msg.text);
         } else if (msg.type === 'block') {
+          if (msg.block.type === 'text' || msg.block.type === 'user') {
+            setStreamingText('');
+          }
           setBlocks((prev) => [...prev, msg.block]);
           if (msg.block.type === 'status' && msg.block.subtype === 'init' || msg.block.type === 'user') {
             setSessionDone(false);
@@ -99,7 +107,7 @@ export function useSupervisorSession(): UseSupervisorSessionResult {
 
   const hasHistory = blocks.length > 0;
 
-  return { blocks, connected, sessionDone, hasHistory, sendMessage, stop, clear };
+  return { blocks, streamingText, connected, sessionDone, hasHistory, sendMessage, stop, clear };
 }
 
 export type { UseSupervisorSessionResult };

@@ -24,7 +24,7 @@ interface LiveTabProps {
 }
 
 export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDragging, onToggleCollapsed, onExpand, onResizeStart }: LiveTabProps) {
-  const [urlInput, setUrlInput] = useState('http://localhost:3000');
+  const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
   const initialVp = project.liveViewport ?? 'desktop';
   const [viewport, setViewport] = useState<ViewportSize>(initialVp);
@@ -35,11 +35,15 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
   const { refreshProjects } = useProjects();
   const prevServerUrl = useRef(project.serverUrl);
 
-  // Auto-refresh iframe when serverUrl changes (e.g. agent sets it)
+  // Auto-connect when serverUrl changes (e.g. agent sets it via API)
   useEffect(() => {
     if (project.serverUrl && project.serverUrl !== prevServerUrl.current) {
+      setUrlInput(project.serverUrl);
       setBarValue(project.serverUrl);
       setIframeKey(k => k + 1);
+    } else if (!project.serverUrl && prevServerUrl.current) {
+      // Disconnected — reset input to default
+      setUrlInput('http://localhost:3000');
     }
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);

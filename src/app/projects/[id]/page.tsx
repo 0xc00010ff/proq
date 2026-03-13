@@ -229,15 +229,25 @@ export default function ProjectPage() {
 
   useTaskEvents(projectId, handleTaskUpdate, handleTaskCreated, handleProjectUpdate);
 
-  // 30s task poll as consistency backstop — SSE handles real-time updates.
-  // Skips during active drags.
+  // 30s poll as consistency backstop — SSE handles real-time updates.
+  // Refreshes both tasks (skipped during drags) and project-level data (e.g. serverUrl).
   useEffect(() => {
     if (!projectId) return;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (!kanbanDraggingRef.current) refreshTasks(projectId);
+      // Also refresh project-level fields (serverUrl, etc.) that SSE may have missed
+      try {
+        const res = await fetch(`/api/projects/${projectId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProjects((prev) =>
+            prev.map((p) => (p.id === projectId ? { ...p, ...data } : p))
+          );
+        }
+      } catch { /* ignore */ }
     }, 30_000);
     return () => clearInterval(interval);
-  }, [projectId, refreshTasks]);
+  }, [projectId, refreshTasks, setProjects]);
 
   // 5s poll for branch state (local dirty count, branch list, preview fast-forward)
   // Git changes are true externalities that don't pass through our API.

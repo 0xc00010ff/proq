@@ -22,10 +22,9 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  // Emit SSE for agent-initiated project changes (e.g. set_live_url)
-  if (_source === "agent") {
-    emitProjectUpdate(id, fields);
-  }
+  // Emit SSE for server-visible project changes (serverUrl, etc.)
+  // so the frontend updates in real-time regardless of who made the change.
+  emitProjectUpdate(id, fields);
   return NextResponse.json(updated);
 }
 

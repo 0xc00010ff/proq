@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 import WorkbenchPanel from '@/components/WorkbenchPanel';
@@ -34,7 +35,7 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
   const [iframeKey, setIframeKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { refreshProjects } = useProjects();
-  const { setActiveTabId, getTabs } = useWorkbenchTabs();
+  const { setActiveTabId, getTabs, openTab } = useWorkbenchTabs();
   const prevServerUrl = useRef(project.serverUrl);
 
   // Auto-refresh iframe when serverUrl changes (e.g. agent sets it)
@@ -103,17 +104,28 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
     document.addEventListener('mouseup', onUp);
   }, [size.w, size.h]);
 
-  const activateTab = useCallback((type: 'agent' | 'shell') => {
+  const activateTab = useCallback(async (type: 'agent' | 'shell') => {
     const tabs = getTabs(project.id, 'live');
-    const target = tabs.find(t => t.type === type);
-    if (target) {
-      if (type === 'agent') {
-        setAgentDraft(target.id, 'Start the dev environment');
+    let target = tabs.find(t => t.type === type);
+    if (!target) {
+      const id = `${type === 'agent' ? 'agent' : 'shell'}-${uuidv4().slice(0, 8)}`;
+      const label = type === 'agent' ? 'Agent' : 'Terminal';
+      if (type === 'shell') {
+        await fetch('/api/shell/spawn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tabId: id, cwd: project.path }),
+        });
       }
-      setActiveTabId(project.id, target.id, 'live');
+      openTab(project.id, id, label, type, 'live');
+      target = { id, label, type };
     }
+    if (type === 'agent') {
+      setAgentDraft(target.id, 'Start the dev environment');
+    }
+    setActiveTabId(project.id, target.id, 'live');
     onExpand();
-  }, [project.id, getTabs, setActiveTabId, onExpand]);
+  }, [project.id, project.path, getTabs, setActiveTabId, openTab, onExpand]);
 
   const isDevice = viewport !== 'desktop';
 

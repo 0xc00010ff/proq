@@ -47,12 +47,6 @@ export interface WorkbenchPanelHandle {
   addAgentTab: (opts?: AddTabOptions) => void;
 }
 
-interface EmptyStateActions {
-  addAgentTab: (opts?: AddTabOptions) => void;
-  addShellTab: (opts?: AddTabOptions) => Promise<void>;
-  expand: () => void;
-}
-
 interface WorkbenchPanelProps {
   projectId: string;
   projectPath?: string;
@@ -64,7 +58,6 @@ interface WorkbenchPanelProps {
   onExpand?: () => void;
   onResizeStart?: (e: React.MouseEvent) => void;
   isDragging?: boolean;
-  renderEmptyState?: (actions: EmptyStateActions) => React.ReactNode;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -174,7 +167,7 @@ function SortableTab({
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging, renderEmptyState }, ref) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }, ref) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -395,19 +388,9 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       {!collapsed && (
         <div className="flex-1 relative" style={{ minHeight: 0 }}>
           {tabs.length === 0 ? (
-            renderEmptyState ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                {renderEmptyState({
-                  addAgentTab,
-                  addShellTab,
-                  expand: () => { if (collapsed) (onExpand ?? onToggleCollapsed)(); },
-                })}
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-text-placeholder text-xs">
-                No open tabs
-              </div>
-            )
+            <div className="absolute inset-0 flex items-center justify-center text-text-placeholder text-xs">
+              No open tabs
+            </div>
           ) : (
             tabs.map((tab) =>
               tab.type === 'agent' ? (

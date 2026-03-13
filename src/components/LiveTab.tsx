@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, PlayIcon, RotateCcwIcon, ZapIcon } from 'lucide-react';
+import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
@@ -328,28 +328,6 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
         onExpand={onExpand}
         onResizeStart={onResizeStart}
         isDragging={isDragging}
-        renderEmptyState={({ addAgentTab, addShellTab, expand }) => (
-          <div className="flex flex-col items-center gap-3 p-4">
-            <p className="text-xs text-text-placeholder mb-1">Quick actions</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {[
-                { label: 'Start dev server', icon: PlayIcon, action: () => { addAgentTab({ initialInput: 'Start the dev environment' }); expand(); } },
-                { label: 'Restart server', icon: RotateCcwIcon, action: () => { addAgentTab({ initialInput: 'Restart the dev server' }); expand(); } },
-                { label: 'Install dependencies', icon: ZapIcon, action: () => { addAgentTab({ initialInput: 'Install dependencies and start the dev server' }); expand(); } },
-                { label: 'Open terminal', icon: TerminalIcon, action: () => { addShellTab(); expand(); } },
-              ].map(({ label, icon: Icon, action }) => (
-                <button
-                  key={label}
-                  onClick={action}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-text-secondary bg-surface-base border border-border-default hover:bg-surface-hover hover:border-border-strong hover:text-text-primary transition-colors"
-                >
-                  <Icon className="w-3 h-3" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       />
     </>
   );

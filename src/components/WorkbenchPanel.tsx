@@ -35,11 +35,16 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 
+interface AddTabOptions {
+  /** Pre-fill text: sent to terminal once WS connects, or placed in agent message input */
+  initialInput?: string;
+  /** If true, activate an existing tab of this type instead of creating a new one (default: false) */
+  reuse?: boolean;
+}
+
 export interface WorkbenchPanelHandle {
-  /** Create or activate a shell tab, optionally pre-filling text to send once connected */
-  addShellTab: (initialInput?: string) => Promise<void>;
-  /** Create or activate an agent tab, optionally pre-filling the message input */
-  addAgentTab: (initialDraft?: string) => void;
+  addShellTab: (opts?: AddTabOptions) => Promise<void>;
+  addAgentTab: (opts?: AddTabOptions) => void;
 }
 
 interface WorkbenchPanelProps {
@@ -200,7 +205,18 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     setRenameValue('');
   }, [renamingTabId, renameValue, renameTab, projectId, scope]);
 
-  const createShellTab = useCallback(async (initialInput?: string) => {
+  const addShellTab = useCallback(async (opts?: AddTabOptions) => {
+    const { initialInput, reuse } = opts ?? {};
+
+    if (reuse) {
+      const existing = tabs.find((t) => t.type === 'shell');
+      if (existing) {
+        if (initialInput) setTerminalDraft(existing.id, initialInput);
+        setActiveTabId(projectId, existing.id, scope);
+        return;
+      }
+    }
+
     const id = `shell-${uuidv4().slice(0, 8)}`;
     const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
 
@@ -213,35 +229,25 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     });
 
     openTab(projectId, id, `Terminal ${shellCount}`, 'shell', scope);
-  }, [tabs, openTab, projectId, projectPath, scope]);
+  }, [tabs, openTab, setActiveTabId, projectId, projectPath, scope]);
 
-  const createAgentTab = useCallback((initialDraft?: string) => {
+  const addAgentTab = useCallback((opts?: AddTabOptions) => {
+    const { initialInput, reuse } = opts ?? {};
+
+    if (reuse) {
+      const existing = tabs.find((t) => t.type === 'agent');
+      if (existing) {
+        if (initialInput) setAgentDraft(existing.id, initialInput);
+        setActiveTabId(projectId, existing.id, scope);
+        return;
+      }
+    }
+
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = tabs.filter((t) => t.type === 'agent').length + 1;
-    if (initialDraft) setAgentDraft(id, initialDraft);
+    if (initialInput) setAgentDraft(id, initialInput);
     openTab(projectId, id, `Agent ${agentCount}`, 'agent', scope);
-  }, [tabs, openTab, projectId, scope]);
-
-  // Handle methods: reuse an existing tab if one exists, otherwise create
-  const addShellTab = useCallback(async (initialInput?: string) => {
-    const existing = tabs.find((t) => t.type === 'shell');
-    if (existing) {
-      if (initialInput) setTerminalDraft(existing.id, initialInput);
-      setActiveTabId(projectId, existing.id, scope);
-      return;
-    }
-    await createShellTab(initialInput);
-  }, [tabs, setActiveTabId, projectId, scope, createShellTab]);
-
-  const addAgentTab = useCallback((initialDraft?: string) => {
-    const existing = tabs.find((t) => t.type === 'agent');
-    if (existing) {
-      if (initialDraft) setAgentDraft(existing.id, initialDraft);
-      setActiveTabId(projectId, existing.id, scope);
-      return;
-    }
-    createAgentTab(initialDraft);
-  }, [tabs, setActiveTabId, projectId, scope, createAgentTab]);
+  }, [tabs, openTab, setActiveTabId, projectId, scope]);
 
   useImperativeHandle(ref, () => ({ addShellTab, addAgentTab }), [addShellTab, addAgentTab]);
 
@@ -354,7 +360,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           <DropdownMenuContent align="start" side="bottom" className="w-40">
             <DropdownMenuItem
               onSelect={() => {
-                createAgentTab();
+                addAgentTab();
                 if (collapsed) (onExpand ?? onToggleCollapsed)();
               }}
             >
@@ -363,7 +369,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
-                createShellTab();
+                addShellTab();
                 if (collapsed) (onExpand ?? onToggleCollapsed)();
               }}
             >

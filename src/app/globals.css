@@ -158,7 +158,7 @@
   }
   .btn-secondary {
     @apply px-3 py-1.5 text-xs font-medium rounded-md transition-colors;
-    @apply text-text-chrome hover:text-text-chrome-hover;
+    @apply text-bronze-600 hover:text-bronze-500 dark:text-bronze-500 dark:hover:text-bronze-400;
   }
   .btn-ghost {
     @apply px-3 py-1.5 text-xs font-medium rounded-md transition-colors;

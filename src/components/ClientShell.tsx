@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ProjectsProvider } from './ProjectsProvider';
 import { WorkbenchTabsProvider } from './WorkbenchTabsProvider';
@@ -102,6 +102,19 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 }
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
+  // Listen for OS theme changes when theme is set to "system"
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      const stored = localStorage.getItem('theme');
+      if (!stored || stored === 'system') {
+        document.documentElement.classList.toggle('dark', mq.matches);
+      }
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   return (
     <ProjectsProvider>
       <WorkbenchTabsProvider>

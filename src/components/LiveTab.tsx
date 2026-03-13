@@ -2,12 +2,9 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
-import WorkbenchPanel from '@/components/WorkbenchPanel';
-import { useWorkbenchTabs } from '@/components/WorkbenchTabsProvider';
-import { setAgentDraft } from '@/components/AgentTabPane';
+import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -34,8 +31,8 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
   const [size, setSize] = useState(initialVp !== 'desktop' ? PRESETS[initialVp] : { w: 768, h: 1024 });
   const [iframeKey, setIframeKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const workbenchRef = useRef<WorkbenchPanelHandle>(null);
   const { refreshProjects } = useProjects();
-  const { setActiveTabId, getTabs, openTab } = useWorkbenchTabs();
   const prevServerUrl = useRef(project.serverUrl);
 
   // Auto-refresh iframe when serverUrl changes (e.g. agent sets it)
@@ -104,28 +101,14 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
     document.addEventListener('mouseup', onUp);
   }, [size.w, size.h]);
 
-  const activateTab = useCallback(async (type: 'agent' | 'shell') => {
-    const tabs = getTabs(project.id, 'live');
-    let target = tabs.find(t => t.type === type);
-    if (!target) {
-      const id = `${type === 'agent' ? 'agent' : 'shell'}-${uuidv4().slice(0, 8)}`;
-      const label = type === 'agent' ? 'Agent' : 'Terminal';
-      if (type === 'shell') {
-        await fetch('/api/shell/spawn', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tabId: id, cwd: project.path }),
-        });
-      }
-      openTab(project.id, id, label, type, 'live');
-      target = { id, label, type };
-    }
+  const activateTab = useCallback((type: 'agent' | 'shell') => {
     if (type === 'agent') {
-      setAgentDraft(target.id, 'Start the dev environment');
+      workbenchRef.current?.addAgentTab('Start the dev environment');
+    } else {
+      workbenchRef.current?.addShellTab();
     }
-    setActiveTabId(project.id, target.id, 'live');
     onExpand();
-  }, [project.id, project.path, getTabs, setActiveTabId, openTab, onExpand]);
+  }, [onExpand]);
 
   const isDevice = viewport !== 'desktop';
 
@@ -330,6 +313,7 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
       </div>
 
       <WorkbenchPanel
+        ref={workbenchRef}
         projectId={project.id}
         projectPath={project.path}
         scope="live"

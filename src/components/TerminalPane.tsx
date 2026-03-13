@@ -8,6 +8,14 @@ interface TerminalInstance {
   fitAddon: import('@xterm/addon-fit').FitAddon;
 }
 
+/* Pre-fill text to write into a terminal once its WS connects */
+const terminalDraftMap = new Map<string, string>();
+
+/** Queue text to be written to a terminal tab once its WebSocket is open */
+export function setTerminalDraft(tabId: string, text: string) {
+  terminalDraftMap.set(tabId, text);
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Single-terminal mounting hook                                              */
 /* -------------------------------------------------------------------------- */
@@ -70,6 +78,12 @@ export function useTerminal(
         const dims = fitAddon.proposeDimensions();
         if (dims?.cols && dims?.rows) {
           ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+        }
+        // Flush queued draft text (e.g. initial command from empty-state button)
+        const draft = terminalDraftMap.get(tabId);
+        if (draft) {
+          terminalDraftMap.delete(tabId);
+          ws.send(draft);
         }
       };
 

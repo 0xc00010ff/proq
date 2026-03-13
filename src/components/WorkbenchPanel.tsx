@@ -201,7 +201,7 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
       body: JSON.stringify({ tabId: id, cwd: projectPath }),
     });
 
-    openTab(projectId, id, scope === 'live' ? `Server ${shellCount}` : `Terminal ${shellCount}`, 'shell', scope);
+    openTab(projectId, id, `Terminal ${shellCount}`, 'shell', scope);
   }, [tabs, openTab, projectId, projectPath, scope]);
 
   const addAgentTab = useCallback(() => {

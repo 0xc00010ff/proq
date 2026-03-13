@@ -72,7 +72,7 @@ export function AddTaskButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover/40 hover:border-border-hover/50 text-text-chrome hover:text-text-chrome-hover text-xs"
+      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover/40 hover:border-border-hover/50 text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 text-xs"
     >
       <PlusIcon className="w-3.5 h-3.5" />
       <span>New</span>

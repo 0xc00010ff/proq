@@ -14,7 +14,7 @@ import type {
   ProqSettings,
   AgentBlock,
   WorkbenchTabInfo,
-  AgentTabData,
+  WorkbenchSessionData,
 } from "./types";
 import { slugify } from "./utils";
 
@@ -117,25 +117,54 @@ function getProjectData(projectId: string): ProjectState {
   const r = raw as ProjectState & Record<string, unknown>;
   let migrated = false;
 
-  // Workbench state: terminalOpen/Height/Tabs/ActiveTabId → workbench*
-  if ('terminalOpen' in r && r.workbenchOpen === undefined) {
-    r.workbenchOpen = r.terminalOpen as boolean;
+  // Workbench state: terminalOpen/Height/Tabs/ActiveTabId → workbench* → projectWorkbench*
+  if ('terminalOpen' in r && r.projectWorkbenchOpen === undefined) {
+    r.projectWorkbenchOpen = r.terminalOpen as boolean;
     delete r.terminalOpen;
     migrated = true;
   }
-  if ('terminalHeight' in r && r.workbenchHeight === undefined) {
-    r.workbenchHeight = r.terminalHeight as number;
+  if ('terminalHeight' in r && r.projectWorkbenchHeight === undefined) {
+    r.projectWorkbenchHeight = r.terminalHeight as number;
     delete r.terminalHeight;
     migrated = true;
   }
-  if ('terminalTabs' in r && r.workbenchTabs === undefined) {
-    r.workbenchTabs = r.terminalTabs as WorkbenchTabInfo[];
+  if ('terminalTabs' in r && r.projectWorkbenchTabs === undefined) {
+    r.projectWorkbenchTabs = r.terminalTabs as WorkbenchTabInfo[];
     delete r.terminalTabs;
     migrated = true;
   }
-  if ('terminalActiveTabId' in r && r.workbenchActiveTabId === undefined) {
-    r.workbenchActiveTabId = r.terminalActiveTabId as string;
+  if ('terminalActiveTabId' in r && r.projectWorkbenchActiveTabId === undefined) {
+    r.projectWorkbenchActiveTabId = r.terminalActiveTabId as string;
     delete r.terminalActiveTabId;
+    migrated = true;
+  }
+
+  // Workbench state: workbench* → projectWorkbench*
+  if ('workbenchOpen' in r && r.projectWorkbenchOpen === undefined) {
+    r.projectWorkbenchOpen = r.workbenchOpen as boolean;
+    delete r.workbenchOpen;
+    migrated = true;
+  }
+  if ('workbenchHeight' in r && r.projectWorkbenchHeight === undefined) {
+    r.projectWorkbenchHeight = r.workbenchHeight as number;
+    delete r.workbenchHeight;
+    migrated = true;
+  }
+  if ('workbenchTabs' in r && r.projectWorkbenchTabs === undefined) {
+    r.projectWorkbenchTabs = r.workbenchTabs as WorkbenchTabInfo[];
+    delete r.workbenchTabs;
+    migrated = true;
+  }
+  if ('workbenchActiveTabId' in r && r.projectWorkbenchActiveTabId === undefined) {
+    r.projectWorkbenchActiveTabId = r.workbenchActiveTabId as string;
+    delete r.workbenchActiveTabId;
+    migrated = true;
+  }
+
+  // agentTabs → projectWorkbenchSessions
+  if ('agentTabs' in r && r.projectWorkbenchSessions === undefined) {
+    r.projectWorkbenchSessions = r.agentTabs as Record<string, WorkbenchSessionData>;
+    delete r.agentTabs;
     migrated = true;
   }
 
@@ -177,13 +206,13 @@ function getProjectData(projectId: string): ProjectState {
   }
 
   // Agent tab data: prettyLog → agentBlocks
-  if (r.agentTabs) {
-    for (const [tabId, tabData] of Object.entries(r.agentTabs)) {
+  if (r.projectWorkbenchSessions) {
+    for (const [tabId, tabData] of Object.entries(r.projectWorkbenchSessions)) {
       const td = tabData as unknown as Record<string, unknown>;
       if ('prettyLog' in td && !('agentBlocks' in td)) {
         td.agentBlocks = td.prettyLog;
         delete td.prettyLog;
-        r.agentTabs[tabId] = td as unknown as AgentTabData;
+        r.projectWorkbenchSessions[tabId] = td as unknown as WorkbenchSessionData;
         migrated = true;
       }
     }
@@ -511,14 +540,14 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 
 export async function getWorkbenchState(projectId: string): Promise<{ open: boolean; height: number | null }> {
   const data = getProjectData(projectId);
-  return { open: data.workbenchOpen ?? false, height: data.workbenchHeight ?? null };
+  return { open: data.projectWorkbenchOpen ?? false, height: data.projectWorkbenchHeight ?? null };
 }
 
 export async function setWorkbenchState(projectId: string, state: { open?: boolean; height?: number }): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
-    if (state.open !== undefined) data.workbenchOpen = state.open;
-    if (state.height !== undefined) data.workbenchHeight = state.height;
+    if (state.open !== undefined) data.projectWorkbenchOpen = state.open;
+    if (state.height !== undefined) data.projectWorkbenchHeight = state.height;
     writeProject(projectId, data);
   });
 }
@@ -528,7 +557,7 @@ export async function getWorkbenchTabs(projectId: string, scope?: string): Promi
   if (scope === 'live') {
     return { tabs: data.liveWorkbenchTabs ?? [], activeTabId: data.liveWorkbenchActiveTabId };
   }
-  return { tabs: data.workbenchTabs ?? [], activeTabId: data.workbenchActiveTabId };
+  return { tabs: data.projectWorkbenchTabs ?? [], activeTabId: data.projectWorkbenchActiveTabId };
 }
 
 export async function setWorkbenchTabs(projectId: string, tabs: import("./types").WorkbenchTabInfo[], activeTabId?: string, scope?: string): Promise<void> {
@@ -538,27 +567,27 @@ export async function setWorkbenchTabs(projectId: string, tabs: import("./types"
       data.liveWorkbenchTabs = tabs;
       data.liveWorkbenchActiveTabId = activeTabId;
     } else {
-      data.workbenchTabs = tabs;
-      data.workbenchActiveTabId = activeTabId;
+      data.projectWorkbenchTabs = tabs;
+      data.projectWorkbenchActiveTabId = activeTabId;
     }
     writeProject(projectId, data);
   });
 }
 
 // ═══════════════════════════════════════════════════════════
-// AGENT TABS
+// WORKBENCH SESSIONS
 // ═══════════════════════════════════════════════════════════
 
-export async function getAgentTabData(projectId: string, tabId: string): Promise<import("./types").AgentTabData | null> {
+export async function getWorkbenchSession(projectId: string, tabId: string): Promise<import("./types").WorkbenchSessionData | null> {
   const data = getProjectData(projectId);
-  return data.agentTabs?.[tabId] ?? null;
+  return data.projectWorkbenchSessions?.[tabId] ?? null;
 }
 
-export async function setAgentTabData(projectId: string, tabId: string, agentData: import("./types").AgentTabData): Promise<void> {
+export async function setWorkbenchSession(projectId: string, tabId: string, sessionData: import("./types").WorkbenchSessionData): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
-    if (!data.agentTabs) data.agentTabs = {};
-    data.agentTabs[tabId] = agentData;
+    if (!data.projectWorkbenchSessions) data.projectWorkbenchSessions = {};
+    data.projectWorkbenchSessions[tabId] = sessionData;
     writeProject(projectId, data);
   });
 }

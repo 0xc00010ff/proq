@@ -165,23 +165,26 @@ export interface WorkbenchTabInfo {
   type?: 'shell' | 'agent'; // defaults to 'shell' for backward compat
 }
 
-export interface AgentTabData {
+export interface WorkbenchSessionData {
   agentBlocks: AgentBlock[];
   sessionId?: string;
 }
+
+/** @deprecated Use WorkbenchSessionData instead */
+export type AgentTabData = WorkbenchSessionData;
 
 export interface ProjectState {
   columns: TaskColumns;
   chatLog: ChatLogEntry[];
   agentSession?: AgentSession;
   executionMode?: ExecutionMode;
-  workbenchOpen?: boolean;
-  workbenchHeight?: number;
-  workbenchTabs?: WorkbenchTabInfo[];
-  workbenchActiveTabId?: string;
+  projectWorkbenchOpen?: boolean;
+  projectWorkbenchHeight?: number;
+  projectWorkbenchTabs?: WorkbenchTabInfo[];
+  projectWorkbenchActiveTabId?: string;
   liveWorkbenchTabs?: WorkbenchTabInfo[];
   liveWorkbenchActiveTabId?: string;
-  agentTabs?: Record<string, AgentTabData>;
+  projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   recentlyDeleted?: DeletedTaskEntry[];
   // Legacy field — present only in unmigrated files
   tasks?: Task[];

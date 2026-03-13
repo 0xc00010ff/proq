@@ -283,7 +283,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   return (
     <div
       ref={panelRef}
-      className="w-full flex flex-col bg-surface-deep flex-shrink-0 font-mono"
+      className="w-full flex flex-col bg-surface-deep flex-shrink-0"
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}

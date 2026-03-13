@@ -189,16 +189,20 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
           /* ── Preview ── */
           <>
             <div className="h-10 bg-surface-base border-b border-border-default flex items-center px-4 space-x-4 shrink-0">
-              <div className="flex space-x-1.5">
+              <div className="flex space-x-1.5 group/lights">
                 <button
                   onClick={handleDisconnect}
                   title="Disconnect"
-                  className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50 hover:bg-crimson/60 flex items-center justify-center group/dot transition-colors"
+                  className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50 group-hover/lights:bg-crimson/60 flex items-center justify-center transition-colors"
                 >
-                  <XIcon className="w-1.5 h-1.5 text-transparent group-hover/dot:text-white transition-colors" />
+                  <XIcon className="w-1.5 h-1.5 text-transparent group-hover/lights:text-white transition-colors" />
                 </button>
-                <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50" />
-                <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50" />
+                <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50 group-hover/lights:bg-gold/60 flex items-center justify-center transition-colors">
+                  <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-gold transition-colors" />
+                </div>
+                <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50 group-hover/lights:bg-emerald/60 flex items-center justify-center transition-colors">
+                  <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-emerald transition-colors" />
+                </div>
               </div>
               <div className="flex-1 flex items-center justify-center space-x-2">
                 <button

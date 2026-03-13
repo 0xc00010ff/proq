@@ -312,7 +312,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                 className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
                   mode === value
                     ? 'text-text-chrome-active'
-                    : 'text-text-chrome hover:text-text-chrome-hover'
+                    : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
                 }`}
               >
                 {mode === value && (

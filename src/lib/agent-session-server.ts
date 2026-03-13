@@ -1,6 +1,6 @@
 import type WebSocket from "ws";
 import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
-import { getTask, getProject, updateTask } from "./db";
+import { getTask, getProject, updateTask, getTaskAgentBlocks } from "./db";
 import { emitTaskUpdate } from "./task-events";
 import type { AgentWsClientMsg } from "./types";
 
@@ -16,10 +16,10 @@ export async function attachAgentWsWithProject(
     ws.send(replay);
     attachClient(taskId, ws);
   } else {
-    // Load from DB
-    const task = await getTask(projectId, taskId);
-    if (task?.agentBlocks && task.agentBlocks.length > 0) {
-      ws.send(JSON.stringify({ type: "replay", blocks: task.agentBlocks }));
+    // Load from separate agent-blocks file
+    const blocks = await getTaskAgentBlocks(taskId);
+    if (blocks.length > 0) {
+      ws.send(JSON.stringify({ type: "replay", blocks }));
     } else {
       ws.send(JSON.stringify({ type: "error", error: "No session found" }));
     }

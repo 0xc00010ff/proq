@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { renameSync, existsSync as fsExists, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { renameSync, existsSync as fsExists, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "fs";
 import path from "path";
 import type {
   WorkspaceData,
@@ -34,6 +34,7 @@ if (fsExists(oldStateDir) && !fsExists(newProjectsDir)) {
 
 // Ensure data directories exist on first access (idempotent)
 mkdirSync(path.join(DATA_DIR, "projects"), { recursive: true });
+mkdirSync(path.join(DATA_DIR, "agent-blocks"), { recursive: true });
 
 // ── Write locks (attached to globalThis to survive HMR) ──
 const g = globalThis as unknown as {
@@ -139,6 +140,7 @@ function getProjectData(projectId: string): ProjectState {
   }
 
   // Task fields: prettyLog → agentBlocks, renderMode values "pretty"→"structured", "terminal"→"cli"
+  // Also migrate embedded agentBlocks to separate files
   if (r.columns) {
     for (const status of ["todo", "in-progress", "verify", "done"] as TaskStatus[]) {
       for (const task of r.columns[status] || []) {
@@ -159,6 +161,15 @@ function getProjectData(projectId: string): ProjectState {
         if ('findings' in t && !('summary' in t)) {
           t.summary = t.findings as string;
           delete t.findings;
+          migrated = true;
+        }
+        // Migrate embedded agentBlocks to separate file
+        if (t.agentBlocks && Array.isArray(t.agentBlocks) && t.agentBlocks.length > 0) {
+          const blockFile = agentBlocksPath(t.id);
+          if (!fsExists(blockFile)) {
+            writeJSON(blockFile, { blocks: t.agentBlocks, sessionId: t.sessionId });
+          }
+          delete t.agentBlocks;
           migrated = true;
         }
       }
@@ -380,7 +391,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "agentBlocks" | "sessionId" | "startCommit" | "endCommit" | "commitHashes">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "sessionId" | "startCommit" | "endCommit" | "commitHashes">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -550,6 +561,44 @@ export async function setAgentTabData(projectId: string, tabId: string, agentDat
     data.agentTabs[tabId] = agentData;
     writeProject(projectId, data);
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// TASK AGENT BLOCKS (separate file per task)
+// ═══════════════════════════════════════════════════════════
+
+const AGENT_BLOCKS_DIR = path.join(DATA_DIR, "agent-blocks");
+
+function agentBlocksPath(taskId: string): string {
+  return path.join(AGENT_BLOCKS_DIR, `${taskId}.json`);
+}
+
+export async function getTaskAgentBlocks(taskId: string): Promise<AgentBlock[]> {
+  return readAgentBlocksFile(taskId).blocks;
+}
+
+export async function setTaskAgentBlocks(taskId: string, blocks: AgentBlock[], sessionId?: string): Promise<void> {
+  return withWriteLock(`agent-blocks:${taskId}`, async () => {
+    const filePath = agentBlocksPath(taskId);
+    writeJSON(filePath, { blocks, sessionId });
+  });
+}
+
+export async function deleteTaskAgentBlocks(taskId: string): Promise<void> {
+  const filePath = agentBlocksPath(taskId);
+  try {
+    if (fsExists(filePath)) unlinkSync(filePath);
+  } catch {
+    // best effort
+  }
+}
+
+export function readAgentBlocksFile(taskId: string): { blocks: AgentBlock[]; sessionId?: string } {
+  const filePath = agentBlocksPath(taskId);
+  const data = readJSON<{ blocks?: AgentBlock[]; sessionId?: string }>(filePath, {});
+  // Handle legacy format (plain array) vs new format ({ blocks, sessionId })
+  if (Array.isArray(data)) return { blocks: data };
+  return { blocks: data.blocks || [], sessionId: data.sessionId };
 }
 
 // ═══════════════════════════════════════════════════════════

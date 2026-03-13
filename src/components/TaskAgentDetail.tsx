@@ -19,7 +19,7 @@ import {
   ChevronRightIcon,
   ListChecksIcon,
 } from 'lucide-react';
-import type { Task, FollowUpDraft } from '@/lib/types';
+import type { Task, AgentBlock, FollowUpDraft } from '@/lib/types';
 import { attachmentUrl } from '@/lib/upload';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -146,10 +146,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   const isDispatched = task.agentStatus === 'running' || task.agentStatus === 'starting';
   const isStructured = task.renderMode !== 'cli';
   const showStructuredPane = isStructured && !isQueued && (task.status === 'in-progress' || task.status === 'verify' || task.status === 'done');
-  const showStructuredStatic = isStructured && task.status === 'done' && !!task.agentBlocks;
   const showStaticLog = !isStructured && task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
   const showTerminal = !isStructured && (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;
   const [countdownText, setCountdownText] = useState('');
+  const [fetchedBlocks, setFetchedBlocks] = useState<AgentBlock[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
@@ -226,6 +226,21 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       titleRef.current.textContent = task.title || 'Untitled task';
     }
   }, [task.title]);
+
+  // Fetch agent blocks on demand for done structured tasks
+  const needsStaticBlocks = isStructured && task.status === 'done';
+  useEffect(() => {
+    if (!needsStaticBlocks) {
+      setFetchedBlocks(null);
+      return;
+    }
+    fetch(`/api/projects/${projectId}/tasks/${task.id}/agent-blocks`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.blocks?.length > 0) setFetchedBlocks(data.blocks);
+      })
+      .catch(() => {});
+  }, [projectId, task.id, needsStaticBlocks]);
 
   // Fetch commits for this task
   const hasCommitTracking = !!(task.commitHashes?.length || task.branch || task.startCommit);
@@ -364,7 +379,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             projectId={projectId}
             visible={true}
             taskStatus={task.status}
-            agentBlocks={showStructuredStatic ? task.agentBlocks : undefined}
+            agentBlocks={fetchedBlocks || undefined}
             followUpDraft={followUpDraft}
             onFollowUpDraftChange={onFollowUpDraftChange}
             onTaskStatusChange={(status) => {

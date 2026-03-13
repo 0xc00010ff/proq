@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { moveTask, getProject, getTask, updateTask, getSettings, getProjectDefaultBranch } from "@/lib/db";
+import { moveTask, getProject, getTask, updateTask, getSettings, getProjectDefaultBranch, deleteTaskAgentBlocks } from "@/lib/db";
 import { abortTask, processQueue, getInitialAgentStatus, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
 import type { TaskStatus } from "@/lib/types";
@@ -58,7 +58,8 @@ export async function PUT(request: Request, { params }: Params) {
         removeWorktree(projectPath, prevTask.id.slice(0, 8));
         popAutoStash(projectPath, prevTask.baseBranch || defaultBr);
       }
-      await updateTask(id, taskId, { agentStatus: null, summary: "", nextSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, renderMode: undefined, agentBlocks: undefined, sessionId: undefined });
+      await updateTask(id, taskId, { agentStatus: null, summary: "", nextSteps: "", agentLog: "", worktreePath: undefined, branch: undefined, baseBranch: undefined, mergeConflict: undefined, renderMode: undefined, sessionId: undefined });
+      await deleteTaskAgentBlocks(taskId);
       if (prevStatus === "in-progress") {
         await abortTask(id, taskId);
       }

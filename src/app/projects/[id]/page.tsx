@@ -629,12 +629,13 @@ export default function ProjectPage() {
 
   const handleTabChange = useCallback((tab: TabOption) => {
     setActiveTab(tab);
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, activeTab: tab } : p));
     fetch(`/api/projects/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activeTab: tab }),
     }).catch(() => {});
-  }, [projectId]);
+  }, [projectId, setProjects]);
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));

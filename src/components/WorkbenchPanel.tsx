@@ -200,17 +200,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     setRenameValue('');
   }, [renamingTabId, renameValue, renameTab, projectId, scope]);
 
-  const addShellTab = useCallback(async (initialInput?: string) => {
-    // Reuse existing shell tab if one exists and initialInput is provided
-    if (initialInput) {
-      const existing = tabs.find((t) => t.type === 'shell');
-      if (existing) {
-        setTerminalDraft(existing.id, initialInput);
-        setActiveTabId(projectId, existing.id, scope);
-        return;
-      }
-    }
-
+  const createShellTab = useCallback(async (initialInput?: string) => {
     const id = `shell-${uuidv4().slice(0, 8)}`;
     const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
 
@@ -223,24 +213,35 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     });
 
     openTab(projectId, id, `Terminal ${shellCount}`, 'shell', scope);
-  }, [tabs, openTab, setActiveTabId, projectId, projectPath, scope]);
+  }, [tabs, openTab, projectId, projectPath, scope]);
 
-  const addAgentTab = useCallback((initialDraft?: string) => {
-    // Reuse existing agent tab if one exists and initialDraft is provided
-    if (initialDraft) {
-      const existing = tabs.find((t) => t.type === 'agent');
-      if (existing) {
-        setAgentDraft(existing.id, initialDraft);
-        setActiveTabId(projectId, existing.id, scope);
-        return;
-      }
-    }
-
+  const createAgentTab = useCallback((initialDraft?: string) => {
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = tabs.filter((t) => t.type === 'agent').length + 1;
     if (initialDraft) setAgentDraft(id, initialDraft);
     openTab(projectId, id, `Agent ${agentCount}`, 'agent', scope);
-  }, [tabs, openTab, setActiveTabId, projectId, scope]);
+  }, [tabs, openTab, projectId, scope]);
+
+  // Handle methods: reuse an existing tab if one exists, otherwise create
+  const addShellTab = useCallback(async (initialInput?: string) => {
+    const existing = tabs.find((t) => t.type === 'shell');
+    if (existing) {
+      if (initialInput) setTerminalDraft(existing.id, initialInput);
+      setActiveTabId(projectId, existing.id, scope);
+      return;
+    }
+    await createShellTab(initialInput);
+  }, [tabs, setActiveTabId, projectId, scope, createShellTab]);
+
+  const addAgentTab = useCallback((initialDraft?: string) => {
+    const existing = tabs.find((t) => t.type === 'agent');
+    if (existing) {
+      if (initialDraft) setAgentDraft(existing.id, initialDraft);
+      setActiveTabId(projectId, existing.id, scope);
+      return;
+    }
+    createAgentTab(initialDraft);
+  }, [tabs, setActiveTabId, projectId, scope, createAgentTab]);
 
   useImperativeHandle(ref, () => ({ addShellTab, addAgentTab }), [addShellTab, addAgentTab]);
 
@@ -353,7 +354,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           <DropdownMenuContent align="start" side="bottom" className="w-40">
             <DropdownMenuItem
               onSelect={() => {
-                addAgentTab();
+                createAgentTab();
                 if (collapsed) (onExpand ?? onToggleCollapsed)();
               }}
             >
@@ -362,7 +363,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
-                addShellTab();
+                createShellTab();
                 if (collapsed) (onExpand ?? onToggleCollapsed)();
               }}
             >

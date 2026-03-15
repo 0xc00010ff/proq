@@ -29,8 +29,7 @@ Free, no signup, local-only, and works with whatever agent config, MCPs, and too
 
 | Platform | Link |
 |---|---|
-| macOS (Apple Silicon) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest) |
-| macOS (Intel) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest) |
+| macOS (Universal) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest/download/proq-desktop-0.3.0.dmg) |
 
 Just open it and start cooking.
 

@@ -33,9 +33,16 @@ try {
 
 let mainWindow: BrowserWindow | null = null
 let isResetting = false
+let isQuitting = false
 let healthInterval: ReturnType<typeof setInterval> | null = null
 let consecutiveFailures = 0
 let isRecovering = false
+
+function safeSend(channel: string, ...args: unknown[]): void {
+  if (!isQuitting && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, ...args)
+  }
+}
 
 function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
   const config = getConfig()
@@ -132,11 +139,11 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:check-homebrew', () => checkHomebrew())
   ipcMain.handle('setup:install-homebrew', () => installHomebrew())
   ipcMain.handle('setup:install-node', () =>
-    installNode((line) => mainWindow?.webContents.send('setup:log', line))
+    installNode((line) => safeSend('setup:log', line))
   )
   ipcMain.handle('setup:install-xcode', () => installXcodeTools())
   ipcMain.handle('setup:install-claude', () =>
-    installClaude((line) => mainWindow?.webContents.send('setup:log', line))
+    installClaude((line) => safeSend('setup:log', line))
   )
   ipcMain.handle('setup:clone', (_e, targetDir: string, overwrite?: boolean) => cloneProq(targetDir, overwrite))
   ipcMain.handle('setup:validate', (_e, dirPath: string) => validateExistingInstall(dirPath))
@@ -144,14 +151,14 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:npm-install', async () => {
     const { proqPath } = getConfig()
     return runNpmInstall(proqPath, (line) => {
-      mainWindow?.webContents.send('setup:log', line)
+      safeSend('setup:log', line)
     })
   })
 
   ipcMain.handle('setup:build', async () => {
     const { proqPath } = getConfig()
     return runNpmBuild(proqPath, (line) => {
-      mainWindow?.webContents.send('setup:log', line)
+      safeSend('setup:log', line)
     })
   })
 
@@ -177,7 +184,7 @@ function registerIpcHandlers(): void {
   // Server
   ipcMain.handle('server:start', async () => {
     const result = await startServer((line) => {
-      mainWindow?.webContents.send('server:log', line)
+      safeSend('server:log', line)
     })
     if (result.ok) {
       transitionToApp()
@@ -188,7 +195,7 @@ function registerIpcHandlers(): void {
   // Updates
   ipcMain.handle('updates:check', () => checkForUpdates())
   ipcMain.handle('updates:apply', () =>
-    applyUpdate((line) => mainWindow?.webContents.send('setup:log', line))
+    applyUpdate((line) => safeSend('setup:log', line))
   )
   ipcMain.handle('updates:apply-and-restart', async () => {
     try {
@@ -212,7 +219,7 @@ function registerIpcHandlers(): void {
       // output (build warnings, npm noise) is silently dropped so it
       // doesn't flood the small splash window.
       const sendStatus = (line: string): void => {
-        mainWindow?.webContents.send('server:log', line)
+        safeSend('server:log', line)
       }
 
       sendStatus('Pulling updates...')
@@ -233,20 +240,20 @@ function registerIpcHandlers(): void {
 
       // Restart server — startServer streams its own status via onLog
       const serverResult = await startServer((line) => {
-        mainWindow?.webContents.send('server:log', line)
+        safeSend('server:log', line)
       })
 
       if (serverResult.ok) {
         await new Promise((r) => setTimeout(r, 1500))
         transitionToApp()
       } else {
-        mainWindow?.webContents.send('server:error', serverResult.error || 'Server failed to start')
+        safeSend('server:error', serverResult.error || 'Server failed to start')
       }
 
       return { ok: true }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e)
-      mainWindow?.webContents.send('server:error', 'Update failed. Click Retry to try again.')
+      safeSend('server:error', 'Update failed. Click Retry to try again.')
       return { ok: false, error: message }
     }
   })
@@ -351,7 +358,7 @@ async function launchApp(): Promise<void> {
 
     try {
       const result = await startServer((line) => {
-        mainWindow?.webContents.send('server:log', line)
+        safeSend('server:log', line)
       })
 
       if (result.ok) {
@@ -359,11 +366,11 @@ async function launchApp(): Promise<void> {
         await new Promise((r) => setTimeout(r, 1500))
         transitionToApp()
       } else {
-        mainWindow?.webContents.send('server:error', result.error || 'Server failed to start')
+        safeSend('server:error', result.error || 'Server failed to start')
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
-      mainWindow?.webContents.send('server:error', message)
+      safeSend('server:error', message)
     }
   }
 }
@@ -492,6 +499,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  isQuitting = true
   stopHealthMonitor()
   stopUpdateScheduler()
   await stopServer()

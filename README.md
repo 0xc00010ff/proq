@@ -6,18 +6,24 @@
 
 <p align="center">
   <a href="#download">Download</a> &nbsp;&middot;&nbsp;
-  <a href="#run-locally">Run Locally</a> &nbsp;&middot;&nbsp;
+  <a href="#run-locally---customize-proq-using-proq">Run Locally</a> &nbsp;&middot;&nbsp;
   <a href="#how-it-works">How It Works</a> &nbsp;&middot;&nbsp;
   <a href="#api">API</a>
 </p>
 
 ---
 
-Proq is an agentic development environment. It's really just a kanban-style task manager for local Claude Code instances. Each task gets its own agent and isolated development environment, and git is properly managed. The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops without a grid of terminals - that's what vibe coding is missing. 
+#### Proq is an agentic development environment.  
+It's really just a kanban-style task manager for local Claude Code instances. 
+
+You make a task and proq: 
+- Creates a new Claude Code agent (that you can control)
+- Manages an isolated worktree for dev / preview
+- Tracks changes / ensures git hygiene
+
+The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops without a grid of terminals - that's what vibe coding is missing. 
 
 It's free, no signup, local-only, and works with whatever agent config, MCPs, and tools you already use with Claude. Other agents coming soon. 
-
-proq was built using proq. 
 
 ## Download
 
@@ -145,3 +151,7 @@ Settings are available in the UI (gear icon) or via `/api/settings`.
 ## License
 
 MIT
+
+---
+
+proq was built using proq

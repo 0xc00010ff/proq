@@ -2,7 +2,7 @@
   <img src="public/proq-badge.png" alt="proq" width="140" />
 </p>
 
-<h3 align="center">Build something special</h3>
+<h3 align="center">Serious vibe coding</h3>
 
 <p align="center">
   <a href="#download">Download</a> &nbsp;&middot;&nbsp;
@@ -13,15 +13,15 @@
 
 ---
 
-Proq is an agentic development workspace. It's really just a process manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) instances in todo list/kanban style, where each task gets its own agent instance and isolated development environment. 
+Proq is an agentic development environment. It's really just a kanban-style task manager for local Claude Code instances. Each task gets its own agent and isolated development environment, and git is properly managed. The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops without a grid of terminals - that's what vibe coding is missing. 
 
-It's local, self-contained, and works with whatever agent config, MCPs, and tools you already use.
+It's free, no signup, local-only, and works with whatever agent config, MCPs, and tools you already use with Claude. Other agents coming soon. 
 
 proq was built using proq. 
 
 ## Download
 
-> macOS app — no terminal required.
+> macOS app — get moving in 1 minute
 
 <!-- TODO: Replace with actual download links -->
 
@@ -30,9 +30,9 @@ proq was built using proq.
 | macOS (Apple Silicon) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest) |
 | macOS (Intel) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest) |
 
-The desktop app handles setup, dependencies, and server management automatically. Just open it and add a project.
+Just open it and start cooking. The desktop app handles setup, dependencies, and server management automatically. 
 
-## Run Locally
+## Run Locally - Customize proq using proq
 
 Requires **Node.js 18+** and the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) on your PATH.
 
@@ -43,7 +43,13 @@ npm run setup
 npm run dev
 ```
 
-Open [localhost:1337](http://localhost:1337). Add a project path, create a task, drag it to In Progress.
+Open [localhost:1337](http://localhost:1337). Add proq as a project. Create a task and watch the app update itself. 
+
+## Pro tips
+
+- Use parallel mode 
+- The project agent (in the bottom bar of a project) can create nicely detailed tasks for you
+- The API or MCP can be called by OpenClaw and other external agents, for more organized dev ops
 
 ## How It Works
 

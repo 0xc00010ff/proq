@@ -6,8 +6,9 @@
 import fs from 'fs'
 
 const COMMON_DIRS = [
-  '/opt/homebrew/bin',       // Homebrew (Apple Silicon)
-  '/usr/local/bin',          // Homebrew (Intel)
+  `${process.env.HOME}/.local/bin`, // Claude Code CLI default location
+  '/opt/homebrew/bin',              // Homebrew (Apple Silicon)
+  '/usr/local/bin',                 // Homebrew (Intel)
   '/usr/bin',
   '/bin',
   '/usr/sbin',

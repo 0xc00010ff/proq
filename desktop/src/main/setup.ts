@@ -56,6 +56,7 @@ export async function installTmux(): Promise<CheckResult> {
 
 export async function checkClaudeCli(): Promise<CheckResult> {
   const searchPaths = [
+    path.join(process.env.HOME || '', '.local/bin/claude'),
     '/opt/homebrew/bin/claude',
     '/usr/local/bin/claude',
     path.join(process.env.HOME || '', '.npm-global/bin/claude')

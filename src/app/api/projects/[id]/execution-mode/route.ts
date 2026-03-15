@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getExecutionMode, setExecutionMode } from "@/lib/db";
 import { processQueue, getAllCleanupTimes } from "@/lib/agent-dispatch";
 import type { ExecutionMode } from "@/lib/types";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,7 +15,8 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const mode = body.mode as ExecutionMode;
 
   if (mode !== "sequential" && mode !== "parallel") {

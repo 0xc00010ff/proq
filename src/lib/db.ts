@@ -43,7 +43,7 @@ async function withWriteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function emptyColumns(): TaskColumns {
+function emptyTasks(): TaskColumns {
   return { "todo": [], "in-progress": [], "verify": [], "done": [] };
 }
 
@@ -51,10 +51,19 @@ function emptyColumns(): TaskColumns {
 function readJSON<T>(filePath: string, defaultData: T): T {
   try {
     if (fsExists(filePath)) {
-      return JSON.parse(readFileSync(filePath, "utf-8"));
+      const raw = readFileSync(filePath, "utf-8");
+      return JSON.parse(raw);
     }
-  } catch {
-    // Corrupt file — use default
+  } catch (err) {
+    // Non-empty file that failed to parse — log a warning so data loss is visible
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      if (content.trim().length > 0) {
+        console.error(`[db] Failed to parse ${filePath}, falling back to defaults:`, err);
+      }
+    } catch {
+      // Can't read the file at all
+    }
   }
   return defaultData;
 }
@@ -78,7 +87,7 @@ function writeWorkspace(ws: WorkspaceData): void {
 function getProjectData(projectId: string): ProjectState {
   const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
   const raw = readJSON<ProjectState>(filePath, {
-    tasks: emptyColumns(),
+    tasks: emptyTasks(),
     chatLog: [],
   });
 
@@ -86,7 +95,7 @@ function getProjectData(projectId: string): ProjectState {
   // Add future migrations here. Each should be idempotent and write back if changed.
 
   // Ensure tasks exist even if file was empty
-  if (!raw.tasks) raw.tasks = emptyColumns();
+  if (!raw.tasks) raw.tasks = emptyTasks();
   if (!raw.chatLog) raw.chatLog = [];
   if (!raw.recentlyDeleted) raw.recentlyDeleted = [];
 

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { reorderProjects } from "@/lib/db";
+import { safeParseBody } from "@/lib/api-utils";
 
 export async function PUT(request: Request) {
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const { orderedIds } = body;
 
   if (!Array.isArray(orderedIds)) {

@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { getTask } from "@/lib/db";
 import { generateTitle } from "@/lib/auto-title";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   const { id, taskId } = await params;
-  const { description } = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
+  const { description } = body;
 
   const task = await getTask(id, taskId);
   if (!task) {

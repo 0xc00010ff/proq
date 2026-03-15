@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllTasks, createTask, getProject } from "@/lib/db";
 import { emitTaskCreated } from "@/lib/task-events";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,8 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const title = body.title ?? "";
   const description = body.description ?? "";
   const mode = body.mode;

@@ -6,6 +6,7 @@ import { autoTitle } from "@/lib/auto-title";
 import { clearSession } from "@/lib/agent-session";
 import { emitTaskUpdate } from "@/lib/task-events";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
@@ -20,7 +21,8 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   const { id, taskId } = await params;
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
 
   // Snapshot previous status before updateTask mutates the same object reference
   const prevTask = await getTask(id, taskId);

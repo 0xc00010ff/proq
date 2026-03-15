@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProject } from "@/lib/db";
+import { safeParseBody } from "@/lib/api-utils";
 import {
   getCurrentBranch,
   listBranches,
@@ -82,7 +83,8 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const projectPath = resolveProjectPath(project.path);
 
   // Action-based dispatch

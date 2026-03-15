@@ -3,6 +3,7 @@ import { moveTask, getProject, getTask, updateTask, getSettings, getProjectDefau
 import { abortTask, processQueue, getInitialAgentStatus, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
 import type { TaskStatus } from "@/lib/types";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,8 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const { taskId, toColumn, toIndex } = body as {
     taskId: string;
     toColumn: TaskStatus;

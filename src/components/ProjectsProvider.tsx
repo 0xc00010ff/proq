@@ -21,7 +21,7 @@ export function useProjects() {
   return ctx;
 }
 
-export const emptyColumns = (): TaskColumns => ({
+export const emptyTasks = (): TaskColumns => ({
   "todo": [],
   "in-progress": [],
   "verify": [],

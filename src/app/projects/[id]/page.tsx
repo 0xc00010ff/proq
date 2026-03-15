@@ -16,7 +16,7 @@ import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
-import { emptyColumns } from '@/components/ProjectsProvider';
+import { emptyTasks } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
@@ -53,7 +53,7 @@ export default function ProjectPage() {
   const viewingTaskIdRef = useRef<string | null>(null);
 
   const project = projects.find((p) => p.id === projectId);
-  const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
+  const columns: TaskColumns = tasksByProject[projectId] || emptyTasks();
 
   // Update document title with project id (slug)
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function ProjectPage() {
   const dismissAttention = useCallback((taskId: string) => {
     // Optimistically clear needsAttention in local state
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
         const idx = cols[status].findIndex((t) => t.id === taskId);
         if (idx === -1) continue;
@@ -168,7 +168,7 @@ export default function ProjectPage() {
     }
 
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       const { taskId, changes } = event;
 
       // Find the task in any column
@@ -211,7 +211,7 @@ export default function ProjectPage() {
     const task = event.task as unknown as Task;
     if (!task.id) return;
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       // Skip if task already exists (e.g. we created it locally)
       for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
         if (cols[status].some((t) => t.id === task.id)) return prev;
@@ -352,7 +352,7 @@ export default function ProjectPage() {
   const deleteTask = async (taskId: string) => {
     // Optimistically remove from UI
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       const updated: TaskColumns = { ...cols };
       for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
         const idx = updated[status].findIndex((t) => t.id === taskId);
@@ -371,7 +371,7 @@ export default function ProjectPage() {
   const moveTask = (taskId: string, toColumn: TaskStatus, toIndex: number) => {
     // Optimistically update task state so the UI is instant
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       // Find and remove the task from its current column
       let task: Task | undefined;
       const updated: TaskColumns = { ...cols };
@@ -433,7 +433,7 @@ export default function ProjectPage() {
     // Optimistic update for board
     if (data.status || data.title) {
       setTasksByProject((prev) => {
-        const cols = prev[projectId] || emptyColumns();
+        const cols = prev[projectId] || emptyTasks();
         const updated: TaskColumns = { ...cols };
         // Find the task
         let task: Task | undefined;
@@ -474,7 +474,7 @@ export default function ProjectPage() {
       const serverTask: Task = await res.json();
       if (data.status && serverTask.status !== data.status) {
         setTasksByProject((prev) => {
-          const cols = prev[projectId] || emptyColumns();
+          const cols = prev[projectId] || emptyTasks();
           const updated: TaskColumns = { ...cols };
           // Remove from the optimistic column
           const optimisticCol = data.status as TaskStatus;
@@ -576,7 +576,7 @@ export default function ProjectPage() {
     // Add to local state immediately so deleteTask can find it on discard.
     // Guard against duplicates — SSE task-created may arrive before the POST response.
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       if (cols.todo.some((t) => t.id === newTask.id)) return prev;
       return { ...prev, [projectId]: { ...cols, todo: [newTask, ...cols.todo] } };
     });
@@ -989,7 +989,7 @@ export default function ProjectPage() {
             // Close modal and optimistically update immediately
             setModalTask(null);
             setTasksByProject((prev) => {
-              const cols = prev[projectId] || emptyColumns();
+              const cols = prev[projectId] || emptyTasks();
               const todoCol = cols.todo.filter((t) => t.id !== taskId);
               const task = cols.todo.find((t) => t.id === taskId);
               if (!task) return prev;

@@ -9,6 +9,11 @@ import {
   installTmux,
   checkClaudeCli,
   checkXcodeTools,
+  checkHomebrew,
+  installHomebrew,
+  installNode,
+  installXcodeTools,
+  installClaude,
   cloneProq,
   validateExistingInstall,
   runNpmInstall,
@@ -124,6 +129,15 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:install-tmux', () => installTmux())
   ipcMain.handle('setup:check-claude', () => checkClaudeCli())
   ipcMain.handle('setup:check-xcode', () => checkXcodeTools())
+  ipcMain.handle('setup:check-homebrew', () => checkHomebrew())
+  ipcMain.handle('setup:install-homebrew', () => installHomebrew())
+  ipcMain.handle('setup:install-node', () =>
+    installNode((line) => mainWindow?.webContents.send('setup:log', line))
+  )
+  ipcMain.handle('setup:install-xcode', () => installXcodeTools())
+  ipcMain.handle('setup:install-claude', () =>
+    installClaude((line) => mainWindow?.webContents.send('setup:log', line))
+  )
   ipcMain.handle('setup:clone', (_e, targetDir: string, overwrite?: boolean) => cloneProq(targetDir, overwrite))
   ipcMain.handle('setup:validate', (_e, dirPath: string) => validateExistingInstall(dirPath))
 

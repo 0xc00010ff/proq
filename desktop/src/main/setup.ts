@@ -6,6 +6,9 @@ import { getConfig, setConfig } from './config'
 
 const execFileAsync = promisify(execFile)
 
+// Homebrew may install to /opt/homebrew (Apple Silicon) or /usr/local (Intel)
+const BREW_PATHS = ['/opt/homebrew/bin/brew', '/usr/local/bin/brew']
+
 export interface CheckResult {
   ok: boolean
   version?: string
@@ -98,6 +101,123 @@ export async function checkClaudeCli(): Promise<CheckResult> {
   }
 
   return { ok: false, error: 'Claude Code CLI not found' }
+}
+
+export async function checkHomebrew(): Promise<CheckResult> {
+  try {
+    const { stdout } = await execFileAsync('brew', ['--version'])
+    const version = stdout.trim().split('\n')[0].replace(/^Homebrew\s*/, '')
+    return { ok: true, version }
+  } catch {
+    // Check known paths directly (PATH may not include brew in GUI apps)
+    for (const brewPath of BREW_PATHS) {
+      try {
+        const { stdout } = await execFileAsync(brewPath, ['--version'])
+        const version = stdout.trim().split('\n')[0].replace(/^Homebrew\s*/, '')
+        return { ok: true, version, path: brewPath }
+      } catch {
+        continue
+      }
+    }
+    return { ok: false, error: 'Homebrew not found' }
+  }
+}
+
+export async function installHomebrew(): Promise<CheckResult> {
+  try {
+    // Write a temp script that runs the Homebrew installer in Terminal
+    const script = '/tmp/proq-install-homebrew.sh'
+    fs.writeFileSync(
+      script,
+      '#!/bin/bash\n/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"\necho "\\nDone. You can close this window."\nread -p "Press Enter to close..."'
+    )
+    fs.chmodSync(script, '755')
+    await execFileAsync('open', ['-a', 'Terminal', script])
+    // Terminal opens asynchronously — caller should re-check when user says they're done
+    return { ok: false, error: 'pending' }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: `Failed to launch Homebrew installer: ${message}` }
+  }
+}
+
+export async function installNode(onLog: (line: string) => void): Promise<CheckResult> {
+  try {
+    const brewBin = await findBrewBin()
+    await runStreamingCommand(brewBin, ['install', 'node'], onLog)
+    return checkNodeVersion()
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: `Failed to install Node.js: ${message}` }
+  }
+}
+
+export async function installXcodeTools(): Promise<CheckResult> {
+  if (process.platform !== 'darwin') {
+    return { ok: true, version: 'n/a' }
+  }
+  try {
+    await execFileAsync('xcode-select', ['--install'])
+    // This launches a system dialog — caller should re-check when user says they're done
+    return { ok: false, error: 'pending' }
+  } catch (e: unknown) {
+    // xcode-select --install returns non-zero if already installed or if dialog launched
+    const message = e instanceof Error ? e.message : String(e)
+    if (message.includes('already installed')) {
+      return checkXcodeTools()
+    }
+    // Dialog was launched
+    return { ok: false, error: 'pending' }
+  }
+}
+
+export async function installClaude(onLog: (line: string) => void): Promise<CheckResult> {
+  try {
+    await runStreamingCommand('npm', ['install', '-g', '@anthropic-ai/claude-code'], onLog)
+    return checkClaudeCli()
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: `Failed to install Claude CLI: ${message}` }
+  }
+}
+
+/** Find the brew binary, preferring PATH then known locations */
+async function findBrewBin(): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync('which', ['brew'])
+    return stdout.trim()
+  } catch {
+    for (const p of BREW_PATHS) {
+      try {
+        await fs.promises.access(p, fs.constants.X_OK)
+        return p
+      } catch {
+        continue
+      }
+    }
+    throw new Error('Homebrew not found — install it first')
+  }
+}
+
+/** Run a command with streaming stdout/stderr to onLog callback */
+function runStreamingCommand(
+  cmd: string,
+  args: string[],
+  onLog: (line: string) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      env: { ...process.env },
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+    child.stdout?.on('data', (data: Buffer) => onLog(data.toString()))
+    child.stderr?.on('data', (data: Buffer) => onLog(data.toString()))
+    child.on('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`${cmd} ${args.join(' ')} exited with code ${code}`))
+    })
+    child.on('error', reject)
+  })
 }
 
 export async function checkXcodeTools(): Promise<CheckResult> {

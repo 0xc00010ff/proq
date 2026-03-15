@@ -85,10 +85,9 @@ export async function startServer(
       if (earlyError) {
         resolve({ ok: false, error: earlyError })
       } else if (code !== null && code !== 0) {
-        onLog?.(`Server process exited with code ${code}`)
-        if (!intentionalStop && exitCallback) {
-          exitCallback()
-        }
+        resolve({ ok: false, error: `Server exited with code ${code}` })
+      } else if (!intentionalStop && exitCallback) {
+        exitCallback()
       }
     })
 

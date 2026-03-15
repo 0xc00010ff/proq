@@ -60,8 +60,11 @@ interface Project {
   status?: 'active' | 'review' | 'idle' | 'error';
   serverUrl?: string;      // dev server URL for live preview
   order?: number;           // sidebar sort order
+  pathValid?: boolean;      // whether the project path exists on disk
   activeTab?: 'project' | 'live' | 'code';
+  viewType?: 'kanban' | 'list';
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
+  defaultBranch?: string;   // e.g. 'main' or 'master'
   createdAt: string;
 }
 ```
@@ -72,23 +75,22 @@ Per-project state file containing:
 
 ```typescript
 interface ProjectState {
-  columns: Record<TaskStatus, Task[]>;  // todo, in-progress, verify, done
+  tasks: TaskColumns;  // Record<TaskStatus, Task[]> — todo, in-progress, verify, done
   chatLog: ChatLogEntry[];
+  agentSession?: AgentSession;
   executionMode?: 'sequential' | 'parallel';
-  workbenchOpen?: boolean;
-  workbenchHeight?: number;
-  workbenchTabs?: WorkbenchTabInfo[];
-  workbenchActiveTabId?: string;
-  agentTabs?: Record<string, AgentTabData>;
+  projectWorkbenchOpen?: boolean;
+  projectWorkbenchHeight?: number;
+  projectWorkbenchTabs?: WorkbenchTabInfo[];
+  projectWorkbenchActiveTabId?: string;
+  liveWorkbenchTabs?: WorkbenchTabInfo[];
+  liveWorkbenchActiveTabId?: string;
+  projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   recentlyDeleted?: DeletedTaskEntry[];
 }
 ```
 
 Tasks are stored in ordered arrays within each column — array position is the sort order.
-
-### Auto-Migration
-
-The database layer (`db.ts`) handles schema migration on read. Old formats (single `tasks` array, legacy `config.json`, `state/` directory) are automatically upgraded to the current column-based structure.
 
 ## Task Lifecycle
 
@@ -174,14 +176,16 @@ tmux acts purely as a process container — crash survival, enumeration (`tmux l
 
 ## MCP Callback
 
-`proq-mcp.js` is a stdio MCP server spawned per-task via `--mcp-config`. It exposes two tools:
+`proq-mcp.js` is a stdio MCP server spawned per-task via `--mcp-config`. It exposes four tools:
 
 | Tool | Description |
 |---|---|
 | `read_task` | Fetch current task state (title, description, summary, status). Agent uses this before updating to build cumulative summary |
 | `update_task` | Set summary + optional nextSteps, move task to Verify. Each call replaces the previous summary |
+| `set_live_url` | Set the live preview URL for the project so the human can see the running app in the Live tab |
+| `commit_changes` | Stage and commit all current changes. Used after each logical unit of work to keep progress saved |
 
-The MCP server communicates with the proq REST API over localhost. This replaced the earlier curl-based callback — MCP tools are more reliable and the agent discovers them automatically.
+The MCP server communicates with the proq REST API over localhost.
 
 ## Render Modes
 
@@ -282,12 +286,6 @@ For the full worktree and parallel mode deep dive, see [Parallel Worktrees](./Pa
 
 All settings are stored via the `/api/settings` endpoint and persisted in `data/settings.json`.
 
-### System
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `port` | number | 1337 | Server port |
-
 ### Agent
 
 | Field | Type | Default | Description |
@@ -297,39 +295,28 @@ All settings are stored via the `/api/settings` endpoint and persisted in `data/
 | `systemPromptAdditions` | string | `""` | Extra instructions appended to every agent's system prompt |
 | `executionMode` | `"sequential"` \| `"parallel"` | `"sequential"` | Whether tasks run one-at-a-time or simultaneously |
 | `agentRenderMode` | `"structured"` \| `"cli"` | `"structured"` | Default render mode for new tasks |
+| `showCosts` | boolean | `false` | Show cost estimates in agent UI |
+| `codingAgent` | string | `""` | Custom coding agent binary (overrides `claudeBin` for build tasks) |
 
-### Git
+### Updates
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `autoCommit` | boolean | `true` | Whether agents should auto-commit |
-| `commitStyle` | string | `""` | Commit message style instructions |
-| `autoPush` | boolean | `false` | Push after commit |
-| `showGitBranches` | boolean | `true` | Show branch switcher in TopBar |
+| `autoUpdate` | boolean | `false` | Automatically check for and apply updates |
 
 ### Appearance
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `theme` | `"dark"` \| `"light"` | `"dark"` | UI theme |
+| `theme` | `"dark"` \| `"light"` \| `"system"` | `"dark"` | UI theme |
 
 ### Notifications
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `notificationMethod` | `"none"` \| `"slack"` \| `"system"` \| `"sound"` | `"none"` | How to notify on task completion |
-| `openclawBin` | string | `""` | Path to OpenClaw CLI binary (for Slack notifications) |
-| `slackChannel` | string | `""` | Slack channel for notifications |
-| `webhooks` | string | `""` | Webhook URLs for notifications |
-
-### Process
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `cleanupDelay` | number | 3600000 | Milliseconds before cleaning up completed agent sessions (1 hour) |
-| `taskPollInterval` | number | 5000 | Dashboard polling interval in milliseconds |
-| `deletedTaskRetention` | number | 300000 | How long deleted tasks are kept for undo (5 minutes) |
-| `terminalScrollback` | number | 50000 | Terminal scrollback buffer size in characters |
+| `soundNotifications` | boolean | `false` | Play sound on task completion |
+| `localNotifications` | boolean | `false` | Show desktop notifications on task completion |
+| `webhooks` | string[] | `[]` | Webhook URLs to POST on task completion |
 
 ## REST API Reference
 
@@ -381,7 +368,7 @@ List tasks grouped by column.
 
 Create a task.
 
-**Body:** `{ title?: string, description: string, priority?: "low" | "medium" | "high", mode?: "build" | "plan" | "answer", status?: TaskStatus, attachments?: TaskAttachment[] }`
+**Body:** `{ title?: string, description: string, priority?: "low" | "medium" | "high", mode?: "auto" | "build" | "plan" | "answer", status?: TaskStatus, attachments?: TaskAttachment[] }`
 
 **Response:** `Task`
 

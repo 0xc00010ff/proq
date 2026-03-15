@@ -42,7 +42,8 @@ Click **New Task** on the board. Fill in:
 - **Title** — short summary
 - **Description** — detailed instructions for the agent
 - **Mode** — determines what the agent is allowed to do:
-  - **Build** (default) — full code changes, commits, the works
+  - **Auto** (default) — automatically picks the best mode based on the task
+  - **Build** — full code changes, commits, the works
   - **Plan** — research only, no file changes, agent reports summary
   - **Answer** — same as plan, for quick questions
 - **Attachments** — drag or paste images (screenshots, mockups) that the agent can view
@@ -145,12 +146,10 @@ Click the gear icon to open Settings. Key sections:
 
 | Section | What it controls |
 |---|---|
-| **System** | Port number |
-| **Agent** | Claude binary path, default model, system prompt additions, execution mode (sequential/parallel), render mode (structured/CLI) |
-| **Git** | Auto-commit, commit style, auto-push, show branch switcher |
-| **Appearance** | Theme |
-| **Notifications** | Slack integration, webhooks |
-| **Process** | Cleanup delay, poll interval, deleted task retention, terminal scrollback |
+| **Agent** | Claude binary path, default model, system prompt additions, execution mode (sequential/parallel), render mode (structured/CLI), cost display, coding agent |
+| **Updates** | Auto-update |
+| **Appearance** | Theme (dark/light/system) |
+| **Notifications** | Sound, desktop, webhooks |
 
 For the full settings reference, see [Architecture > Settings Reference](./Architecture.md#settings-reference).
 

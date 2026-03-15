@@ -229,5 +229,5 @@ The timer is cancelled if the task re-enters in-progress (e.g., moved back from 
 | `src/app/api/projects/[id]/tasks/[taskId]/route.ts` | Status transition logic, merge/discard on transitions                                            |
 | `src/app/api/projects/[id]/tasks/reorder/route.ts`  | Same transitions for drag-drop moves                                                             |
 | `src/components/TopBar.tsx`                         | Branch switcher dropdown                                                                         |
-| `src/components/TaskAgentModal.tsx`                 | Preview/merge controls in task detail                                                            |
+| `src/components/TaskAgentDetail.tsx`                | Preview/merge controls in task detail                                                            |
 | `src/app/projects/[id]/page.tsx`                    | Dashboard wiring: branch state, polling, taskBranchMap                                           |

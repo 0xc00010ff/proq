@@ -77,7 +77,6 @@ export interface Task {
   status: TaskStatus;
   priority?: 'low' | 'medium' | 'high';
   mode?: TaskMode;
-  order?: number; // deprecated — kept for migration only
   summary?: string;
   nextSteps?: string;
   needsAttention?: boolean;
@@ -93,7 +92,6 @@ export interface Task {
     diff?: string; // unified diff showing what conflicts
   };
   startCommit?: string;
-  endCommit?: string; // deprecated — kept for migration only
   commitHashes?: string[];
   renderMode?: AgentRenderMode;
   agentBlocks?: AgentBlock[];

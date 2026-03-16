@@ -637,8 +637,10 @@ const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 
 const DEFAULT_SETTINGS: ProqSettings = {
   // Agent
+  agentProvider: "claude",
   claudeBin: "claude",
   defaultModel: "",
+  codexModel: "",
   systemPromptAdditions: "",
   executionMode: "sequential",
   agentRenderMode: "structured",

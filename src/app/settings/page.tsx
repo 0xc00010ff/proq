@@ -272,86 +272,116 @@ export default function SettingsPage() {
               />
               <div className="space-y-4">
                 <Field label="Coding agent">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`${inputClass} flex-1 opacity-50 cursor-not-allowed select-none`}
-                    >
-                      Claude Code
-                    </div>
-                    <Tooltip text="Currently built for Claude Code. Codex/OpenCode coming soon.">
-                      <CircleHelpIcon className="w-4 h-4 text-text-tertiary" />
-                    </Tooltip>
-                  </div>
-                </Field>
-                <Field
-                  label="Claude binary"
-                  hint="Path to the Claude Code CLI. Auto-detect finds it from your shell profile, nvm, or homebrew."
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={settings.claudeBin}
-                      onChange={(e) => update("claudeBin", e.target.value)}
-                      placeholder="claude"
-                      className={`${inputClassMono} flex-1`}
-                    />
-                    <button
-                      onClick={async () => {
-                        setDetectingBin(true);
-                        setDetectMessage(null);
-                        try {
-                          const res = await fetch("/api/settings/detect-claude-bin", { method: "POST" });
-                          const data = await res.json();
-                          setSettings((s) => s ? { ...s, claudeBin: data.claudeBin } : s);
-                          setDetectMessage(data.message);
-                        } catch {
-                          setDetectMessage("Detection failed");
-                        } finally {
-                          setDetectingBin(false);
-                        }
-                      }}
-                      disabled={detectingBin}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
-                    >
-                      {detectingBin ? (
-                        <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <SearchIcon className="w-3.5 h-3.5" />
-                      )}
-                      Auto-detect
-                    </button>
-                  </div>
-                  {detectMessage && (
-                    <p className={`text-xs mt-1.5 ${detectMessage.startsWith("Found") ? "text-green-500" : "text-text-secondary"}`}>
-                      {detectMessage}
-                    </p>
-                  )}
-                </Field>
-                <Field
-                  label="Agent render mode"
-                  hint="Chat shows a formatted chat window like Claude Code desktop. CLI shows a raw terminal running the Claude Code CLI."
-                >
                   <Select
-                    value={settings.agentRenderMode}
-                    onChange={(v) =>
-                      update("agentRenderMode", v as "cli" | "structured")
-                    }
+                    value={settings.agentProvider ?? "claude"}
+                    onChange={(v) => update("agentProvider", v as "claude" | "codex")}
                     options={[
-                      { value: "structured", label: "Chat" },
-                      { value: "cli", label: "CLI" },
+                      { value: "claude", label: "Claude Code" },
+                      { value: "codex", label: "Codex (OpenAI)" },
                     ]}
                   />
                 </Field>
-                {settings.agentRenderMode === "structured" && (
-                  <Field
-                    label="Show costs"
-                    hint="Display a calculated hypothetical token cost per turn. If you're on the Claude subscription plan, you are not billed anything extra — this is just data returned by Claude."
-                  >
-                    <Toggle
-                      checked={settings.showCosts}
-                      onChange={(v) => update("showCosts", v)}
-                    />
-                  </Field>
+
+                {/* ── Claude-specific fields ── */}
+                {(settings.agentProvider ?? "claude") === "claude" && (
+                  <>
+                    <Field
+                      label="Claude binary"
+                      hint="Path to the Claude Code CLI. Auto-detect finds it from your shell profile, nvm, or homebrew."
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={settings.claudeBin}
+                          onChange={(e) => update("claudeBin", e.target.value)}
+                          placeholder="claude"
+                          className={`${inputClassMono} flex-1`}
+                        />
+                        <button
+                          onClick={async () => {
+                            setDetectingBin(true);
+                            setDetectMessage(null);
+                            try {
+                              const res = await fetch("/api/settings/detect-claude-bin", { method: "POST" });
+                              const data = await res.json();
+                              setSettings((s) => s ? { ...s, claudeBin: data.claudeBin } : s);
+                              setDetectMessage(data.message);
+                            } catch {
+                              setDetectMessage("Detection failed");
+                            } finally {
+                              setDetectingBin(false);
+                            }
+                          }}
+                          disabled={detectingBin}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                        >
+                          {detectingBin ? (
+                            <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <SearchIcon className="w-3.5 h-3.5" />
+                          )}
+                          Auto-detect
+                        </button>
+                      </div>
+                      {detectMessage && (
+                        <p className={`text-xs mt-1.5 ${detectMessage.startsWith("Found") ? "text-green-500" : "text-text-secondary"}`}>
+                          {detectMessage}
+                        </p>
+                      )}
+                    </Field>
+                    <Field
+                      label="Agent render mode"
+                      hint="Chat shows a formatted chat window. CLI shows a raw terminal running the Claude Code CLI."
+                    >
+                      <Select
+                        value={settings.agentRenderMode}
+                        onChange={(v) =>
+                          update("agentRenderMode", v as "cli" | "structured")
+                        }
+                        options={[
+                          { value: "structured", label: "Chat" },
+                          { value: "cli", label: "CLI" },
+                        ]}
+                      />
+                    </Field>
+                    {settings.agentRenderMode === "structured" && (
+                      <Field
+                        label="Show costs"
+                        hint="Display a calculated hypothetical token cost per turn. If you're on the Claude subscription plan, you are not billed anything extra — this is just data returned by Claude."
+                      >
+                        <Toggle
+                          checked={settings.showCosts}
+                          onChange={(v) => update("showCosts", v)}
+                        />
+                      </Field>
+                    )}
+                  </>
+                )}
+
+                {/* ── Codex-specific fields ── */}
+                {settings.agentProvider === "codex" && (
+                  <>
+                    <Field
+                      label="OpenAI API key"
+                      hint="Set the OPENAI_API_KEY environment variable before starting proq. The key is read from the environment and never stored here."
+                    >
+                      <div className={`${inputClass} opacity-60 select-none text-text-tertiary`}>
+                        Read from OPENAI_API_KEY env var
+                      </div>
+                    </Field>
+                    <Field
+                      label="Codex model"
+                      hint="OpenAI model to use for coding tasks. Defaults to o4-mini if left blank."
+                    >
+                      <input
+                        type="text"
+                        value={settings.codexModel ?? ""}
+                        onChange={(e) => update("codexModel", e.target.value)}
+                        placeholder="o4-mini"
+                        className={`${inputClassMono}`}
+                      />
+                    </Field>
+                  </>
                 )}
               </div>
             </section>

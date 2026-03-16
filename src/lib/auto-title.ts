@@ -1,4 +1,4 @@
-import { claudeOneShot } from "./claude-cli";
+import { llmOneShot } from "./llm-oneshot";
 import { updateTask } from "./db";
 import { emitTaskUpdate } from "./task-events";
 
@@ -34,7 +34,7 @@ export async function generateTitle(
   pending.add(taskId);
 
   try {
-    const raw = await claudeOneShot(buildPrompt(description));
+    const raw = await llmOneShot(buildPrompt(description));
     const title = cleanTitle(raw);
     if (title) {
       await updateTask(projectId, taskId, { title });

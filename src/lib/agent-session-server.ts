@@ -1,5 +1,5 @@
 import type WebSocket from "ws";
-import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
+import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-provider";
 import { getTask, getProject, updateTask } from "./db";
 import { emitTaskUpdate } from "./task-events";
 import type { AgentWsClientMsg } from "./types";

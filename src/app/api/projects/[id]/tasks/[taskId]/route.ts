@@ -3,7 +3,7 @@ import { getTask, getProject, updateTask, deleteTask, getSettings, getProjectDef
 import type { Task } from "@/lib/types";
 import { abortTask, processQueue, getInitialAgentStatus, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 import { autoTitle } from "@/lib/auto-title";
-import { clearSession } from "@/lib/agent-session";
+import { clearSession } from "@/lib/agent-provider";
 import { emitTaskUpdate } from "@/lib/task-events";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "@/lib/worktree";
 

@@ -197,7 +197,7 @@ export async function POST(request: Request, { params }: Params) {
         if (!diff || !diff.trim()) {
           return NextResponse.json({ title: "", description: "" });
         }
-        const { claudeOneShot } = await import("@/lib/claude-cli");
+        const { llmOneShot } = await import("@/lib/llm-oneshot");
         const prompt = `You are a commit message generator. Given the following git diff, produce a concise commit message.
 
 Respond with ONLY a JSON object with two fields:
@@ -208,7 +208,7 @@ Do not include markdown formatting, code fences, or anything else. Just the JSON
 
 Git diff:
 ${diff.slice(0, 12000)}`;
-        const raw = await claudeOneShot(prompt);
+        const raw = await llmOneShot(prompt);
         // Parse the JSON response, handling potential markdown wrapping
         let cleaned = raw.trim();
         if (cleaned.startsWith("```")) {

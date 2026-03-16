@@ -25,6 +25,7 @@
     "lucide-react": "^0.564.0",
     "next": "^16.1.6",
     "node-pty": "^1.2.0-beta.11",
+    "openai": "^6.31.0",
     "react": "^19",
     "react-dom": "^19",
     "react-markdown": "^10.1.0",

@@ -26,8 +26,9 @@ import {
   stopSession,
   isSessionRunning,
   clearSession,
-} from "./agent-session";
+} from "./agent-provider";
 import { getClaudeBin } from "./claude-bin";
+import type { AgentProvider } from "./types";
 
 
 /**
@@ -61,6 +62,7 @@ export function buildProqSystemPrompt(
   taskId: string,
   mode: TaskMode | undefined,
   projectName?: string,
+  provider: AgentProvider = "claude",
 ): string {
   const sections: string[] = [
     `## Fulfilling the task
@@ -106,11 +108,17 @@ After making substantial changes (committing code, completing a phase of work), 
 - Minor adjustments that don't change the overall summary`);
   }
 
-  sections.push(`### Asking Questions
+  if (provider === "codex") {
+    sections.push(`### Asking Questions
+When you call \`ask_user_question\`, your question is displayed to the human and their answer will arrive as a follow-up message.`);
+    sections.push(`### Plan Mode
+When you call \`exit_plan_mode\`, your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
+  } else {
+    sections.push(`### Asking Questions
 When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.`);
-
-  sections.push(`### Plan Mode
+    sections.push(`### Plan Mode
 When you use \`ExitPlanMode\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
+  }
 
   return sections.join("\n\n");
 }
@@ -376,6 +384,9 @@ export async function dispatchTask(
 
   // ── Default: dispatch via SDK (structured mode) ──
 
+  const settings = await getSettings();
+  const provider = settings.agentProvider ?? "claude";
+
   let prompt: string;
   if (mode === "plan") {
     prompt = heading;
@@ -390,14 +401,31 @@ export async function dispatchTask(
     const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
     const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
     if (imageFiles.length > 0) {
-      prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+      prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your bash tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
     if (otherFiles.length > 0) {
-      prompt += `\n\n## Attached Files\nThe following files are attached to this task. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
+      prompt += `\n\n## Attached Files\nThe following files are attached to this task. Use your bash tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
   }
 
-  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, provider);
+
+  // ── Codex path: no MCP, no tmux, direct SDK ──
+  if (provider === "codex") {
+    try {
+      await startSession(projectId, taskId, prompt, effectivePath, {
+        proqSystemPrompt,
+      });
+      console.log(`[agent-dispatch] launched codex session for task ${taskId}`);
+      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (codex)`);
+      return terminalTabId;
+    } catch (err) {
+      console.error(`[agent-dispatch] failed to launch codex session for ${taskId}:`, err);
+      return undefined;
+    }
+  }
+
+  // ── Claude path: MCP config + SDK ──
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   // Use native plan permission mode for plan tasks
@@ -453,7 +481,7 @@ export async function abortTask(projectId: string, taskId: string) {
     } catch {}
   } else {
     // Default (structured mode): abort via SDK
-    stopSession(taskId);
+    await stopSession(taskId);
     clearSession(taskId);
     console.log(`[agent-dispatch] stopped agent session for task ${taskId}`);
   }

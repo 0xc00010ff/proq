@@ -14,8 +14,10 @@ export async function llmOneShot(
   if (settings.agentProvider === "codex") {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const codexModel = settings.codexModel || "gpt-4o-mini";
+    const model = options?.model ?? codexModel;
     const res = await openai.chat.completions.create({
-      model: options?.model ?? (settings.codexModel || "gpt-4o-mini"),
+      model,
       messages: [{ role: "user", content: prompt }],
     });
     return res.choices[0]?.message?.content?.trim() ?? "";

@@ -57,6 +57,15 @@ Default settings: `claudeBin: "claude"`, `codingAgent: "claude-code"`.
 ### 11. MCP infrastructure (`proq-mcp.js`, `proq-workbench-mcp.js`, `proq-mcp-general.js`)
 The proq tool layer (read_task, update_task, commit_changes, etc.) is exposed to agents via MCP (Model Context Protocol), which is a Claude Code-specific mechanism. Codex uses OpenAI's function calling API instead.
 
+### 12. `src/app/api/projects/[id]/git/route.ts` — Commit message generation
+Uses `claudeOneShot()` to generate LLM-assisted commit messages. Directly coupled to Claude.
+
+### 13. `src/app/api/files/read/route.ts` — File access allowlist
+Hardcodes `~/.claude/` as an explicitly allowed directory for agent file access. No equivalent for Codex config paths.
+
+### 14. `src/lib/agent-dispatch.ts` — `buildProqSystemPrompt()`
+References `AskUserQuestion` and `ExitPlanMode` by their Claude-specific tool names in the system prompt text injected into every agent invocation.
+
 ---
 
 ## How Codex works (the target)
@@ -216,12 +225,30 @@ Update `auto-title.ts` to import `llmOneShot` instead of `claudeOneShot`.
 
 ---
 
-### Phase 8: CLI mode is Claude-only
+### Phase 8: Commit message generation abstraction
+
+**`src/app/api/projects/[id]/git/route.ts`** calls `claudeOneShot()` to generate commit messages. Update to call `llmOneShot()` from the new `llm-oneshot.ts` (same abstraction used by auto-title).
+
+---
+
+### Phase 9: File access allowlist
+
+**`src/app/api/files/read/route.ts`** hardcodes `~/.claude/` as allowed. Add `~/.codex/` (or equivalent Codex config directory) to the allowlist when `agentProvider === 'codex'`. Alternatively make the allowlist provider-aware.
+
+---
+
+### Phase 10: CLI mode is Claude-only
 
 The CLI/"tmux" render mode (`renderMode: 'cli'`) uses `proq-bridge.js` to expose a PTY over a unix socket. This is inherently Claude CLI-specific. For Codex there is no CLI to wrap.
 
 - If a task has `renderMode: 'cli'` but `agentProvider === 'codex'`, fall back to structured mode (or block the setting in UI)
 - Document in settings UI that CLI mode requires Claude Code
+
+---
+
+### Phase 11: Provider-aware system prompt
+
+**`buildProqSystemPrompt()` in `src/lib/agent-dispatch.ts`** currently refers to `AskUserQuestion` and `ExitPlanMode` by their Claude-specific built-in names. For Codex these must be referred to as `ask_user_question` and `exit_plan_mode` (custom function names). Add a `provider` parameter and emit the correct names conditionally.
 
 ---
 
@@ -259,11 +286,16 @@ The `openai` package for the Responses API. No other new dependencies needed.
 
 ## Implementation order (suggested)
 
-1. Types + settings schema (`types.ts`, `db.ts`)
-2. Settings UI — make provider selector functional
-3. `codex-session.ts` — core Codex session runtime with tool loop
-4. `agent-provider.ts` — thin router
-5. Update `agent-dispatch.ts` to use router
-6. `llm-oneshot.ts` + update `auto-title.ts`
-7. Update `buildProqSystemPrompt()` to be provider-aware
-8. Test end-to-end with a simple task on each provider
+1. Types + settings schema (`types.ts`, `db.ts`) — add `agentProvider`, `codexModel`, `openaiApiKey` (or env-only)
+2. Settings UI — make provider selector functional, show Claude/Codex fields conditionally
+3. `codex-session.ts` — core Codex session runtime with agentic tool loop
+4. `agent-provider.ts` — thin router that delegates to `claude-session` or `codex-session`
+5. Update `agent-dispatch.ts`:
+   - Import from `agent-provider.ts` instead of `agent-session.ts`
+   - Branch `dispatchTask()` on provider for CLI vs SDK vs Codex paths
+   - `buildProqSystemPrompt()` — provider-aware tool names
+   - `abortTask()` / `isSessionAlive()` — handle Codex sessions
+6. `llm-oneshot.ts` — provider-aware one-shot LLM wrapper
+7. Update `auto-title.ts` and `git/route.ts` to use `llmOneShot()`
+8. Update `files/read/route.ts` allowlist to include Codex config dir
+9. Test end-to-end with a simple task on each provider

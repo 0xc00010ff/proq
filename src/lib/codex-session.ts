@@ -12,15 +12,16 @@
  *  - continueSession adds user text and resumes the loop.
  */
 
-import { spawn, execSync } from "child_process";
-import type WebSocket from "ws";
+import { execSync, spawn } from "child_process";
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
-import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
-import { getTask, updateTask, getProject, getSettings } from "./db";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources/chat/completions";
+import type WebSocket from "ws";
+import { getProject, getSettings, getTask, updateTask } from "./db";
 import { emitTaskUpdate } from "./task-events";
-import { autoCommitIfDirty } from "./worktree";
-import { notify, buildProqSystemPrompt } from "./agent-dispatch";
+import type { AgentBlock, TaskAttachment } from "./types";
 
 // ── Session type ─────────────────────────────────────────────────────────────
 
@@ -53,7 +54,8 @@ function broadcast(session: CodexRuntimeSession, msg: object) {
   const data = JSON.stringify(msg);
   for (const ws of session.clients) {
     try {
-      if ((ws as unknown as { readyState: number }).readyState === 1) ws.send(data);
+      if ((ws as unknown as { readyState: number }).readyState === 1)
+        ws.send(data);
     } catch {
       // client gone
     }
@@ -106,11 +108,13 @@ const TOOLS: ChatCompletionTool[] = [
         properties: {
           summary: {
             type: "string",
-            description: "Newline-separated cumulative summary of all work done",
+            description:
+              "Newline-separated cumulative summary of all work done",
           },
           nextSteps: {
             type: "string",
-            description: "Suggested next steps such as testing, refinements, or follow-up work",
+            description:
+              "Suggested next steps such as testing, refinements, or follow-up work",
           },
         },
         required: ["summary"],
@@ -164,7 +168,8 @@ const TOOLS: ChatCompletionTool[] = [
         properties: {
           plan: {
             type: "string",
-            description: "Your detailed plan describing the changes you intend to make",
+            description:
+              "Your detailed plan describing the changes you intend to make",
           },
         },
         required: ["plan"],
@@ -190,13 +195,18 @@ function executeBash(command: string, cwd: string): Promise<string> {
     proc.stderr.on("data", append);
     proc.on("close", (code) => {
       const trimmed = output.trimEnd();
-      resolve(code === 0 ? trimmed || "(no output)" : `Exit ${code}:\n${trimmed}`);
+      resolve(
+        code === 0 ? trimmed || "(no output)" : `Exit ${code}:\n${trimmed}`,
+      );
     });
     proc.on("error", (err) => resolve(`Error: ${err.message}`));
   });
 }
 
-async function executeReadTask(projectId: string, taskId: string): Promise<string> {
+async function executeReadTask(
+  projectId: string,
+  taskId: string,
+): Promise<string> {
   try {
     const task = await getTask(projectId, taskId);
     if (!task) return "Task not found.";
@@ -275,7 +285,9 @@ async function executeCommitChanges(
         const currentTask = await getTask(session.projectId, session.taskId);
         const hashes = currentTask?.commitHashes || [];
         hashes.push(hash);
-        await updateTask(session.projectId, session.taskId, { commitHashes: hashes });
+        await updateTask(session.projectId, session.taskId, {
+          commitHashes: hashes,
+        });
       } catch {
         // best effort
       }
@@ -299,7 +311,11 @@ function sessionIsAborted(s: CodexRuntimeSession): boolean {
   return s.status === "aborted";
 }
 
-async function runLoop(session: CodexRuntimeSession, model: string): Promise<void> {
+async function runLoop(
+  session: CodexRuntimeSession,
+  model: string,
+): Promise<void> {
+  console.log("runLoop", process.env.OPENAI_API_KEY);
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const maxTurns = 200;
   let turnCount = 0;
@@ -309,9 +325,10 @@ async function runLoop(session: CodexRuntimeSession, model: string): Promise<voi
 
     const abortSignal = session.abortController?.signal;
 
-    let stream: Awaited<ReturnType<typeof openai.chat.completions.create>> & AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+    let stream: Awaited<ReturnType<typeof openai.chat.completions.create>> &
+      AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
     try {
-      stream = await openai.chat.completions.create(
+      stream = (await openai.chat.completions.create(
         {
           model,
           messages: session.messages,
@@ -320,12 +337,14 @@ async function runLoop(session: CodexRuntimeSession, model: string): Promise<voi
           stream: true,
         },
         { signal: abortSignal },
-      ) as typeof stream;
+      )) as typeof stream;
     } catch (err: unknown) {
       const msg = (err as Error).message ?? "OpenAI API error";
       appendBlock(session, { type: "status", subtype: "error", error: msg });
       session.status = "error";
-      await updateTask(session.projectId, session.taskId, { agentStatus: null });
+      await updateTask(session.projectId, session.taskId, {
+        agentStatus: null,
+      });
       emitTaskUpdate(session.projectId, session.taskId, { agentStatus: null });
       return;
     }
@@ -356,8 +375,10 @@ async function runLoop(session: CodexRuntimeSession, model: string): Promise<voi
             toolCallAccumulator[idx] = { id: "", name: "", arguments: "" };
           }
           if (tc.id) toolCallAccumulator[idx].id = tc.id;
-          if (tc.function?.name) toolCallAccumulator[idx].name += tc.function.name;
-          if (tc.function?.arguments) toolCallAccumulator[idx].arguments += tc.function.arguments;
+          if (tc.function?.name)
+            toolCallAccumulator[idx].name += tc.function.name;
+          if (tc.function?.arguments)
+            toolCallAccumulator[idx].arguments += tc.function.arguments;
         }
       }
 
@@ -399,7 +420,9 @@ async function runLoop(session: CodexRuntimeSession, model: string): Promise<voi
         subtype: "complete",
         turns: turnCount,
       });
-      await updateTask(session.projectId, session.taskId, { agentStatus: null });
+      await updateTask(session.projectId, session.taskId, {
+        agentStatus: null,
+      });
       emitTaskUpdate(session.projectId, session.taskId, { agentStatus: null });
       return;
     }
@@ -461,7 +484,10 @@ async function runLoop(session: CodexRuntimeSession, model: string): Promise<voi
           session,
         );
       } else if (tc.name === "commit_changes") {
-        output = await executeCommitChanges(String(args.message ?? ""), session);
+        output = await executeCommitChanges(
+          String(args.message ?? ""),
+          session,
+        );
       } else {
         output = `Unknown tool: ${tc.name}`;
       }
@@ -518,7 +544,8 @@ export async function startSession(
     `You are a coding agent working in the project directory: ${cwd}`,
     "You have access to a bash tool for all file operations, shell commands, and git work.",
   ];
-  if (settings.systemPromptAdditions) parts.push(settings.systemPromptAdditions);
+  if (settings.systemPromptAdditions)
+    parts.push(settings.systemPromptAdditions);
   if (options?.proqSystemPrompt) parts.push(options.proqSystemPrompt);
   const systemContent = parts.join("\n\n");
 

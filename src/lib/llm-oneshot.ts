@@ -1,5 +1,5 @@
-import { getSettings } from "./db";
 import { claudeOneShot } from "./claude-cli";
+import { getSettings } from "./db";
 
 /**
  * Provider-agnostic one-shot LLM call. Used for auto-title generation,
@@ -13,6 +13,7 @@ export async function llmOneShot(
 
   if (settings.agentProvider === "codex") {
     const OpenAI = (await import("openai")).default;
+    console.log("llmOneShot", process.env.OPENAI_API_KEY);
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const codexModel = settings.codexModel || "gpt-4o-mini";
     const model = options?.model ?? codexModel;

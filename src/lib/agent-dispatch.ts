@@ -64,6 +64,68 @@ export function buildProqSystemPrompt(
   projectName?: string,
   provider: AgentProvider = "claude",
 ): string {
+  // ── Codex CLI provider: no MCP, use curl commands ──────────────────────────
+  if (provider === "codex") {
+    const proqBase = `http://localhost:${process.env.PORT || 1337}`;
+    const taskUrl = `${proqBase}/api/projects/${projectId}/tasks/${taskId}`;
+
+    const sections: string[] = [
+      `## Fulfilling the task
+
+You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}
+
+Use the following shell commands to interact with the proq task system.
+
+### Task Tools
+
+**Read task state:**
+\`\`\`bash
+curl -s ${taskUrl}
+\`\`\`
+
+**Complete task (call when done — moves to Verify):**
+\`\`\`bash
+curl -s -X PATCH ${taskUrl} \\
+  -H 'Content-Type: application/json' \\
+  -d '{"status":"verify","agentStatus":null,"summary":"SUMMARY","nextSteps":"NEXT_STEPS"}'
+\`\`\`
+
+**Commit changes:**
+\`\`\`bash
+git add -A && git commit -m "MESSAGE"
+\`\`\``,
+    ];
+
+    if (mode === "auto") {
+      sections.push(`### Workflow
+If you make code changes, commit them with \`git add -A && git commit -m "..."\` before reporting.
+When the task is complete, read the current state with curl, then call the complete-task curl to report and move to Verify.`);
+    } else if (mode === "answer") {
+      sections.push(`### Research Mode
+This is an answer-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your summary.
+
+### Reporting Results
+When finished, read the task state with curl to check for any existing summary, then call the complete-task curl with a cumulative summary incorporating prior work.`);
+    } else {
+      sections.push(`### Code Changes
+Commit after each logical unit of work. Always commit your code changes before reporting.
+
+### Reporting Progress
+After committing code changes or completing the main request, call the complete-task curl to update the task board and move to Verify for human review. Read the task first to write a cumulative summary.
+
+**When to report:**
+- After committing code changes
+- After completing the main request or a significant phase
+
+**When NOT to report:**
+- Simple clarifying responses or short answers
+- Minor adjustments that don't change the overall summary`);
+    }
+
+    return sections.join("\n\n");
+  }
+
+  // ── Claude Code provider: MCP tools ───────────────────────────────────────
   const sections: string[] = [
     `## Fulfilling the task
 
@@ -108,17 +170,10 @@ After making substantial changes (committing code, completing a phase of work), 
 - Minor adjustments that don't change the overall summary`);
   }
 
-  if (provider === "codex") {
-    sections.push(`### Asking Questions
-When you call \`ask_user_question\`, your question is displayed to the human and their answer will arrive as a follow-up message.`);
-    sections.push(`### Plan Mode
-When you call \`exit_plan_mode\`, your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
-  } else {
-    sections.push(`### Asking Questions
+  sections.push(`### Asking Questions
 When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.`);
-    sections.push(`### Plan Mode
+  sections.push(`### Plan Mode
 When you use \`ExitPlanMode\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
-  }
 
   return sections.join("\n\n");
 }

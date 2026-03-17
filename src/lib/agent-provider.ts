@@ -88,7 +88,7 @@ export function isSessionRunning(taskId: string): boolean {
   ).__proqCodexSessions;
   if (codexSessions?.has(taskId)) {
     const s = codexSessions.get(taskId)!;
-    return s.status === "running" || s.status === "paused";
+    return s.status === "running";
   }
   const claudeSessions = (
     globalThis as unknown as {

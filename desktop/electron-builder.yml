@@ -15,9 +15,9 @@ mac:
   category: public.app-category.developer-tools
   target:
     - target: dmg
-      arch: [universal]
+      arch: [arm64]
     - target: zip
-      arch: [universal]
+      arch: [arm64]
   icon: build/icon.png
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist

@@ -1,22 +1,21 @@
 /**
- * Codex session runtime — wraps the Codex CLI (`codex exec --json`) as a
- * child process, the same way agent-session.ts wraps the Claude Code CLI.
+ * Codex session runtime — wraps the Codex SDK to manage agent sessions.
  *
  * Architecture:
- *  - startSession spawns `codex exec --json --dangerously-bypass-approvals-and-sandbox`
- *  - JSONL events on stdout are parsed into AgentBlocks and broadcast to WS clients
+ *  - startSession creates a new Codex thread and streams events
+ *  - continueSession resumes an existing thread (by threadId) or starts fresh
+ *  - Events from the SDK are translated into AgentBlocks and broadcast to WS clients
  *  - proq task management (read_task, update_task, commit_changes) is handled by
  *    the agent via curl commands injected into the system prompt
- *  - continueSession uses `codex exec resume <threadId>` for follow-up turns
  */
 
-import { spawn, type ChildProcess } from "child_process";
+import { Codex } from "@openai/codex-sdk";
+import type { ThreadEvent, ThreadOptions } from "@openai/codex-sdk";
 import type WebSocket from "ws";
 import { getProject, getSettings, getTask, updateTask } from "./db";
 import { emitTaskUpdate } from "./task-events";
 import { autoCommitIfDirty } from "./worktree";
 import { notify } from "./agent-dispatch";
-import { getCodexCmd } from "./codex-bin";
 import type { AgentBlock, TaskAttachment } from "./types";
 
 // ── Session type ──────────────────────────────────────────────────────────────
@@ -26,7 +25,7 @@ export interface CodexRuntimeSession {
   projectId: string;
   cwd: string;
   threadId?: string;
-  queryHandle: ChildProcess | null;
+  abortController: AbortController | null;
   blocks: AgentBlock[];
   clients: Set<WebSocket>;
   status: "running" | "done" | "error" | "aborted";
@@ -82,33 +81,19 @@ function inferProqToolName(cmd: string): string {
   return "read_task";
 }
 
-// ── JSONL event processing ────────────────────────────────────────────────────
+// ── SDK event processing ──────────────────────────────────────────────────────
 
-function processStreamEvent(
-  session: CodexRuntimeSession,
-  event: Record<string, unknown>,
-) {
-  const type = event.type as string;
-
-  if (type === "thread.started") {
-    session.threadId = event.thread_id as string | undefined;
-    return;
-  }
-
-  if (type === "turn.started") return;
-
-  if (type === "item.started") {
-    const item = event.item as Record<string, unknown> | undefined;
-    if (!item) return;
+function processSDKEvent(session: CodexRuntimeSession, event: ThreadEvent) {
+  if (event.type === "item.started") {
+    const item = event.item;
     if (item.type === "command_execution") {
-      const rawCmd = item.command as string;
-      const displayCmd = stripShellWrapper(rawCmd);
-      const toolName = isProqApiCall(rawCmd)
-        ? inferProqToolName(rawCmd)
+      const displayCmd = stripShellWrapper(item.command);
+      const toolName = isProqApiCall(item.command)
+        ? inferProqToolName(item.command)
         : "bash";
       appendBlock(session, {
         type: "tool_use",
-        toolId: item.id as string,
+        toolId: item.id,
         name: toolName,
         input: { command: displayCmd },
       });
@@ -116,181 +101,152 @@ function processStreamEvent(
     return;
   }
 
-  if (type === "item.completed") {
-    const item = event.item as Record<string, unknown> | undefined;
-    if (!item) return;
+  if (event.type === "item.completed") {
+    const item = event.item;
 
     if (item.type === "agent_message") {
-      const text = (item.text as string) || "";
-      if (text) appendBlock(session, { type: "text", text });
+      if (item.text) appendBlock(session, { type: "text", text: item.text });
       return;
     }
 
     if (item.type === "command_execution") {
-      const rawCmd = item.command as string;
-      const output = ((item.aggregated_output as string) || "").trimEnd();
-      const exitCode = item.exit_code as number | null;
-      const toolName = isProqApiCall(rawCmd)
-        ? inferProqToolName(rawCmd)
+      const output = item.aggregated_output.trimEnd();
+      const toolName = isProqApiCall(item.command)
+        ? inferProqToolName(item.command)
         : "bash";
       appendBlock(session, {
         type: "tool_result",
-        toolId: item.id as string,
+        toolId: item.id,
         name: toolName,
         output: output || "(no output)",
-        isError: exitCode !== 0 && exitCode !== null,
+        isError: item.exit_code !== undefined && item.exit_code !== 0,
       });
       return;
     }
 
-    if (item.type === "file_change") {
-      const changes = item.changes as Array<{ path: string; kind: string }> | undefined;
-      if (changes?.length) {
-        const summary = changes.map((c) => `${c.kind}: ${c.path}`).join(", ");
-        appendBlock(session, { type: "text", text: `File changes: ${summary}` });
-      }
+    if (item.type === "file_change" && item.changes.length) {
+      const summary = item.changes.map((c) => `${c.kind}: ${c.path}`).join(", ");
+      appendBlock(session, { type: "text", text: `File changes: ${summary}` });
       return;
     }
-
-    return;
-  }
-
-  if (type === "turn.completed") {
-    // The agent finished its turn. The process close handler finalises state.
-    return;
   }
 }
 
-// ── Process wiring ────────────────────────────────────────────────────────────
+// ── Core turn runner ──────────────────────────────────────────────────────────
 
-function wireProcess(
+async function runTurn(
   session: CodexRuntimeSession,
-  proc: ChildProcess,
-  opts: { startTime: number; projectId: string; taskId: string },
-) {
-  const { startTime, projectId, taskId } = opts;
+  thread: ReturnType<Codex["startThread"]>,
+  input: string,
+  startTime: number,
+  opts: { projectId: string; taskId: string },
+): Promise<void> {
+  const { projectId, taskId } = opts;
+  const abortController = session.abortController!;
+  let errorMessage: string | null = null;
 
-  let stdoutBuffer = "";
-  proc.stdout!.on("data", (chunk: Buffer) => {
-    stdoutBuffer += chunk.toString();
-    const lines = stdoutBuffer.split("\n");
-    stdoutBuffer = lines.pop() || "";
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      let event: Record<string, unknown>;
-      try {
-        event = JSON.parse(trimmed);
-      } catch {
-        continue;
-      }
-      processStreamEvent(session, event);
+  try {
+    const { events } = await thread.runStreamed(input, {
+      signal: abortController.signal,
+    });
+
+    // Capture thread ID as soon as it's available
+    if (!session.threadId && thread.id) {
+      session.threadId = thread.id;
     }
-  });
 
-  let stderrOutput = "";
-  proc.stderr!.on("data", (chunk: Buffer) => {
-    stderrOutput += chunk.toString();
-  });
+    for await (const event of events) {
+      if (session.status === "aborted") break;
 
-  proc.on("close", async (code, signal) => {
-    // Flush any remaining buffered stdout
-    if (stdoutBuffer.trim()) {
-      try {
-        const event = JSON.parse(stdoutBuffer.trim());
-        processStreamEvent(session, event);
-      } catch {
-        // ignore
+      // Capture threadId after thread.started
+      if (event.type === "thread.started") {
+        session.threadId = event.thread_id;
+      } else if (event.type === "turn.failed") {
+        errorMessage = event.error.message;
+      } else {
+        processSDKEvent(session, event);
+      }
+
+      // Update threadId from SDK after first event
+      if (!session.threadId && thread.id) {
+        session.threadId = thread.id;
       }
     }
-
-    if (session.status === "aborted") {
-      await updateTask(projectId, taskId, { agentBlocks: session.blocks });
-      return;
+  } catch (err: unknown) {
+    if (session.status !== "aborted") {
+      errorMessage = err instanceof Error ? err.message : String(err);
     }
+  }
 
-    const intentionalKill =
-      (code === null && signal === "SIGTERM") || code === 143;
+  if (session.status === "aborted") {
+    await updateTask(projectId, taskId, { agentBlocks: session.blocks });
+    return;
+  }
 
-    if (code !== 0 && !intentionalKill && session.status === "running") {
-      session.status = "error";
-      const errorMsg = stderrOutput.trim() || `codex exited with code ${code}`;
-      appendBlock(session, {
-        type: "status",
-        subtype: "error",
-        error: errorMsg,
-        durationMs: Date.now() - startTime,
-      });
-    } else if (session.status === "running") {
-      session.status = "done";
-      appendBlock(session, {
-        type: "status",
-        subtype: "complete",
-        durationMs: Date.now() - startTime,
-      });
-    }
-
-    // Safety net: auto-commit any leftover uncommitted changes
-    const task = await getTask(projectId, taskId);
-    if (task) {
-      const effectivePath =
-        task.worktreePath ||
-        (await (async () => {
-          const proj = await getProject(projectId);
-          return proj?.path.replace(/^~/, process.env.HOME || "~");
-        })());
-      if (effectivePath) {
-        autoCommitIfDirty(effectivePath, task.title);
-      }
-    }
-
-    // Safety net: if the task is still in-progress, move it to verify
-    const stillInProgress = task?.status === "in-progress";
-    if (stillInProgress) {
-      const closeUpdate: Record<string, unknown> = {
-        status: "verify",
-        agentStatus: null,
-        agentBlocks: session.blocks,
-      };
-      if (session.status === "error") {
-        closeUpdate.summary = `Error: ${stderrOutput.trim() || `codex exited with code ${code}`}`;
-      }
-      await updateTask(
-        projectId,
-        taskId,
-        closeUpdate as Parameters<typeof updateTask>[2],
-      );
-      notify(
-        `✅ *${(task?.title || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
-      );
-      emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
-    } else {
-      await updateTask(projectId, taskId, { agentBlocks: session.blocks });
-    }
-  });
-
-  proc.on("error", async (err) => {
+  if (errorMessage) {
     session.status = "error";
-    const errorMsg = err.message;
     appendBlock(session, {
       type: "status",
       subtype: "error",
-      error: errorMsg,
+      error: errorMessage,
       durationMs: Date.now() - startTime,
     });
-    const task = await getTask(projectId, taskId);
-    if (task?.status === "in-progress") {
-      await updateTask(projectId, taskId, {
-        status: "verify",
-        agentStatus: null,
-        summary: `Error: ${errorMsg}`,
-        agentBlocks: session.blocks,
-      });
-      emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
-    } else {
-      await updateTask(projectId, taskId, { agentBlocks: session.blocks });
+  } else {
+    session.status = "done";
+    appendBlock(session, {
+      type: "status",
+      subtype: "complete",
+      durationMs: Date.now() - startTime,
+    });
+  }
+
+  // Safety net: auto-commit any leftover uncommitted changes
+  const task = await getTask(projectId, taskId);
+  if (task) {
+    const effectivePath =
+      task.worktreePath ||
+      (await (async () => {
+        const proj = await getProject(projectId);
+        return proj?.path.replace(/^~/, process.env.HOME || "~");
+      })());
+    if (effectivePath) {
+      autoCommitIfDirty(effectivePath, task.title);
     }
-  });
+  }
+
+  // Safety net: if the task is still in-progress, move it to verify
+  if (task?.status === "in-progress") {
+    const closeUpdate: Record<string, unknown> = {
+      status: "verify",
+      agentStatus: null,
+      agentBlocks: session.blocks,
+    };
+    if (session.status === "error") {
+      closeUpdate.summary = `Error: ${errorMessage}`;
+    }
+    await updateTask(
+      projectId,
+      taskId,
+      closeUpdate as Parameters<typeof updateTask>[2],
+    );
+    notify(
+      `✅ *${(task?.title || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
+    );
+    emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
+  } else {
+    await updateTask(projectId, taskId, { agentBlocks: session.blocks });
+  }
+}
+
+// ── Shared thread options builder ─────────────────────────────────────────────
+
+function buildThreadOptions(cwd: string, model: string | null): ThreadOptions {
+  return {
+    workingDirectory: cwd,
+    sandboxMode: "danger-full-access",
+    approvalPolicy: "never",
+    ...(model ? { model } : {}),
+  };
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -302,7 +258,7 @@ export async function startSession(
   cwd: string,
   options?: {
     proqSystemPrompt?: string;
-    mcpConfig?: string; // unused for Codex CLI, accepted for interface compat
+    mcpConfig?: string; // unused for Codex SDK, accepted for interface compat
     permissionMode?: string;
   },
 ): Promise<void> {
@@ -313,7 +269,7 @@ export async function startSession(
     taskId,
     projectId,
     cwd,
-    queryHandle: null,
+    abortController: new AbortController(),
     blocks: [],
     clients: new Set(),
     status: "running",
@@ -321,41 +277,20 @@ export async function startSession(
   sessions.set(taskId, session);
 
   appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
-  appendBlock(session, { type: "user", text: prompt });
 
-  const startTime = Date.now();
-
-  // Build the full prompt: prepend proq system instructions
   const fullPrompt = options?.proqSystemPrompt
     ? `${options.proqSystemPrompt}\n\n---\n\n${prompt}`
     : prompt;
 
-  const codexCmd = await getCodexCmd();
-  const [bin, ...prefixArgs] = codexCmd;
+  appendBlock(session, { type: "user", text: prompt });
 
-  const args: string[] = [
-    ...prefixArgs,
-    "exec",
-    "--json",
-    "--dangerously-bypass-approvals-and-sandbox",
-    "-C",
-    cwd,
-    ...(model ? ["--model", model] : []),
-    fullPrompt,
-  ];
-
-  const proc = spawn(bin, args, {
-    stdio: ["ignore", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      FORCE_COLOR: "0",
-      PORT: undefined,
-      PROQ_API: `http://localhost:${process.env.PORT || 1337}`,
-    },
+  const codex = new Codex({
+    ...(process.env.CODEX_BIN ? { codexPathOverride: process.env.CODEX_BIN } : {}),
   });
+  const thread = codex.startThread(buildThreadOptions(cwd, model));
+  const startTime = Date.now();
 
-  session.queryHandle = proc;
-  wireProcess(session, proc, { startTime, projectId, taskId });
+  runTurn(session, thread, fullPrompt, startTime, { projectId, taskId });
 }
 
 export async function continueSession(
@@ -377,7 +312,7 @@ export async function continueSession(
       projectId,
       cwd,
       threadId: undefined,
-      queryHandle: null,
+      abortController: null,
       blocks: task?.agentBlocks || [],
       clients: new Set(),
       status: "done",
@@ -391,7 +326,7 @@ export async function continueSession(
     throw new Error("Session is already running");
   }
 
-  // Append user block so it renders immediately
+  // Build prompt text including any attachments
   let promptText = text;
   if (attachments?.length) {
     const imageFiles = attachments
@@ -416,29 +351,27 @@ export async function continueSession(
 
   session.status = "running";
   session.cwd = cwd;
+  session.abortController = new AbortController();
 
   const settings = await getSettings();
   const model = settings.codexModel || null;
   const startTime = Date.now();
 
-  const codexCmd = await getCodexCmd();
-  const [bin, ...prefixArgs] = codexCmd;
+  appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
 
-  let args: string[];
+  const codex = new Codex({
+    ...(process.env.CODEX_BIN ? { codexPathOverride: process.env.CODEX_BIN } : {}),
+  });
+
+  let thread: ReturnType<Codex["startThread"]>;
+  let input: string;
 
   if (session.threadId) {
     // Resume the existing codex session
-    args = [
-      ...prefixArgs,
-      "exec",
-      "resume",
-      session.threadId,
-      "--json",
-      "--dangerously-bypass-approvals-and-sandbox",
-      promptText,
-    ];
+    thread = codex.resumeThread(session.threadId, buildThreadOptions(cwd, model));
+    input = promptText;
   } else {
-    // No thread to resume — start fresh with context
+    // No thread to resume — start fresh with full context
     const task = await getTask(projectId, taskId);
     const contextParts: string[] = [];
     if (task?.title) contextParts.push(`Task: ${task.title}`);
@@ -463,47 +396,23 @@ export async function continueSession(
       );
     }
 
-    const fullPrompt = `${systemParts.join("\n\n")}\n\n---\n\n${promptText}`;
-
-    args = [
-      ...prefixArgs,
-      "exec",
-      "--json",
-      "--dangerously-bypass-approvals-and-sandbox",
-      "-C",
-      cwd,
-      ...(model ? ["--model", model] : []),
-      fullPrompt,
-    ];
+    thread = codex.startThread(buildThreadOptions(cwd, model));
+    input = `${systemParts.join("\n\n")}\n\n---\n\n${promptText}`;
   }
 
-  appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
-
-  const proc = spawn(bin, args, {
-    cwd,
-    stdio: ["ignore", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      FORCE_COLOR: "0",
-      PORT: undefined,
-      PROQ_API: `http://localhost:${process.env.PORT || 1337}`,
-    },
-  });
-
-  session.queryHandle = proc;
-  wireProcess(session, proc, { startTime, projectId, taskId });
+  runTurn(session, thread, input, startTime, { projectId, taskId });
 }
 
 export function stopSession(taskId: string): void {
   const session = sessions.get(taskId);
-  if (session && session.status === "running" && session.queryHandle) {
+  if (session && session.status === "running" && session.abortController) {
     session.status = "aborted";
     appendBlock(session, {
       type: "status",
       subtype: "abort",
       error: "Session aborted",
     });
-    session.queryHandle.kill("SIGTERM");
+    session.abortController.abort();
   }
 }
 

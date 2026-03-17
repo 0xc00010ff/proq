@@ -236,7 +236,18 @@ async function runTurn(
   }
 
   if (session.status === "aborted") {
-    await updateTask(projectId, taskId, { agentBlocks: session.blocks });
+    // Move task to verify and clear agentStatus so the UI stops spinning
+    const abortedTask = await getTask(projectId, taskId);
+    if (abortedTask?.status === "in-progress") {
+      await updateTask(projectId, taskId, {
+        status: "verify",
+        agentStatus: null,
+        agentBlocks: session.blocks,
+      });
+      emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
+    } else {
+      await updateTask(projectId, taskId, { agentBlocks: session.blocks });
+    }
     return;
   }
 
@@ -425,39 +436,34 @@ export async function continueSession(
   let thread: ReturnType<Codex["startThread"]>;
   let input: string;
 
-  if (session.threadId) {
-    // Resume the existing codex session
-    thread = codex.resumeThread(session.threadId, buildThreadOptions(cwd, model));
-    input = promptText;
-  } else {
-    // No thread to resume — start fresh with full context
-    const task = await getTask(projectId, taskId);
-    const contextParts: string[] = [];
-    if (task?.title) contextParts.push(`Task: ${task.title}`);
-    if (task?.description) contextParts.push(`Description: ${task.description}`);
-    if (task?.summary) contextParts.push(`Previous summary:\n${task.summary}`);
-    if (task?.nextSteps) contextParts.push(`Previous next steps:\n${task.nextSteps}`);
+  // Always start a fresh thread — resuming stale threads from completed sessions
+  // can hang indefinitely waiting for the Codex API to respond.
+  const task = await getTask(projectId, taskId);
+  const contextParts: string[] = [];
+  if (task?.title) contextParts.push(`Task: ${task.title}`);
+  if (task?.description) contextParts.push(`Description: ${task.description}`);
+  if (task?.summary) contextParts.push(`Previous summary:\n${task.summary}`);
+  if (task?.nextSteps) contextParts.push(`Previous next steps:\n${task.nextSteps}`);
 
-    const { buildProqSystemPrompt } = await import("./agent-dispatch");
-    const project = await getProject(projectId);
-    const proqSystemPrompt = buildProqSystemPrompt(
-      projectId,
-      taskId,
-      task?.mode,
-      project?.name,
-      "codex",
+  const { buildProqSystemPrompt } = await import("./agent-dispatch");
+  const project = await getProject(projectId);
+  const proqSystemPrompt = buildProqSystemPrompt(
+    projectId,
+    taskId,
+    task?.mode,
+    project?.name,
+    "codex",
+  );
+
+  const systemParts = [proqSystemPrompt];
+  if (contextParts.length > 0) {
+    systemParts.push(
+      `## Previous work on this task\n${contextParts.join("\n\n")}`,
     );
-
-    const systemParts = [proqSystemPrompt];
-    if (contextParts.length > 0) {
-      systemParts.push(
-        `## Previous work on this task\n${contextParts.join("\n\n")}`,
-      );
-    }
-
-    thread = codex.startThread(buildThreadOptions(cwd, model));
-    input = `${systemParts.join("\n\n")}\n\n---\n\n${promptText}`;
   }
+
+  thread = codex.startThread(buildThreadOptions(cwd, model));
+  input = `${systemParts.join("\n\n")}\n\n---\n\n${promptText}`;
 
   runTurn(session, thread, input, startTime, { projectId, taskId });
 }

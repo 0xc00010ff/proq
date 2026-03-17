@@ -41,9 +41,21 @@ export async function continueSession(
   attachments?: TaskAttachment[],
   options?: { planApproved?: boolean },
 ): Promise<void> {
-  // Route based on which provider owns this session
+  // If a codex session is actively in memory, continue with codex
   const { getSession: getCodexSession } = await import("./codex-session");
   if (getCodexSession(taskId)) {
+    const { continueSession: codexContinue } = await import("./codex-session");
+    return codexContinue(projectId, taskId, text, cwd, ws, attachments, options);
+  }
+  // If a claude session is actively in memory, continue with claude
+  const { getSession: getClaudeSession } = await import("./agent-session");
+  if (getClaudeSession(taskId)) {
+    const { continueSession: claudeContinue } = await import("./agent-session");
+    return claudeContinue(projectId, taskId, text, cwd, ws, attachments, options);
+  }
+  // No active session in memory — route based on current settings provider
+  const settings = await getSettings();
+  if (settings.agentProvider === "codex") {
     const { continueSession: codexContinue } = await import("./codex-session");
     return codexContinue(projectId, taskId, text, cwd, ws, attachments, options);
   }

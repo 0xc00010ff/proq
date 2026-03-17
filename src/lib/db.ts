@@ -645,7 +645,6 @@ const DEFAULT_SETTINGS: ProqSettings = {
   executionMode: "sequential",
   agentRenderMode: "structured",
   showCosts: false,
-  codingAgent: "claude-code",
 
   // Updates
   autoUpdate: true,

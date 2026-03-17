@@ -96,9 +96,18 @@ function wireProcess(
     }
 
     if (session.status === "aborted") {
-      await updateTask(projectId, taskId, {
-        agentBlocks: session.blocks,
-      });
+      // Move task to verify and clear agentStatus so the UI stops spinning
+      const abortedTask = await getTask(projectId, taskId);
+      if (abortedTask?.status === "in-progress") {
+        await updateTask(projectId, taskId, {
+          status: "verify",
+          agentStatus: null,
+          agentBlocks: session.blocks,
+        });
+        emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
+      } else {
+        await updateTask(projectId, taskId, { agentBlocks: session.blocks });
+      }
       return;
     }
 

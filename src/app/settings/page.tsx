@@ -192,13 +192,13 @@ export default function SettingsPage() {
               <p className="text-sm text-text-secondary leading-relaxed mb-2">
                 A task board that runs your coding agents. You write tasks,
                 agents do the work, you review and merge. proq is a kanban
-                board that launches CLI coding agents in tmux, one per task,
-                against your actual codebase.
+                board that dispatches AI coding agents per task against your
+                actual codebase.
               </p>
               <p className="text-sm text-text-secondary leading-relaxed mb-4">
-                Internally it&apos;s a process manager — local, self-contained,
-                no external services. It works with whatever agent config, MCPs,
-                and subagents you already have.
+                Locally hosted and self-contained — no external services
+                required. Supports Claude Code (via SDK) and Codex (via OpenAI
+                Codex SDK). Works with your existing agent config and MCPs.
               </p>
               <p className="text-xs text-text-tertiary mb-1">
                 This is version 0.1.0

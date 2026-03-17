@@ -81,9 +81,9 @@
     --border-hover: 210 200 184;       /* soft bronze #d2c8b8 */
     --border-subtle: 229 224 215;      /* subtle bronze (use /60 in classes) #e5e0d7 */
     --border-strong: 184 160 120;      /* muted gold #b8a078 */
-    --text-chrome: 139 109 62;         /* bronze-700 #8B6D3E */
-    --text-chrome-hover: 178 140 82;   /* brighter bronze on hover #B28C52 */
-    --text-chrome-active: 54 40 24;    /* ~bronze-900 #362818 */
+    --text-chrome: 54 40 24;           /* ~bronze-900 #362818 — muted dark for non-active */
+    --text-chrome-hover: 139 109 62;   /* bronze-700 on hover #8B6D3E */
+    --text-chrome-active: 178 140 82;  /* brighter bronze-600 #B28C52 — gold for active/selected */
     --text-primary: 42 30 18;           /* darker than 900 */
     --text-secondary: 92 70 40;        /* ~bronze-800 #5C4628 */
     --text-tertiary: 118 98 68;        /* muted dark brown #765E44 */

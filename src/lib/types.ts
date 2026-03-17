@@ -146,7 +146,6 @@ export interface ProqSettings {
   executionMode: 'sequential' | 'parallel';
   agentRenderMode: AgentRenderMode;
   showCosts: boolean;
-  codingAgent: string;
 
   // Updates
   autoUpdate: boolean;

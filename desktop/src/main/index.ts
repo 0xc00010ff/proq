@@ -1,7 +1,6 @@
 import { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell, powerMonitor } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
-import os from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { getConfig, setConfig, resetConfig } from './config'
@@ -37,11 +36,18 @@ let healthInterval: ReturnType<typeof setInterval> | null = null
 let consecutiveFailures = 0
 let isRecovering = false
 
-const LOG_PATH = join(os.homedir(), '.proq-desktop.log')
+let _logPath: string | null = null
+function getLogPath(): string {
+  if (!_logPath) {
+    _logPath = join(getConfig().proqPath, 'data', 'desktop.log')
+    try { fs.mkdirSync(join(getConfig().proqPath, 'data'), { recursive: true }) } catch { /* */ }
+  }
+  return _logPath
+}
 
 function log(msg: string): void {
   const line = `[${new Date().toISOString()}] ${msg}\n`
-  try { fs.appendFileSync(LOG_PATH, line) } catch { /* */ }
+  try { fs.appendFileSync(getLogPath(), line) } catch { /* */ }
 }
 
 function safeSend(channel: string, ...args: unknown[]): void {

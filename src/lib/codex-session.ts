@@ -47,12 +47,32 @@ function resolveCodexBinaryPath(): string | undefined {
   if (!triple) return undefined;
 
   const pkg = pkgMap[triple];
+  const binName = process.platform === "win32" ? "codex.exe" : "codex";
+
+  // Use process.cwd() instead of require.resolve — webpack intercepts require.resolve
+  // in Next.js server bundles and can return virtual module paths that don't exist on disk.
+  const cwdBin = path.join(
+    process.cwd(),
+    "node_modules",
+    pkg,
+    "vendor",
+    triple,
+    "codex",
+    binName,
+  );
+  const { existsSync } = require("fs") as typeof import("fs");
+  if (existsSync(cwdBin)) return cwdBin;
+
+  // Fallback: walk up from __dirname (works in non-bundled contexts)
   try {
     const pkgDir = path.dirname(require.resolve(`${pkg}/package.json`));
-    return path.join(pkgDir, "vendor", triple, "codex", "codex");
+    const resolved = path.join(pkgDir, "vendor", triple, "codex", binName);
+    if (existsSync(resolved)) return resolved;
   } catch {
-    return undefined;
+    // ignore
   }
+
+  return undefined;
 }
 
 // ── Session type ──────────────────────────────────────────────────────────────

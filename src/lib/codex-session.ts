@@ -307,7 +307,7 @@ export async function startSession(
   },
 ): Promise<void> {
   const settings = await getSettings();
-  const model = settings.codexModel || "o4-mini";
+  const model = settings.codexModel || null;
 
   const session: CodexRuntimeSession = {
     taskId,
@@ -320,7 +320,7 @@ export async function startSession(
   };
   sessions.set(taskId, session);
 
-  appendBlock(session, { type: "status", subtype: "init", model });
+  appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
   appendBlock(session, { type: "user", text: prompt });
 
   const startTime = Date.now();
@@ -340,8 +340,7 @@ export async function startSession(
     "--dangerously-bypass-approvals-and-sandbox",
     "-C",
     cwd,
-    "--model",
-    model,
+    ...(model ? ["--model", model] : []),
     fullPrompt,
   ];
 
@@ -419,7 +418,7 @@ export async function continueSession(
   session.cwd = cwd;
 
   const settings = await getSettings();
-  const model = settings.codexModel || "o4-mini";
+  const model = settings.codexModel || null;
   const startTime = Date.now();
 
   const codexCmd = await getCodexCmd();
@@ -473,13 +472,12 @@ export async function continueSession(
       "--dangerously-bypass-approvals-and-sandbox",
       "-C",
       cwd,
-      "--model",
-      model,
+      ...(model ? ["--model", model] : []),
       fullPrompt,
     ];
   }
 
-  appendBlock(session, { type: "status", subtype: "init", model });
+  appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
 
   const proc = spawn(bin, args, {
     cwd,

@@ -371,13 +371,13 @@ export default function SettingsPage() {
                     </Field>
                     <Field
                       label="Codex model"
-                      hint="OpenAI model to use for coding tasks. Defaults to o4-mini if left blank."
+                      hint="OpenAI model for coding tasks (e.g. o4-mini, gpt-4o). Leave blank to use the Codex CLI default."
                     >
                       <input
                         type="text"
                         value={settings.codexModel ?? ""}
                         onChange={(e) => update("codexModel", e.target.value)}
-                        placeholder="o4-mini"
+                        placeholder="(codex default)"
                         className={`${inputClassMono}`}
                       />
                     </Field>

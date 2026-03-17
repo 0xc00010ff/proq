@@ -9,6 +9,7 @@
  *    the agent via curl commands injected into the system prompt
  */
 
+import path from "path";
 import { Codex } from "@openai/codex-sdk";
 import type { ThreadEvent, ThreadOptions } from "@openai/codex-sdk";
 import type WebSocket from "ws";
@@ -17,6 +18,42 @@ import { emitTaskUpdate } from "./task-events";
 import { autoCommitIfDirty } from "./worktree";
 import { notify } from "./agent-dispatch";
 import type { AgentBlock, TaskAttachment } from "./types";
+
+// ── Binary resolution ─────────────────────────────────────────────────────────
+
+/**
+ * Resolve the platform-specific codex binary path from the optional-dep package.
+ * Next.js bundles code via webpack which breaks the SDK's internal require.resolve,
+ * so we resolve it explicitly and pass codexPathOverride to the Codex constructor.
+ */
+function resolveCodexBinaryPath(): string | undefined {
+  if (process.env.CODEX_BIN) return process.env.CODEX_BIN;
+
+  const platformTripleMap: Record<string, string> = {
+    "darwin-arm64": "aarch64-apple-darwin",
+    "darwin-x64": "x86_64-apple-darwin",
+    "linux-arm64": "aarch64-unknown-linux-musl",
+    "linux-x64": "x86_64-unknown-linux-musl",
+  };
+  const pkgMap: Record<string, string> = {
+    "aarch64-apple-darwin": "@openai/codex-darwin-arm64",
+    "x86_64-apple-darwin": "@openai/codex-darwin-x64",
+    "aarch64-unknown-linux-musl": "@openai/codex-linux-arm64",
+    "x86_64-unknown-linux-musl": "@openai/codex-linux-x64",
+  };
+
+  const key = `${process.platform}-${process.arch}`;
+  const triple = platformTripleMap[key];
+  if (!triple) return undefined;
+
+  const pkg = pkgMap[triple];
+  try {
+    const pkgDir = path.dirname(require.resolve(`${pkg}/package.json`));
+    return path.join(pkgDir, "vendor", triple, "codex", "codex");
+  } catch {
+    return undefined;
+  }
+}
 
 // ── Session type ──────────────────────────────────────────────────────────────
 
@@ -284,8 +321,9 @@ export async function startSession(
 
   appendBlock(session, { type: "user", text: prompt });
 
+  const codexBin = resolveCodexBinaryPath();
   const codex = new Codex({
-    ...(process.env.CODEX_BIN ? { codexPathOverride: process.env.CODEX_BIN } : {}),
+    ...(codexBin ? { codexPathOverride: codexBin } : {}),
   });
   const thread = codex.startThread(buildThreadOptions(cwd, model));
   const startTime = Date.now();
@@ -359,8 +397,9 @@ export async function continueSession(
 
   appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
 
+  const codexBin = resolveCodexBinaryPath();
   const codex = new Codex({
-    ...(process.env.CODEX_BIN ? { codexPathOverride: process.env.CODEX_BIN } : {}),
+    ...(codexBin ? { codexPathOverride: codexBin } : {}),
   });
 
   let thread: ReturnType<Codex["startThread"]>;

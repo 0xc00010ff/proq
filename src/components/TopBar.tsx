@@ -208,7 +208,8 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         : 'text-text-chrome';
 
   return (
-    <header className={`h-[48px] bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-border-default${isElectron ? ' electron-drag' : ''}`}>
+    <header className="h-[48px] bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-border-default relative">
+      {isElectron && <div className="absolute top-0 left-0 right-0 h-[24px] electron-drag" />}
       <div className="flex-1 flex items-center min-w-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

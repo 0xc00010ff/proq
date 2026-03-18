@@ -357,7 +357,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-auto px-5 py-4 space-y-1"
+          className="absolute inset-0 overflow-y-auto px-4 py-4 space-y-1"
         >
           {/* Starting session placeholder — shown before any blocks arrive */}
           {blocks.length === 0 && !sessionDone && (

@@ -1,8 +1,11 @@
-import { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell, powerMonitor } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, nativeTheme, ipcMain, dialog, shell, powerMonitor } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import iconDark from '../../resources/icon.png?asset'
+import iconLight from '../../resources/icon-light.png?asset'
+import iconDevDark from '../../resources/icon-dev-dark.png?asset'
+import iconDevLight from '../../resources/icon-dev-light.png?asset'
 import { getConfig, setConfig, resetConfig } from './config'
 import {
   checkNodeVersion,
@@ -28,6 +31,12 @@ import { startUpdateScheduler, stopUpdateScheduler } from './update-scheduler'
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
 import { ensurePath } from './shell-path'
 ensurePath()
+
+function getIcon(): string {
+  const dark = nativeTheme.shouldUseDarkColors
+  if (is.dev) return dark ? iconDevDark : iconDevLight
+  return dark ? iconDark : iconLight
+}
 
 let mainWindow: BrowserWindow | null = null
 let isResetting = false
@@ -63,7 +72,7 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
     show: false,
     backgroundColor: '#09090b',
     autoHideMenuBar: true,
-    icon,
+    icon: getIcon(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -425,9 +434,15 @@ async function launchApp(): Promise<void> {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.proq.desktop')
 
-  // Set dock icon on macOS in dev mode (production gets the squircle from the bundled .icns)
-  if (is.dev && process.platform === 'darwin' && app.dock) {
-    app.dock.setIcon(icon)
+  // Set dock icon on macOS (in dev mode always; in prod for theme switching)
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(getIcon())
+    nativeTheme.on('updated', () => {
+      if (app.dock) app.dock.setIcon(getIcon())
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.setIcon(getIcon())
+      }
+    })
   }
 
   app.on('browser-window-created', (_, window) => {
@@ -449,8 +464,8 @@ app.whenReady().then(() => {
                   applicationVersion: app.getVersion(),
                   version: '',
                   copyright: 'Build beautiful things',
-                  iconPath: icon,
-                  icons: [nativeImage.createFromPath(icon)]
+                  iconPath: getIcon(),
+                  icons: [nativeImage.createFromPath(getIcon())]
                 })
                 app.showAboutPanel()
               }
@@ -464,7 +479,7 @@ app.whenReady().then(() => {
                 } else if (!result.available) {
                   dialog.showMessageBox({
                     type: 'info',
-                    icon: nativeImage.createFromPath(icon),
+                    icon: nativeImage.createFromPath(getIcon()),
                     buttons: ['OK'],
                     message: 'You\'re up to date',
                     detail: 'proq is running the latest version.'
@@ -478,7 +493,7 @@ app.whenReady().then(() => {
               click: async (): Promise<void> => {
                 const { response } = await dialog.showMessageBox({
                   type: 'warning',
-                  icon: nativeImage.createFromPath(icon),
+                  icon: nativeImage.createFromPath(getIcon()),
                   buttons: ['Cancel', 'Reset'],
                   defaultId: 0,
                   message: 'Reset proq Desktop?',

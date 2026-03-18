@@ -19,9 +19,9 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body instanceof NextResponse) return body;
   const mode = body.mode as ExecutionMode;
 
-  if (mode !== "sequential" && mode !== "parallel") {
+  if (mode !== "sequential" && mode !== "parallel" && mode !== "worktrees") {
     return NextResponse.json(
-      { error: "mode must be 'sequential' or 'parallel'" },
+      { error: "mode must be 'sequential', 'parallel', or 'worktrees'" },
       { status: 400 }
     );
   }

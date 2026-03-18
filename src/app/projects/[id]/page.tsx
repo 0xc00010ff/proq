@@ -12,7 +12,7 @@ import { CodeTab } from '@/components/CodeTab';
 import { TaskDraft } from '@/components/TaskDraft';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { UndoModal } from '@/components/UndoModal';
-import { ParallelModeModal } from '@/components/ParallelModeModal';
+import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
 import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CommitModal } from '@/components/CommitModal';
@@ -39,7 +39,7 @@ export default function ProjectPage() {
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
-  const [showParallelModal, setShowParallelModal] = useState(false);
+  const [pendingModeSwitch, setPendingModeSwitch] = useState<'parallel' | 'worktrees' | null>(null);
   const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
@@ -542,9 +542,9 @@ export default function ProjectPage() {
       setShowModeBlockedModal(true);
       return;
     }
-    // Show confirmation modal when switching to parallel
-    if (mode === 'parallel' && executionMode !== 'parallel') {
-      setShowParallelModal(true);
+    // Show info modal when switching to parallel or worktrees
+    if ((mode === 'parallel' || mode === 'worktrees') && executionMode !== mode) {
+      setPendingModeSwitch(mode);
       return;
     }
     setExecutionMode(mode);
@@ -556,13 +556,15 @@ export default function ProjectPage() {
     refresh();
   };
 
-  const applyParallelMode = async () => {
-    setShowParallelModal(false);
-    setExecutionMode('parallel');
+  const applyPendingMode = async () => {
+    if (!pendingModeSwitch) return;
+    const mode = pendingModeSwitch;
+    setPendingModeSwitch(null);
+    setExecutionMode(mode);
     await fetch(`/api/projects/${projectId}/execution-mode`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'parallel' }),
+      body: JSON.stringify({ mode }),
     });
     refresh();
   };
@@ -852,7 +854,7 @@ export default function ProjectPage() {
                     if (draft) followUpDraftsRef.current.set(taskId, draft);
                     else followUpDraftsRef.current.delete(taskId);
                   }}
-                  parallelMode={executionMode === 'parallel'}
+                  parallelMode={executionMode === 'worktrees'}
                   currentBranch={currentBranch}
                   onSwitchBranch={handleSwitchBranch}
                   defaultBranch={project?.defaultBranch || 'main'}
@@ -912,7 +914,7 @@ export default function ProjectPage() {
                   onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
                   onDismissAttention={dismissAttention}
                   onSelectedTaskChange={(id) => { viewingTaskIdRef.current = id; }}
-                  parallelMode={executionMode === 'parallel'}
+                  parallelMode={executionMode === 'worktrees'}
                   currentBranch={currentBranch}
                   onSwitchBranch={handleSwitchBranch}
                   defaultBranch={project?.defaultBranch || 'main'}
@@ -972,7 +974,7 @@ export default function ProjectPage() {
           onResumeEditing={async (taskId) => {
             await updateTask(taskId, { status: 'verify' });
           }}
-          parallelMode={executionMode === 'parallel'}
+          parallelMode={executionMode === 'worktrees'}
           currentBranch={currentBranch}
           onSwitchBranch={handleSwitchBranch}
           defaultBranch={project?.defaultBranch || 'main'}
@@ -1042,10 +1044,11 @@ export default function ProjectPage() {
         />
       )}
 
-      <ParallelModeModal
-        isOpen={showParallelModal}
-        onConfirm={applyParallelMode}
-        onCancel={() => setShowParallelModal(false)}
+      <ExecutionModeInfoModal
+        isOpen={pendingModeSwitch !== null}
+        mode={pendingModeSwitch || 'parallel'}
+        onConfirm={applyPendingMode}
+        onCancel={() => setPendingModeSwitch(null)}
       />
 
       {showProjectSettings && project && (

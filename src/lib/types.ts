@@ -137,7 +137,7 @@ export interface ProqSettings {
   claudeBin: string;
   defaultModel: string;
   systemPromptAdditions: string;
-  executionMode: 'sequential' | 'parallel';
+  executionMode: ExecutionMode;
   agentRenderMode: AgentRenderMode;
   showCosts: boolean;
   codingAgent: string;
@@ -155,7 +155,7 @@ export interface ProqSettings {
 }
 
 // ── Per-project state ────────────────────────────────────
-export type ExecutionMode = 'sequential' | 'parallel';
+export type ExecutionMode = 'sequential' | 'parallel' | 'worktrees';
 
 export interface WorkbenchTabInfo {
   id: string;

@@ -92,7 +92,7 @@ export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Ele
                 min={1024}
                 max={65535}
               />
-              <div className="field-hint">The port proq's server listens on ({devMode ? 'dev: 1337' : 'prod: 7331'})</div>
+              <div className="field-hint">The port proq's server listens on ({devMode ? 'default: 1337' : 'default: 7331'})</div>
             </div>
 
             <div className="field">
@@ -105,7 +105,7 @@ export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Ele
                 max={65535}
               />
               <div className="field-hint">
-                The port for agent WebSocket connections ({devMode ? 'dev: 42069' : 'prod: 42067'})
+                The port for agent WebSocket connections ({devMode ? 'default: 42069' : 'default: 42067'})
               </div>
             </div>
           </>

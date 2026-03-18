@@ -32,6 +32,7 @@ ensurePath()
 let mainWindow: BrowserWindow | null = null
 let isResetting = false
 let isQuitting = false
+let isTransitioning = false
 let healthInterval: ReturnType<typeof setInterval> | null = null
 let consecutiveFailures = 0
 let isRecovering = false
@@ -323,15 +324,19 @@ function stopHealthMonitor(): void {
 
 function transitionToApp(): void {
   const config = getConfig()
+
+  // Close previous window immediately — don't leave wizard/splash visible
+  isTransitioning = true
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.close()
+  }
+
   const appWindow = createWindow('app')
+  mainWindow = appWindow
+  isTransitioning = false
   appWindow.loadURL(`http://localhost:${config.port}`)
 
-  const previousWindow = mainWindow
   appWindow.webContents.once('did-finish-load', () => {
-    if (previousWindow && previousWindow !== appWindow && !previousWindow.isDestroyed()) {
-      previousWindow.close()
-    }
-    mainWindow = appWindow
     startHealthMonitor()
     startUpdateScheduler(appWindow)
     onServerExit(() => recoverServer())
@@ -356,6 +361,14 @@ function transitionToApp(): void {
 async function showSplashAndStartServer(): Promise<void> {
   const config = getConfig()
 
+  // Check if server is already running before showing splash
+  const alreadyHealthy = await tryConnectToExisting(config.port)
+  if (alreadyHealthy) {
+    log('showSplash: existing server healthy, transitioning directly')
+    transitionToApp()
+    return
+  }
+
   // Create splash before closing wizard so there's never zero windows
   // (zero windows triggers app.quit via window-all-closed)
   const previousWindow = mainWindow
@@ -363,14 +376,6 @@ async function showSplashAndStartServer(): Promise<void> {
   loadRendererPage(mainWindow, 'splash')
   if (previousWindow && !previousWindow.isDestroyed()) {
     previousWindow.close()
-  }
-
-  // Check if server is already running (e.g. orphan from previous session)
-  const alreadyHealthy = await tryConnectToExisting(config.port)
-  if (alreadyHealthy) {
-    log('showSplash: existing server healthy, transitioning')
-    transitionToApp()
-    return
   }
   await new Promise<void>((resolve) => {
     mainWindow!.webContents.once('did-finish-load', () => resolve())
@@ -534,7 +539,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  if (!isResetting) app.quit()
+  if (!isResetting && !isTransitioning) app.quit()
 })
 
 app.on('before-quit', async () => {

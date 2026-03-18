@@ -697,6 +697,16 @@ const BranchPopover = React.forwardRef<HTMLDivElement, {
           <div className="px-3 py-4 text-xs text-text-tertiary text-center">No branches match</div>
         )}
       </div>
+
+      {/* Footer */}
+      <div className="border-t border-border-default">
+        <button
+          onClick={() => onFilterChange('')}
+          className="w-full px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover transition-colors text-left"
+        >
+          View all branches
+        </button>
+      </div>
     </div>
   );
 });

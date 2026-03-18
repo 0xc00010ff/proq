@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, ColumnsIcon, SettingsIcon, GitCommitHorizontalIcon, PlusIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, PlusIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -227,7 +227,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onSelect={() => onViewTypeChange?.('kanban')}
                 className={`text-xs gap-2 ${viewType === 'kanban' ? 'text-text-chrome-active' : ''}`}
               >
-                <LayoutGridIcon className="w-3.5 h-3.5" />
+                <Columns3Icon className="w-3.5 h-3.5" />
                 <span>Board</span>
                 {viewType === 'kanban' && <CheckIcon className="w-3 h-3 ml-auto" />}
               </DropdownMenuItem>
@@ -243,7 +243,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onSelect={() => onViewTypeChange?.('grid')}
                 className={`text-xs gap-2 ${viewType === 'grid' ? 'text-text-chrome-active' : ''}`}
               >
-                <ColumnsIcon className="w-3.5 h-3.5" />
+                <LayoutGridIcon className="w-3.5 h-3.5" />
                 <span>Grid</span>
                 {viewType === 'grid' && <CheckIcon className="w-3 h-3 ml-auto" />}
               </DropdownMenuItem>

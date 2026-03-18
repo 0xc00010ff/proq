@@ -90,7 +90,7 @@ function GridCell({
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-surface-deep">
       {/* Top nav bar */}
-      <div className="shrink-0 h-9 flex items-center gap-2 px-3 border-b border-border-default bg-surface-topbar">
+      <div className="shrink-0 h-9 flex items-center gap-2 px-4 border-b border-border-default bg-surface-topbar">
         <StatusDot status={task.status} />
         <span className="flex-1 text-xs font-medium text-text-secondary truncate">
           {task.title}
@@ -209,7 +209,7 @@ export function GridView({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Top toolbar */}
-      <div className="shrink-0 h-10 flex items-center gap-3 px-6 border-b border-border-default bg-surface-topbar">
+      <div className="shrink-0 h-10 flex items-center gap-3 px-4 border-b border-border-default bg-surface-topbar">
         {onAddTask && (
           <button
             onClick={onAddTask}

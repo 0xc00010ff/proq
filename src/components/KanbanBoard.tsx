@@ -342,7 +342,7 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex h-full min-w-[1000px] px-6 pt-6 space-x-4">
+        <div className="flex h-full min-w-[1000px] px-4 pt-6 space-x-4">
           {COLUMNS.map((column) => {
             const colTasks = columns[column.id];
             const isOver = overColumnId === column.id;

@@ -159,7 +159,7 @@ function SortableListRow({
     >
       <button
         onClick={() => onClick(task)}
-        className={`relative w-full text-left px-6 py-2.5 ${
+        className={`relative w-full text-left px-4 py-2.5 ${
           isPreviewActive
             ? 'bg-lazuli/5 border-l-2 border-lazuli/50'
             : isSelected
@@ -484,7 +484,7 @@ export function ListView({
       {/* Master panel */}
       <div data-master-panel className="shrink-0 flex flex-col border-r border-border-default bg-surface-topbar" style={{ width: masterWidth }}>
         {/* Master header */}
-        <div className="shrink-0 h-10 flex items-center gap-2 px-6 border-b border-border-default bg-surface-topbar">
+        <div className="shrink-0 h-10 flex items-center gap-2 px-4 border-b border-border-default bg-surface-topbar">
           {onExecutionModeChange && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -539,7 +539,7 @@ export function ListView({
               return (
                 <React.Fragment key={status}>
                   {status === 'todo' && onAddTask && (
-                    <div className="px-6 mt-4 mb-2">
+                    <div className="px-4 mt-4 mb-2">
                       <AddTaskButton onClick={onAddTask} />
                     </div>
                   )}

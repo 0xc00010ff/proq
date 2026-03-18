@@ -45,6 +45,7 @@ export default function ProjectPage() {
   const [showCommitModal, setShowCommitModal] = useState(false);
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
+  const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
@@ -102,9 +103,11 @@ export default function ProjectPage() {
           ahead: data.ahead || 0,
           behind: data.behind || 0,
           dirty: data.dirty || 0,
+          aheadOfMain: data.aheadOfMain,
         };
         setCurrentBranch(prev => prev === newBranch ? prev : newBranch);
         setBranches(prev => JSON.stringify(prev) === JSON.stringify(newBranches) ? prev : newBranches);
+        setDefaultBranch(prev => data.defaultBranch === prev ? prev : data.defaultBranch);
         setGitStatus(prev => JSON.stringify(prev) === JSON.stringify(newStatus) ? prev : newStatus);
       }
     } catch {
@@ -804,6 +807,7 @@ export default function ProjectPage() {
         onTabChange={handleTabChange}
         currentBranch={currentBranch}
         branches={branches}
+        defaultBranch={defaultBranch}
         taskBranchMap={taskBranchMap}
         onSwitchBranch={handleSwitchBranch}
         gitStatus={gitStatus}

@@ -27,6 +27,9 @@ const proqDesktopAPI = {
     ipcRenderer.invoke('config:set', partial),
   selectDirectory: (): Promise<unknown> => ipcRenderer.invoke('dialog:select-directory'),
 
+  // Wizard
+  wizardComplete: (): Promise<unknown> => ipcRenderer.invoke('wizard:complete'),
+
   // Server
   startServer: (): Promise<unknown> => ipcRenderer.invoke('server:start'),
   onServerReady: (cb: () => void): (() => void) => {

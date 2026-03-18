@@ -192,7 +192,12 @@ function registerIpcHandlers(): void {
     return result.filePaths[0]
   })
 
-  // Server
+  // Wizard complete — main process takes over to show splash + start server
+  ipcMain.handle('wizard:complete', () => {
+    showSplashAndStartServer()
+  })
+
+  // Server (used by splash Retry button)
   ipcMain.handle('server:start', async () => {
     const result = await startServer((line) => {
       safeSend('server:log', line)
@@ -348,54 +353,64 @@ function transitionToApp(): void {
   })
 }
 
+async function showSplashAndStartServer(): Promise<void> {
+  const config = getConfig()
+
+  // Close any existing window (wizard or stale splash)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.close()
+  }
+
+  // Check if server is already running (e.g. orphan from previous session)
+  const alreadyHealthy = await tryConnectToExisting(config.port)
+  if (alreadyHealthy) {
+    log('showSplash: existing server healthy, transitioning')
+    transitionToApp()
+    return
+  }
+
+  // Show splash window and wait for it to be ready
+  mainWindow = createWindow('splash')
+  loadRendererPage(mainWindow, 'splash')
+  await new Promise<void>((resolve) => {
+    mainWindow!.webContents.once('did-finish-load', () => resolve())
+  })
+  log('showSplash: splash ready, starting server')
+
+  // Start server
+  try {
+    const result = await startServer((line) => {
+      log(`server: ${line.trim()}`)
+      safeSend('server:log', line)
+    })
+
+    log(`showSplash: startServer result ok=${result.ok} error=${result.error}`)
+    if (result.ok) {
+      await new Promise((r) => setTimeout(r, 1500))
+      transitionToApp()
+    } else {
+      safeSend('server:error', result.error || 'Server failed to start')
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    log(`showSplash: startServer exception: ${message}`)
+    safeSend('server:error', message)
+  }
+}
+
 async function launchApp(): Promise<void> {
   const config = getConfig()
   log(`launchApp: setupComplete=${config.setupComplete} proqPath=${config.proqPath} port=${config.port} devMode=${config.devMode}`)
   log(`launchApp: PATH=${process.env.PATH}`)
 
   if (!config.setupComplete) {
-    // First run — show wizard
+    // First run — show wizard. When wizard calls wizard:complete,
+    // the IPC handler calls showSplashAndStartServer().
     mainWindow = createWindow('wizard')
     loadRendererPage(mainWindow, 'wizard')
   } else {
-    // Check if server is already running (e.g. orphan from previous session)
-    const alreadyHealthy = await tryConnectToExisting(config.port)
-    if (alreadyHealthy) {
-      log('launchApp: existing server healthy, transitioning')
-      transitionToApp()
-      return
-    }
-
-    // Normal launch — show splash, start server, then navigate to app
-    mainWindow = createWindow('splash')
-    loadRendererPage(mainWindow, 'splash')
-
-    // Wait for renderer to be ready before starting server,
-    // otherwise IPC messages (errors, logs) are lost
-    await new Promise<void>((resolve) => {
-      mainWindow!.webContents.once('did-finish-load', () => resolve())
-    })
-    log('launchApp: splash ready, starting server')
-
-    try {
-      const result = await startServer((line) => {
-        log(`server: ${line.trim()}`)
-        safeSend('server:log', line)
-      })
-
-      log(`launchApp: startServer result ok=${result.ok} error=${result.error}`)
-      if (result.ok) {
-        // Brief pause so "Projecting..." is visible on the splash
-        await new Promise((r) => setTimeout(r, 1500))
-        transitionToApp()
-      } else {
-        safeSend('server:error', result.error || 'Server failed to start')
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      log(`launchApp: startServer exception: ${message}`)
-      safeSend('server:error', message)
-    }
+    // Normal launch — splash → server → app
+    await showSplashAndStartServer()
   }
 }
 

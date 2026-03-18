@@ -45,6 +45,7 @@ interface ProqDesktopAPI {
   setConfig: (partial: Partial<DesktopConfig>) => Promise<DesktopConfig>
   selectDirectory: () => Promise<string | null>
 
+  wizardComplete: () => Promise<void>
   startServer: () => Promise<{ ok: boolean; error?: string }>
   onServerReady: (cb: () => void) => () => void
   onServerLog: (cb: (e: unknown, line: string) => void) => () => void

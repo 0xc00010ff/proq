@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import logoAnimationRepeat from './assets/LogoAnimationRepeat.svg'
 
-interface SplashProps {
-  onSettings?: () => void
-}
-
 function friendlyStatus(line: string, port: number, wsPort: number): string | null {
   // Strip ANSI escape sequences
   const t = line.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim()
@@ -21,12 +17,10 @@ function friendlyStatus(line: string, port: number, wsPort: number): string | nu
   return null
 }
 
-export function Splash({ onSettings }: SplashProps): React.JSX.Element {
+export function Splash(): React.JSX.Element {
   const [status, setStatus] = useState('Initializing')
   const [phases, setPhases] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-  const isPortError =
-    error?.includes('already in use') || error?.includes('EADDRINUSE') || false
 
   useEffect(() => {
     let port = 1337
@@ -68,30 +62,16 @@ export function Splash({ onSettings }: SplashProps): React.JSX.Element {
           <p style={{ color: 'var(--error)', fontSize: 14, marginBottom: 16, textAlign: 'center', padding: '0 24px' }}>
             {error}
           </p>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {isPortError && onSettings && (
-              <button
-                className="btn-primary titlebar-no-drag"
-                onClick={onSettings}
-              >
-                Change Port
-              </button>
-            )}
-            <button
-              className="btn-primary titlebar-no-drag"
-              onClick={(): void => {
-                setError(null)
-                setStatus('Restarting...')
-                window.proqDesktop.startServer().then((result) => {
-                  if (!result.ok) {
-                    setError(result.error || 'Failed to start server')
-                  }
-                })
-              }}
-            >
-              Retry
-            </button>
-          </div>
+          <button
+            className="btn-primary titlebar-no-drag"
+            onClick={(): void => {
+              setError(null)
+              setStatus('Restarting...')
+              window.proqDesktop.startServer()
+            }}
+          >
+            Retry
+          </button>
         </>
       ) : (
         <div style={{ textAlign: 'center' }}>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, ColumnsIcon, SettingsIcon, GitCommitHorizontalIcon, PlusIcon, XIcon, SearchIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, ColumnsIcon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -51,12 +51,6 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   const branchPopoverRef = useRef<HTMLDivElement>(null);
   const branchTriggerRef = useRef<HTMLButtonElement>(null);
   const branchSearchRef = useRef<HTMLInputElement>(null);
-
-  // New branch creation
-  const [newBranchMode, setNewBranchMode] = useState(false);
-  const [newBranchName, setNewBranchName] = useState('');
-  const [newBranchLoading, setNewBranchLoading] = useState(false);
-  const newBranchInputRef = useRef<HTMLInputElement>(null);
 
   // Dropdown data for status labels
   const [dirtyFiles, setDirtyFiles] = useState<{ path: string; status: string }[] | null>(null);
@@ -188,8 +182,6 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   useEffect(() => {
     if (branchPopoverOpen) {
       setBranchFilter('');
-      setNewBranchMode(false);
-      setNewBranchName('');
       setTimeout(() => branchSearchRef.current?.focus(), 0);
     }
   }, [branchPopoverOpen]);
@@ -553,13 +545,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                     searchRef={branchSearchRef}
                     onSwitchBranch={(branch) => { onSwitchBranch?.(branch); setBranchPopoverOpen(false); }}
                     onClose={() => setBranchPopoverOpen(false)}
-                    onCreateBranch={onCreateBranch}
-                    newBranchMode={newBranchMode}
-                    setNewBranchMode={setNewBranchMode}
-                    newBranchName={newBranchName}
-                    setNewBranchName={setNewBranchName}
-                    newBranchLoading={newBranchLoading}
-                    setNewBranchLoading={setNewBranchLoading}
+                    onCreateBranch={onCreateBranch ? async (name) => { await onCreateBranch(name); setBranchPopoverOpen(false); } : undefined}
                   />
                 )}
               </div>
@@ -584,21 +570,14 @@ const BranchPopover = React.forwardRef<HTMLDivElement, {
   onSwitchBranch: (branch: string) => void;
   onClose: () => void;
   onCreateBranch?: (name: string) => Promise<void>;
-  newBranchMode: boolean;
-  setNewBranchMode: (v: boolean) => void;
-  newBranchName: string;
-  setNewBranchName: (v: string) => void;
-  newBranchLoading: boolean;
-  setNewBranchLoading: (v: boolean) => void;
 }>(function BranchPopover(props, ref) {
   const {
-    mainBranches, proqBranches, otherBranches, currentBranch, taskBranchMap,
-    branchFilter, onFilterChange, searchRef, onSwitchBranch, onClose,
-    onCreateBranch, newBranchMode, setNewBranchMode, newBranchName, setNewBranchName,
-    newBranchLoading, setNewBranchLoading,
+    branches, mainBranches, proqBranches, otherBranches, currentBranch, taskBranchMap,
+    branchFilter, onFilterChange, searchRef, onSwitchBranch, onClose, onCreateBranch,
   } = props;
+  const [creating, setCreating] = useState(false);
 
-  const filter = branchFilter.toLowerCase();
+  const filter = branchFilter.toLowerCase().trim();
   const filteredMain = mainBranches.filter(b => b.toLowerCase().includes(filter));
   const filteredProq = proqBranches.filter(b => {
     const title = taskBranchMap?.[b]?.toLowerCase() || '';
@@ -606,6 +585,19 @@ const BranchPopover = React.forwardRef<HTMLDivElement, {
   });
   const filteredOther = otherBranches.filter(b => b.toLowerCase().includes(filter));
   const totalFiltered = filteredMain.length + filteredProq.length + filteredOther.length;
+
+  // Show "Create branch" option when filter text doesn't exactly match any existing branch
+  const exactMatch = filter && branches.some(b => b.toLowerCase() === filter);
+  const showCreate = onCreateBranch && filter && !exactMatch;
+
+  const handleCreate = async () => {
+    if (!onCreateBranch || !filter || creating) return;
+    setCreating(true);
+    try {
+      await onCreateBranch(branchFilter.trim());
+    } catch { /* handled by caller */ }
+    setCreating(false);
+  };
 
   return (
     <div
@@ -623,7 +615,7 @@ const BranchPopover = React.forwardRef<HTMLDivElement, {
         </button>
       </div>
 
-      {/* Search */}
+      {/* Search / create input */}
       <div className="px-2.5 py-2 border-b border-border-default">
         <div className="relative">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-placeholder" />
@@ -632,10 +624,14 @@ const BranchPopover = React.forwardRef<HTMLDivElement, {
             type="text"
             value={branchFilter}
             onChange={(e) => onFilterChange(e.target.value)}
-            placeholder="Find a branch..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-inset border border-border-strong rounded-md text-text-primary placeholder:text-text-placeholder focus:outline-none focus:border-lazuli/60"
+            placeholder={onCreateBranch ? 'Find or create a branch...' : 'Find a branch...'}
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-inset border border-border-strong rounded-md text-text-primary placeholder:text-text-placeholder focus:outline-none focus:border-border-hover"
             onKeyDown={(e) => {
               if (e.key === 'Escape') onClose();
+              if (e.key === 'Enter' && showCreate && totalFiltered === 0) {
+                e.preventDefault();
+                handleCreate();
+              }
             }}
           />
         </div>
@@ -643,98 +639,64 @@ const BranchPopover = React.forwardRef<HTMLDivElement, {
 
       {/* Branch list */}
       <div className="max-h-[280px] overflow-y-auto">
-        {totalFiltered === 0 ? (
-          <div className="px-3 py-4 text-xs text-text-tertiary text-center">No branches match</div>
-        ) : (
+        {filteredMain.map((branch) => (
+          <BranchRow
+            key={branch}
+            branch={branch}
+            isCurrent={branch === currentBranch}
+            isDefault
+            onSelect={() => onSwitchBranch(branch)}
+          />
+        ))}
+        {filteredProq.length > 0 && filteredMain.length > 0 && (
+          <div className="border-t border-border-default" />
+        )}
+        {filteredProq.map((branch) => (
+          <BranchRow
+            key={branch}
+            branch={branch}
+            isCurrent={branch === currentBranch}
+            taskTitle={taskBranchMap?.[branch]}
+            onSelect={() => onSwitchBranch(branch)}
+          />
+        ))}
+        {filteredOther.length > 0 && (filteredMain.length > 0 || filteredProq.length > 0) && (
+          <div className="border-t border-border-default" />
+        )}
+        {filteredOther.map((branch) => (
+          <BranchRow
+            key={branch}
+            branch={branch}
+            isCurrent={branch === currentBranch}
+            onSelect={() => onSwitchBranch(branch)}
+          />
+        ))}
+
+        {/* Create branch option — shown when filter doesn't match an existing branch */}
+        {showCreate && (
           <>
-            {filteredMain.map((branch) => (
-              <BranchRow
-                key={branch}
-                branch={branch}
-                isCurrent={branch === currentBranch}
-                isDefault
-                onSelect={() => onSwitchBranch(branch)}
-              />
-            ))}
-            {filteredProq.length > 0 && filteredMain.length > 0 && (
-              <div className="border-t border-border-default" />
-            )}
-            {filteredProq.map((branch) => (
-              <BranchRow
-                key={branch}
-                branch={branch}
-                isCurrent={branch === currentBranch}
-                taskTitle={taskBranchMap?.[branch]}
-                onSelect={() => onSwitchBranch(branch)}
-              />
-            ))}
-            {filteredOther.length > 0 && (filteredMain.length > 0 || filteredProq.length > 0) && (
-              <div className="border-t border-border-default" />
-            )}
-            {filteredOther.map((branch) => (
-              <BranchRow
-                key={branch}
-                branch={branch}
-                isCurrent={branch === currentBranch}
-                onSelect={() => onSwitchBranch(branch)}
-              />
-            ))}
+            {totalFiltered > 0 && <div className="border-t border-border-default" />}
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover transition-colors"
+            >
+              {creating ? (
+                <Loader2Icon className="w-3.5 h-3.5 shrink-0 animate-spin" />
+              ) : (
+                <GitBranchIcon className="w-3.5 h-3.5 shrink-0 text-text-tertiary" />
+              )}
+              <span>
+                Create branch <strong className="text-text-primary">{branchFilter.trim()}</strong> from <strong className="text-text-primary">{currentBranch}</strong>
+              </span>
+            </button>
           </>
         )}
-      </div>
 
-      {/* Create branch */}
-      {onCreateBranch && (
-        <div className="border-t border-border-default px-2.5 py-2">
-          {newBranchMode ? (
-            <form
-              className="flex items-center gap-1.5"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const name = newBranchName.trim();
-                if (!name || newBranchLoading) return;
-                setNewBranchLoading(true);
-                try {
-                  await onCreateBranch(name);
-                  setNewBranchName('');
-                  setNewBranchMode(false);
-                } catch { /* handled by caller */ }
-                setNewBranchLoading(false);
-              }}
-            >
-              <input
-                type="text"
-                value={newBranchName}
-                onChange={(e) => setNewBranchName(e.target.value)}
-                placeholder="branch-name"
-                autoFocus
-                className="flex-1 min-w-0 px-2 py-1 text-xs font-mono bg-surface-inset border border-border-strong rounded text-text-primary focus:outline-none focus:border-lazuli/60"
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setNewBranchMode(false);
-                    setNewBranchName('');
-                  }
-                }}
-              />
-              <button
-                type="submit"
-                disabled={!newBranchName.trim() || newBranchLoading}
-                className="text-xs font-medium text-text-chrome hover:text-text-chrome-hover disabled:opacity-40 px-1.5 py-1"
-              >
-                {newBranchLoading ? <Loader2Icon className="w-3 h-3 animate-spin" /> : 'Create'}
-              </button>
-            </form>
-          ) : (
-            <button
-              onClick={() => setNewBranchMode(true)}
-              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-text-chrome hover:text-text-chrome-hover rounded hover:bg-surface-hover"
-            >
-              <PlusIcon className="w-3 h-3" />
-              New branch...
-            </button>
-          )}
-        </div>
-      )}
+        {totalFiltered === 0 && !showCreate && (
+          <div className="px-3 py-4 text-xs text-text-tertiary text-center">No branches match</div>
+        )}
+      </div>
     </div>
   );
 });

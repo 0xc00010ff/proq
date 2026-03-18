@@ -27,11 +27,12 @@
   div[data-radix-portal] {
     -webkit-app-region: no-drag;
   }
-  /* When any modal/dropdown/popover is open, disable drag entirely so click-outside works */
-  body:has(div[data-radix-portal]) .electron-drag,
-  body[data-modal-open] .electron-drag {
-    -webkit-app-region: no-drag;
-  }
+}
+
+/* When any modal/dropdown/popover is open, disable drag entirely so click-outside works */
+body:has(div[data-radix-portal]) .electron-drag,
+body[data-modal-open] .electron-drag {
+  -webkit-app-region: no-drag;
 }
 
 /* Execution mode dropdown: selected item yields bg to hovered sibling */

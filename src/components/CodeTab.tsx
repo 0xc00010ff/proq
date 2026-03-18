@@ -556,6 +556,24 @@ export function CodeTab({ project }: CodeTabProps) {
     }
   }, [project.path]);
 
+  // Define custom Monaco theme before mount to avoid vs-dark flash
+  const handleEditorWillMount = useCallback((monacoInstance: typeof import('monaco-editor')) => {
+    monacoInstance.editor.defineTheme('proq-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#0c0c0e',              // surface-inset — deepest content
+        'editor.lineHighlightBackground': '#111115',   // subtle line highlight
+        'editorGutter.background': '#0c0c0e',         // match editor bg
+        'minimap.background': '#0c0c0e',
+        'editorOverviewRuler.background': '#0c0c0e',
+        'scrollbarSlider.background': '#1a1a1e80',
+        'scrollbarSlider.hoverBackground': '#2a2a2ea0',
+      },
+    });
+  }, []);
+
   // Monaco editor mount handler — uses refs to avoid stale closures
   const handleEditorMount = useCallback(
     (editor: MonacoEditorType.IStandaloneCodeEditor) => {
@@ -616,9 +634,9 @@ export function CodeTab({ project }: CodeTabProps) {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-deep">
-      {/* Sub-header bar */}
-      <div className="h-10 flex-shrink-0 flex items-center justify-between px-3 border-b border-border-default bg-surface-base/80">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-base">
+      {/* Sub-header bar — lightest chrome layer */}
+      <div className="h-10 flex-shrink-0 flex items-center justify-between px-3 border-b border-border-default bg-surface-secondary">
         <div className="flex items-center gap-2 min-w-0">
           {/* Breadcrumb path */}
           {activeTabPath && (() => {
@@ -728,7 +746,7 @@ export function CodeTab({ project }: CodeTabProps) {
 
       {/* Tab bar */}
       {openTabs.length > 0 && (
-        <div className="h-[33px] flex-shrink-0 flex items-end border-b border-border-default bg-surface-base/50 overflow-x-auto">
+        <div className="h-[33px] flex-shrink-0 flex items-end border-b border-border-default bg-surface-topbar overflow-x-auto">
           {openTabs.map((tab) => {
             const isActive = tab.path === activeTabPath;
             return (
@@ -739,8 +757,8 @@ export function CodeTab({ project }: CodeTabProps) {
                 onMouseDown={(e) => handleTabMouseDown(tab.path, e)}
                 className={`group flex items-center gap-1.5 px-3 h-[32px] text-xs cursor-pointer border-r border-border-default select-none shrink-0 ${
                   isActive
-                    ? 'bg-surface-deep text-text-primary border-b border-b-transparent -mb-px'
-                    : 'bg-surface-base/30 text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/30'
+                    ? 'bg-surface-inset text-text-primary border-b border-b-transparent -mb-px'
+                    : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-base/60'
                 }`}
               >
                 {tab.dirty && (
@@ -767,7 +785,7 @@ export function CodeTab({ project }: CodeTabProps) {
       <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden">
         {/* File tree */}
         <div
-          className="h-full flex flex-col border-r border-border-default bg-surface-base/50 flex-shrink-0"
+          className="h-full flex flex-col border-r border-border-default bg-surface-topbar flex-shrink-0"
           style={{ width: treeWidth }}
         >
           {/* Go to file search */}
@@ -800,8 +818,8 @@ export function CodeTab({ project }: CodeTabProps) {
           }`}
         />
 
-        {/* Editor */}
-        <div className="flex-1 min-w-0 h-full overflow-hidden">
+        {/* Editor — deepest layer */}
+        <div className="flex-1 min-w-0 h-full overflow-hidden bg-surface-inset">
           {!activeTabPath ? (
             <div className="h-full flex flex-col items-center justify-center text-text-tertiary text-sm gap-1.5">
               <span>Select a file to view</span>
@@ -828,7 +846,8 @@ export function CodeTab({ project }: CodeTabProps) {
               height="100%"
               language={fileLanguage}
               defaultValue=""
-              theme="vs-dark"
+              theme="proq-dark"
+              beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
               options={{
                 minimap: { enabled: true },

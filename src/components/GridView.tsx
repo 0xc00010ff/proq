@@ -74,7 +74,7 @@ function GridCell({
   const terminalTabId = `task-${task.id.slice(0, 8)}`;
 
   return (
-    <div className="flex flex-col h-full min-h-0 border border-border-default rounded-md overflow-hidden bg-surface-deep">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-surface-deep">
       {/* Top nav bar */}
       <div className="shrink-0 h-9 flex items-center gap-2 px-3 border-b border-border-default bg-surface-topbar">
         <StatusDot status={task.status} />
@@ -198,14 +198,14 @@ export function GridView({
       </div>
 
       {/* Grid area */}
-      <div ref={containerRef} className="flex-1 min-h-0 p-2">
+      <div ref={containerRef} className="flex-1 min-h-0">
         {visibleTasks.length === 0 ? (
           <div className="flex items-center justify-center h-full text-text-tertiary text-sm">
             No active tasks. Move a task to In Progress to see it here.
           </div>
         ) : (
           <div
-            className="grid gap-2 h-full"
+            className="grid h-full gap-px bg-border-default"
             style={{
               gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
               gridTemplateRows: layout.rows > 1 ? `repeat(${layout.rows}, 1fr)` : '1fr',

@@ -169,6 +169,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     dragCounterRef.current = 0;
     setIsDragOver(false);
     if (e.dataTransfer.files.length > 0) {
@@ -178,16 +179,19 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     dragCounterRef.current++;
     setIsDragOver(true);
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     dragCounterRef.current--;
     if (dragCounterRef.current <= 0) {
       dragCounterRef.current = 0;

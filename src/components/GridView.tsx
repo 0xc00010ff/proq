@@ -95,36 +95,38 @@ function GridCell({
         <span className="flex-1 text-xs font-medium text-text-secondary truncate">
           {task.title}
         </span>
-        {/* Branch indicator */}
-        {task.branch ? (
-          isPreviewActive ? (
-            <>
-              <span className="shrink-0 text-[10px] font-medium text-lazuli">viewing</span>
-              <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-lazuli/30 bg-lazuli/10 text-lazuli">
+        {/* Branch indicator (parallel mode only) */}
+        {parallelMode && (
+          task.branch ? (
+            isPreviewActive ? (
+              <>
+                <span className="shrink-0 text-[10px] font-medium text-lazuli">viewing</span>
+                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-lazuli/30 bg-lazuli/10 text-lazuli">
+                  <GitBranchIcon className="w-2.5 h-2.5" />
+                  {task.branch}
+                </span>
+              </>
+            ) : onSwitchBranch ? (
+              <button
+                onClick={() => onSwitchBranch(task.branch!)}
+                title={`Preview branch ${task.branch}`}
+                className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-chrome hover:border-lazuli/30 hover:text-lazuli"
+              >
+                <GitBranchIcon className="w-2.5 h-2.5" />
+                {task.branch}
+              </button>
+            ) : (
+              <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-tertiary">
                 <GitBranchIcon className="w-2.5 h-2.5" />
                 {task.branch}
               </span>
-            </>
-          ) : onSwitchBranch ? (
-            <button
-              onClick={() => onSwitchBranch(task.branch!)}
-              title={`Preview branch ${task.branch}`}
-              className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-chrome hover:border-lazuli/30 hover:text-lazuli"
-            >
-              <GitBranchIcon className="w-2.5 h-2.5" />
-              {task.branch}
-            </button>
+            )
           ) : (
             <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-tertiary">
               <GitBranchIcon className="w-2.5 h-2.5" />
-              {task.branch}
+              {defaultBranch || 'main'}
             </span>
           )
-        ) : (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-tertiary">
-            <GitBranchIcon className="w-2.5 h-2.5" />
-            {defaultBranch || 'main'}
-          </span>
         )}
         <button
           onClick={onExpand}

@@ -1,43 +1,26 @@
 /**
  * macOS GUI apps don't inherit the user's shell PATH.
- * Prepend common binary directories so spawn('npm', ...) etc. work.
+ * Spawn the user's login shell once to get their real PATH,
+ * same approach as VS Code and fix-path.
  */
 
-import fs from 'fs'
-
-const COMMON_DIRS = [
-  `${process.env.HOME}/.local/bin`, // Claude Code CLI default location
-  '/opt/homebrew/bin',              // Homebrew (Apple Silicon)
-  '/usr/local/bin',                 // Homebrew (Intel)
-  '/usr/bin',
-  '/bin',
-  '/usr/sbin',
-  '/sbin'
-]
+import { execFileSync } from 'child_process'
 
 export function ensurePath(): void {
-  const dirs = [...COMMON_DIRS]
+  if (process.platform === 'win32') return
 
-  // Check for nvm as a fallback (after Homebrew dirs)
-  const nvmDir = process.env.NVM_DIR || `${process.env.HOME}/.nvm`
+  const shell = process.env.SHELL || '/bin/zsh'
   try {
-    const versions = fs.readdirSync(`${nvmDir}/versions/node`)
-      .filter((v) => v.startsWith('v'))
-      .sort((a, b) => {
-        const pa = a.replace('v', '').split('.').map(Number)
-        const pb = b.replace('v', '').split('.').map(Number)
-        return pb[0] - pa[0] || pb[1] - pa[1] || pb[2] - pa[2]
-      })
-    if (versions.length) dirs.push(`${nvmDir}/versions/node/${versions[0]}/bin`)
+    const path = execFileSync(shell, ['-ilc', 'echo -n "$PATH"'], {
+      timeout: 5000,
+      encoding: 'utf-8',
+      env: { ...process.env, TERM: 'dumb' } // suppress prompt theming noise
+    }).replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim() // strip any ANSI escapes
+
+    if (path) {
+      process.env.PATH = path
+    }
   } catch {
-    // no nvm
-  }
-
-  const current = process.env.PATH || ''
-  const currentSet = new Set(current.split(':'))
-  const missing = dirs.filter((d) => !currentSet.has(d))
-
-  if (missing.length) {
-    process.env.PATH = [...missing, current].join(':')
+    // Shell timed out or failed — keep existing PATH as-is
   }
 }

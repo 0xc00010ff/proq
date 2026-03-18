@@ -35,7 +35,11 @@ export function Modal({
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    document.body.setAttribute('data-modal-open', '');
+    return () => {
+      document.body.style.overflow = '';
+      document.body.removeAttribute('data-modal-open');
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;

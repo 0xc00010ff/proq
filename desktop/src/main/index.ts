@@ -356,9 +356,13 @@ function transitionToApp(): void {
 async function showSplashAndStartServer(): Promise<void> {
   const config = getConfig()
 
-  // Close any existing window (wizard or stale splash)
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.close()
+  // Create splash before closing wizard so there's never zero windows
+  // (zero windows triggers app.quit via window-all-closed)
+  const previousWindow = mainWindow
+  mainWindow = createWindow('splash')
+  loadRendererPage(mainWindow, 'splash')
+  if (previousWindow && !previousWindow.isDestroyed()) {
+    previousWindow.close()
   }
 
   // Check if server is already running (e.g. orphan from previous session)
@@ -368,10 +372,6 @@ async function showSplashAndStartServer(): Promise<void> {
     transitionToApp()
     return
   }
-
-  // Show splash window and wait for it to be ready
-  mainWindow = createWindow('splash')
-  loadRendererPage(mainWindow, 'splash')
   await new Promise<void>((resolve) => {
     mainWindow!.webContents.once('did-finish-load', () => resolve())
   })

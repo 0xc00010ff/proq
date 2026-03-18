@@ -1,6 +1,6 @@
 // ── Project ──────────────────────────────────────────────
 export type ProjectTab = 'project' | 'live' | 'code';
-export type ViewType = 'kanban' | 'list';
+export type ViewType = 'kanban' | 'list' | 'grid';
 
 export interface Project {
   id: string;

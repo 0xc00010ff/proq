@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { ListView } from '@/components/ListView';
+import { GridView } from '@/components/GridView';
 import WorkbenchPanel from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
@@ -834,7 +835,29 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
-              {(project.viewType || 'kanban') === 'kanban' ? (
+              {(project.viewType || 'kanban') === 'grid' ? (
+                <GridView
+                  tasks={columns}
+                  projectId={projectId}
+                  executionMode={executionMode}
+                  onExecutionModeChange={handleExecutionModeChange}
+                  onAddTask={handleAddTask}
+                  onClickTask={(task) => {
+                    if (task.needsAttention) dismissAttention(task.id);
+                    viewingTaskIdRef.current = task.id;
+                    setAgentModalTask(task);
+                  }}
+                  followUpDraftsRef={followUpDraftsRef}
+                  onFollowUpDraftChange={(taskId, draft) => {
+                    if (draft) followUpDraftsRef.current.set(taskId, draft);
+                    else followUpDraftsRef.current.delete(taskId);
+                  }}
+                  parallelMode={executionMode === 'parallel'}
+                  currentBranch={currentBranch}
+                  onSwitchBranch={handleSwitchBranch}
+                  defaultBranch={project?.defaultBranch || 'main'}
+                />
+              ) : (project.viewType || 'kanban') === 'kanban' ? (
                 <KanbanBoard
                   tasks={columns}
                   onMoveTask={moveTask}

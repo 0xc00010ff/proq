@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, SettingsIcon, GitCommitHorizontalIcon, PlusIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, ColumnsIcon, SettingsIcon, GitCommitHorizontalIcon, PlusIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -238,6 +238,14 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 <ListIcon className="w-3.5 h-3.5" />
                 <span>List</span>
                 {viewType === 'list' && <CheckIcon className="w-3 h-3 ml-auto" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => onViewTypeChange?.('grid')}
+                className={`text-xs gap-2 ${viewType === 'grid' ? 'text-text-chrome-active' : ''}`}
+              >
+                <ColumnsIcon className="w-3.5 h-3.5" />
+                <span>Grid</span>
+                {viewType === 'grid' && <CheckIcon className="w-3 h-3 ml-auto" />}
               </DropdownMenuItem>
             </div>
             <DropdownMenuSeparator />

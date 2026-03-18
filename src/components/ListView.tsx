@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ListOrderedIcon,
   LayersIcon,
+  GitBranchIcon,
   ChevronDownIcon,
   Loader2Icon,
   ClockIcon,
@@ -491,29 +492,43 @@ export function ListView({
                 <button
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover"
                 >
-                  {executionMode === 'sequential' ? (
-                    <ListOrderedIcon className="w-3 h-3" />
-                  ) : (
-                    <LayersIcon className="w-3 h-3" />
-                  )}
-                  <span>{executionMode === 'sequential' ? 'Sequential' : 'Parallel'}</span>
+                  {executionMode === 'sequential' && <ListOrderedIcon className="w-3 h-3" />}
+                  {executionMode === 'parallel' && <LayersIcon className="w-3 h-3" />}
+                  {executionMode === 'worktrees' && <GitBranchIcon className="w-3 h-3" />}
+                  <span>{executionMode === 'sequential' ? 'Sequential' : executionMode === 'parallel' ? 'Parallel' : 'Worktrees'}</span>
                   <ChevronDownIcon className="w-3 h-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[140px]">
+              <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[200px]">
                 <DropdownMenuItem
                   onSelect={() => onExecutionModeChange('sequential')}
                   className={`gap-2 text-xs ${executionMode === 'sequential' ? 'exec-mode-selected' : ''}`}
                 >
-                  <ListOrderedIcon className="w-3.5 h-3.5" />
-                  Sequential
+                  <ListOrderedIcon className="w-3.5 h-3.5 shrink-0" />
+                  <div>
+                    <div>Sequential</div>
+                    <div className="text-[10px] text-text-tertiary font-normal">One task at a time, queued in order</div>
+                  </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => onExecutionModeChange('parallel')}
                   className={`gap-2 text-xs ${executionMode === 'parallel' ? 'exec-mode-selected' : ''}`}
                 >
-                  <LayersIcon className="w-3.5 h-3.5" />
-                  Parallel
+                  <LayersIcon className="w-3.5 h-3.5 shrink-0" />
+                  <div>
+                    <div>Parallel</div>
+                    <div className="text-[10px] text-text-tertiary font-normal">Multiple tasks at once on the same branch</div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => onExecutionModeChange('worktrees')}
+                  className={`gap-2 text-xs ${executionMode === 'worktrees' ? 'exec-mode-selected' : ''}`}
+                >
+                  <GitBranchIcon className="w-3.5 h-3.5 shrink-0" />
+                  <div>
+                    <div>Worktrees</div>
+                    <div className="text-[10px] text-text-tertiary font-normal">Each task gets its own branch to preview before merge</div>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

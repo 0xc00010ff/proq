@@ -246,14 +246,14 @@ export async function dispatchTask(
   const terminalTabId = `task-${shortId}`;
   const tmuxSession = `proq-${shortId}`;
 
-  // Check if running in parallel mode — create worktree for parallel code tasks
+  // Check if running in worktrees mode — create worktree for isolated tasks
   const executionMode = await getExecutionMode(projectId);
   let effectivePath = projectPath;
 
   // Re-read the task to check if it already has a worktree (e.g., conflict resolution re-dispatch)
   const currentTask = await getTask(projectId, taskId);
 
-  if (executionMode === "parallel") {
+  if (executionMode === "worktrees") {
     if (currentTask?.worktreePath) {
       // Worktree already exists (conflict resolution re-dispatch) — reuse it
       effectivePath = currentTask.worktreePath;
@@ -499,7 +499,7 @@ export async function getInitialAgentStatus(
   excludeTaskId?: string,
 ): Promise<"queued" | "starting"> {
   const mode = await getExecutionMode(projectId);
-  if (mode === "parallel") return "starting";
+  if (mode === "parallel" || mode === "worktrees") return "starting";
 
   const columns = await getAllTasks(projectId);
   const hasActive = columns["in-progress"].some(
@@ -537,7 +537,37 @@ export async function processQueue(projectId: string): Promise<void> {
       `[processQueue] ${projectId}: mode=${mode} running=${running.length} pending=${pending.length}`,
     );
 
-    if (mode === "sequential") {
+    if (mode !== "sequential") {
+      // parallel & worktrees: launch all pending
+      for (const task of pending) {
+        console.log(
+          `[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (${mode})`,
+        );
+        if (task.agentStatus !== "starting") {
+          await updateTask(projectId, task.id, { agentStatus: "starting" });
+          emitTaskUpdate(projectId, task.id, { agentStatus: "starting" });
+        }
+        const result = await dispatchTask(
+          projectId,
+          task.id,
+          task.title,
+          task.description,
+          task.mode,
+          task.attachments,
+          task.renderMode,
+        );
+        if (result) {
+          await updateTask(projectId, task.id, { agentStatus: "running" });
+          emitTaskUpdate(projectId, task.id, { agentStatus: "running" });
+        } else {
+          console.log(
+            `[processQueue] dispatch failed for ${task.id.slice(0, 8)}, rolling back`,
+          );
+          await updateTask(projectId, task.id, { agentStatus: "queued" });
+          emitTaskUpdate(projectId, task.id, { agentStatus: "queued" });
+        }
+      }
+    } else if (mode === "sequential") {
       if (running.length === 0 && pending.length > 0) {
         const next = pending[0];
         console.log(
@@ -570,36 +600,6 @@ export async function processQueue(projectId: string): Promise<void> {
         console.log(
           `[processQueue] ${running.length} task(s) running, ${pending.length} waiting`,
         );
-      }
-    } else {
-      // parallel: launch all pending
-      for (const task of pending) {
-        console.log(
-          `[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (parallel)`,
-        );
-        if (task.agentStatus !== "starting") {
-          await updateTask(projectId, task.id, { agentStatus: "starting" });
-          emitTaskUpdate(projectId, task.id, { agentStatus: "starting" });
-        }
-        const result = await dispatchTask(
-          projectId,
-          task.id,
-          task.title,
-          task.description,
-          task.mode,
-          task.attachments,
-          task.renderMode,
-        );
-        if (result) {
-          await updateTask(projectId, task.id, { agentStatus: "running" });
-          emitTaskUpdate(projectId, task.id, { agentStatus: "running" });
-        } else {
-          console.log(
-            `[processQueue] dispatch failed for ${task.id.slice(0, 8)}, rolling back`,
-          );
-          await updateTask(projectId, task.id, { agentStatus: "queued" });
-          emitTaskUpdate(projectId, task.id, { agentStatus: "queued" });
-        }
       }
     }
 

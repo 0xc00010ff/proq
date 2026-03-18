@@ -15,7 +15,6 @@ import {
   PlayIcon,
   GitBranchIcon,
   GitCommitHorizontalIcon,
-  ArrowRightIcon,
   ChevronRightIcon,
   ListChecksIcon,
 } from 'lucide-react';
@@ -288,58 +287,35 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           <div className="shrink-0 h-10 flex items-center gap-2 px-4 border-b border-border-default bg-surface-topbar">
             <span className="text-xs font-medium text-text-secondary truncate min-w-0">{task.title || 'Untitled task'}</span>
             <div className="ml-auto flex items-center gap-2 shrink-0">
-              {(task.status === 'verify' || task.status === 'in-progress') && task.branch && onSwitchBranch && currentBranch === task.branch ? (
-                <>
-                  <span className="text-xs text-lazuli font-medium">viewing</span>
-                  {task.baseBranch && task.baseBranch !== defaultBranch && (
-                    <>
-                      <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-tertiary">
-                        <GitBranchIcon className="w-3 h-3" />
-                        {task.baseBranch}
-                      </span>
-                      <ArrowRightIcon className="w-3 h-3 text-text-placeholder shrink-0" />
-                    </>
-                  )}
-                  <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-lazuli/30 bg-lazuli/10 text-lazuli">
-                    <GitBranchIcon className="w-3 h-3" />
-                    {task.branch}
-                  </span>
+              {task.mergeConflict ? (
+                <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-yellow-500/30 bg-yellow-500/10 text-yellow-400">
+                  <GitBranchIcon className="w-3 h-3" />
+                  {task.mergeConflict.branch}
+                </span>
+              ) : (task.status === 'verify' || task.status === 'in-progress') && task.branch && onSwitchBranch ? (
+                currentBranch === task.branch ? (
                   <button
                     onClick={() => onSwitchBranch(task.baseBranch || defaultBranch)}
-                    className="text-[10px] font-medium text-text-chrome hover:text-text-chrome-hover px-1.5 py-0.5 rounded border border-border-default hover:bg-surface-hover"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded border border-lazuli/30 bg-lazuli/10 text-lazuli hover:bg-lazuli/15"
                   >
-                    Back to {task.baseBranch || defaultBranch}
-                  </button>
-                </>
-              ) : (
-                <>
-                  {task.baseBranch && task.baseBranch !== defaultBranch && (
-                    <>
-                      <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-tertiary">
-                        <GitBranchIcon className="w-3 h-3" />
-                        {task.baseBranch}
-                      </span>
-                      <ArrowRightIcon className="w-3 h-3 text-text-placeholder shrink-0" />
-                    </>
-                  )}
-                  <span className={`inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border ${
-                    task.mergeConflict
-                      ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
-                      : 'border-border-hover/40 bg-surface-hover/60 text-text-chrome'
-                  }`}>
                     <GitBranchIcon className="w-3 h-3" />
-                    {task.mergeConflict ? task.mergeConflict.branch : (task.branch || defaultBranch)}
-                  </span>
-                  {(task.status === 'verify' || task.status === 'in-progress') && task.branch && onSwitchBranch && (
-                    <button
-                      onClick={() => onSwitchBranch(task.branch!)}
-                      className="text-[10px] font-medium text-lazuli hover:text-lazuli/80 px-1.5 py-0.5 rounded border border-lazuli/30 hover:bg-lazuli/10"
-                    >
-                      Preview
-                    </button>
-                  )}
-                </>
-              )}
+                    Previewing
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onSwitchBranch(task.branch!)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded border border-border-default text-text-tertiary hover:text-text-secondary hover:bg-surface-hover"
+                  >
+                    <GitBranchIcon className="w-3 h-3" />
+                    Preview
+                  </button>
+                )
+              ) : task.branch ? (
+                <span className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border border-border-hover/40 bg-surface-hover/60 text-text-chrome">
+                  <GitBranchIcon className="w-3 h-3" />
+                  {task.branch}
+                </span>
+              ) : null}
             </div>
           </div>
         )}
@@ -653,42 +629,38 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             </AccordionSection>
           )}
 
-          {/* Merge conflict banner (not an accordion — it's an alert) */}
-          {task.mergeConflict && (
-            <div className="px-4 py-3">
-              <div className="bg-red-500/8 border border-red-500/20 rounded-md p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangleIcon className="w-3.5 h-3.5 text-red-400" />
-                  <span className="text-xs font-medium text-red-400 uppercase tracking-wide">
-                    Merge conflict
-                  </span>
-                  <span className="text-xs font-mono text-red-400/70">
-                    {task.mergeConflict.branch}
-                  </span>
-                </div>
-                {task.mergeConflict.files.length > 0 && (
-                  <ul className="space-y-0.5 mb-2">
-                    {task.mergeConflict.files.map((file) => (
-                      <li key={file} className="text-xs font-mono text-text-secondary flex items-start">
-                        <span className="mr-2 text-red-400 shrink-0">-</span>
-                        <span>{file}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <button
-                  onClick={() => setShowConflictModal(true)}
-                  className="text-[11px] font-medium text-red-400 hover:text-red-300"
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Complete button pinned to bottom */}
-        {task.status === 'verify' && onComplete && (
+        {/* Merge conflict banner — pinned to bottom, replaces Complete button */}
+        {task.mergeConflict ? (
+          <div className="shrink-0 border-t border-red-500/20 bg-red-500/8 px-4 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangleIcon className="w-3.5 h-3.5 text-red-400" />
+              <span className="text-xs font-medium text-red-400 uppercase tracking-wide">
+                Merge conflict
+              </span>
+              <span className="text-xs font-mono text-red-400/70">
+                {task.mergeConflict.branch}
+              </span>
+            </div>
+            {task.mergeConflict.files.length > 0 && (
+              <ul className="space-y-0.5 mb-2">
+                {task.mergeConflict.files.map((file) => (
+                  <li key={file} className="text-xs font-mono text-text-secondary flex items-start">
+                    <span className="mr-2 text-red-400 shrink-0">-</span>
+                    <span>{file}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              onClick={() => setShowConflictModal(true)}
+              className="text-[11px] font-medium text-red-400 hover:text-red-300"
+            >
+              View Details
+            </button>
+          </div>
+        ) : task.status === 'verify' && onComplete ? (
           <div className="shrink-0 group/complete">
             <div className={`h-px ${merging ? 'bg-emerald/30' : 'bg-border-default group-hover/complete:bg-emerald/40'}`} />
             <button
@@ -711,7 +683,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               {merging ? 'Merging...' : (task.branch ? 'Merge & Complete' : 'Complete')}
             </button>
           </div>
-        )}
+        ) : null}
       </div>
 
       {selectedCommitHash && (

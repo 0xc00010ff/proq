@@ -10,6 +10,7 @@ import {
   sourceProqBranch,
   isGitRepo,
   getGitSyncStatus,
+  detectDefaultBranch,
   gitFetch,
   gitPush,
   gitPull,
@@ -70,6 +71,7 @@ export async function GET(_request: Request, { params }: Params) {
     current: currentName,
     detached: current.detached,
     branches,
+    defaultBranch: detectDefaultBranch(projectPath) || undefined,
     hasGit: true,
     ...syncStatus,
   });

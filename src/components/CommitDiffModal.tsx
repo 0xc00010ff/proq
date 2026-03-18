@@ -91,14 +91,6 @@ export function CommitDiffModal({ isOpen, onClose, projectId, commitHash, commit
             <span className="font-mono text-text-chrome leading-none">{parsedHash || commitHash.slice(0, 7)}</span>
           </span>
         </h3>
-        {files.length > 0 && (
-          <button
-            onClick={handleExpandCollapseAll}
-            className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
-          >
-            {allExpanded ? 'Collapse All' : 'Expand All'}
-          </button>
-        )}
         <button
           onClick={handleClose}
           className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
@@ -120,7 +112,15 @@ export function CommitDiffModal({ isOpen, onClose, projectId, commitHash, commit
               {body && (
                 <p className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed">{body}</p>
               )}
-              <FileStatSummary files={files} />
+              <div className="flex items-center justify-between">
+                <FileStatSummary files={files} />
+                <button
+                  onClick={handleExpandCollapseAll}
+                  className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
+                >
+                  {allExpanded ? 'Collapse All' : 'Expand All'}
+                </button>
+              </div>
             </div>
             {files.map((file, i) => {
               const key = `${i}:${file.fileName}`;
@@ -305,14 +305,6 @@ export function AllCommitsDiffModal({ isOpen, onClose, projectId, commits }: All
                 <span className="font-mono text-text-chrome leading-none">{selectedCommit?.hash}</span>
               </span>
             </h3>
-            {files.length > 0 && (
-              <button
-                onClick={handleExpandCollapseAll}
-                className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
-              >
-                {allExpanded ? 'Collapse All' : 'Expand All'}
-              </button>
-            )}
             <button
               onClick={handleClose}
               className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
@@ -334,7 +326,15 @@ export function AllCommitsDiffModal({ isOpen, onClose, projectId, commits }: All
                   {body && (
                     <p className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed">{body}</p>
                   )}
-                  <FileStatSummary files={files} />
+                  <div className="flex items-center justify-between">
+                    <FileStatSummary files={files} />
+                    <button
+                      onClick={handleExpandCollapseAll}
+                      className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
+                    >
+                      {allExpanded ? 'Collapse All' : 'Expand All'}
+                    </button>
+                  </div>
                 </div>
                 {files.map((file, i) => {
                   const key = `${i}:${file.fileName}`;

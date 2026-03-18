@@ -150,7 +150,7 @@ export function OnboardingCards({
               Welcome to proq
             </h2>
             <p className="text-sm text-text-tertiary">
-              Build something you'll love.
+              Build what you want.
             </p>
           </div>
         </div>

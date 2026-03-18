@@ -35,9 +35,42 @@ interface OpenTab {
   name: string;
   language: string;
   dirty: boolean;
+  preview: boolean;         // transient tab — replaced when clicking another file
   content: string;          // current content in editor
   savedContent: string;     // last saved content
   viewState: MonacoEditorType.ICodeEditorViewState | null;
+}
+
+// Persisted tab shape (no content/viewState — we reload on restore)
+interface PersistedTab {
+  path: string;
+  preview: boolean;
+}
+
+function getStorageKey(projectId: string) {
+  return `proq-code-tabs-${projectId}`;
+}
+
+function loadPersistedTabs(projectId: string): { tabs: PersistedTab[]; active: string | null } | null {
+  try {
+    const raw = localStorage.getItem(getStorageKey(projectId));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function persistTabs(projectId: string, tabs: OpenTab[], activePath: string | null) {
+  try {
+    const data = {
+      tabs: tabs.map((t) => ({ path: t.path, preview: t.preview })),
+      active: activePath,
+    };
+    localStorage.setItem(getStorageKey(projectId), JSON.stringify(data));
+  } catch {
+    // localStorage full or unavailable
+  }
 }
 
 const DEFAULT_TREE_WIDTH = 260;
@@ -141,6 +174,61 @@ export function CodeTab({ project }: CodeTabProps) {
       .catch(console.error);
   }, [project.path]);
 
+  // Restore persisted tabs on mount
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || !project.id || tree.length === 0) return;
+    restoredRef.current = true;
+    const saved = loadPersistedTabs(project.id);
+    if (!saved || saved.tabs.length === 0) return;
+    // Load each tab's content
+    Promise.all(
+      saved.tabs.map(async (st) => {
+        try {
+          const res = await fetch(`/api/files/read?path=${encodeURIComponent(st.path)}`);
+          const data = await res.json();
+          if (data.error) return null;
+          return {
+            path: st.path,
+            name: st.path.split('/').pop() || st.path,
+            language: data.language,
+            dirty: false,
+            preview: st.preview,
+            content: data.content,
+            savedContent: data.content,
+            viewState: null,
+          } as OpenTab;
+        } catch {
+          return null;
+        }
+      })
+    ).then((results) => {
+      const tabs = results.filter((t): t is OpenTab => t !== null);
+      if (tabs.length === 0) return;
+      setOpenTabs(tabs);
+      // Restore active tab
+      const active = saved.active && tabs.find((t) => t.path === saved.active)
+        ? saved.active
+        : tabs[0].path;
+      setActiveTabPath(active);
+      const activeTabData = tabs.find((t) => t.path === active);
+      if (activeTabData) {
+        setFileLanguage(activeTabData.language);
+        if (editorRef.current) {
+          isLoadingFileRef.current = true;
+          editorRef.current.setValue(activeTabData.content);
+          isLoadingFileRef.current = false;
+        }
+      }
+    });
+  }, [project.id, tree]);
+
+  // Persist tabs whenever they change
+  useEffect(() => {
+    if (!project.id || !restoredRef.current) return;
+    persistTabs(project.id, openTabs, activeTabPath);
+  }, [project.id, openTabs, activeTabPath]);
+
   // Cmd+P global shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -174,11 +262,11 @@ export function CodeTab({ project }: CodeTabProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: filePath, content }),
       });
-      // Update tab saved content
+      // Update tab saved content + pin on save
       setOpenTabs((tabs) =>
         tabs.map((t) =>
           t.path === filePath
-            ? { ...t, savedContent: content, dirty: false }
+            ? { ...t, savedContent: content, dirty: false, preview: false }
             : t
         )
       );
@@ -254,7 +342,14 @@ export function CodeTab({ project }: CodeTabProps) {
     [activeTabPath, saveCurrentViewState]
   );
 
-  // Load file (open or switch to tab)
+  // Pin a preview tab (make it permanent) — called on edit or double-click
+  const pinTab = useCallback((path: string) => {
+    setOpenTabs((tabs) =>
+      tabs.map((t) => (t.path === path ? { ...t, preview: false } : t))
+    );
+  }, []);
+
+  // Load file as a preview tab (single-click from tree). Replaces existing preview tab.
   const loadFile = useCallback(
     async (filePath: string) => {
       // If already open, switch to it
@@ -290,12 +385,20 @@ export function CodeTab({ project }: CodeTabProps) {
           name,
           language,
           dirty: false,
+          preview: true,  // opens as preview
           content,
           savedContent: content,
           viewState: null,
         };
 
-        setOpenTabs((tabs) => [...tabs, newTab]);
+        setOpenTabs((tabs) => {
+          // Replace existing preview tab (if any) with this new one
+          const hasPreview = tabs.some((t) => t.preview);
+          if (hasPreview) {
+            return tabs.map((t) => (t.preview ? newTab : t));
+          }
+          return [...tabs, newTab];
+        });
         setActiveTabPath(filePath);
         setFileLanguage(language);
 
@@ -310,6 +413,72 @@ export function CodeTab({ project }: CodeTabProps) {
       }
     },
     [switchToTab, saveCurrentViewState]
+  );
+
+  // Open file pinned (double-click from tree or Cmd+P)
+  const loadFilePinned = useCallback(
+    async (filePath: string) => {
+      // If already open, pin it and switch
+      const existing = tabsRef.current.find((t) => t.path === filePath);
+      if (existing) {
+        pinTab(filePath);
+        switchToTab(filePath);
+        return;
+      }
+
+      // Save current view state before switching
+      saveCurrentViewState();
+      setSaveStatus('idle');
+
+      try {
+        const res = await fetch(
+          `/api/files/read?path=${encodeURIComponent(filePath)}`
+        );
+        const data = await res.json();
+        const name = filePath.split('/').pop() || filePath;
+        let content: string;
+        let language: string;
+
+        if (data.error) {
+          content = `// Error: ${data.error}`;
+          language = 'plaintext';
+        } else {
+          content = data.content;
+          language = data.language;
+        }
+
+        const newTab: OpenTab = {
+          path: filePath,
+          name,
+          language,
+          dirty: false,
+          preview: false,  // pinned immediately
+          content,
+          savedContent: content,
+          viewState: null,
+        };
+
+        setOpenTabs((tabs) => {
+          // Replace existing preview tab if it exists, otherwise append
+          const hasPreview = tabs.some((t) => t.preview);
+          if (hasPreview) {
+            return tabs.map((t) => (t.preview ? newTab : t));
+          }
+          return [...tabs, newTab];
+        });
+        setActiveTabPath(filePath);
+        setFileLanguage(language);
+
+        if (editorRef.current) {
+          isLoadingFileRef.current = true;
+          editorRef.current.setValue(content);
+          isLoadingFileRef.current = false;
+        }
+      } catch {
+        // Failed to load
+      }
+    },
+    [pinTab, switchToTab, saveCurrentViewState]
   );
 
   // Close a tab
@@ -417,7 +586,7 @@ export function CodeTab({ project }: CodeTabProps) {
         }
       );
 
-      // Track content changes for dirty state (no auto-save)
+      // Track content changes for dirty state + auto-pin preview tabs on edit
       editor.onDidChangeModelContent(() => {
         if (isLoadingFileRef.current) return;
         const currentPath = activeTabPathRef.current;
@@ -427,7 +596,8 @@ export function CodeTab({ project }: CodeTabProps) {
           tabs.map((t) => {
             if (t.path !== currentPath) return t;
             const dirty = value !== t.savedContent;
-            return { ...t, content: value, dirty };
+            // Pin preview tab on edit
+            return { ...t, content: value, dirty, preview: false };
           })
         );
       });
@@ -435,14 +605,14 @@ export function CodeTab({ project }: CodeTabProps) {
     [saveFile]
   );
 
-  // Palette file selection
+  // Palette file selection — opens pinned (intentional open)
   const handlePaletteSelect = useCallback(
     (filePath: string) => {
       setShowPalette(false);
       setPaletteQuery('');
-      loadFile(filePath);
+      loadFilePinned(filePath);
     },
-    [loadFile]
+    [loadFilePinned]
   );
 
   return (
@@ -565,6 +735,7 @@ export function CodeTab({ project }: CodeTabProps) {
               <div
                 key={tab.path}
                 onClick={() => switchToTab(tab.path)}
+                onDoubleClick={() => pinTab(tab.path)}
                 onMouseDown={(e) => handleTabMouseDown(tab.path, e)}
                 className={`group flex items-center gap-1.5 px-3 h-[32px] text-xs cursor-pointer border-r border-border-default select-none shrink-0 ${
                   isActive
@@ -575,7 +746,9 @@ export function CodeTab({ project }: CodeTabProps) {
                 {tab.dirty && (
                   <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 flex-shrink-0" />
                 )}
-                <span className="truncate max-w-[140px] font-mono text-[11px]">{tab.name}</span>
+                <span className={`truncate max-w-[140px] font-mono text-[11px] ${tab.preview ? 'italic' : ''}`}>
+                  {tab.name}
+                </span>
                 <button
                   onClick={(e) => closeTab(tab.path, e)}
                   className={`flex-shrink-0 p-0.5 rounded hover:bg-surface-hover ${
@@ -612,6 +785,7 @@ export function CodeTab({ project }: CodeTabProps) {
               nodes={tree}
               selectedPath={activeTabPath}
               onSelectFile={loadFile}
+              onDoubleClickFile={loadFilePinned}
             />
           </div>
         </div>

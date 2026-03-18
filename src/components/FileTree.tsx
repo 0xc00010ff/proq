@@ -25,6 +25,7 @@ interface FileTreeProps {
   nodes: TreeNode[];
   selectedPath: string | null;
   onSelectFile: (path: string) => void;
+  onDoubleClickFile?: (path: string) => void;
 }
 
 interface TreeNodeItemProps {
@@ -32,6 +33,7 @@ interface TreeNodeItemProps {
   depth: number;
   selectedPath: string | null;
   onSelectFile: (path: string) => void;
+  onDoubleClickFile?: (path: string) => void;
 }
 
 function getFileIcon(name: string) {
@@ -80,7 +82,7 @@ function getFileIcon(name: string) {
   }
 }
 
-function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemProps) {
+function TreeNodeItem({ node, depth, selectedPath, onSelectFile, onDoubleClickFile }: TreeNodeItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   const handleClick = useCallback(() => {
@@ -91,12 +93,19 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
     }
   }, [node, onSelectFile]);
 
+  const handleDoubleClick = useCallback(() => {
+    if (node.type === 'file' && onDoubleClickFile) {
+      onDoubleClickFile(node.path);
+    }
+  }, [node, onDoubleClickFile]);
+
   const isSelected = node.path === selectedPath;
 
   return (
     <div>
       <button
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[12px] hover:bg-surface-hover/40 rounded-sm ${
           isSelected
             ? 'bg-lazuli/15 text-lazuli hover:bg-lazuli/20'
@@ -135,6 +144,7 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
               depth={depth + 1}
               selectedPath={selectedPath}
               onSelectFile={onSelectFile}
+              onDoubleClickFile={onDoubleClickFile}
             />
           ))}
         </div>
@@ -143,7 +153,7 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile }: TreeNodeItemP
   );
 }
 
-export function FileTree({ nodes, selectedPath, onSelectFile }: FileTreeProps) {
+export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile }: FileTreeProps) {
   return (
     <div className="py-1 overflow-y-auto h-full text-[12px] select-none">
       {nodes.map((node) => (
@@ -153,6 +163,7 @@ export function FileTree({ nodes, selectedPath, onSelectFile }: FileTreeProps) {
           depth={0}
           selectedPath={selectedPath}
           onSelectFile={onSelectFile}
+          onDoubleClickFile={onDoubleClickFile}
         />
       ))}
     </div>

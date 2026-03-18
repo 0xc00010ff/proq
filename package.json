@@ -1,6 +1,6 @@
 {
   "name": "proq",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "scripts": {
     "dev": "PORT=${PORT:-1337} next dev",

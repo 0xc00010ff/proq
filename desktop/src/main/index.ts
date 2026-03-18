@@ -36,13 +36,12 @@ let healthInterval: ReturnType<typeof setInterval> | null = null
 let consecutiveFailures = 0
 let isRecovering = false
 
-let _logPath: string | null = null
 function getLogPath(): string {
-  if (!_logPath) {
-    _logPath = join(getConfig().proqPath, 'data', 'desktop.log')
-    try { fs.mkdirSync(join(getConfig().proqPath, 'data'), { recursive: true }) } catch { /* */ }
+  try {
+    return join(app.getPath('userData'), 'desktop.log')
+  } catch {
+    return join(getConfig().proqPath, 'data', 'desktop.log')
   }
-  return _logPath
 }
 
 function log(msg: string): void {

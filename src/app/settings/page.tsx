@@ -201,7 +201,7 @@ export default function SettingsPage() {
                 and subagents you already have.
               </p>
               <p className="text-xs text-text-tertiary mb-1">
-                This is version 0.3.1
+                This is version 0.3.2
               </p>
               <p className="text-xs text-text-tertiary">
                 Vibed with ♥ by{" "}

@@ -22,6 +22,7 @@ export interface GitStatus {
   ahead: number;
   behind: number;
   dirty: number;
+  aheadOfMain?: number;
 }
 
 interface TopBarProps {
@@ -378,8 +379,17 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               </DropdownMenu>
             )}
 
+            {/* Preview branch: show commits ahead of default branch */}
+            {isOnPreviewBranch && gitStatus?.aheadOfMain != null && (
+              <span className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome px-2.5 py-1.5">
+                {gitStatus.aheadOfMain === 0
+                  ? 'No new commits'
+                  : `${gitStatus.aheadOfMain} ${gitStatus.aheadOfMain === 1 ? 'commit' : 'commits'}`}
+              </span>
+            )}
+
             {/* Unified history dropdown (or direct modal when up to date) */}
-            {gitStatus?.hasRemote && isUpToDate && (
+            {!isOnPreviewBranch && gitStatus?.hasRemote && isUpToDate && (
               <button
                 onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
                 className={`flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary ${historyTextColor} hover:bg-surface-hover overflow-hidden`}
@@ -390,7 +400,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 </span>
               </button>
             )}
-            {gitStatus?.hasRemote && !isUpToDate && (
+            {!isOnPreviewBranch && gitStatus?.hasRemote && !isUpToDate && (
               <DropdownMenu onOpenChange={(open) => { if (open) { setAheadCommits(null); setBehindCommits(null); fetchHistoryCommits(); setSyncError(null); } }}>
                 <DropdownMenuTrigger asChild>
                   <button

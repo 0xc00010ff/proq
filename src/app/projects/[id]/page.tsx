@@ -102,6 +102,7 @@ export default function ProjectPage() {
           ahead: data.ahead || 0,
           behind: data.behind || 0,
           dirty: data.dirty || 0,
+          aheadOfMain: data.aheadOfMain,
         };
         setCurrentBranch(prev => prev === newBranch ? prev : newBranch);
         setBranches(prev => JSON.stringify(prev) === JSON.stringify(newBranches) ? prev : newBranches);

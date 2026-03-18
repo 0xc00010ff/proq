@@ -90,7 +90,7 @@ function GridCell({
         </button>
       </div>
       {/* Agent output area */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col">
         {isStructured ? (
           <StructuredPane
             taskId={task.id}
@@ -221,7 +221,7 @@ export function GridView({
               // For 5 tasks, last item in row 2 should center by spanning remaining cols
               // For 3 tasks narrow: last item spans 2 cols
               return (
-                <div key={task.id} style={style} className="min-h-0">
+                <div key={task.id} style={style} className="min-h-0 h-full">
                   <GridCell
                     task={task}
                     projectId={projectId}

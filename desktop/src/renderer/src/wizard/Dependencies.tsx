@@ -40,21 +40,29 @@ export function Dependencies({
   })
   const [installing, setInstalling] = useState<InstallingState>({})
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+  const [rechecking, setRechecking] = useState(false)
 
   const isMac = navigator.platform.toLowerCase().includes('mac')
 
-  const runChecks = useCallback(async (): Promise<DepState> => {
-    const [node, claude, xcode] = await Promise.all([
-      window.proqDesktop.checkNode(),
-      window.proqDesktop.checkClaude(),
-      window.proqDesktop.checkXcode()
+  const runChecks = useCallback(async (isRecheck = false): Promise<DepState> => {
+    if (isRecheck) setRechecking(true)
+    const [results] = await Promise.all([
+      Promise.all([
+        window.proqDesktop.checkNode(),
+        window.proqDesktop.checkClaude(),
+        window.proqDesktop.checkXcode()
+      ]),
+      // Minimum visible duration for rechecks
+      isRecheck ? new Promise((r) => setTimeout(r, 500)) : Promise.resolve()
     ])
+    const [node, claude, xcode] = results
     const state: DepState = { xcode, node, claude }
     setDeps(state)
     if (claude.ok && claude.path) {
       setClaudePath(claude.path)
     }
     setPendingMessage(null)
+    setRechecking(false)
     return state
   }, [setClaudePath])
 
@@ -100,36 +108,50 @@ export function Dependencies({
     result: CheckResult | null,
     onInstall?: () => Promise<void>,
     detail?: string
-  ): React.JSX.Element => (
-    <div className="check-item" key={key}>
-      <div
-        className={`check-icon ${result === null ? 'loading' : result.ok ? 'success' : 'error'}`}
-      >
-        {result === null ? '...' : result.ok ? '\u2713' : '\u2717'}
-      </div>
-      <div className="check-label">
-        {label} {result?.version ? `v${result.version}` : ''}
-        {result && !result.ok && result.error !== 'pending' && (
-          <div className="check-detail">{detail || result.error}</div>
-        )}
-        {result?.ok && result.path && (
-          <div className="check-detail">{result.path}</div>
-        )}
-      </div>
-      {result && !result.ok && onInstall && (
-        <div className="check-action">
-          <button
-            className="btn-secondary"
-            onClick={onInstall}
-            disabled={installing[key]}
-            style={{ padding: '6px 14px', fontSize: 12 }}
-          >
-            {installing[key] ? 'Installing...' : 'Install'}
-          </button>
+  ): React.JSX.Element => {
+    const detailText = result === null
+      ? 'Checking...'
+      : result.ok
+        ? (result.path || '')
+        : (result.error !== 'pending' ? (detail || result.error || '') : '')
+
+    const showSpinner = result === null || rechecking
+
+    return (
+      <div className="check-item" key={key} style={{ minHeight: 56 }}>
+        <div
+          className={`check-icon ${showSpinner ? 'loading' : result.ok ? 'success' : 'error'}`}
+        >
+          {showSpinner
+            ? <div style={{
+                width: 14, height: 14,
+                border: '2px solid var(--border)',
+                borderTopColor: 'var(--text-muted)',
+                borderRadius: '50%',
+                animation: 'spin 1.5s linear infinite'
+              }} />
+            : result.ok ? '\u2713' : '\u2717'
+          }
         </div>
-      )}
-    </div>
-  )
+        <div className="check-label">
+          {label} {result?.version ? `v${result.version}` : ''}
+          {detailText && <div className="check-detail">{detailText}</div>}
+        </div>
+        {result && !result.ok && onInstall && (
+          <div className="check-action">
+            <button
+              className="btn-secondary"
+              onClick={onInstall}
+              disabled={installing[key]}
+              style={{ padding: '6px 14px', fontSize: 12 }}
+            >
+              {installing[key] ? 'Installing...' : 'Install'}
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -140,7 +162,7 @@ export function Dependencies({
         </p>
 
         {isMac &&
-          depRow('xcode', 'Xcode Command Line Tools', deps.xcode, handleInstallXcode)}
+          depRow('xcode', 'Xcode Command Line Tools (git)', deps.xcode, handleInstallXcode)}
 
         {depRow('node', 'Node.js', deps.node, undefined,
           deps.node?.error
@@ -183,11 +205,11 @@ export function Dependencies({
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             <button
               className="btn-secondary"
-              onClick={runChecks}
-              disabled={anyInstalling}
+              onClick={() => runChecks(true)}
+              disabled={anyInstalling || rechecking}
               style={{ padding: '6px 14px', fontSize: 12 }}
             >
-              Re-check All
+              {rechecking ? 'Checking...' : 'Re-check All'}
             </button>
           </div>
         )}

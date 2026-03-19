@@ -46,21 +46,21 @@ export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Ele
               className={`radio-option ${!devMode ? 'selected' : ''}`}
               onClick={(): void => handleModeChange(false)}
             >
-              <div className="label">Production</div>
-              <div className="desc">Official proq, fast and reliable</div>
+              <div className="label">Default</div>
+              <div className="desc">Fast and reliable</div>
             </div>
             <div
               className={`radio-option ${devMode ? 'selected' : ''}`}
               onClick={(): void => handleModeChange(true)}
             >
               <div className="label">Development</div>
-              <div className="desc">Hot reload, to edit proq itself</div>
+              <div className="desc">For editing proq itself</div>
             </div>
           </div>
           <div className="field-hint" style={{ marginTop: 8 }}>
             {devMode
-              ? 'Uses npm run dev — changes to proq live-reload. Live-compile will make the app slower though.'
-              : 'Uses the pre-compiled proq server'}
+              ? 'Uses npm run dev — changes to proq live-reload, but the app will be slower'
+              : 'Uses a production build of proq'}
           </div>
         </div>
 

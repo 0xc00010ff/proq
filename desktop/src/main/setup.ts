@@ -18,10 +18,15 @@ export async function checkNodeVersion(): Promise<CheckResult> {
     const { stdout } = await execFileAsync('node', ['-v'])
     const version = stdout.trim().replace(/^v/, '')
     const major = parseInt(version.split('.')[0], 10)
+    let nodePath: string | undefined
+    try {
+      const { stdout: whichOut } = await execFileAsync('which', ['node'])
+      nodePath = whichOut.trim()
+    } catch { /* not critical */ }
     if (major >= 20) {
-      return { ok: true, version }
+      return { ok: true, version, path: nodePath }
     }
-    return { ok: false, version, error: `Node.js ${version} found — v20+ required` }
+    return { ok: false, version, path: nodePath, error: `Node.js ${version} found — v20+ required` }
   } catch {
     return { ok: false, error: 'Node.js not found' }
   }
@@ -132,8 +137,8 @@ export async function checkXcodeTools(): Promise<CheckResult> {
     return { ok: true, version: 'n/a' }
   }
   try {
-    await execFileAsync('xcode-select', ['-p'])
-    return { ok: true }
+    const { stdout } = await execFileAsync('xcode-select', ['-p'])
+    return { ok: true, path: stdout.trim() }
   } catch {
     return { ok: false, error: 'Xcode Command Line Tools not installed' }
   }

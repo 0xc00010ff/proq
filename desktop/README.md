@@ -51,8 +51,8 @@ When running `npm run dev`, the `PROQ_DEV=1` environment variable is set automat
 From `main`, after merging from `develop`:
 
 ```bash
-npm run release           # patch bump — web content only (tag + push)
-npm run release:desktop   # minor bump — shell release (tag + build + GitHub Release + push)
+npm run deploy    # patch bump — web content only (tag + push)
+npm run release   # minor bump — shell release (tag + build + GitHub Release + push)
 ```
 
 ## Stack

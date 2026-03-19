@@ -203,8 +203,8 @@ Tasks have fields specifically for AI agent use:
 - **Branching**: daily work on `develop`, merge to `main` via PR for releases
 - **Dev mode**: `npm run dev` sets `PROQ_DEV=1` — disables all update checks (web + shell)
 - **`isDevMode()`** in `desktop/src/main/config.ts` — checks `PROQ_DEV` env or `config.devMode`; gates all update logic
-- **Release (web)**: `npm run release` — patch bump, tag, push. Users get it via git pull on next launch
-- **Release (shell)**: `npm run release:desktop` — minor bump, tag, build Electron, publish GitHub Release
+- **Deploy (web)**: `npm run deploy` — patch bump, merge develop → main, tag, push. Users get it via git pull on next launch
+- **Release (shell)**: `npm run release` — minor bump, build Electron, merge develop → main, tag, publish GitHub Release
 - **Updates on launch**: `showSplashAndStartServer()` checks for web updates behind the splash screen before starting the server
 - **Shell updates**: `electron-updater` checks GitHub Releases for newer `.app` versions (`desktop/src/main/shell-updater.ts`)
 

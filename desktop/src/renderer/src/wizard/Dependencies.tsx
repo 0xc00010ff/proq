@@ -16,7 +16,6 @@ interface DependenciesProps {
 
 interface DepState {
   xcode: CheckResult | null
-  homebrew: CheckResult | null
   node: CheckResult | null
   claude: CheckResult | null
 }
@@ -26,7 +25,7 @@ type DepKey = keyof DepState
 type InstallingState = Partial<Record<DepKey, boolean>>
 
 // Dependencies that open external dialogs — user must re-check manually
-const INTERACTIVE_DEPS = new Set<DepKey>(['xcode', 'homebrew'])
+const INTERACTIVE_DEPS = new Set<DepKey>(['xcode'])
 
 export function Dependencies({
   claudePath,
@@ -36,24 +35,21 @@ export function Dependencies({
 }: DependenciesProps): React.JSX.Element {
   const [deps, setDeps] = useState<DepState>({
     xcode: null,
-    homebrew: null,
     node: null,
     claude: null
   })
   const [installing, setInstalling] = useState<InstallingState>({})
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
-  const [installAllActive, setInstallAllActive] = useState(false)
 
   const isMac = navigator.platform.toLowerCase().includes('mac')
 
   const runChecks = useCallback(async (): Promise<DepState> => {
-    const [node, claude, xcode, homebrew] = await Promise.all([
+    const [node, claude, xcode] = await Promise.all([
       window.proqDesktop.checkNode(),
       window.proqDesktop.checkClaude(),
-      window.proqDesktop.checkXcode(),
-      window.proqDesktop.checkHomebrew()
+      window.proqDesktop.checkXcode()
     ])
-    const state: DepState = { xcode, homebrew, node, claude }
+    const state: DepState = { xcode, node, claude }
     setDeps(state)
     if (claude.ok && claude.path) {
       setClaudePath(claude.path)
@@ -82,20 +78,6 @@ export function Dependencies({
     setPendingMessage('Complete the Xcode dialog, then click Re-check All')
   }
 
-  const handleInstallHomebrew = async (): Promise<void> => {
-    setIsInstalling('homebrew', true)
-    await window.proqDesktop.installHomebrew()
-    setIsInstalling('homebrew', false)
-    setPendingMessage('Complete the Homebrew install in Terminal, then click Re-check All')
-  }
-
-  const handleInstallNode = async (): Promise<void> => {
-    setIsInstalling('node', true)
-    const result = await window.proqDesktop.installNode()
-    setDep('node', result)
-    setIsInstalling('node', false)
-  }
-
   const handleInstallClaude = async (): Promise<void> => {
     setIsInstalling('claude', true)
     const result = await window.proqDesktop.installClaude()
@@ -104,50 +86,11 @@ export function Dependencies({
     setIsInstalling('claude', false)
   }
 
-  // Install All — chains installs in dependency order, pausing for interactive ones
-  const handleInstallAll = async (): Promise<void> => {
-    setInstallAllActive(true)
-
-    // 1. Xcode CLT
-    if (isMac && deps.xcode && !deps.xcode.ok) {
-      await handleInstallXcode()
-      // Wait for user to re-check before continuing
-      setInstallAllActive(false)
-      setPendingMessage(
-        'Complete the Xcode install dialog, then click Re-check All to continue installing remaining dependencies'
-      )
-      return
-    }
-
-    // 2. Homebrew
-    if (deps.homebrew && !deps.homebrew.ok) {
-      await handleInstallHomebrew()
-      setInstallAllActive(false)
-      setPendingMessage(
-        'Complete the Homebrew install in Terminal, then click Re-check All to continue installing remaining dependencies'
-      )
-      return
-    }
-
-    // 3. Node.js (needs Homebrew)
-    if (deps.node && !deps.node.ok && deps.homebrew?.ok) {
-      await handleInstallNode()
-    }
-
-    // 4. Claude CLI (needs Node/npm)
-    const currentNode = deps.node
-    if (deps.claude && !deps.claude.ok && currentNode?.ok) {
-      await handleInstallClaude()
-    }
-
-    setInstallAllActive(false)
-  }
-
   const canProceed = deps.node?.ok
-  const allChecked = deps.node !== null && deps.claude !== null && deps.xcode !== null && deps.homebrew !== null
+  const allChecked = deps.node !== null && deps.claude !== null && deps.xcode !== null
   const anyMissing =
     allChecked &&
-    (!deps.node?.ok || (isMac && !deps.xcode?.ok) || !deps.homebrew?.ok || !deps.claude?.ok)
+    (!deps.node?.ok || (isMac && !deps.xcode?.ok) || !deps.claude?.ok)
   const anyInstalling = Object.values(installing).some(Boolean)
 
   // Dependency row renderer
@@ -178,7 +121,7 @@ export function Dependencies({
           <button
             className="btn-secondary"
             onClick={onInstall}
-            disabled={installing[key] || installAllActive}
+            disabled={installing[key]}
             style={{ padding: '6px 14px', fontSize: 12 }}
           >
             {installing[key] ? 'Installing...' : 'Install'}
@@ -199,12 +142,8 @@ export function Dependencies({
         {isMac &&
           depRow('xcode', 'Xcode Command Line Tools', deps.xcode, handleInstallXcode)}
 
-        {depRow('homebrew', 'Homebrew', deps.homebrew, handleInstallHomebrew)}
-
-        {depRow('node', 'Node.js', deps.node, handleInstallNode,
-          deps.node && !deps.node.ok && !deps.homebrew?.ok
-            ? 'Install Homebrew first'
-            : deps.node?.error
+        {depRow('node', 'Node.js', deps.node, undefined,
+          deps.node?.error
         )}
 
         {depRow('claude', 'Claude Code CLI', deps.claude, handleInstallClaude,
@@ -250,16 +189,6 @@ export function Dependencies({
             >
               Re-check All
             </button>
-            {anyMissing && (
-              <button
-                className="btn-secondary"
-                onClick={handleInstallAll}
-                disabled={anyInstalling || installAllActive}
-                style={{ padding: '6px 14px', fontSize: 12 }}
-              >
-                {installAllActive ? 'Installing...' : 'Install All'}
-              </button>
-            )}
           </div>
         )}
       </div>

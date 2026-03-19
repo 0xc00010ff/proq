@@ -151,11 +151,6 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:check-node', () => checkNodeVersion())
   ipcMain.handle('setup:check-claude', () => checkClaudeCli())
   ipcMain.handle('setup:check-xcode', () => checkXcodeTools())
-  ipcMain.handle('setup:check-homebrew', () => checkHomebrew())
-  ipcMain.handle('setup:install-homebrew', () => installHomebrew())
-  ipcMain.handle('setup:install-node', () =>
-    installNode((line) => safeSend('setup:log', line))
-  )
   ipcMain.handle('setup:install-xcode', () => installXcodeTools())
   ipcMain.handle('setup:install-claude', () =>
     installClaude((line) => safeSend('setup:log', line))

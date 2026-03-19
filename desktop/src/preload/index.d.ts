@@ -28,9 +28,6 @@ interface ProqDesktopAPI {
   checkNode: () => Promise<CheckResult>
   checkClaude: () => Promise<CheckResult>
   checkXcode: () => Promise<CheckResult>
-  checkHomebrew: () => Promise<CheckResult>
-  installHomebrew: () => Promise<CheckResult>
-  installNode: () => Promise<CheckResult>
   installXcode: () => Promise<CheckResult>
   installClaude: () => Promise<CheckResult>
   cloneRepo: (targetDir: string, overwrite?: boolean) => Promise<{ ok: boolean; error?: string }>

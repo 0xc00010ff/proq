@@ -263,6 +263,20 @@ Electron App
 
 Key design: the server runs via `npm run start` (or `dev`), not inside Electron's Node. This avoids native module (node-pty) rebuild issues entirely. Config is stored separately in the OS app data directory (`~/Library/Application Support/proq-desktop/config.json` on macOS).
 
+### Updates
+
+Two independent update paths:
+
+- **Web content** — `git pull --rebase origin main` + `npm install` + `npm run build`. Runs automatically on launch (behind splash screen) and checked hourly in the background. Controlled by `updater.ts` (git ops) and `update-scheduler.ts` (hourly timer).
+- **Shell** — `electron-updater` checks GitHub Releases for a newer `.app` version. Managed by `shell-updater.ts`. Downloads in the background, prompts user to restart via Settings.
+
+All update logic is gated by `isDevMode()` (from `config.ts`), which checks `process.env.PROQ_DEV` or `config.devMode`. When either is true, no updates run.
+
+### Versioning
+
+- Patch bumps (0.5.0 → 0.5.1) — web content releases. Tag on main, no build artifact. Users receive via git pull on next launch.
+- Minor bumps (0.5.x → 0.6.0) — shell releases. Tag + Electron build + GitHub Release. Users receive via `electron-updater`.
+
 For full details, see the [desktop README](../desktop/README.md).
 
 ## Git Integration

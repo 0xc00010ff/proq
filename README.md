@@ -21,7 +21,7 @@ Create a task → proq spins up an agent, gives it an isolated worktree, tracks 
 
 The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops without managing a grid of terminals.
 
-Free, no signup, local-only, and works with whatever agent config, MCPs, and tools you already use with Claude.
+Free, no signup, and works with whatever agent config, MCPs, and tools you already use with Claude.
 
 # Download
 
@@ -29,13 +29,13 @@ Free, no signup, local-only, and works with whatever agent config, MCPs, and too
 
 | Platform | Link |
 |---|---|
-| macOS (Apple Silicon) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest/download/proq-desktop-0.3.7.dmg) |
+| macOS (Apple Silicon) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest/download/proq-desktop.dmg) |
 
 Just open it and start cooking.
 
 # Run Locally
 
-Requires **Node.js 20+** and the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) on your PATH.
+Requires **Node.js 18+** and the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) on your PATH.
 
 ```bash
 git clone https://github.com/0xc00010ff/proq.git

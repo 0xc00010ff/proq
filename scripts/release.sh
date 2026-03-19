@@ -96,7 +96,6 @@ git push origin main --tags
 # ── 5. Publish to GitHub Releases ────────────────────────
 echo ""
 echo "Publishing to GitHub Releases..."
-export GH_TOKEN=$(gh auth token)
 cd desktop
 npm run build:mac -- --publish always
 cd ..

@@ -1,6 +1,6 @@
 {
   "name": "proq-desktop",
-  "version": "0.5.0",
+  "version": "0.4.2",
   "description": "proq — agentic coding IDE",
   "main": "./out/main/index.js",
   "author": "proq",
@@ -9,9 +9,9 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
-    "build:mac": "source .env 2>/dev/null; electron-vite build && electron-builder --mac",
+    "build:mac": "set -a; source .env 2>/dev/null; set +a; electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "build:all": "source .env 2>/dev/null; electron-vite build && electron-builder -ml"
+    "build:all": "set -a; source .env 2>/dev/null; set +a; electron-vite build && electron-builder -ml"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

@@ -24,7 +24,10 @@ CURRENT=$(node -p "require('./package.json').version")
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 NEXT="$MAJOR.$MINOR.$((PATCH + 1))"
 
-echo "Deploy v$NEXT (web content)"
+echo "Deploy v$NEXT"
+echo "App content only."
+echo "Users will see small notice to update in settings."
+echo "Will not make a new desktop app release."
 echo ""
 read -p "Continue? [y/N] " -n 1 -r
 echo ""

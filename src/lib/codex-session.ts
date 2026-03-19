@@ -102,8 +102,7 @@ function broadcast(session: CodexRuntimeSession, msg: object) {
   const data = JSON.stringify(msg);
   for (const ws of session.clients) {
     try {
-      if ((ws as unknown as { readyState: number }).readyState === 1)
-        ws.send(data);
+      if (ws.readyState === 1) ws.send(data);
     } catch {
       // client gone
     }
@@ -298,7 +297,7 @@ async function runTurn(
       closeUpdate as Parameters<typeof updateTask>[2],
     );
     notify(
-      `✅ *${(task?.title || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
+      `✅ *${(task?.title || task?.description || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
     );
     emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
   } else {
@@ -344,7 +343,7 @@ export async function startSession(
   };
   sessions.set(taskId, session);
 
-  appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
+  appendBlock(session, { type: "status", subtype: "init", model: model || undefined });
 
   const fullPrompt = options?.proqSystemPrompt
     ? `${options.proqSystemPrompt}\n\n---\n\n${prompt}`
@@ -405,10 +404,10 @@ export async function continueSession(
       .filter((a) => a.filePath && !a.type.startsWith("image/"))
       .map((a) => a.filePath!);
     if (imageFiles.length > 0) {
-      promptText += `\n\n## Attached Images\n${imageFiles.map((f) => `- ${f}`).join("\n")}`;
+      promptText += `\n\n## Attached Images\nThe following image files are attached to this message. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
     if (otherFiles.length > 0) {
-      promptText += `\n\n## Attached Files\n${otherFiles.map((f) => `- ${f}`).join("\n")}`;
+      promptText += `\n\n## Attached Files\nThe following files are attached to this message. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
   }
 
@@ -426,7 +425,7 @@ export async function continueSession(
   const model = settings.codexModel || null;
   const startTime = Date.now();
 
-  appendBlock(session, { type: "status", subtype: "init", model: model ?? "default" });
+  appendBlock(session, { type: "status", subtype: "init", model: model || undefined });
 
   const codexBin = resolveCodexBinaryPath();
   const codex = new Codex({
@@ -458,7 +457,7 @@ export async function continueSession(
   const systemParts = [proqSystemPrompt];
   if (contextParts.length > 0) {
     systemParts.push(
-      `## Previous work on this task\n${contextParts.join("\n\n")}`,
+      `## Previous work on this task\nThis task was previously worked on by an agent. Here is the context from that work:\n\n${contextParts.join("\n\n")}`,
     );
   }
 

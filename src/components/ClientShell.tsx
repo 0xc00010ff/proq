@@ -115,6 +115,18 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  // Sync theme across windows (storage event fires in OTHER windows on same origin)
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const isDark = e.newValue === 'dark' || (e.newValue !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', isDark);
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+
   return (
     <ProjectsProvider>
       <WorkbenchTabsProvider>

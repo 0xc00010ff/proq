@@ -11,9 +11,6 @@ import {
   checkNodeVersion,
   checkClaudeCli,
   checkXcodeTools,
-  checkHomebrew,
-  installHomebrew,
-  installNode,
   installXcodeTools,
   installClaude,
   cloneProq,
@@ -295,8 +292,11 @@ async function recoverServer(): Promise<void> {
   isRecovering = true
   try {
     const result = await restartServer()
-    if (result.ok && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.loadURL(`http://localhost:${config.port}`)
+    if (result.ok) {
+      const url = `http://localhost:${config.port}`
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.loadURL(url)
+      }
     }
   } finally {
     isRecovering = false
@@ -330,25 +330,10 @@ function stopHealthMonitor(): void {
 
 // ── App Lifecycle ─────────────────────────────────────────────────────
 
-function transitionToApp(): void {
+function createAppWindow(): BrowserWindow {
   const config = getConfig()
-
-  // Close previous window immediately — don't leave wizard/splash visible
-  isTransitioning = true
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.close()
-  }
-
   const appWindow = createWindow('app')
-  mainWindow = appWindow
-  isTransitioning = false
   appWindow.loadURL(`http://localhost:${config.port}`)
-
-  appWindow.webContents.once('did-finish-load', () => {
-    startHealthMonitor()
-    startUpdateScheduler(appWindow)
-    onServerExit(() => recoverServer())
-  })
 
   // Retry loading if the page fails (e.g. Cmd-R while server is slow)
   appWindow.webContents.on('did-fail-load', (_e, _code, _desc, url, isMainFrame) => {
@@ -363,6 +348,26 @@ function transitionToApp(): void {
   appWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http')) shell.openExternal(url)
     return { action: 'deny' }
+  })
+
+  return appWindow
+}
+
+function transitionToApp(): void {
+  // Close previous window immediately — don't leave wizard/splash visible
+  isTransitioning = true
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.close()
+  }
+
+  const appWindow = createAppWindow()
+  mainWindow = appWindow
+  isTransitioning = false
+
+  appWindow.webContents.once('did-finish-load', () => {
+    startHealthMonitor()
+    startUpdateScheduler(appWindow)
+    onServerExit(() => recoverServer())
   })
 }
 
@@ -435,8 +440,8 @@ app.whenReady().then(() => {
     app.dock.setIcon(getIcon())
     nativeTheme.on('updated', () => {
       if (app.dock) app.dock.setIcon(getIcon())
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.setIcon(getIcon())
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.setIcon(getIcon())
       }
     })
   }
@@ -515,6 +520,19 @@ app.whenReady().then(() => {
             { role: 'quit' }
           ]
         },
+        {
+          label: 'File',
+          submenu: [
+            {
+              label: 'New Window',
+              accelerator: 'CmdOrCtrl+N',
+              click: (): void => {
+                const config = getConfig()
+                if (config.setupComplete) createAppWindow()
+              }
+            }
+          ]
+        },
         { role: 'editMenu' },
         { role: 'viewMenu' },
         { role: 'windowMenu' }
@@ -534,19 +552,24 @@ app.whenReady().then(() => {
     const healthy = await healthCheck(config.port)
     if (!healthy) {
       recoverServer()
-    } else if (mainWindow && !mainWindow.isDestroyed()) {
-      try {
-        const alive = await mainWindow.webContents.executeJavaScript(
-          'document.body?.children.length > 0'
-        )
-        if (!alive) mainWindow.loadURL(`http://localhost:${config.port}`)
-      } catch {
-        mainWindow.loadURL(`http://localhost:${config.port}`)
+    } else {
+      const url = `http://localhost:${config.port}`
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          const alive = await win.webContents.executeJavaScript(
+            'document.body?.children.length > 0'
+          )
+          if (!alive) win.loadURL(url)
+        } catch {
+          win.loadURL(url)
+        }
       }
     }
     startHealthMonitor()
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      startUpdateScheduler(mainWindow)
+    const firstWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
+    if (firstWindow) {
+      startUpdateScheduler(firstWindow)
     }
   })
 
@@ -555,7 +578,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  if (!isResetting && !isTransitioning) app.quit()
+  if (process.platform !== 'darwin' && !isResetting && !isTransitioning) app.quit()
 })
 
 app.on('before-quit', async () => {
@@ -567,6 +590,8 @@ app.on('before-quit', async () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    launchApp()
+    const config = getConfig()
+    if (config.setupComplete) createAppWindow()
+    else launchApp()
   }
 })

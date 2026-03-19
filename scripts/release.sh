@@ -1,20 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage: ./scripts/release.sh [version|major|minor|patch]
-# Default: bumps patch version
-# Examples:
-#   ./scripts/release.sh          # 0.4.1 → 0.4.2
-#   ./scripts/release.sh 0.5.0    # explicit version
-#   ./scripts/release.sh minor    # 0.4.2 → 0.5.0
-#   ./scripts/release.sh major    # 0.5.0 → 1.0.0
+# Usage: ./scripts/release.sh [patch|minor|major|x.y.z]
+#
+# Run this on main after merging from develop.
+#
+#   patch (default)  0.5.0 → 0.5.1   Web content release. Tags only.
+#   minor            0.5.x → 0.6.0   Desktop shell release. Tags + builds + GitHub Release.
+#   major            0.x.y → 1.0.0   Desktop shell release. Tags + builds + GitHub Release.
+#
+# Patch releases are delivered to users via git pull on next app launch.
+# Minor/major releases also publish an Electron update via electron-updater.
 
 cd "$(git rev-parse --show-toplevel)"
 
-# Ensure we're on develop with a clean tree
+# Ensure we're on main with a clean tree
 BRANCH=$(git branch --show-current)
-if [ "$BRANCH" != "develop" ]; then
-  echo "Error: must be on 'develop' branch (currently on '$BRANCH')"
+if [ "$BRANCH" != "main" ]; then
+  echo "Error: must be on 'main' branch (currently on '$BRANCH')"
   exit 1
 fi
 
@@ -42,11 +45,30 @@ elif [ "$BUMP" = "major" ]; then
   NEXT="$((MAJOR + 1)).0.0"
 else
   echo "Error: invalid version argument '$BUMP'"
-  echo "Usage: $0 [version|major|minor|patch]"
+  echo "Usage: $0 [patch|minor|major|x.y.z]"
   exit 1
 fi
 
-echo "Bumping to: v$NEXT"
+# Determine if this is a shell release (minor or major bump)
+SHELL_RELEASE=false
+if [ "$BUMP" = "minor" ] || [ "$BUMP" = "major" ]; then
+  SHELL_RELEASE=true
+fi
+# Explicit version: shell release if minor or major changed
+if [[ "$BUMP" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  IFS='.' read -r CUR_MAJ CUR_MIN _ <<< "$CURRENT"
+  IFS='.' read -r NEW_MAJ NEW_MIN _ <<< "$NEXT"
+  if [ "$NEW_MAJ" != "$CUR_MAJ" ] || [ "$NEW_MIN" != "$CUR_MIN" ]; then
+    SHELL_RELEASE=true
+  fi
+fi
+
+if [ "$SHELL_RELEASE" = true ]; then
+  echo "Shell release: v$NEXT (will build Electron + create GitHub Release)"
+else
+  echo "Web release: v$NEXT (tag only, delivered via git pull)"
+fi
+
 echo ""
 read -p "Continue? [y/N] " -n 1 -r
 echo ""
@@ -55,7 +77,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
   exit 0
 fi
 
-# Update versions in both package.json files
+# ── 1. Bump version ──────────────────────────────────────
 node -e "
 const fs = require('fs');
 for (const f of ['package.json', 'desktop/package.json']) {
@@ -65,41 +87,31 @@ for (const f of ['package.json', 'desktop/package.json']) {
   console.log('Updated ' + f);
 }
 "
-
-# Commit version bump on develop
 git add package.json desktop/package.json
 git commit -m "Bump to v$NEXT"
 
-# Merge develop → main
-echo ""
-echo "Merging develop → main..."
-git checkout main
-git merge develop --no-edit
-
-# Tag
+# ── 2. Tag ────────────────────────────────────────────────
 git tag "v$NEXT"
 echo "Tagged v$NEXT"
 
-# Push main + tags
+# ── 3. Build + publish (shell releases only) ─────────────
+if [ "$SHELL_RELEASE" = true ]; then
+  echo ""
+  echo "Building desktop app..."
+  cd desktop
+  npm run build:mac -- --publish always
+  cd ..
+  echo "Published to GitHub Releases."
+fi
+
+# ── 4. Push ───────────────────────────────────────────────
+echo ""
 echo "Pushing main + tags..."
 git push origin main --tags
 
-# Build desktop app and publish to GitHub Releases
 echo ""
-echo "Building desktop app..."
-cd desktop
-npm run build:mac -- --publish always
-cd ..
-
-# Switch back to develop, merge main back
-echo ""
-echo "Syncing develop with main..."
-git checkout develop
-git merge main --no-edit
-git push origin develop
-
-echo ""
-echo "Release v$NEXT complete!"
-echo "  - main pushed with tag v$NEXT"
-echo "  - GitHub Release created with desktop artifacts"
-echo "  - develop synced"
+if [ "$SHELL_RELEASE" = true ]; then
+  echo "Release v$NEXT complete! (web + shell)"
+else
+  echo "Release v$NEXT complete! (web only)"
+fi

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "setup": "bash scripts/setup.sh"
+    "setup": "bash scripts/setup.sh",
+"release": "bash scripts/release.sh patch",
+"release:desktop": "bash scripts/release.sh minor"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -63,3 +63,7 @@ export function setConfig(partial: Partial<DesktopConfig>): DesktopConfig {
 export function resetConfig(): void {
   writeStore({ ...defaults })
 }
+
+export function isDevMode(): boolean {
+  return !!process.env.PROQ_DEV || getConfig().devMode
+}

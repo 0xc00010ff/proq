@@ -31,4 +31,8 @@ linux:
   icon: build/icon.png
 dmg:
   artifactName: ${name}-${version}.${ext}
+publish:
+  provider: github
+  owner: 0xc00010ff
+  repo: proq
 npmRebuild: false

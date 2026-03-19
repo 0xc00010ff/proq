@@ -65,6 +65,22 @@ const proqDesktopAPI = {
     }
   },
 
+  // Shell updates
+  checkShellUpdate: (): Promise<unknown> => ipcRenderer.invoke('shell-update:check'),
+  installShellUpdate: (): Promise<unknown> => ipcRenderer.invoke('shell-update:install'),
+  onShellUpdateAvailable: (cb: (_e: unknown, result: unknown) => void): (() => void) => {
+    ipcRenderer.on('shell-update:available', cb as (...args: unknown[]) => void)
+    return (): void => {
+      ipcRenderer.removeListener('shell-update:available', cb as (...args: unknown[]) => void)
+    }
+  },
+  onShellUpdateDownloaded: (cb: (_e: unknown, result: unknown) => void): (() => void) => {
+    ipcRenderer.on('shell-update:downloaded', cb as (...args: unknown[]) => void)
+    return (): void => {
+      ipcRenderer.removeListener('shell-update:downloaded', cb as (...args: unknown[]) => void)
+    }
+  },
+
   // App
   getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version')
 }

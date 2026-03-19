@@ -1,6 +1,6 @@
 import { ChildProcess, spawn, execSync } from 'child_process'
 import http from 'http'
-import { getConfig } from './config'
+import { getConfig, isDevMode } from './config'
 
 let serverProcess: ChildProcess | null = null
 let intentionalStop = false
@@ -21,8 +21,8 @@ export async function startServer(
   onLog?: (line: string) => void
 ): Promise<{ ok: boolean; error?: string }> {
   const config = getConfig()
-  const { proqPath, port, wsPort, devMode } = config
-  const command = devMode ? 'dev' : 'start'
+  const { proqPath, port, wsPort } = config
+  const command = isDevMode() ? 'dev' : 'start'
 
   intentionalStop = false
 

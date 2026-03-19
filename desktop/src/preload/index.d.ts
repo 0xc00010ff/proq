@@ -53,6 +53,11 @@ interface ProqDesktopAPI {
   applyAndRestart: () => Promise<{ ok: boolean; error?: string }>
   onUpdateAvailable: (cb: (e: unknown, result: UpdateCheckResult) => void) => () => void
 
+  checkShellUpdate: () => Promise<{ available: boolean; version?: string; error?: string }>
+  installShellUpdate: () => Promise<void>
+  onShellUpdateAvailable: (cb: (e: unknown, result: { version: string }) => void) => () => void
+  onShellUpdateDownloaded: (cb: (e: unknown, result: { version: string }) => void) => () => void
+
   getVersion: () => Promise<string>
 }
 

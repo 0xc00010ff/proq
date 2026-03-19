@@ -6,7 +6,7 @@ import iconDark from '../../resources/icon.png?asset'
 import iconLight from '../../resources/icon-light.png?asset'
 import iconDevDark from '../../resources/icon-dev-dark.png?asset'
 import iconDevLight from '../../resources/icon-dev-light.png?asset'
-import { getConfig, setConfig, resetConfig } from './config'
+import { getConfig, setConfig, resetConfig, isDevMode } from './config'
 import {
   checkNodeVersion,
   checkClaudeCli,
@@ -22,6 +22,7 @@ import {
 import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit } from './server'
 import { checkForUpdates, applyUpdate } from './updater'
 import { startUpdateScheduler, stopUpdateScheduler } from './update-scheduler'
+import { initShellUpdater, checkForShellUpdate, installShellUpdate, startShellUpdateScheduler, stopShellUpdateScheduler } from './shell-updater'
 
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
 import { ensurePath } from './shell-path'
@@ -273,6 +274,10 @@ function registerIpcHandlers(): void {
     }
   })
 
+  // Shell updates
+  ipcMain.handle('shell-update:check', () => checkForShellUpdate())
+  ipcMain.handle('shell-update:install', () => installShellUpdate())
+
   // App info
   ipcMain.handle('app:version', () => app.getVersion())
 }
@@ -362,6 +367,8 @@ function transitionToApp(): void {
   appWindow.webContents.once('did-finish-load', () => {
     startHealthMonitor()
     startUpdateScheduler(appWindow)
+    initShellUpdater()
+    startShellUpdateScheduler()
     onServerExit(() => recoverServer())
   })
 }
@@ -388,7 +395,35 @@ async function showSplashAndStartServer(): Promise<void> {
   await new Promise<void>((resolve) => {
     mainWindow!.webContents.once('did-finish-load', () => resolve())
   })
-  log('showSplash: splash ready, starting server')
+  log('showSplash: splash ready')
+
+  // Auto-update web content on launch (unless dev mode)
+  if (!isDevMode()) {
+    try {
+      safeSend('server:log', 'Checking for updates...')
+      const updateCheck = await checkForUpdates()
+      if (updateCheck.available) {
+        log(`showSplash: ${updateCheck.commits.length} update(s) available, applying`)
+        safeSend('server:log', 'Pulling updates...')
+        const updateResult = await applyUpdate((line) => {
+          const t = line.trim()
+          if (t === 'Installing dependencies...' || t === 'Building...') {
+            safeSend('server:log', t)
+          }
+        })
+        if (!updateResult.ok) {
+          log(`showSplash: update warning: ${updateResult.error}`)
+          // Continue to start server anyway — build may have partial success
+        }
+      } else {
+        log('showSplash: already up to date')
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      log(`showSplash: update check failed (non-fatal): ${message}`)
+      // Continue — update failure shouldn't block app launch
+    }
+  }
 
   // Start server
   try {
@@ -499,6 +534,7 @@ app.whenReady().then(() => {
                   isResetting = true
                   stopHealthMonitor()
                   stopUpdateScheduler()
+                  stopShellUpdateScheduler()
                   await stopServer()
                   resetConfig()
                   // Close all existing windows before relaunching
@@ -539,6 +575,7 @@ app.whenReady().then(() => {
   powerMonitor.on('suspend', () => {
     stopHealthMonitor()
     stopUpdateScheduler()
+    stopShellUpdateScheduler()
   })
 
   powerMonitor.on('resume', async () => {
@@ -562,6 +599,7 @@ app.whenReady().then(() => {
       }
     }
     startHealthMonitor()
+    startShellUpdateScheduler()
     const firstWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
     if (firstWindow) {
       startUpdateScheduler(firstWindow)
@@ -580,6 +618,7 @@ app.on('before-quit', async () => {
   isQuitting = true
   stopHealthMonitor()
   stopUpdateScheduler()
+  stopShellUpdateScheduler()
   await stopServer()
 })
 

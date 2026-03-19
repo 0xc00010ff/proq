@@ -48,6 +48,7 @@ for (const f of ['package.json', 'desktop/package.json']) {
 "
 git add package.json desktop/package.json
 git commit -m "Bump to v$NEXT"
+git push origin develop
 
 # Merge develop → main, tag, push
 git checkout main

@@ -14,6 +14,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
   const [existingInstall, setExistingInstall] = useState<boolean | null>(null)
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [userChangedDir, setUserChangedDir] = useState(false)
   const fullProqPath = installDir ? installDir.replace(/\/+$/, '') + '/proq' : ''
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
     const dir = await window.proqDesktop.selectDirectory()
     if (!dir) return
 
+    setUserChangedDir(true)
     // If they selected a proq directory itself, use its parent
     if (dir.replace(/\/+$/, '').endsWith('/proq') || dir.replace(/\/+$/, '') === 'proq') {
       const parent = dir.replace(/\/+$/, '').replace(/\/proq$/, '')
@@ -108,7 +110,7 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
             <input
               type="text"
               value={installDir}
-              onChange={(e): void => setInstallDir(e.target.value)}
+              onChange={(e): void => { setInstallDir(e.target.value); setUserChangedDir(true) }}
               placeholder="/Users/you"
             />
             <button className="btn-primary titlebar-no-drag" onClick={handleBrowse}>
@@ -117,8 +119,8 @@ export function Location({ proqPath, setProqPath, onNext, onBack }: LocationProp
           </div>
           <div className="field-hint">
             {existingInstall
-              ? `proq found at ${fullProqPath}`
-              : `proq will be cloned to ${fullProqPath || '...'}`}
+              ? `proq found at ${fullProqPath}${!userChangedDir ? ' (default)' : ''}`
+              : `proq will be cloned to ${fullProqPath || '...'}${!userChangedDir ? ' (default)' : ''}`}
           </div>
         </div>
 

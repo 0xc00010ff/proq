@@ -104,7 +104,7 @@ export function Welcome({ onNext }: WelcomeProps): React.JSX.Element {
           >
             <strong>An agentic coding IDE.</strong>
             <br />
-            proq simplifies local multi-agent orchestration so you can build fast and high quality
+            proq simplifies multi-agent orchestration so you can build fast and high quality
             software.
           </p>
         </div>

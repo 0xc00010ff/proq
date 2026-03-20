@@ -68,6 +68,7 @@ export default function ProjectPage() {
   const boardDragCounter = useRef(0);
   const kanbanDraggingRef = useRef(false);
   const viewingTaskIdRef = useRef<string | null>(null);
+  const dispatchingTaskRef = useRef<string | null>(null);
 
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyTasks();
@@ -77,6 +78,11 @@ export default function ProjectPage() {
     projectId,
     project?.activeTab || 'project',
   );
+
+  // Clear dispatching ref once the URL has caught up (openTaskId no longer points to it)
+  if (dispatchingTaskRef.current && dispatchingTaskRef.current !== openTaskId) {
+    dispatchingTaskRef.current = null;
+  }
 
   // Derive open modal task from URL param + loaded columns
   const findTask = useCallback((id: string): Task | undefined => {
@@ -88,8 +94,9 @@ export default function ProjectPage() {
 
   const openModalTask = openTaskId ? findTask(openTaskId) : null;
   // "todo" tasks open the edit draft; everything else opens the agent modal
+  // Skip showing agent modal for tasks we just dispatched (URL hasn't caught up yet)
   const modalTask = openModalTask?.status === 'todo' ? openModalTask : null;
-  const agentModalTask = openModalTask && openModalTask.status !== 'todo' ? openModalTask : null;
+  const agentModalTask = openModalTask && openModalTask.status !== 'todo' && openModalTask.id !== dispatchingTaskRef.current ? openModalTask : null;
 
   // Keep the ref in sync with URL-driven openTaskId (ref avoids stale closures in SSE callbacks)
   useEffect(() => { viewingTaskIdRef.current = openTaskId; }, [openTaskId]);
@@ -950,7 +957,9 @@ export default function ProjectPage() {
           }}
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
-            // Close modal and optimistically update immediately
+            // Mark as dispatching so the agent modal doesn't flash open
+            // while router.push from closeTask() is still pending
+            dispatchingTaskRef.current = taskId;
             closeTask();
             setTasksByProject((prev) => {
               const cols = prev[projectId] || emptyTasks();

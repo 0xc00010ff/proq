@@ -169,13 +169,14 @@ export default function ProjectPage() {
     refreshDetachedHead();
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState, refreshDetachedHead]);
 
-  // Fetch execution mode and branch state on project load
+  // Fetch tasks, execution mode, and branch state on project load / switch
   useEffect(() => {
     if (projectId) {
+      refreshTasks(projectId);
       fetchExecutionMode();
       fetchBranchState();
     }
-  }, [projectId, fetchExecutionMode, fetchBranchState]);
+  }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState]);
 
   const dismissAttention = useCallback((taskId: string) => {
     // Optimistically clear needsAttention in local state

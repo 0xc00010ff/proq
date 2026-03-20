@@ -78,7 +78,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         >
           {/* Modal header bar */}
           <div className="shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-border-default bg-surface-topbar">
-            <DialogPrimitive.Title className="text-xs font-medium text-text-secondary truncate mr-2">
+            <DialogPrimitive.Title className="text-xs font-medium text-text-primary truncate mr-2">
               {task.title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Close

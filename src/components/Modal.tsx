@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import { XIcon } from 'lucide-react';
+import React from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 /* ─── Base Modal Shell ─────────────────────────────────────────────── */
 
@@ -23,8 +26,8 @@ interface ModalProps {
 }
 
 /**
- * Low-level modal shell. Renders a backdrop + centered card.
- * Handles escape-key, backdrop click, and body overflow lock.
+ * Low-level modal shell. Wraps shadcn Dialog primitive.
+ * Handles escape-key (via custom shortcut system), backdrop click, and body overflow lock.
  */
 export function Modal({
   isOpen,
@@ -36,42 +39,22 @@ export function Modal({
   zIndex = 'z-50',
   cardRef,
 }: ModalProps) {
+  // Use the custom shortcut system for escape; prevent Radix's built-in escape handling
   useEscapeKey(onClose, isOpen);
 
-  // Track where mousedown started so we only close on true backdrop clicks
-  const mouseDownOnBackdrop = useRef(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 electron-no-drag`}>
-      <div
-        className="absolute inset-0 bg-black/40"
-        onMouseDown={() => { mouseDownOnBackdrop.current = true; }}
-        onMouseUp={() => { if (mouseDownOnBackdrop.current) onClose(); mouseDownOnBackdrop.current = false; }}
-      />
-      <div
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
         ref={cardRef}
-        className={`relative bg-surface-detail border border-border-default rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-75 ${className}`}
+        showClose={showClose}
+        className={className}
+        overlayClassName={zIndex !== 'z-50' ? zIndex : undefined}
         style={style}
+        onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        {showClose && (
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary p-1 z-10"
-          >
-            <XIcon className="w-4 h-4" />
-          </button>
-        )}
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

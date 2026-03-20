@@ -3,6 +3,12 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { XIcon } from 'lucide-react';
+import {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+} from '@/components/ui/dialog';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { Task, FollowUpDraft } from '@/lib/types';
 import { TaskAgentDetail } from './TaskAgentDetail';
 
@@ -26,8 +32,6 @@ interface TaskAgentModalProps {
 export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch }: TaskAgentModalProps) {
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  const justDraggedRef = useRef(false);
-  const mouseDownOnBackdrop = useRef(false);
 
   const handleModalResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -49,8 +53,6 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
       setModalSize({ width: newW, height: newH });
     };
     const onMouseUp = () => {
-      justDraggedRef.current = true;
-      requestAnimationFrame(() => { justDraggedRef.current = false; });
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
       document.body.style.cursor = '';
@@ -65,62 +67,57 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   useEscapeKey(onClose);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-none"
-        onMouseDown={() => { mouseDownOnBackdrop.current = true; }}
-        onMouseUp={() => { if (mouseDownOnBackdrop.current && !justDraggedRef.current) onClose(); mouseDownOnBackdrop.current = false; }}
-      />
-
-      {/* Modal */}
-      <div
-        ref={modalRef}
-        className="relative flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden"
-        style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: '100%', maxWidth: '80rem', height: '90vh' }}
-      >
-        {/* Modal header bar */}
-        <div className="shrink-0 flex items-center justify-end px-2 py-1.5 border-b border-border-default bg-surface-topbar">
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
-          >
-            <XIcon className="w-4 h-4" />
-          </button>
-        </div>
-
-        <TaskAgentDetail
-          task={task}
-          projectId={projectId}
-          isQueued={isQueued}
-          cleanupExpiresAt={cleanupExpiresAt}
-          followUpDraft={followUpDraft}
-          onFollowUpDraftChange={onFollowUpDraftChange}
-          onComplete={onComplete}
-          onResumeEditing={onResumeEditing}
-          onUpdateTitle={onUpdateTitle}
-          parallelMode={parallelMode}
-          currentBranch={currentBranch}
-          onSwitchBranch={onSwitchBranch}
-          defaultBranch={defaultBranch}
-          className="flex-1 min-h-0"
-        />
-
-        {/* Bottom-right corner resize handle */}
-        <div
-          onMouseDown={handleModalResizeMouseDown}
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10 group"
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogPrimitive.Content
+          ref={modalRef}
+          className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-75"
+          style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: 'calc(100% - 2rem)', maxWidth: '80rem', height: '90vh' }}
+          onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          <svg className="w-3 h-3 absolute bottom-0.5 right-0.5 text-zinc-600 group-hover:text-zinc-400" viewBox="0 0 12 12" fill="currentColor">
-            <circle cx="10" cy="10" r="1.2" />
-            <circle cx="6" cy="10" r="1.2" />
-            <circle cx="10" cy="6" r="1.2" />
-            <circle cx="2" cy="10" r="1.2" />
-            <circle cx="6" cy="6" r="1.2" />
-            <circle cx="10" cy="2" r="1.2" />
-          </svg>
-        </div>
-      </div>
-    </div>
+          {/* Modal header bar */}
+          <div className="shrink-0 flex items-center justify-end px-2 py-1.5 border-b border-border-default bg-surface-topbar">
+            <DialogPrimitive.Close
+              className="p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+            >
+              <XIcon className="w-4 h-4" />
+            </DialogPrimitive.Close>
+          </div>
+
+          <TaskAgentDetail
+            task={task}
+            projectId={projectId}
+            isQueued={isQueued}
+            cleanupExpiresAt={cleanupExpiresAt}
+            followUpDraft={followUpDraft}
+            onFollowUpDraftChange={onFollowUpDraftChange}
+            onComplete={onComplete}
+            onResumeEditing={onResumeEditing}
+            onUpdateTitle={onUpdateTitle}
+            parallelMode={parallelMode}
+            currentBranch={currentBranch}
+            onSwitchBranch={onSwitchBranch}
+            defaultBranch={defaultBranch}
+            className="flex-1 min-h-0"
+          />
+
+          {/* Bottom-right corner resize handle */}
+          <div
+            onMouseDown={handleModalResizeMouseDown}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10 group"
+          >
+            <svg className="w-3 h-3 absolute bottom-0.5 right-0.5 text-zinc-600 group-hover:text-zinc-400" viewBox="0 0 12 12" fill="currentColor">
+              <circle cx="10" cy="10" r="1.2" />
+              <circle cx="6" cy="10" r="1.2" />
+              <circle cx="10" cy="6" r="1.2" />
+              <circle cx="2" cy="10" r="1.2" />
+              <circle cx="6" cy="6" r="1.2" />
+              <circle cx="10" cy="2" r="1.2" />
+            </svg>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
   );
 }

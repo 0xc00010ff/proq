@@ -23,15 +23,13 @@ import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskA
 import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
+import { useRouteState } from '@/hooks/useRouteState';
 
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const { projects, tasksByProject, refreshTasks, setTasksByProject, setProjects } = useProjects();
 
-  const [activeTab, setActiveTab] = useState<TabOption>('project');
-  const [modalTask, setModalTask] = useState<Task | null>(null);
-  const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
@@ -73,14 +71,31 @@ export default function ProjectPage() {
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyTasks();
 
+  // URL-driven tab and task modal state
+  const { activeTab, openTaskId, setTab, openTask: routeOpenTask, closeTask } = useRouteState(
+    projectId,
+    project?.activeTab || 'project',
+  );
+
+  // Derive open modal task from URL param + loaded columns
+  const findTask = useCallback((id: string): Task | undefined => {
+    for (const col of Object.values(columns)) {
+      const t = col.find((t) => t.id === id);
+      if (t) return t;
+    }
+  }, [columns]);
+
+  const openModalTask = openTaskId ? findTask(openTaskId) : null;
+  // "todo" tasks open the edit draft; everything else opens the agent modal
+  const modalTask = openModalTask?.status === 'todo' ? openModalTask : null;
+  const agentModalTask = openModalTask && openModalTask.status !== 'todo' ? openModalTask : null;
+
+  // Keep the ref in sync with URL-driven openTaskId (ref avoids stale closures in SSE callbacks)
+  useEffect(() => { viewingTaskIdRef.current = openTaskId; }, [openTaskId]);
+
   // Update document title with project id (slug)
   useEffect(() => {
     document.title = project ? `proq | ${project.name}` : 'proq';
-  }, [project?.id]);
-
-  // Restore last tab when switching projects
-  useEffect(() => {
-    if (project) setActiveTab(project.activeTab || 'project');
   }, [project?.id]);
 
   // Restore terminal open/closed state and height from project
@@ -212,12 +227,6 @@ export default function ProjectPage() {
         return { ...prev, [projectId]: updated };
       }
       return prev; // task not found — ignore
-    });
-
-    // Also update modalTask if the SSE is for the currently-open modal task
-    setModalTask((prev) => {
-      if (!prev || prev.id !== event.taskId) return prev;
-      return { ...prev, ...event.changes } as Task;
     });
 
     // Auto-dismiss needsAttention if the user is already viewing this task
@@ -375,20 +384,6 @@ export default function ProjectPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [projectId, undoEntry]);
 
-  // Keep agent modal in sync with polled task data
-  useEffect(() => {
-    if (agentModalTask) {
-      // Search across all columns
-      for (const col of Object.values(columns)) {
-        const updated = col.find((t) => t.id === agentModalTask.id);
-        if (updated) {
-          setAgentModalTask(updated);
-          break;
-        }
-      }
-    }
-  }, [columns]);
-
   const deleteTask = async (taskId: string) => {
     // Optimistically remove from UI
     setTasksByProject((prev) => {
@@ -464,12 +459,6 @@ export default function ProjectPage() {
   };
 
   const updateTask = async (taskId: string, data: Partial<Task>) => {
-    // Optimistic update for modal
-    setModalTask((prev) =>
-      prev && prev.id === taskId
-        ? { ...prev, ...data, updatedAt: new Date().toISOString() }
-        : prev
-    );
     // Optimistic update for board
     if (data.status || data.title) {
       setTasksByProject((prev) => {
@@ -524,9 +513,6 @@ export default function ProjectPage() {
           updated[serverCol] = [...updated[serverCol].filter((t) => t.id !== taskId), serverTask];
           return { ...prev, [projectId]: updated };
         });
-        // Update modal if it's showing this task
-        setAgentModalTask((prev) => prev && prev.id === taskId ? serverTask : prev);
-        setModalTask((prev) => prev && prev.id === taskId ? serverTask : prev);
       }
     }
   };
@@ -622,7 +608,7 @@ export default function ProjectPage() {
       if (cols.todo.some((t) => t.id === newTask.id)) return prev;
       return { ...prev, [projectId]: { ...cols, todo: [newTask, ...cols.todo] } };
     });
-    setModalTask(newTask);
+    routeOpenTask(newTask.id);
   };
 
   const handleBoardDragEnter = useCallback((e: DragEvent) => {
@@ -675,19 +661,26 @@ export default function ProjectPage() {
       body: JSON.stringify({ attachments }),
     });
 
-    setModalTask({ ...newTask, attachments });
+    // Update local state with attachments then open via URL
+    setTasksByProject((prev) => {
+      const cols = prev[projectId] || emptyTasks();
+      const updated = { ...cols };
+      updated.todo = cols.todo.map((t) => t.id === newTask.id ? { ...t, attachments } : t);
+      return { ...prev, [projectId]: updated };
+    });
+    routeOpenTask(newTask.id);
     // SSE will pick up the new task
   }, [projectId]);
 
   const handleTabChange = useCallback((tab: TabOption) => {
-    setActiveTab(tab);
+    setTab(tab);
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, activeTab: tab } : p));
     fetch(`/api/projects/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activeTab: tab }),
     }).catch(() => {});
-  }, [projectId, setProjects]);
+  }, [projectId, setProjects, setTab]);
 
   // Cmd+Option+Left/Right to switch Project/Live/Code tabs (like Chrome)
   useEffect(() => {
@@ -695,25 +688,16 @@ export default function ProjectPage() {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault();
-        setActiveTab(prev => {
-          const idx = tabOrder.indexOf(prev);
-          const next = e.key === 'ArrowLeft'
-            ? tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]
-            : tabOrder[(idx + 1) % tabOrder.length];
-          // Persist the tab change
-          setProjects(p => p.map(pr => pr.id === projectId ? { ...pr, activeTab: next } : pr));
-          fetch(`/api/projects/${projectId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activeTab: next }),
-          }).catch(() => {});
-          return next;
-        });
+        const idx = tabOrder.indexOf(activeTab);
+        const next = e.key === 'ArrowLeft'
+          ? tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]
+          : tabOrder[(idx + 1) % tabOrder.length];
+        handleTabChange(next);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [projectId, setProjects]);
+  }, [activeTab, handleTabChange]);
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));
@@ -809,8 +793,7 @@ export default function ProjectPage() {
                   onAddTask={handleAddTask}
                   onClickTask={(task) => {
                     if (task.needsAttention) dismissAttention(task.id);
-                    viewingTaskIdRef.current = task.id;
-                    setAgentModalTask(task);
+                    routeOpenTask(task.id);
                   }}
                   followUpDraftsRef={followUpDraftsRef}
                   onFollowUpDraftChange={(taskId, draft) => {
@@ -830,12 +813,7 @@ export default function ProjectPage() {
                   onDeleteTask={deleteTask}
                   onClickTask={(task) => {
                     if (task.needsAttention) dismissAttention(task.id);
-                    if (task.status === 'todo') {
-                      setModalTask(task);
-                    } else {
-                      viewingTaskIdRef.current = task.id;
-                      setAgentModalTask(task);
-                    }
+                    routeOpenTask(task.id);
                   }}
                   onRefreshTasks={refresh}
                   executionMode={executionMode}
@@ -850,11 +828,7 @@ export default function ProjectPage() {
                   onAddTask={handleAddTask}
                   onDeleteTask={deleteTask}
                   onClickTask={(task) => {
-                    if (task.status === 'todo') {
-                      setModalTask(task);
-                    } else {
-                      setAgentModalTask(task);
-                    }
+                    routeOpenTask(task.id);
                   }}
                   onMoveTask={moveTask}
                   onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
@@ -925,13 +899,31 @@ export default function ProjectPage() {
             if (draft) followUpDraftsRef.current.set(agentModalTask.id, draft);
             else followUpDraftsRef.current.delete(agentModalTask.id);
           }}
-          onClose={() => { viewingTaskIdRef.current = null; setAgentModalTask(null); }}
+          onClose={() => closeTask()}
           onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
           onComplete={async (taskId) => {
             followUpDraftsRef.current.delete(taskId);
-            await updateTask(taskId, { status: 'done' });
-            // Only close modal if task actually moved to done (not bounced back by merge conflict)
-            setAgentModalTask((prev) => prev && prev.status === 'done' ? null : prev);
+            const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'done' }),
+            });
+            if (res.ok) {
+              const serverTask: Task = await res.json();
+              // Update columns with server state
+              setTasksByProject((prev) => {
+                const cols = prev[projectId] || emptyTasks();
+                const updated: TaskColumns = { ...cols };
+                // Remove from all columns, place in server's actual column
+                for (const s of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+                  updated[s] = cols[s].filter((t) => t.id !== taskId);
+                }
+                updated[serverTask.status as TaskStatus] = [...updated[serverTask.status as TaskStatus], serverTask];
+                return { ...prev, [projectId]: updated };
+              });
+              // Only close if it actually moved to done (merge conflict keeps it in verify)
+              if (serverTask.status === 'done') closeTask();
+            }
             fetchBranchState();
           }}
           onResumeEditing={async (taskId) => {
@@ -967,7 +959,7 @@ export default function ProjectPage() {
           isOpen={true}
           onClose={(isEmpty: boolean) => {
             const id = modalTask.id;
-            setModalTask(null);
+            closeTask();
             if (isEmpty) {
               deleteTask(id);
             }
@@ -975,7 +967,7 @@ export default function ProjectPage() {
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
             // Close modal and optimistically update immediately
-            setModalTask(null);
+            closeTask();
             setTasksByProject((prev) => {
               const cols = prev[projectId] || emptyTasks();
               const todoCol = cols.todo.filter((t) => t.id !== taskId);

@@ -138,8 +138,7 @@ function ProjectMenu({ project, onDelete, onRename }: ProjectMenuProps) {
           Rename
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
+          onSelect={() => {
             fetch(`/api/projects/${project.id}/reveal`, { method: 'POST' });
           }}
           className="gap-2"

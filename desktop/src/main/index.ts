@@ -307,6 +307,10 @@ async function recoverServer(): Promise<void> {
 function startHealthMonitor(): void {
   stopHealthMonitor()
   consecutiveFailures = 0
+  // In dev mode, the dev server handles its own restarts via HMR.
+  // The health monitor's recovery (restartServer + loadURL) causes destructive
+  // hard reloads that kill React state and running processes.
+  if (isDevMode()) return
   const config = getConfig()
   healthInterval = setInterval(async () => {
     const healthy = await healthCheck(config.port)
@@ -336,13 +340,16 @@ function createAppWindow(): BrowserWindow {
   appWindow.loadURL(`http://localhost:${config.port}`)
 
   // Retry loading if the page fails (e.g. Cmd-R while server is slow)
-  appWindow.webContents.on('did-fail-load', (_e, _code, _desc, url, isMainFrame) => {
-    if (isMainFrame && url.startsWith('http://localhost') && !appWindow.isDestroyed()) {
-      setTimeout(() => {
-        if (!appWindow.isDestroyed()) appWindow.loadURL(url)
-      }, 1000)
-    }
-  })
+  // In dev mode, the dev server handles its own HMR — don't force-reload.
+  if (!isDevMode()) {
+    appWindow.webContents.on('did-fail-load', (_e, _code, _desc, url, isMainFrame) => {
+      if (isMainFrame && url.startsWith('http://localhost') && !appWindow.isDestroyed()) {
+        setTimeout(() => {
+          if (!appWindow.isDestroyed()) appWindow.loadURL(url)
+        }, 1000)
+      }
+    })
+  }
 
   // Open external links in default browser
   appWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -580,20 +587,22 @@ app.whenReady().then(() => {
   powerMonitor.on('resume', async () => {
     const config = getConfig()
     if (!config.setupComplete) return
-    const healthy = await healthCheck(config.port)
-    if (!healthy) {
-      recoverServer()
-    } else {
-      const url = `http://localhost:${config.port}`
-      for (const win of BrowserWindow.getAllWindows()) {
-        if (win.isDestroyed()) continue
-        try {
-          const alive = await win.webContents.executeJavaScript(
-            'document.body?.children.length > 0'
-          )
-          if (!alive) win.loadURL(url)
-        } catch {
-          win.loadURL(url)
+    if (!isDevMode()) {
+      const healthy = await healthCheck(config.port)
+      if (!healthy) {
+        recoverServer()
+      } else {
+        const url = `http://localhost:${config.port}`
+        for (const win of BrowserWindow.getAllWindows()) {
+          if (win.isDestroyed()) continue
+          try {
+            const alive = await win.webContents.executeJavaScript(
+              'document.body?.children.length > 0'
+            )
+            if (!alive) win.loadURL(url)
+          } catch {
+            win.loadURL(url)
+          }
         }
       }
     }

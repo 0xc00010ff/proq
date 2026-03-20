@@ -267,7 +267,7 @@ export default function ProjectPage() {
     return () => clearInterval(interval);
   }, [projectId, refreshTasks, setProjects]);
 
-  // 5s poll for branch state (local dirty count, branch list, preview fast-forward)
+  // Poll for branch state (local dirty count, branch list, preview fast-forward)
   // Git changes are true externalities that don't pass through our API.
   useEffect(() => {
     if (!projectId) return;

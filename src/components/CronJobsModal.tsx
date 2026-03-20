@@ -283,20 +283,23 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
         {/* ── List view ── */}
         {!editing && (
           <>
+            {!loading && (
+              <button
+                onClick={startNew}
+                className="btn-secondary text-xs mb-3"
+              >
+                <PlusIcon className="w-3.5 h-3.5 -ml-0.5" />
+                Add schedule
+              </button>
+            )}
+
             <div className="space-y-1.5">
               {loading ? (
                 <div className="py-12 text-center">
                   <p className="text-xs text-text-tertiary">Loading...</p>
                 </div>
               ) : jobs.length === 0 ? (
-                <div className="py-10 text-center">
-                  <button
-                    onClick={startNew}
-                    className="btn-secondary text-xs"
-                  >
-                    Create a schedule
-                  </button>
-                </div>
+                <div className="py-6" />
               ) : (
                 jobs.map((job) => (
                   <div
@@ -379,16 +382,6 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
               )}
             </div>
 
-            {/* Add button — only show if there are existing jobs (empty state has its own CTA) */}
-            {!loading && jobs.length > 0 && (
-              <button
-                onClick={startNew}
-                className="flex items-center gap-1.5 mt-3 px-2 py-1.5 text-xs text-text-tertiary hover:text-text-secondary transition-colors rounded"
-              >
-                <PlusIcon className="w-3.5 h-3.5" />
-                Add schedule
-              </button>
-            )}
           </>
         )}
 

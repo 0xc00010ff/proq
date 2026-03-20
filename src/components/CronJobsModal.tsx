@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/components/Modal';
 import type { CronJob, TaskMode } from '@/lib/types';
 import {
@@ -8,7 +8,7 @@ import {
   PlayIcon,
   Trash2Icon,
   PencilIcon,
-  ChevronDownIcon,
+  ArrowLeftIcon,
 } from 'lucide-react';
 
 interface CronJobsModalProps {
@@ -26,7 +26,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 function formatNextRun(iso?: string): string {
-  if (!iso) return '—';
+  if (!iso) return '';
   const d = new Date(iso);
   const diff = d.getTime() - Date.now();
   if (diff < 0) return 'due now';
@@ -36,12 +36,11 @@ function formatNextRun(iso?: string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 }
 
-const SCHEDULE_EXAMPLES = [
-  '0 9 * * *',
-  'every 6h',
-  'daily at 9am',
-  'every mon 8am',
-  '*/30 * * * *',
+const MODES: { value: TaskMode; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'answer', label: 'Answer' },
+  { value: 'plan', label: 'Plan' },
+  { value: 'build', label: 'Build' },
 ];
 
 export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps) {
@@ -49,6 +48,8 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null); // job id or 'new'
   const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true });
+  const nameRef = useRef<HTMLInputElement>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -120,160 +121,216 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
     setForm({ name: job.name, prompt: job.prompt, schedule: job.schedule, mode: job.mode ?? 'auto', enabled: job.enabled });
   };
 
+  const startNew = () => {
+    setEditing('new');
+    setForm({ name: '', prompt: '', schedule: '', mode: 'auto', enabled: true });
+    setTimeout(() => nameRef.current?.focus(), 50);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={() => { resetForm(); onClose(); }} className="w-full max-w-lg">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-text-primary">Scheduled Tasks</h2>
-          {!editing && (
+    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg">
+      <div className="p-5 pt-4">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-4 pr-6">
+          {editing ? (
             <button
-              onClick={() => { setEditing('new'); setForm({ name: '', prompt: '', schedule: '', mode: 'auto', enabled: true }); }}
-              className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              onClick={resetForm}
+              className="p-1 -ml-1 rounded text-text-tertiary hover:text-text-secondary"
             >
-              <PlusIcon className="w-3.5 h-3.5" />
-              Add
+              <ArrowLeftIcon className="w-3.5 h-3.5" />
             </button>
-          )}
+          ) : null}
+          <h2 className="text-sm font-semibold text-text-primary">
+            {editing === 'new' ? 'New Schedule' : editing ? 'Edit Schedule' : 'Scheduled Tasks'}
+          </h2>
         </div>
 
-        {/* Job list */}
+        {/* ── List view ── */}
         {!editing && (
-          <div className="space-y-1">
-            {loading ? (
-              <p className="text-xs text-text-tertiary py-8 text-center">Loading...</p>
-            ) : jobs.length === 0 ? (
-              <p className="text-xs text-text-tertiary py-8 text-center">
-                No scheduled tasks yet
-              </p>
-            ) : (
-              jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className={`group rounded-md border px-3 py-2.5 transition-colors ${
-                    job.enabled
-                      ? 'border-border-default bg-surface-secondary'
-                      : 'border-border-subtle bg-surface-deep/50 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm text-text-primary truncate">{job.name}</span>
-                      <span className="text-[10px] text-text-chrome font-mono flex-shrink-0">{job.schedule}</span>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      <button
-                        onClick={() => handleTrigger(job)}
-                        className="p-1 rounded text-text-chrome hover:text-emerald hover:bg-surface-hover"
-                        title="Run now"
-                      >
-                        <PlayIcon className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => startEdit(job)}
-                        className="p-1 rounded text-text-chrome hover:text-text-primary hover:bg-surface-hover"
-                        title="Edit"
-                      >
-                        <PencilIcon className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(job.id)}
-                        className="p-1 rounded text-text-chrome hover:text-crimson hover:bg-surface-hover"
-                        title="Delete"
-                      >
-                        <Trash2Icon className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-tertiary">
-                    {job.lastRunAt && (
-                      <span>Last: {formatRelativeTime(job.lastRunAt)}</span>
-                    )}
-                    {job.enabled && (
-                      <span>Next: {formatNextRun(job.nextRunAt)}</span>
-                    )}
-                    {job.runCount > 0 && (
-                      <span>{job.runCount} run{job.runCount !== 1 ? 's' : ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs text-text-tertiary line-clamp-1 mr-4">{job.prompt}</p>
-                    <button
-                      onClick={() => handleToggle(job)}
-                      className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full transition-colors ${
-                        job.enabled ? 'bg-emerald/60' : 'bg-zinc-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-3 w-3 rounded-full bg-white transition-transform mt-0.5 ${
-                          job.enabled ? 'translate-x-3.5' : 'translate-x-0.5'
-                        }`}
-                      />
-                    </button>
-                  </div>
+          <>
+            <div className="space-y-1.5">
+              {loading ? (
+                <div className="py-12 text-center">
+                  <p className="text-xs text-text-tertiary">Loading...</p>
                 </div>
-              ))
+              ) : jobs.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-xs text-text-tertiary mb-3">
+                    No scheduled tasks yet
+                  </p>
+                  <button
+                    onClick={startNew}
+                    className="btn-secondary text-xs"
+                  >
+                    Create your first schedule
+                  </button>
+                </div>
+              ) : (
+                jobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className={`group rounded-md border px-3 py-2.5 transition-colors ${
+                      job.enabled
+                        ? 'border-border-default bg-surface-secondary hover:bg-surface-hover/40'
+                        : 'border-border-subtle bg-surface-deep/30 opacity-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Toggle */}
+                      <button
+                        onClick={() => handleToggle(job)}
+                        className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full transition-colors ${
+                          job.enabled ? 'bg-emerald/60' : 'bg-zinc-600'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3 w-3 rounded-full bg-white transition-transform mt-0.5 ${
+                            job.enabled ? 'translate-x-3.5' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+
+                      {/* Name + schedule */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-text-primary truncate">{job.name}</span>
+                          <span className="text-[10px] text-text-chrome font-mono flex-shrink-0">{job.schedule}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <button
+                          onClick={() => handleTrigger(job)}
+                          className="p-1.5 rounded text-text-chrome hover:text-emerald hover:bg-surface-hover"
+                          title="Run now"
+                        >
+                          <PlayIcon className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => startEdit(job)}
+                          className="p-1.5 rounded text-text-chrome hover:text-text-primary hover:bg-surface-hover"
+                          title="Edit"
+                        >
+                          <PencilIcon className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(job.id)}
+                          className="p-1.5 rounded text-text-chrome hover:text-crimson hover:bg-surface-hover"
+                          title="Delete"
+                        >
+                          <Trash2Icon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Meta row */}
+                    <div className="flex items-center gap-2 mt-1.5 ml-9 text-[10px] text-text-tertiary">
+                      {job.lastRunAt && (
+                        <span>Last {formatRelativeTime(job.lastRunAt)}</span>
+                      )}
+                      {job.enabled && formatNextRun(job.nextRunAt) && (
+                        <>
+                          {job.lastRunAt && <span className="text-border-default">·</span>}
+                          <span>Next {formatNextRun(job.nextRunAt)}</span>
+                        </>
+                      )}
+                      {job.runCount > 0 && (
+                        <>
+                          <span className="text-border-default">·</span>
+                          <span>{job.runCount} run{job.runCount !== 1 ? 's' : ''}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add button — only show if there are existing jobs (empty state has its own CTA) */}
+            {!loading && jobs.length > 0 && (
+              <button
+                onClick={startNew}
+                className="flex items-center gap-1.5 mt-3 px-2 py-1.5 text-xs text-text-tertiary hover:text-text-secondary transition-colors rounded"
+              >
+                <PlusIcon className="w-3.5 h-3.5" />
+                Add schedule
+              </button>
             )}
-          </div>
+          </>
         )}
 
-        {/* Add / Edit form */}
+        {/* ── Edit / Create form ── */}
         {editing && (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">Name</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Nightly lint check"
-                className="w-full px-3 py-2 text-sm bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
-                autoFocus
-              />
+          <div>
+            {/* Mode selector — pill style matching TaskDraft */}
+            <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-4">
+              {MODES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setForm((f) => ({ ...f, mode: value }))}
+                  className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
+                    form.mode === value
+                      ? 'text-text-chrome-active'
+                      : 'text-text-tertiary hover:text-text-secondary'
+                  }`}
+                >
+                  {form.mode === value && (
+                    <div
+                      className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
+                      style={{ zIndex: -1 }}
+                    />
+                  )}
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">Prompt</label>
-              <textarea
-                value={form.prompt}
-                onChange={(e) => setForm((f) => ({ ...f, prompt: e.target.value }))}
-                placeholder="Run the linter and fix any issues found..."
-                rows={3}
-                className="w-full px-3 py-2 text-sm bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong resize-none"
-              />
-            </div>
+            {/* Name */}
+            <input
+              ref={nameRef}
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Schedule name"
+              className="w-full bg-transparent text-base font-medium text-text-primary focus:outline-none placeholder:text-text-placeholder mb-3"
+              autoFocus
+            />
 
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">Schedule</label>
-              <input
-                type="text"
-                value={form.schedule}
-                onChange={(e) => setForm((f) => ({ ...f, schedule: e.target.value }))}
-                placeholder="every 6h"
-                className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
-              />
-              <p className="mt-1 text-[10px] text-text-chrome">
-                {SCHEDULE_EXAMPLES.join('  ·  ')}
+            {/* Prompt */}
+            <textarea
+              ref={promptRef}
+              value={form.prompt}
+              onChange={(e) => setForm((f) => ({ ...f, prompt: e.target.value }))}
+              placeholder="What should the agent do?"
+              rows={3}
+              className="w-full bg-transparent text-sm text-text-primary focus:outline-none placeholder:text-text-placeholder resize-none leading-relaxed mb-4"
+            />
+
+            {/* Schedule */}
+            <div className="border-t border-border-default/60 pt-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-tertiary flex-shrink-0">Schedule</span>
+                <input
+                  type="text"
+                  value={form.schedule}
+                  onChange={(e) => setForm((f) => ({ ...f, schedule: e.target.value }))}
+                  placeholder="every 6h"
+                  className="flex-1 bg-transparent text-sm font-mono text-text-primary focus:outline-none placeholder:text-text-placeholder"
+                />
+              </div>
+              <p className="mt-1.5 text-[10px] text-text-chrome leading-relaxed">
+                e.g. <code className="text-text-tertiary">every 6h</code> · <code className="text-text-tertiary">daily at 9am</code> · <code className="text-text-tertiary">every mon 8am</code> · <code className="text-text-tertiary">0 9 * * *</code>
               </p>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">Mode</label>
-              <div className="relative">
-                <select
-                  value={form.mode}
-                  onChange={(e) => setForm((f) => ({ ...f, mode: e.target.value as TaskMode }))}
-                  className="w-full px-3 py-2 text-sm bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
-                >
-                  <option value="auto">Auto</option>
-                  <option value="build">Build</option>
-                  <option value="answer">Answer (no code changes)</option>
-                  <option value="plan">Plan (read-only)</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
+            {/* Actions */}
+            <div className="flex justify-end gap-2 mt-5">
               <button onClick={resetForm} className="btn-secondary">Cancel</button>
               <button
                 onClick={handleSave}

@@ -283,12 +283,12 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
         {/* ── List view ── */}
         {!editing && (
           <>
-            {!loading && (
+            {!loading && jobs.length > 0 && (
               <button
                 onClick={startNew}
-                className="btn-secondary text-xs mb-3 inline-flex items-center gap-1.5"
+                className="btn-secondary text-xs mb-3 -ml-3 inline-flex items-center gap-1.5"
               >
-                <PlusIcon className="w-3.5 h-3.5 -ml-0.5" />
+                <PlusIcon className="w-3.5 h-3.5" />
                 Add schedule
               </button>
             )}
@@ -299,7 +299,14 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                   <p className="text-xs text-text-tertiary">Loading...</p>
                 </div>
               ) : jobs.length === 0 ? (
-                <div className="py-6" />
+                <div className="py-10 text-center">
+                  <button
+                    onClick={startNew}
+                    className="btn-secondary text-xs"
+                  >
+                    Create a schedule
+                  </button>
+                </div>
               ) : (
                 jobs.map((job) => (
                   <div

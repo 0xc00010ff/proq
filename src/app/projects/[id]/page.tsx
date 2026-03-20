@@ -21,6 +21,7 @@ import { emptyTasks } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
+import { useResizablePanel } from '@/hooks/useResizablePanel';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -28,12 +29,6 @@ export default function ProjectPage() {
   const { projects, tasksByProject, refreshTasks, setTasksByProject, setProjects } = useProjects();
 
   const [activeTab, setActiveTab] = useState<TabOption>('project');
-  const [chatPercent, setChatPercent] = useState(60);
-  const [isDragging, setIsDragging] = useState(false);
-  const [workbenchCollapsed, setTerminalCollapsed] = useState(true);
-  const [liveWorkbenchCollapsed, setLiveWorkbenchCollapsed] = useState(true);
-  const [liveChatPercent, setLiveChatPercent] = useState(40);
-  const [liveIsDragging, setLiveIsDragging] = useState(false);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
@@ -48,6 +43,25 @@ export default function ProjectPage() {
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
+    fetch(`/api/projects/${projectId}/workbench-state`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(() => {});
+  }, [projectId]);
+
+  const workbench = useResizablePanel(containerRef, {
+    defaultPercent: 60,
+    closedPercent: 25,
+    onPersist: (height) => patchWorkbenchState({ height }),
+  });
+  const liveWorkbench = useResizablePanel(containerRef, {
+    defaultPercent: 40,
+    closedPercent: 40,
+  });
+
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
   const [boardDragOver, setBoardDragOver] = useState(false);
   const boardDragCounter = useRef(0);
@@ -73,11 +87,11 @@ export default function ProjectPage() {
     fetch(`/api/projects/${projectId}/workbench-state`)
       .then((res) => res.json())
       .then((data) => {
-        setTerminalCollapsed(!data.open);
-        if (typeof data.height === 'number') setChatPercent(data.height);
+        workbench.setCollapsed(!data.open);
+        if (typeof data.height === 'number') workbench.setPercent(data.height);
       })
       .catch(() => {});
-  }, [projectId]);
+  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchExecutionMode = useCallback(async () => {
     try {
@@ -711,126 +725,22 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, [projectId, setProjects]);
 
-  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
-    fetch(`/api/projects/${projectId}/workbench-state`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).catch(() => {});
-  }, [projectId]);
-
+  // Toggle callbacks that also persist open/closed state for the project workbench
   const toggleWorkbenchCollapsed = useCallback(() => {
-    setTerminalCollapsed((prev) => {
-      const next = !prev;
-      patchWorkbenchState({ open: !next });
-      return next;
+    workbench.setCollapsed((prev: boolean) => {
+      patchWorkbenchState({ open: prev }); // prev=true means it was collapsed, now opening
+      return !prev;
     });
-  }, [patchWorkbenchState]);
+  }, [workbench, patchWorkbenchState]);
 
   const expandWorkbench = useCallback(() => {
-    setTerminalCollapsed((prev) => {
-      if (!prev) return prev; // already open
+    workbench.setCollapsed((prev: boolean) => {
+      if (!prev) return prev;
       patchWorkbenchState({ open: true });
       return false;
     });
-    setChatPercent((prev) => Math.max(prev, 25));
-  }, [patchWorkbenchState]);
-
-  // ── Live workbench controls ──
-
-  const toggleLiveWorkbenchCollapsed = useCallback(() => {
-    setLiveWorkbenchCollapsed((prev) => !prev);
-  }, []);
-
-  const expandLiveWorkbench = useCallback(() => {
-    setLiveWorkbenchCollapsed((prev) => {
-      if (!prev) return prev;
-      return false;
-    });
-    setLiveChatPercent((prev) => Math.max(prev, 25));
-  }, []);
-
-  const handleLiveResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setLiveIsDragging(true);
-  }, []);
-
-  useEffect(() => {
-    if (!liveIsDragging) return;
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const percent = ((rect.height - y) / rect.height) * 100;
-      if (liveWorkbenchCollapsed && percent > 5) {
-        toggleLiveWorkbenchCollapsed();
-      }
-      setLiveChatPercent(Math.min(100, Math.max(3, percent)));
-    };
-    const handleMouseUp = (e: MouseEvent) => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const pixelHeight = rect.height - y;
-        if (pixelHeight < 200) {
-          setLiveWorkbenchCollapsed(true);
-          setLiveChatPercent(40);
-        }
-      }
-      setLiveIsDragging(false);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [liveIsDragging, liveWorkbenchCollapsed, toggleLiveWorkbenchCollapsed]);
-
-  // Resize handle (tab bar is the drag target)
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isDragging) return;
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const percent = ((rect.height - y) / rect.height) * 100;
-      // Drag up from closed state → expand
-      if (workbenchCollapsed && percent > 5) {
-        toggleWorkbenchCollapsed();
-      }
-      // Allow dragging down to 3% so snap-to-close is visible
-      setChatPercent(Math.min(100, Math.max(3, percent)));
-    };
-    const handleMouseUp = (e: MouseEvent) => {
-      // Snap closed if terminal height < 200px
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const pixelHeight = rect.height - y;
-        if (pixelHeight < 200) {
-          toggleWorkbenchCollapsed();
-          setChatPercent(25); // reset for next open
-        } else {
-          // Persist the terminal height
-          const finalPercent = Math.min(100, Math.max(3, ((rect.height - y) / rect.height) * 100));
-          patchWorkbenchState({ height: finalPercent });
-        }
-      }
-      setIsDragging(false);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, workbenchCollapsed, toggleWorkbenchCollapsed, patchWorkbenchState]);
+    workbench.setPercent((prev: number) => Math.max(prev, 25));
+  }, [workbench, patchWorkbenchState]);
 
   if (!project) {
     return (
@@ -868,7 +778,7 @@ export default function ProjectPage() {
           <>
             <div
               className="flex-1 min-h-0 overflow-hidden relative"
-              style={workbenchCollapsed ? undefined : { flexBasis: `${100 - chatPercent}%` }}
+              style={workbench.collapsed ? undefined : { flexBasis: `${100 - workbench.percent}%` }}
               onDragEnter={handleBoardDragEnter}
               onDragLeave={handleBoardDragLeave}
               onDragOver={handleBoardDragOver}
@@ -969,12 +879,12 @@ export default function ProjectPage() {
             <WorkbenchPanel
               projectId={projectId}
               projectPath={project.path}
-              style={{ flexBasis: `${chatPercent}%` }}
-              collapsed={workbenchCollapsed}
+              style={{ flexBasis: `${workbench.percent}%` }}
+              collapsed={workbench.collapsed}
               onToggleCollapsed={toggleWorkbenchCollapsed}
               onExpand={expandWorkbench}
-              onResizeStart={handleResizeStart}
-              isDragging={isDragging}
+              onResizeStart={workbench.onResizeStart}
+              isDragging={workbench.isDragging}
             />
           </>
         )}
@@ -982,18 +892,18 @@ export default function ProjectPage() {
         {activeTab === 'live' && project && (
           <LiveTab
             project={project}
-            workbenchCollapsed={liveWorkbenchCollapsed}
-            workbenchHeight={liveChatPercent}
-            isDragging={liveIsDragging}
-            onToggleCollapsed={toggleLiveWorkbenchCollapsed}
-            onExpand={expandLiveWorkbench}
-            onResizeStart={handleLiveResizeStart}
+            workbenchCollapsed={liveWorkbench.collapsed}
+            workbenchHeight={liveWorkbench.percent}
+            isDragging={liveWorkbench.isDragging}
+            onToggleCollapsed={liveWorkbench.toggleCollapsed}
+            onExpand={liveWorkbench.expand}
+            onResizeStart={liveWorkbench.onResizeStart}
           />
         )}
         {activeTab === 'code' && project && <CodeTab project={project} />}
       </main>
 
-      {(isDragging || liveIsDragging) && <div className="fixed inset-0 z-50 cursor-grabbing" />}
+      {(workbench.isDragging || liveWorkbench.isDragging) && <div className="fixed inset-0 z-50 cursor-grabbing" />}
 
       {agentModalTask && (
         <TaskAgentModal

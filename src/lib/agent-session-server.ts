@@ -1,6 +1,7 @@
 import type WebSocket from "ws";
 import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
 import { getTask, getProject, updateTask, getTaskAgentBlocks } from "./db";
+import { resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
 import type { AgentWsClientMsg } from "./types";
 
@@ -34,7 +35,7 @@ export async function attachAgentWsWithProject(
         try {
           const task = await getTask(projectId, taskId);
           const project = await getProject(projectId);
-          const projectPath = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
+          const projectPath = project ? resolveProjectPath(project.path) : ".";
           const cwd = task?.worktreePath || projectPath;
           const planApproved = msg.type === "plan-approve";
 

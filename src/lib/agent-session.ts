@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
+import { resolveProjectPath } from "./utils";
 import { updateTask, getTask, getProject, getSettings, setTaskAgentBlocks, readAgentBlocksFile } from "./db";
 import {
   notify,
@@ -163,7 +164,7 @@ function wireProcess(
     if (task && !endedOnQuestion && !endedOnPlanExit) {
       const effectivePath = task.worktreePath || await (async () => {
         const proj = await getProject(projectId);
-        return proj?.path.replace(/^~/, process.env.HOME || "~");
+        return proj ? resolveProjectPath(proj.path) : undefined;
       })();
       if (effectivePath) {
         autoCommitIfDirty(effectivePath, task.title);

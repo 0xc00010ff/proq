@@ -9,6 +9,7 @@ import {
   clearAgentTabSession,
 } from "./agent-tab-runtime";
 import { getWorkbenchSession, getProject } from "./db";
+import { resolveProjectPath } from "./utils";
 import type { AgentWsClientMsg } from "./types";
 
 export async function attachAgentTabWs(
@@ -45,7 +46,7 @@ export async function attachAgentTabWs(
       } else if (msg.type === "followup") {
         try {
           const project = await getProject(projectId);
-          const cwd = project?.path.replace(/^~/, process.env.HOME || "~") || ".";
+          const cwd = project ? resolveProjectPath(project.path) : ".";
 
           const session = getAgentTabSession(tabId);
           if (session) {

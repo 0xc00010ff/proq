@@ -17,7 +17,7 @@ import {
   getSettings,
   getProjectDefaultBranch,
 } from "./db";
-import { stripAnsi } from "./utils";
+import { stripAnsi, resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
 import { createWorktree, removeWorktree, getCurrentBranch } from "./worktree";
 import type { TaskAttachment, TaskMode, AgentRenderMode } from "./types";
@@ -220,6 +220,42 @@ export function getAllCleanupTimes(): Record<string, number> {
   return result;
 }
 
+function formatAttachments(attachments: TaskAttachment[] | undefined): string {
+  if (!attachments?.length) return "";
+  const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
+  const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
+  let text = "";
+  if (imageFiles.length > 0) {
+    text += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+  }
+  if (otherFiles.length > 0) {
+    text += `\n\n## Attached Files\nThe following files are attached to this task. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
+  }
+  return text;
+}
+
+function buildTaskPrompt(
+  taskTitle: string | undefined,
+  taskDescription: string,
+  mode: TaskMode | undefined,
+  attachments: TaskAttachment[] | undefined,
+): string {
+  const heading = taskTitle
+    ? `# ${taskTitle}\n\n${taskDescription}`
+    : taskDescription;
+
+  let prompt: string;
+  if (mode === "plan") {
+    prompt = heading;
+  } else if (mode === "answer") {
+    prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as a summary.`;
+  } else {
+    prompt = `${heading}\n\nWhen completely finished, use the commit_changes tool to commit your changes with a descriptive message.`;
+  }
+
+  return prompt + formatAttachments(attachments);
+}
+
 export async function dispatchTask(
   projectId: string,
   taskId: string,
@@ -238,7 +274,7 @@ export async function dispatchTask(
   }
 
   // Resolve ~ in path
-  const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
+  const projectPath = resolveProjectPath(project.path);
 
   if (!existsSync(projectPath)) {
     console.error(
@@ -301,36 +337,12 @@ export async function dispatchTask(
     // Not a git repo or no commits yet — skip
   }
 
-  const heading = taskTitle
-    ? `# ${taskTitle}\n\n${taskDescription}`
-    : taskDescription;
+  const prompt = buildTaskPrompt(taskTitle, taskDescription, mode, attachments);
+  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+  const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   // ── CLI mode: dispatch via bridge process ──
   if (renderMode === "cli") {
-    let prompt: string;
-
-    if (mode === "plan") {
-      prompt = heading;
-    } else if (mode === "answer") {
-      prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as a summary.`;
-    } else {
-      prompt = `${heading}\n\nWhen completely finished, use the commit_changes tool to commit your changes with a descriptive message.`;
-    }
-
-    const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
-    const mcpConfigPath = writeMcpConfig(projectId, taskId);
-
-    // Append file attachment paths to prompt
-    if (attachments?.length) {
-      const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
-      const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
-      if (imageFiles.length > 0) {
-        prompt += `\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
-      }
-      if (otherFiles.length > 0) {
-        prompt += `\n## Attached Files\nThe following files are attached to this task. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
-      }
-    }
 
     // CLI mode supports shift-tab to switch between modes interactively,
     // so plan tasks can use native --permission-mode plan.
@@ -389,30 +401,6 @@ export async function dispatchTask(
   }
 
   // ── Default: dispatch via SDK (structured mode) ──
-
-  let prompt: string;
-  if (mode === "plan") {
-    prompt = heading;
-  } else if (mode === "answer") {
-    prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question.`;
-  } else {
-    prompt = `${heading}\n\nWhen completely finished, use the commit_changes tool to commit your changes with a descriptive message.`;
-  }
-
-  // Append file attachment paths to prompt
-  if (attachments?.length) {
-    const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
-    const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
-    if (imageFiles.length > 0) {
-      prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
-    }
-    if (otherFiles.length > 0) {
-      prompt += `\n\n## Attached Files\nThe following files are attached to this task. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
-    }
-  }
-
-  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
-  const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   // Use native plan permission mode for plan tasks
   const permissionMode = mode === "plan" ? "plan" : undefined;
@@ -483,7 +471,7 @@ export async function abortTask(projectId: string, taskId: string) {
     const projects = await getAllProjects();
     const project = projects.find((p) => p.id === projectId);
     if (project) {
-      const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
+      const projectPath = resolveProjectPath(project.path);
       removeWorktree(projectPath, shortId);
       await updateTask(projectId, taskId, {
         worktreePath: undefined,

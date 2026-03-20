@@ -24,12 +24,9 @@ import {
   gitCommitsByHash,
 } from "@/lib/worktree";
 import { getTask } from "@/lib/db";
+import { resolveProjectPath } from "@/lib/utils";
 
 type Params = { params: Promise<{ id: string }> };
-
-function resolveProjectPath(path: string): string {
-  return path.replace(/^~/, process.env.HOME || "~");
-}
 
 /** GET — current branch + all local branches + sync status */
 export async function GET(_request: Request, { params }: Params) {

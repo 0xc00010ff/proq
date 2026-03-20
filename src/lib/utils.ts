@@ -17,6 +17,10 @@ export function stripAnsi(str: string): string {
 export const isElectron =
   typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
 
+export function resolveProjectPath(p: string): string {
+  return p.replace(/^~/, process.env.HOME || "~");
+}
+
 export function slugify(name: string): string {
   return name
     .toLowerCase()

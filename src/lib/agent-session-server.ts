@@ -1,5 +1,5 @@
 import type WebSocket from "ws";
-import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
+import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-provider";
 import { getTask, getProject, updateTask, getTaskAgentBlocks } from "./db";
 import { emitTaskUpdate } from "./task-events";
 import type { AgentWsClientMsg } from "./types";
@@ -51,6 +51,12 @@ export async function attachAgentWsWithProject(
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));
+          // Reset task back to verify so it doesn't hang in-progress
+          const stuck = await getTask(projectId, taskId);
+          if (stuck?.status === "in-progress") {
+            await updateTask(projectId, taskId, { status: "verify", agentStatus: null });
+            emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
+          }
         }
       }
     } catch {

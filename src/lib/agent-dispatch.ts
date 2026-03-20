@@ -26,8 +26,9 @@ import {
   stopSession,
   isSessionRunning,
   clearSession,
-} from "./agent-session";
+} from "./agent-provider";
 import { getClaudeBin } from "./claude-bin";
+import type { AgentProvider } from "./types";
 
 
 /**
@@ -61,7 +62,70 @@ export function buildProqSystemPrompt(
   taskId: string,
   mode: TaskMode | undefined,
   projectName?: string,
+  provider: AgentProvider = "claude",
 ): string {
+  // ── Codex CLI provider: no MCP, use curl commands ──────────────────────────
+  if (provider === "codex") {
+    const proqBase = `http://localhost:${process.env.PORT || 1337}`;
+    const taskUrl = `${proqBase}/api/projects/${projectId}/tasks/${taskId}`;
+
+    const sections: string[] = [
+      `## Fulfilling the task
+
+You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}
+
+Use the following shell commands to interact with the proq task system.
+
+### Task Tools
+
+**Read task state:**
+\`\`\`bash
+curl -s ${taskUrl}
+\`\`\`
+
+**Complete task (call when done — moves to Verify):**
+\`\`\`bash
+curl -s -X PATCH ${taskUrl} \\
+  -H 'Content-Type: application/json' \\
+  -d '{"status":"verify","agentStatus":null,"summary":"SUMMARY","nextSteps":"NEXT_STEPS"}'
+\`\`\`
+
+**Commit changes:**
+\`\`\`bash
+git add -A && git commit -m "MESSAGE"
+\`\`\``,
+    ];
+
+    if (mode === "auto") {
+      sections.push(`### Workflow
+If you make code changes, commit them with \`git add -A && git commit -m "..."\` before reporting.
+When the task is complete, read the current state with curl, then call the complete-task curl to report and move to Verify.`);
+    } else if (mode === "answer") {
+      sections.push(`### Research Mode
+This is an answer-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your summary.
+
+### Reporting Results
+When finished, read the task state with curl to check for any existing summary, then call the complete-task curl with a cumulative summary incorporating prior work.`);
+    } else {
+      sections.push(`### Code Changes
+Commit after each logical unit of work. Always commit your code changes before reporting.
+
+### Reporting Progress
+After committing code changes or completing the main request, call the complete-task curl to update the task board and move to Verify for human review. Read the task first to write a cumulative summary.
+
+**When to report:**
+- After committing code changes
+- After completing the main request or a significant phase
+
+**When NOT to report:**
+- Simple clarifying responses or short answers
+- Minor adjustments that don't change the overall summary`);
+    }
+
+    return sections.join("\n\n");
+  }
+
+  // ── Claude Code provider: MCP tools ───────────────────────────────────────
   const sections: string[] = [
     `## Fulfilling the task
 
@@ -109,7 +173,6 @@ After making substantial changes (committing code, completing a phase of work), 
 
   sections.push(`### Asking Questions
 When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.`);
-
   sections.push(`### Plan Mode
 When you use \`ExitPlanMode\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
 
@@ -389,6 +452,9 @@ export async function dispatchTask(
 
   // ── Default: dispatch via SDK (structured mode) ──
 
+  const settings = await getSettings();
+  const provider = settings.agentProvider ?? "claude";
+
   let prompt: string;
   if (mode === "plan") {
     prompt = heading;
@@ -403,14 +469,31 @@ export async function dispatchTask(
     const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
     const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
     if (imageFiles.length > 0) {
-      prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+      prompt += `\n\n## Attached Images\nThe following image files are attached to this task. Use your bash tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
     if (otherFiles.length > 0) {
-      prompt += `\n\n## Attached Files\nThe following files are attached to this task. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
+      prompt += `\n\n## Attached Files\nThe following files are attached to this task. Use your bash tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
   }
 
-  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, provider);
+
+  // ── Codex path: no MCP, no tmux, direct SDK ──
+  if (provider === "codex") {
+    try {
+      await startSession(projectId, taskId, prompt, effectivePath, {
+        proqSystemPrompt,
+      });
+      console.log(`[agent-dispatch] launched codex session for task ${taskId}`);
+      notify(`🚀 *${(taskTitle || "task").replace(/"/g, '\\"')}* dispatched (codex)`);
+      return terminalTabId;
+    } catch (err) {
+      console.error(`[agent-dispatch] failed to launch codex session for ${taskId}:`, err);
+      return undefined;
+    }
+  }
+
+  // ── Claude path: MCP config + SDK ──
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   // Use native plan permission mode for plan tasks
@@ -471,7 +554,7 @@ export async function abortTask(projectId: string, taskId: string) {
     } catch {}
   } else {
     // Default (structured mode): abort via SDK
-    stopSession(taskId);
+    await stopSession(taskId);
     clearSession(taskId);
     console.log(`[agent-dispatch] stopped agent session for task ${taskId}`);
   }

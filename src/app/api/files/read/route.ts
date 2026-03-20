@@ -57,12 +57,14 @@ export async function GET(req: NextRequest) {
 
   const resolved = path.resolve(filePath);
 
-  // Validate path belongs to a registered project or ~/.claude/ (plan files)
+  // Validate path belongs to a registered project or an agent config directory
   const projects = await getAllProjects();
   const claudeDir = path.join(os.homedir(), ".claude");
+  const codexDir = path.join(os.homedir(), ".codex");
   const isAllowed =
     projects.some((p) => resolved.startsWith(p.path)) ||
-    resolved.startsWith(claudeDir);
+    resolved.startsWith(claudeDir) ||
+    resolved.startsWith(codexDir);
   if (!isAllowed) {
     return NextResponse.json({ error: "path not allowed" }, { status: 403 });
   }

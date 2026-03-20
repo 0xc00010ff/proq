@@ -132,15 +132,18 @@ export interface DeletedTaskEntry {
 }
 
 // ── Settings ─────────────────────────────────────────
+export type AgentProvider = 'claude' | 'codex';
+
 export interface ProqSettings {
   // Agent
+  agentProvider: AgentProvider;
   claudeBin: string;
   defaultModel: string;
+  codexModel: string;
   systemPromptAdditions: string;
   executionMode: ExecutionMode;
   agentRenderMode: AgentRenderMode;
   showCosts: boolean;
-  codingAgent: string;
 
   // Updates
   autoUpdate: boolean;

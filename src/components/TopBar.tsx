@@ -280,18 +280,18 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             <DropdownMenuSeparator />
             <div className="p-1.5">
               <DropdownMenuItem
-                onSelect={() => onOpenSettings?.()}
-                className="text-xs gap-2"
-              >
-                <SettingsIcon className="w-3.5 h-3.5" />
-                <span>Project Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
                 onSelect={() => onOpenCronJobs?.()}
                 className="text-xs gap-2"
               >
                 <TimerIcon className="w-3.5 h-3.5" />
                 <span>Scheduled Tasks</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => onOpenSettings?.()}
+                className="text-xs gap-2"
+              >
+                <SettingsIcon className="w-3.5 h-3.5" />
+                <span>Project Settings</span>
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>

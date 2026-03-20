@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { XIcon } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
@@ -38,6 +38,9 @@ export function Modal({
 }: ModalProps) {
   useEscapeKey(onClose, isOpen);
 
+  // Track where mousedown started so we only close on true backdrop clicks
+  const mouseDownOnBackdrop = useRef(false);
+
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';
@@ -47,13 +50,19 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 electron-no-drag`} onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
+    <div
+      className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 electron-no-drag`}
+      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
+      onMouseUp={(e) => {
+        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onClose();
+        mouseDownOnBackdrop.current = false;
+      }}
+    >
+      <div className="absolute inset-0 bg-black/40" onMouseDown={(e) => { mouseDownOnBackdrop.current = true; }} />
       <div
         ref={cardRef}
         className={`relative bg-surface-detail border border-border-default rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-75 ${className}`}
         style={style}
-        onClick={(e) => e.stopPropagation()}
       >
         {showClose && (
           <button

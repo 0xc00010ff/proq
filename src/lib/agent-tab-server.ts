@@ -59,7 +59,7 @@ export async function attachAgentTabWs(
               await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments);
             } else {
               // Start a new session
-              await startAgentTabSession(tabId, projectId, msg.text, cwd, context);
+              await startAgentTabSession(tabId, projectId, msg.text, cwd, context, msg.attachments);
               const newSession = getAgentTabSession(tabId);
               if (newSession) {
                 attachAgentTabClient(tabId, ws);

@@ -264,6 +264,7 @@ export async function startAgentTabSession(
   text: string,
   cwd: string,
   context?: string,
+  attachments?: TaskAttachment[],
 ): Promise<void> {
   const existing = sessions.get(tabId);
   if (existing?.status === "running") {
@@ -285,14 +286,27 @@ export async function startAgentTabSession(
   const projectName = project?.name || "project";
 
   appendBlock(session, { type: "status", subtype: "init", model: settings.defaultModel || undefined });
-  appendBlock(session, { type: "user", text });
+  appendBlock(session, { type: "user", text, attachments: attachments?.length ? attachments : undefined });
+
+  // Append file attachment paths to prompt
+  let promptText = text;
+  if (attachments?.length) {
+    const imageFiles = attachments.filter((a) => a.filePath && a.type.startsWith("image/")).map((a) => a.filePath!);
+    const otherFiles = attachments.filter((a) => a.filePath && !a.type.startsWith("image/")).map((a) => a.filePath!);
+    if (imageFiles.length > 0) {
+      promptText += `\n\n## Attached Images\nThe following image files are attached to this message. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+    }
+    if (otherFiles.length > 0) {
+      promptText += `\n\n## Attached Files\nThe following files are attached to this message. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
+    }
+  }
 
   const startTime = Date.now();
 
   const mcpConfigPath = writeWorkbenchMcpConfig(projectId, tabId);
 
   const args: string[] = [
-    "-p", text,
+    "-p", promptText,
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",

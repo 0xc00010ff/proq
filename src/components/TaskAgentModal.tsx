@@ -65,14 +65,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   useEscapeKey(onClose);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
-      onMouseUp={(e) => {
-        if (mouseDownOnBackdrop.current && e.target === e.currentTarget && !justDraggedRef.current) onClose();
-        mouseDownOnBackdrop.current = false;
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-none"

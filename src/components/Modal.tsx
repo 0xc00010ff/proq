@@ -50,14 +50,7 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 electron-no-drag`}
-      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
-      onMouseUp={(e) => {
-        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onClose();
-        mouseDownOnBackdrop.current = false;
-      }}
-    >
+    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 electron-no-drag`}>
       <div
         className="absolute inset-0 bg-black/40"
         onMouseDown={() => { mouseDownOnBackdrop.current = true; }}

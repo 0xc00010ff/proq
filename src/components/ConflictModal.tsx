@@ -19,14 +19,7 @@ export function ConflictModal({ branch, baseBranch = 'main', files, diff, onReso
   const mouseDownOnBackdrop = useRef(false);
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
-      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
-      onMouseUp={(e) => {
-        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onDismiss();
-        mouseDownOnBackdrop.current = false;
-      }}
-    >
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/40"
         onMouseDown={() => { mouseDownOnBackdrop.current = true; }}

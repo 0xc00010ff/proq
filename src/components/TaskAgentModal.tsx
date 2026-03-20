@@ -9,7 +9,6 @@ import {
   DialogOverlay,
 } from '@/components/ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import type { Task, FollowUpDraft } from '@/lib/types';
 import { TaskAgentDetail } from './TaskAgentDetail';
 
@@ -77,13 +76,13 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: 'calc(100% - 2rem)', maxWidth: '80rem', height: '90vh' }}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          <VisuallyHidden asChild>
-            <DialogPrimitive.Title>{task.title}</DialogPrimitive.Title>
-          </VisuallyHidden>
           {/* Modal header bar */}
-          <div className="shrink-0 flex items-center justify-end px-2 py-1.5 border-b border-border-default bg-surface-topbar">
+          <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-border-default bg-surface-topbar">
+            <DialogPrimitive.Title className="text-xs font-medium text-text-secondary truncate mr-2">
+              {task.title}
+            </DialogPrimitive.Title>
             <DialogPrimitive.Close
-              className="p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+              className="shrink-0 p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
             >
               <XIcon className="w-4 h-4" />
             </DialogPrimitive.Close>

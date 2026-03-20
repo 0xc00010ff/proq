@@ -571,6 +571,27 @@ app.whenReady().then(() => {
           ]
         },
         { role: 'editMenu' },
+        {
+          label: 'History',
+          submenu: [
+            {
+              label: 'Back',
+              accelerator: 'CmdOrCtrl+[',
+              click: (): void => {
+                const win = BrowserWindow.getFocusedWindow()
+                if (win) win.webContents.goBack()
+              }
+            },
+            {
+              label: 'Forward',
+              accelerator: 'CmdOrCtrl+]',
+              click: (): void => {
+                const win = BrowserWindow.getFocusedWindow()
+                if (win) win.webContents.goForward()
+              }
+            }
+          ]
+        },
         { role: 'viewMenu' },
         { role: 'windowMenu' }
       ])

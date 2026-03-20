@@ -233,6 +233,20 @@ export default function ProjectPage() {
 
   useTaskEvents(projectId, handleTaskUpdate, handleTaskCreated, handleProjectUpdate);
 
+  // Refresh tasks immediately when tab becomes visible — SSE events may have
+  // been lost while the browser throttled the background tab's connection.
+  useEffect(() => {
+    if (!projectId) return;
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        refreshTasks(projectId);
+        fetchBranchState();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [projectId, refreshTasks, fetchBranchState]);
+
   // 30s poll as consistency backstop — SSE handles real-time updates.
   // Refreshes both tasks (skipped during drags) and project-level data (e.g. serverUrl).
   useEffect(() => {

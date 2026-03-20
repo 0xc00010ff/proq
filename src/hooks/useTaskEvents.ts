@@ -45,6 +45,7 @@ export function useTaskEvents(
     function connect() {
       if (disposed) return;
 
+      es?.close();
       es = new EventSource(`/api/projects/${projectId}/events`);
 
       es.onmessage = (event) => {
@@ -72,12 +73,24 @@ export function useTaskEvents(
       };
     }
 
+    // Reconnect SSE when tab becomes visible — browser may have
+    // throttled or dropped the connection while backgrounded, losing
+    // any events emitted during that window.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && !disposed) {
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        connect();
+      }
+    }
+
     connect();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       disposed = true;
       es?.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [projectId]);
 }

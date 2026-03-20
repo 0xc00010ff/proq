@@ -9,6 +9,7 @@ import {
   Trash2Icon,
   PencilIcon,
   ArrowLeftIcon,
+  ChevronDownIcon,
 } from 'lucide-react';
 
 interface CronJobsModalProps {
@@ -43,11 +44,121 @@ const MODES: { value: TaskMode; label: string }[] = [
   { value: 'build', label: 'Build' },
 ];
 
+// ── Schedule picker helpers ──
+
+type Frequency = 'interval' | 'daily' | 'weekly';
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_ABBREVS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const HOURS = Array.from({ length: 24 }, (_, i) => {
+  const h = i % 12 || 12;
+  const ampm = i < 12 ? 'am' : 'pm';
+  return { value: i, label: `${h}:00 ${ampm}` };
+});
+const INTERVALS = [
+  { value: '30m', label: 'Every 30 minutes' },
+  { value: '1h', label: 'Every hour' },
+  { value: '2h', label: 'Every 2 hours' },
+  { value: '3h', label: 'Every 3 hours' },
+  { value: '4h', label: 'Every 4 hours' },
+  { value: '6h', label: 'Every 6 hours' },
+  { value: '8h', label: 'Every 8 hours' },
+  { value: '12h', label: 'Every 12 hours' },
+];
+
+interface ScheduleState {
+  frequency: Frequency;
+  interval: string;
+  hour: number;
+  day: number;
+}
+
+function scheduleToString(s: ScheduleState): string {
+  if (s.frequency === 'interval') return `every ${s.interval}`;
+  if (s.frequency === 'daily') return `daily at ${HOURS[s.hour].label.replace(':00 ', '')}`;
+  return `every ${DAY_ABBREVS[s.day]} ${HOURS[s.hour].label.replace(':00 ', '')}`;
+}
+
+function parseScheduleState(schedule: string): ScheduleState {
+  const s = schedule.trim().toLowerCase();
+
+  // interval: "every Xh", "every Xm"
+  const intervalMatch = s.match(/^every\s+(\d+\s*[hm])/);
+  if (intervalMatch) {
+    const val = intervalMatch[1].replace(/\s/g, '');
+    const found = INTERVALS.find((i) => i.value === val);
+    return { frequency: 'interval', interval: found ? val : '6h', hour: 9, day: 1 };
+  }
+
+  // daily: "daily at Xam/pm" or cron "M H * * *"
+  const dailyMatch = s.match(/daily\s+(?:at\s+)?(\d{1,2})\s*(am|pm)?/);
+  if (dailyMatch) {
+    let h = parseInt(dailyMatch[1]);
+    if (dailyMatch[2] === 'pm' && h < 12) h += 12;
+    if (dailyMatch[2] === 'am' && h === 12) h = 0;
+    return { frequency: 'daily', interval: '6h', hour: h, day: 1 };
+  }
+
+  // weekly: "every mon/tue... at Xam/pm"
+  const weeklyMatch = s.match(/every\s+(sun|mon|tue|wed|thu|fri|sat)\w*\s+(?:at\s+)?(\d{1,2})\s*(am|pm)?/);
+  if (weeklyMatch) {
+    const dayIdx = DAY_ABBREVS.indexOf(weeklyMatch[1]);
+    let h = parseInt(weeklyMatch[2]);
+    if (weeklyMatch[3] === 'pm' && h < 12) h += 12;
+    if (weeklyMatch[3] === 'am' && h === 12) h = 0;
+    return { frequency: 'weekly', interval: '6h', hour: h, day: dayIdx >= 0 ? dayIdx : 1 };
+  }
+
+  // cron: try to detect "M H * * *" (daily) or "M H * * D" (weekly)
+  const parts = s.split(/\s+/);
+  if (parts.length === 5) {
+    const min = parseInt(parts[0]);
+    const hour = parseInt(parts[1]);
+    const dow = parts[4];
+    if (dow === '*' && parts[2] === '*' && parts[3] === '*' && !isNaN(hour)) {
+      return { frequency: 'daily', interval: '6h', hour, day: 1 };
+    }
+    if (dow !== '*' && parts[2] === '*' && parts[3] === '*' && !isNaN(hour)) {
+      return { frequency: 'weekly', interval: '6h', hour, day: parseInt(dow) || 0 };
+    }
+    // interval-like cron: */N or 0 */N
+    if (parts[0].startsWith('*/')) {
+      return { frequency: 'interval', interval: `${parts[0].slice(2)}m`, hour: 9, day: 1 };
+    }
+    if (parts[1].startsWith('*/')) {
+      return { frequency: 'interval', interval: `${parts[1].slice(2)}h`, hour: 9, day: 1 };
+    }
+  }
+
+  // Default
+  return { frequency: 'daily', interval: '6h', hour: 9, day: 1 };
+}
+
+function SelectField({ value, onChange, children, className = '' }: {
+  value: string | number;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`relative ${className}`}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-surface-deep border border-border-default rounded-md px-2.5 py-1.5 pr-7 text-xs text-text-primary focus:outline-none focus:border-border-strong cursor-pointer"
+      >
+        {children}
+      </select>
+      <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-tertiary pointer-events-none" />
+    </div>
+  );
+}
+
 export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps) {
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null); // job id or 'new'
   const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true });
+  const [schedState, setSchedState] = useState<ScheduleState>({ frequency: 'daily', interval: '6h', hour: 9, day: 1 });
   const nameRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
@@ -116,14 +227,25 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
     await fetch(`/api/projects/${projectId}/crons/${job.id}/trigger`, { method: 'POST' });
   };
 
+  const updateSched = (partial: Partial<ScheduleState>) => {
+    setSchedState((prev) => {
+      const next = { ...prev, ...partial };
+      setForm((f) => ({ ...f, schedule: scheduleToString(next) }));
+      return next;
+    });
+  };
+
   const startEdit = (job: CronJob) => {
     setEditing(job.id);
     setForm({ name: job.name, prompt: job.prompt, schedule: job.schedule, mode: job.mode ?? 'auto', enabled: job.enabled });
+    setSchedState(parseScheduleState(job.schedule));
   };
 
   const startNew = () => {
+    const defaultSched: ScheduleState = { frequency: 'daily', interval: '6h', hour: 9, day: 1 };
     setEditing('new');
-    setForm({ name: '', prompt: '', schedule: '', mode: 'auto', enabled: true });
+    setForm({ name: '', prompt: '', schedule: scheduleToString(defaultSched), mode: 'auto', enabled: true });
+    setSchedState(defaultSched);
     setTimeout(() => nameRef.current?.focus(), 50);
   };
 
@@ -311,19 +433,41 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
 
             {/* Schedule */}
             <div className="border-t border-border-default/60 pt-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-text-tertiary flex-shrink-0">Schedule</span>
-                <input
-                  type="text"
-                  value={form.schedule}
-                  onChange={(e) => setForm((f) => ({ ...f, schedule: e.target.value }))}
-                  placeholder="every 6h"
-                  className="flex-1 bg-transparent text-sm font-mono text-text-primary focus:outline-none placeholder:text-text-placeholder"
-                />
+              <div className="flex items-center gap-2 flex-wrap">
+                <SelectField value={schedState.frequency} onChange={(v) => updateSched({ frequency: v as Frequency })}>
+                  <option value="interval">Every</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                </SelectField>
+
+                {schedState.frequency === 'interval' && (
+                  <SelectField value={schedState.interval} onChange={(v) => updateSched({ interval: v })}>
+                    {INTERVALS.map((i) => (
+                      <option key={i.value} value={i.value}>{i.label.replace('Every ', '')}</option>
+                    ))}
+                  </SelectField>
+                )}
+
+                {schedState.frequency === 'weekly' && (
+                  <SelectField value={schedState.day} onChange={(v) => updateSched({ day: parseInt(v) })}>
+                    {DAYS.map((d, i) => (
+                      <option key={i} value={i}>{d}</option>
+                    ))}
+                  </SelectField>
+                )}
+
+                {(schedState.frequency === 'daily' || schedState.frequency === 'weekly') && (
+                  <>
+                    <span className="text-xs text-text-tertiary">at</span>
+                    <SelectField value={schedState.hour} onChange={(v) => updateSched({ hour: parseInt(v) })}>
+                      {HOURS.map((h) => (
+                        <option key={h.value} value={h.value}>{h.label}</option>
+                      ))}
+                    </SelectField>
+                  </>
+                )}
               </div>
-              <p className="mt-1.5 text-[10px] text-text-chrome leading-relaxed">
-                e.g. <code className="text-text-tertiary">every 6h</code> · <code className="text-text-tertiary">daily at 9am</code> · <code className="text-text-tertiary">every mon 8am</code> · <code className="text-text-tertiary">0 9 * * *</code>
-              </p>
+              <p className="mt-2 text-[10px] text-text-chrome font-mono">{form.schedule}</p>
             </div>
 
             {/* Actions */}

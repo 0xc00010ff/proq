@@ -27,6 +27,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const justDraggedRef = useRef(false);
+  const mouseDownOnBackdrop = useRef(false);
 
   const handleModalResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -66,17 +67,24 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={() => { if (!justDraggedRef.current) onClose(); }}
+      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
+      onMouseUp={(e) => {
+        if (mouseDownOnBackdrop.current && e.target === e.currentTarget && !justDraggedRef.current) onClose();
+        mouseDownOnBackdrop.current = false;
+      }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-none" />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-none"
+        onMouseDown={() => { mouseDownOnBackdrop.current = true; }}
+        onMouseUp={() => { if (mouseDownOnBackdrop.current && !justDraggedRef.current) onClose(); mouseDownOnBackdrop.current = false; }}
+      />
 
       {/* Modal */}
       <div
         ref={modalRef}
         className="relative flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: '100%', maxWidth: '80rem', height: '90vh' }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header bar */}
         <div className="shrink-0 flex items-center justify-end px-2 py-1.5 border-b border-border-default bg-surface-topbar">

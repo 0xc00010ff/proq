@@ -58,7 +58,11 @@ export function Modal({
         mouseDownOnBackdrop.current = false;
       }}
     >
-      <div className="absolute inset-0 bg-black/40" onMouseDown={(e) => { mouseDownOnBackdrop.current = true; }} />
+      <div
+        className="absolute inset-0 bg-black/40"
+        onMouseDown={() => { mouseDownOnBackdrop.current = true; }}
+        onMouseUp={() => { if (mouseDownOnBackdrop.current) onClose(); mouseDownOnBackdrop.current = false; }}
+      />
       <div
         ref={cardRef}
         className={`relative bg-surface-detail border border-border-default rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-75 ${className}`}

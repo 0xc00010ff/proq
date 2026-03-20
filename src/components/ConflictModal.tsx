@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { XIcon, AlertTriangleIcon, WrenchIcon, ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
@@ -16,13 +16,24 @@ interface ConflictModalProps {
 export function ConflictModal({ branch, baseBranch = 'main', files, diff, onResolve, onDismiss }: ConflictModalProps) {
   useEscapeKey(onDismiss);
   const [diffExpanded, setDiffExpanded] = useState(true);
+  const mouseDownOnBackdrop = useRef(false);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={onDismiss}>
-      <div className="absolute inset-0 bg-black/40" />
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
+      onMouseUp={(e) => {
+        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onDismiss();
+        mouseDownOnBackdrop.current = false;
+      }}
+    >
+      <div
+        className="absolute inset-0 bg-black/40"
+        onMouseDown={() => { mouseDownOnBackdrop.current = true; }}
+        onMouseUp={() => { if (mouseDownOnBackdrop.current) onDismiss(); mouseDownOnBackdrop.current = false; }}
+      />
       <div
         className="relative bg-surface-detail border border-border-default rounded-lg max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-border-default shrink-0">
           <div className="flex items-center gap-2">

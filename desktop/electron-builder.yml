@@ -33,6 +33,6 @@ dmg:
   artifactName: ${name}-${version}.${ext}
 publish:
   provider: github
-  owner: 0xc00010ff
+  owner: "0xc00010ff"
   repo: proq
 npmRebuild: false

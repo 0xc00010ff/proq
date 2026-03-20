@@ -301,7 +301,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
       isOpen={isOpen}
       onClose={handleClose}
       cardRef={modalRef}
-      className={editing ? 'w-full max-w-xl overflow-hidden' : 'w-full max-w-xl'}
+      className={editing ? `overflow-hidden ${modalSize ? '' : 'w-full max-w-xl'}` : 'w-full max-w-xl'}
       style={editing && modalSize ? { width: modalSize.width, height: modalSize.height } : undefined}
     >
       <div className={`p-5 pt-4 ${editing ? 'h-full flex flex-col' : ''}`}>

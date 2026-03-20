@@ -76,7 +76,8 @@ export function spawnShellSession(tabId: string, cmd?: string, cwd?: string): bo
   // Ensure socket directory exists
   mkdirSync("/tmp/proq", { recursive: true });
 
-  const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
+  const appRoot = process.cwd();
+  const bridgePath = [appRoot, "src", "lib", "proq-bridge.js"].join("/");
 
   try {
     const child = spawn("node", [bridgePath, sock, launcherFile], {

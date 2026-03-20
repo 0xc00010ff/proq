@@ -355,7 +355,8 @@ export async function dispatchTask(
 
     // Ensure bridge socket directory exists
     mkdirSync("/tmp/proq", { recursive: true });
-    const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
+    const cwd = process.cwd();
+    const bridgePath = [cwd, "src", "lib", "proq-bridge.js"].join("/");
     const socketPath = `/tmp/proq/${sessionId}.sock`;
 
     // Launch bridge directly — detached process survives server restarts, exposes PTY over unix socket

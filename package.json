@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "PROQ_DEV=1 PORT=${PORT:-1337} next dev",
-    "build": "next build",
+    "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
     "setup": "bash scripts/setup.sh",

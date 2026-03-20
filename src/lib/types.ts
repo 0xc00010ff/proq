@@ -14,6 +14,7 @@ export interface Project {
   viewType?: ViewType;
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   defaultBranch?: string;
+  systemPrompt?: string;
   createdAt: string;
 }
 

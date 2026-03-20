@@ -40,7 +40,7 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error,
     const label = model ? `Claude Code (${model})` : 'Claude Code';
     const timeLabel = timestamp ? formatInitTimestamp(timestamp) : null;
     return (
-      <div className="flex flex-col gap-1 py-2">
+      <div className="flex flex-col gap-1 pt-3 pb-2">
         {timeLabel && (
           <div className="flex items-center gap-2 text-[11px] text-text-placeholder font-mono">
             <div className="flex-1 border-t border-border-default" />

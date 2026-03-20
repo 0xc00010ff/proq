@@ -311,7 +311,8 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                 jobs.map((job) => (
                   <div
                     key={job.id}
-                    className={`group rounded-md border px-3 py-2.5 transition-colors ${
+                    onClick={() => startEdit(job)}
+                    className={`group rounded-md border px-3 py-2.5 transition-colors cursor-pointer ${
                       job.enabled
                         ? 'border-border-default bg-surface-secondary hover:bg-surface-hover/40'
                         : 'border-border-subtle bg-surface-deep/30 opacity-50'
@@ -320,7 +321,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                     <div className="flex items-center gap-2">
                       {/* Toggle */}
                       <button
-                        onClick={() => handleToggle(job)}
+                        onClick={(e) => { e.stopPropagation(); handleToggle(job); }}
                         className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full transition-colors ${
                           job.enabled ? 'bg-emerald/60' : 'bg-zinc-600'
                         }`}
@@ -343,21 +344,21 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                       {/* Actions */}
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         <button
-                          onClick={() => handleTrigger(job)}
+                          onClick={(e) => { e.stopPropagation(); handleTrigger(job); }}
                           className="p-1.5 rounded text-text-chrome hover:text-emerald hover:bg-surface-hover"
                           title="Run now"
                         >
                           <PlayIcon className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => startEdit(job)}
+                          onClick={(e) => { e.stopPropagation(); startEdit(job); }}
                           className="p-1.5 rounded text-text-chrome hover:text-text-primary hover:bg-surface-hover"
                           title="Edit"
                         >
                           <PencilIcon className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => handleDelete(job.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(job.id); }}
                           className="p-1.5 rounded text-text-chrome hover:text-crimson hover:bg-surface-hover"
                           title="Delete"
                         >

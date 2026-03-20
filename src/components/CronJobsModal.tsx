@@ -73,9 +73,17 @@ interface ScheduleState {
 }
 
 function scheduleToString(s: ScheduleState): string {
-  if (s.frequency === 'interval') return `every ${s.interval}`;
-  if (s.frequency === 'daily') return `daily at ${HOURS[s.hour].label.replace(':00 ', '')}`;
-  return `every ${DAY_ABBREVS[s.day]} ${HOURS[s.hour].label.replace(':00 ', '')}`;
+  if (s.frequency === 'interval') {
+    const match = s.interval.match(/^(\d+)([hm])$/);
+    if (match) {
+      const [, n, unit] = match;
+      if (unit === 'm') return `*/${n} * * * *`;
+      return `0 */${n} * * *`;
+    }
+    return `0 */6 * * *`;
+  }
+  if (s.frequency === 'daily') return `0 ${s.hour} * * *`;
+  return `0 ${s.hour} * * ${s.day}`;
 }
 
 function parseScheduleState(schedule: string): ScheduleState {

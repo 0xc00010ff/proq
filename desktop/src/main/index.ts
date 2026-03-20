@@ -28,6 +28,11 @@ import { initShellUpdater, checkForShellUpdate, installShellUpdate, startShellUp
 import { ensurePath } from './shell-path'
 ensurePath()
 
+// Isolate dev mode: separate userData dir so dev and production don't share config/ports
+if (process.env.PROQ_DEV) {
+  app.setName('proq-desktop-dev')
+}
+
 function getIcon(): Electron.NativeImage {
   const dark = nativeTheme.shouldUseDarkColors
   const path = is.dev ? (dark ? iconDevDark : iconDevLight) : (dark ? iconDark : iconLight)

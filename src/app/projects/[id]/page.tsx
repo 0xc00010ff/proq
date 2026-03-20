@@ -15,6 +15,7 @@ import { UndoModal } from '@/components/UndoModal';
 import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
 import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
+import { CronJobsModal } from '@/components/CronJobsModal';
 import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyTasks } from '@/components/ProjectsProvider';
@@ -37,6 +38,7 @@ export default function ProjectPage() {
   const [pendingModeSwitch, setPendingModeSwitch] = useState<'parallel' | 'worktrees' | null>(null);
   const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showCronJobs, setShowCronJobs] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
@@ -769,6 +771,7 @@ export default function ProjectPage() {
         viewType={project.viewType || 'kanban'}
         onViewTypeChange={handleViewTypeChange}
         onOpenSettings={() => setShowProjectSettings(true)}
+        onOpenCronJobs={() => setShowCronJobs(true)}
         onCommit={() => setShowCommitModal(true)}
         onCreateBranch={handleCreateBranch}
       />
@@ -1014,6 +1017,12 @@ export default function ProjectPage() {
           onSave={handleProjectSettingsSave}
         />
       )}
+
+      <CronJobsModal
+        isOpen={showCronJobs}
+        projectId={projectId}
+        onClose={() => setShowCronJobs(false)}
+      />
 
       <CommitModal
         isOpen={showCommitModal}

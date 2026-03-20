@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -42,11 +42,12 @@ interface TopBarProps {
   viewType?: ViewType;
   onViewTypeChange?: (viewType: ViewType) => void;
   onOpenSettings?: () => void;
+  onOpenCronJobs?: () => void;
   onCommit?: () => void;
   onCreateBranch?: (name: string) => Promise<void>;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onCommit, onCreateBranch }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -284,6 +285,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               >
                 <SettingsIcon className="w-3.5 h-3.5" />
                 <span>Project Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => onOpenCronJobs?.()}
+                className="text-xs gap-2"
+              >
+                <TimerIcon className="w-3.5 h-3.5" />
+                <span>Scheduled Tasks</span>
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>

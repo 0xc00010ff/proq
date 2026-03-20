@@ -13,6 +13,7 @@ import type {
   DeletedTaskEntry,
   ProqSettings,
   AgentBlock,
+  CronJob,
 } from "./types";
 import { slugify } from "./utils";
 
@@ -292,7 +293,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "sessionId" | "startCommit" | "commitHashes">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "sessionId" | "startCommit" | "commitHashes" | "cronJobId">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -576,6 +577,69 @@ export async function setSupervisorAgentBlocks(agentBlocks: AgentBlock[], sessio
 export async function clearSupervisorSession(): Promise<void> {
   return withWriteLock("supervisor", async () => {
     writeSupervisorData({ chatLog: [] });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRON JOBS
+// ═══════════════════════════════════════════════════════════
+
+export async function getCronJobs(projectId: string): Promise<CronJob[]> {
+  const data = getProjectData(projectId);
+  return data.cronJobs ?? [];
+}
+
+export async function createCronJob(
+  projectId: string,
+  data: Pick<CronJob, "name" | "prompt" | "schedule"> & { mode?: CronJob["mode"]; enabled?: boolean }
+): Promise<CronJob> {
+  return withWriteLock(`project:${projectId}`, async () => {
+    const state = getProjectData(projectId);
+    if (!state.cronJobs) state.cronJobs = [];
+    const job: CronJob = {
+      id: uuidv4(),
+      name: data.name,
+      prompt: data.prompt,
+      schedule: data.schedule,
+      mode: data.mode,
+      enabled: data.enabled ?? true,
+      runCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+    state.cronJobs.push(job);
+    writeProject(projectId, state);
+    return job;
+  });
+}
+
+export async function updateCronJob(
+  projectId: string,
+  cronId: string,
+  data: Partial<Pick<CronJob, "name" | "prompt" | "schedule" | "mode" | "enabled" | "lastRunAt" | "lastTaskId" | "nextRunAt" | "runCount">>
+): Promise<CronJob | null> {
+  return withWriteLock(`project:${projectId}`, async () => {
+    const state = getProjectData(projectId);
+    if (!state.cronJobs) return null;
+    const job = state.cronJobs.find((j) => j.id === cronId);
+    if (!job) return null;
+    Object.assign(job, data);
+    writeProject(projectId, state);
+    return job;
+  });
+}
+
+export async function deleteCronJob(
+  projectId: string,
+  cronId: string
+): Promise<boolean> {
+  return withWriteLock(`project:${projectId}`, async () => {
+    const state = getProjectData(projectId);
+    if (!state.cronJobs) return false;
+    const idx = state.cronJobs.findIndex((j) => j.id === cronId);
+    if (idx === -1) return false;
+    state.cronJobs.splice(idx, 1);
+    writeProject(projectId, state);
+    return true;
   });
 }
 

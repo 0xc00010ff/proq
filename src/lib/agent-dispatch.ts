@@ -61,11 +61,15 @@ export function buildProqSystemPrompt(
   taskId: string,
   mode: TaskMode | undefined,
   projectName?: string,
+  options?: { isCronTask?: boolean },
 ): string {
+  const cronPreamble = options?.isCronTask
+    ? `\n\nThis is a **scheduled task** (cron job) running automatically.${projectName ? ` Project: **${projectName}**.` : ""} There is no human actively watching — be thorough, self-contained, and report clear results. If you encounter errors or ambiguity, document them in your summary rather than asking questions.`
+    : "";
   const sections: string[] = [
     `## Fulfilling the task
 
-You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}
+You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}${cronPreamble}
 
 You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.
 
@@ -338,7 +342,8 @@ export async function dispatchTask(
   }
 
   const prompt = buildTaskPrompt(taskTitle, taskDescription, mode, attachments);
-  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name);
+  const isCronTask = !!currentTask?.cronJobId;
+  const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, { isCronTask });
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
   // ── CLI mode: dispatch via bridge process ──

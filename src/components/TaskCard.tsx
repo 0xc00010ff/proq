@@ -8,6 +8,7 @@ import {
   EyeIcon,
   BellDotIcon,
   AlertTriangleIcon,
+  TimerIcon,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 
@@ -26,6 +27,8 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
   const isRunning = task.agentStatus === 'running';
   const isStarting = task.agentStatus === 'starting';
   const isActive = isRunning || isStarting;
+  const isCron = !!task.cronJobId;
+  const isCronError = isCron && task.status === 'verify' && task.summary?.startsWith('Error:');
   const canEditTitle = !!onUpdateTitle;
 
   // Track summary changes to trigger flash animation
@@ -141,6 +144,15 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
           </div>
         )}
 
+        {isCronError && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+            <span className="text-[10px] text-red-400 font-medium uppercase tracking-wide">
+              Error
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle/60">
           {isPreviewActive && !isActive && !isQueued ? (
             <div className="flex items-center gap-1.5">
@@ -180,7 +192,8 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
           ) : (
             <span />
           )}
-          <span className="text-[10px] text-text-tertiary font-mono">
+          <span className="flex items-center gap-1.5 text-[10px] text-text-tertiary font-mono">
+            {isCron && <TimerIcon className="w-3 h-3 text-text-chrome" />}
             {task.id.slice(0, 8)}
           </span>
         </div>

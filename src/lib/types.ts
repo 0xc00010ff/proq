@@ -97,6 +97,7 @@ export interface Task {
   agentBlocks?: AgentBlock[];
   sessionId?: string;
   attachments?: TaskAttachment[];
+  cronJobId?: string;             // links task to source cron job
   createdAt: string;
   updatedAt: string;
 }
@@ -154,6 +155,21 @@ export interface ProqSettings {
   webhooks: string[];
 }
 
+// ── Cron Jobs ───────────────────────────────────────────
+export interface CronJob {
+  id: string;
+  name: string;
+  prompt: string;
+  schedule: string;           // cron expression: "0 9 * * *" or "every 6h"
+  mode?: TaskMode;            // default: auto
+  enabled: boolean;
+  lastRunAt?: string;
+  lastTaskId?: string;
+  nextRunAt?: string;
+  runCount: number;
+  createdAt: string;
+}
+
 // ── Per-project state ────────────────────────────────────
 export type ExecutionMode = 'sequential' | 'parallel' | 'worktrees';
 
@@ -182,4 +198,5 @@ export interface ProjectState {
   liveWorkbenchActiveTabId?: string;
   projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   recentlyDeleted?: DeletedTaskEntry[];
+  cronJobs?: CronJob[];
 }

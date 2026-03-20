@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { ProjectTab } from '@/lib/types';
 
@@ -8,6 +8,7 @@ const VALID_TABS = new Set<ProjectTab>(['project', 'live', 'code']);
 
 /**
  * Syncs active tab and open task with URL search params.
+ * Every action pushes a new history entry so back/forward stacks naturally.
  *
  * URL scheme:
  *   /projects/[id]              → project tab (default)
@@ -18,10 +19,6 @@ const VALID_TABS = new Set<ProjectTab>(['project', 'live', 'code']);
 export function useRouteState(projectId: string, fallbackTab: ProjectTab = 'project') {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Track whether the current task was opened via navigation (click)
-  // vs direct URL load, so closeTask can use router.back() appropriately
-  const openedViaClickRef = useRef(false);
 
   const tabParam = searchParams.get('tab') as ProjectTab | null;
   const activeTab: ProjectTab = tabParam && VALID_TABS.has(tabParam) ? tabParam : fallbackTab;
@@ -46,18 +43,11 @@ export function useRouteState(projectId: string, fallbackTab: ProjectTab = 'proj
   }, [projectId, router]);
 
   const openTask = useCallback((taskId: string) => {
-    openedViaClickRef.current = true;
     router.push(buildUrl({ task: taskId }));
   }, [router, buildUrl]);
 
   const closeTask = useCallback(() => {
-    if (openedViaClickRef.current) {
-      openedViaClickRef.current = false;
-      router.back();
-    } else {
-      // Direct URL navigation — push without the task param
-      router.push(buildUrl({ task: null }));
-    }
+    router.push(buildUrl({ task: null }));
   }, [router, buildUrl]);
 
   return { activeTab, openTaskId, setTab, openTask, closeTask };

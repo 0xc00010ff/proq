@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from '@/components/Modal';
 import type { CronJob, TaskMode } from '@/lib/types';
 import {
@@ -167,8 +167,41 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   const [editing, setEditing] = useState<string | null>(null); // job id or 'new'
   const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true });
   const [schedState, setSchedState] = useState<ScheduleState>({ frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] });
+  const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const modal = modalRef.current;
+    if (!modal) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = modal.offsetWidth;
+    const startH = modal.offsetHeight;
+    const minW = 360;
+    const minH = 300;
+    const maxW = window.innerWidth - 32;
+    const maxH = window.innerHeight - 32;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const newW = Math.min(Math.max(startW + (ev.clientX - startX), minW), maxW);
+      const newH = Math.min(Math.max(startH + (ev.clientY - startY), minH), maxH);
+      setModalSize({ width: newW, height: newH });
+    };
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'nwse-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -182,6 +215,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   const resetForm = () => {
     setForm({ name: '', prompt: '', schedule: '', mode: 'auto', enabled: true });
     setEditing(null);
+    setModalSize(null);
   };
 
   const handleSave = async () => {
@@ -263,8 +297,14 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-xl resize overflow-auto min-w-[360px] min-h-[280px]">
-      <div className="p-5 pt-4 h-full flex flex-col">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      cardRef={modalRef}
+      className={editing ? 'w-full max-w-xl overflow-hidden' : 'w-full max-w-xl'}
+      style={editing && modalSize ? { width: modalSize.width, height: modalSize.height } : undefined}
+    >
+      <div className={`p-5 pt-4 ${editing ? 'h-full flex flex-col' : ''}`}>
         {/* Header */}
         <div className="flex items-center gap-2 mb-4 pr-6">
           {editing ? (
@@ -555,21 +595,22 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
           </div>
         )}
       </div>
-      {/* Resize grip dots */}
-      <div className="absolute bottom-2 right-2 pointer-events-none flex flex-col items-end gap-[3px]">
-        <div className="flex gap-[3px]">
-          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+      {/* Resize grip — only in edit/create mode */}
+      {editing && (
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10 group"
+        >
+          <svg className="w-3 h-3 absolute bottom-0.5 right-0.5 text-zinc-600 group-hover:text-zinc-400" viewBox="0 0 12 12" fill="currentColor">
+            <circle cx="10" cy="10" r="1.2" />
+            <circle cx="6" cy="10" r="1.2" />
+            <circle cx="10" cy="6" r="1.2" />
+            <circle cx="2" cy="10" r="1.2" />
+            <circle cx="6" cy="6" r="1.2" />
+            <circle cx="10" cy="2" r="1.2" />
+          </svg>
         </div>
-        <div className="flex gap-[3px]">
-          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
-          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
-        </div>
-        <div className="flex gap-[3px]">
-          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
-          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
-          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
-        </div>
-      </div>
+      )}
     </Modal>
   );
 }

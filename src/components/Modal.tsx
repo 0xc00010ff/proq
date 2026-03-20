@@ -12,10 +12,14 @@ interface ModalProps {
   children: React.ReactNode;
   /** Extra Tailwind classes on the content card */
   className?: string;
+  /** Inline styles on the content card */
+  style?: React.CSSProperties;
   /** Show the X close button (default true) */
   showClose?: boolean;
   /** z-index class override (default "z-50") */
   zIndex?: string;
+  /** Ref for the content card element */
+  cardRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -27,8 +31,10 @@ export function Modal({
   onClose,
   children,
   className = '',
+  style,
   showClose = true,
   zIndex = 'z-50',
+  cardRef,
 }: ModalProps) {
   useEscapeKey(onClose, isOpen);
 
@@ -44,7 +50,9 @@ export function Modal({
     <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 electron-no-drag`} onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
       <div
+        ref={cardRef}
         className={`relative bg-surface-detail border border-border-default rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-75 ${className}`}
+        style={style}
         onClick={(e) => e.stopPropagation()}
       >
         {showClose && (

@@ -162,7 +162,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                 <div className="py-10 text-center">
                   <button
                     onClick={startNew}
-                    className="text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+                    className="btn-secondary text-xs"
                   >
                     Create a schedule
                   </button>

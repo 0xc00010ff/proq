@@ -263,7 +263,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg">
+    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-xl">
       <div className="p-5 pt-4">
         {/* Header */}
         <div className="flex items-center gap-2 mb-4 pr-6">
@@ -436,8 +436,8 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
               value={form.prompt}
               onChange={(e) => setForm((f) => ({ ...f, prompt: e.target.value }))}
               placeholder="What should the agent do?"
-              rows={3}
-              className="w-full bg-transparent text-sm text-text-primary focus:outline-none placeholder:text-text-placeholder resize-none leading-relaxed mb-4"
+              rows={5}
+              className="w-full bg-transparent text-sm text-text-primary focus:outline-none placeholder:text-text-placeholder resize-y min-h-[5lh] leading-relaxed mb-4"
             />
 
             {/* Schedule */}

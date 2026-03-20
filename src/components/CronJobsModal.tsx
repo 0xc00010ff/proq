@@ -152,7 +152,7 @@ function SelectField({ value, onChange, children }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface-deep border border-border-default rounded-md px-2.5 py-1.5 pr-7 text-xs text-text-primary focus:outline-none focus:border-border-strong cursor-pointer"
+        className="appearance-none bg-surface-secondary border border-border-default rounded-md px-2.5 py-1.5 pr-7 text-xs text-text-primary focus:outline-none focus:border-border-strong cursor-pointer"
       >
         {children}
       </select>
@@ -263,7 +263,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg">
+    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg !bg-surface-detail">
       <div className="p-5 pt-4">
         {/* Header */}
         <div className="flex items-center gap-2 mb-4 pr-6">
@@ -314,8 +314,8 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                     onClick={() => startEdit(job)}
                     className={`group rounded-md border px-3 py-2.5 transition-colors cursor-pointer ${
                       job.enabled
-                        ? 'border-border-default bg-surface-secondary hover:bg-surface-hover/40'
-                        : 'border-border-subtle bg-surface-deep/30 opacity-50'
+                        ? 'border-border-default bg-surface-primary hover:bg-surface-hover/40'
+                        : 'border-border-subtle bg-surface-secondary/50 opacity-50'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -397,7 +397,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
         {editing && (
           <div>
             {/* Mode selector — pill style matching TaskDraft */}
-            <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-4">
+            <div className="bg-surface-secondary/60 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-4">
               {MODES.map(({ value, label }) => (
                 <button
                   key={value}
@@ -410,7 +410,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                 >
                   {form.mode === value && (
                     <div
-                      className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
+                      className="absolute inset-0 bg-surface-hover rounded border border-border-hover/50 shadow-sm"
                       style={{ zIndex: -1 }}
                     />
                   )}
@@ -443,7 +443,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
             {/* Schedule */}
             <div className="border-t border-border-default/60 pt-3">
               {/* Frequency selector — pill style */}
-              <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
+              <div className="bg-surface-secondary/60 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
                 {([
                   ['interval', 'Every'],
                   ['daily', 'Daily'],
@@ -460,7 +460,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                   >
                     {schedState.frequency === value && (
                       <div
-                        className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
+                        className="absolute inset-0 bg-surface-hover rounded border border-border-hover/50 shadow-sm"
                         style={{ zIndex: -1 }}
                       />
                     )}
@@ -478,7 +478,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                     max={999}
                     value={schedState.intervalAmount}
                     onChange={(e) => updateSched({ intervalAmount: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-16 bg-surface-deep border border-border-default rounded-md px-2.5 py-1.5 text-xs text-text-primary text-center focus:outline-none focus:border-border-strong [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-16 bg-surface-secondary border border-border-default rounded-md px-2.5 py-1.5 text-xs text-text-primary text-center focus:outline-none focus:border-border-strong [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <SelectField value={schedState.intervalUnit} onChange={(v) => updateSched({ intervalUnit: v as IntervalUnit })}>
                     <option value="minutes">minutes</option>
@@ -519,7 +519,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                           className={`w-7 h-7 rounded-md text-[11px] font-medium transition-colors ${
                             active
                               ? 'bg-bronze-600/80 text-white border border-bronze-500/60'
-                              : 'bg-surface-deep text-text-tertiary border border-border-default hover:border-border-strong hover:text-text-secondary'
+                              : 'bg-surface-secondary text-text-tertiary border border-border-default hover:border-border-strong hover:text-text-secondary'
                           }`}
                         >
                           {label}

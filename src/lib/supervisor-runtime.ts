@@ -303,7 +303,7 @@ export async function startSupervisorSession(text: string): Promise<void> {
   const settings = await getSettings();
   const systemPrompt = await buildSupervisorSystemPrompt();
 
-  appendBlock(session, { type: "status", subtype: "init", model: settings.defaultModel || undefined });
+  appendBlock(session, { type: "status", subtype: "init", model: settings.defaultModel || undefined, timestamp: new Date().toISOString() });
   appendBlock(session, { type: "user", text });
 
   const startTime = Date.now();

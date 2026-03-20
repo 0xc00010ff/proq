@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -46,6 +47,9 @@ const DialogContent = React.forwardRef<
       )}
       {...props}
     >
+      <VisuallyHidden asChild>
+        <DialogPrimitive.Title>Dialog</DialogPrimitive.Title>
+      </VisuallyHidden>
       {children}
       {showClose && (
         <DialogPrimitive.Close className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary p-1 z-10">

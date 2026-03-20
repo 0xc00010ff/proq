@@ -34,7 +34,7 @@ export type AgentBlock =
   | { type: 'user';        text: string; attachments?: TaskAttachment[] }
   | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort';
       sessionId?: string; model?: string; costUsd?: number;
-      durationMs?: number; turns?: number; error?: string }
+      durationMs?: number; turns?: number; error?: string; timestamp?: string }
   | { type: 'task_update'; summary: string; nextSteps?: string; timestamp: string }
   | { type: 'stream_delta'; text: string };
 

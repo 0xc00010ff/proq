@@ -315,6 +315,7 @@ export default function SupervisorPage() {
                       durationMs={block.durationMs}
                       turns={block.turns}
                       error={block.error}
+                      timestamp={block.timestamp}
                     />
                   );
                 default:

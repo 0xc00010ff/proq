@@ -255,6 +255,7 @@ export async function startSession(
     type: "status",
     subtype: "init",
     model: settings.defaultModel || undefined,
+    timestamp: new Date().toISOString(),
   });
 
   // Show the original prompt in the chatlog
@@ -646,6 +647,7 @@ export async function continueSession(
       type: "status",
       subtype: "init",
       model: settings.defaultModel || undefined,
+      timestamp: new Date().toISOString(),
     });
   }
 

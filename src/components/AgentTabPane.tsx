@@ -353,6 +353,7 @@ export function AgentTabPane({ tabId, projectId, visible, context }: AgentTabPan
                     durationMs={block.durationMs}
                     turns={block.turns}
                     error={block.error}
+                    timestamp={block.timestamp}
                   />
                 );
               default:

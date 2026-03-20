@@ -11,6 +11,7 @@ interface StatusBlockProps {
   durationMs?: number;
   turns?: number;
   error?: string;
+  timestamp?: string;
 }
 
 function formatDuration(ms: number): string {
@@ -22,12 +23,35 @@ function formatDuration(ms: number): string {
   return `${m}m ${rs}s`;
 }
 
-export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error }: StatusBlockProps) {
+function formatInitTimestamp(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const isToday = date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+  if (isToday) return `Today ${time}`;
+  const day = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return `${day} ${time}`;
+}
+
+export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error, timestamp }: StatusBlockProps) {
   if (subtype === 'init') {
+    const label = model ? `Claude Code (${model})` : 'Claude Code';
+    const timeLabel = timestamp ? formatInitTimestamp(timestamp) : null;
     return (
-      <div className="flex items-center gap-2 py-2 text-xs text-text-tertiary">
-        <PlayIcon className="w-3.5 h-3.5 text-bronze-500" />
-        <span>Session started{model ? ` (${model})` : ''}</span>
+      <div className="flex flex-col gap-1 py-2">
+        {timeLabel && (
+          <div className="flex items-center gap-2 text-[11px] text-text-placeholder font-mono">
+            <div className="flex-1 border-t border-border-default" />
+            <span>{timeLabel}</span>
+            <div className="flex-1 border-t border-border-default" />
+          </div>
+        )}
+        <div className="flex items-center gap-2 text-xs text-text-tertiary">
+          <PlayIcon className="w-3.5 h-3.5 text-bronze-500" />
+          <span>{label}</span>
+        </div>
       </div>
     );
   }

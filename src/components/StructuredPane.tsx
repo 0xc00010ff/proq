@@ -443,6 +443,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
                     durationMs={block.durationMs}
                     turns={block.turns}
                     error={block.error}
+                    timestamp={block.timestamp}
                   />
                 );
               case 'task_update':

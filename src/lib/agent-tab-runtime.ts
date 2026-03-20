@@ -285,7 +285,7 @@ export async function startAgentTabSession(
   const project = await getProject(projectId);
   const projectName = project?.name || "project";
 
-  appendBlock(session, { type: "status", subtype: "init", model: settings.defaultModel || undefined });
+  appendBlock(session, { type: "status", subtype: "init", model: settings.defaultModel || undefined, timestamp: new Date().toISOString() });
   appendBlock(session, { type: "user", text, attachments: attachments?.length ? attachments : undefined });
 
   // Append file attachment paths to prompt

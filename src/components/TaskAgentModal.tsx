@@ -9,6 +9,7 @@ import {
   DialogOverlay,
 } from '@/components/ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import type { Task, FollowUpDraft } from '@/lib/types';
 import { TaskAgentDetail } from './TaskAgentDetail';
 
@@ -76,6 +77,9 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
           style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: 'calc(100% - 2rem)', maxWidth: '80rem', height: '90vh' }}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
+          <VisuallyHidden asChild>
+            <DialogPrimitive.Title>{task.title}</DialogPrimitive.Title>
+          </VisuallyHidden>
           {/* Modal header bar */}
           <div className="shrink-0 flex items-center justify-end px-2 py-1.5 border-b border-border-default bg-surface-topbar">
             <DialogPrimitive.Close

@@ -368,6 +368,18 @@ export default function SettingsPage() {
                     />
                   </Field>
                 )}
+                <Field
+                  label="Global system prompt"
+                  hint="Custom instructions injected into every agent runner across all projects. Use this for preferences that apply universally."
+                >
+                  <textarea
+                    value={settings.systemPromptAdditions}
+                    onChange={(e) => update("systemPromptAdditions", e.target.value)}
+                    placeholder="e.g. Always use TypeScript strict mode. Prefer functional components..."
+                    rows={4}
+                    className={`${inputClass} resize-y min-h-[80px]`}
+                  />
+                </Field>
               </div>
             </section>
 

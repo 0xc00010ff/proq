@@ -288,13 +288,9 @@ export async function startSession(
     args.push("--model", settings.defaultModel);
   }
 
-  // Combine user's system prompt additions with proq system prompt
-  const systemParts: string[] = [];
-  if (settings.systemPromptAdditions)
-    systemParts.push(settings.systemPromptAdditions);
-  if (options?.proqSystemPrompt) systemParts.push(options.proqSystemPrompt);
-  if (systemParts.length > 0) {
-    args.push("--append-system-prompt", systemParts.join("\n\n"));
+  // Append system prompt (caller provides combined global + project + proq prompt)
+  if (options?.proqSystemPrompt) {
+    args.push("--append-system-prompt", options.proqSystemPrompt);
   }
 
   if (options?.mcpConfig) {
@@ -589,11 +585,12 @@ export async function continueSession(
     args.push("--model", settings.defaultModel);
   }
 
-  // Combine user's system prompt additions with proq system prompt
+  // Combine system prompts: global additions + project prompt + proq prompt
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions)
     systemParts.push(settings.systemPromptAdditions);
   const project = await getProject(projectId);
+  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
   const proqSysPrompt = buildProqSystemPrompt(
     projectId,
     taskId,

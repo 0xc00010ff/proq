@@ -346,6 +346,14 @@ export async function dispatchTask(
   const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, { isCronTask });
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
+  // Build combined system prompt: global additions + project prompt + proq prompt
+  const settings = await getSettings();
+  const systemPromptParts: string[] = [];
+  if (settings.systemPromptAdditions) systemPromptParts.push(settings.systemPromptAdditions);
+  if (project.systemPrompt) systemPromptParts.push(project.systemPrompt);
+  systemPromptParts.push(proqSystemPrompt);
+  const combinedSystemPrompt = systemPromptParts.join("\n\n");
+
   // ── CLI mode: dispatch via bridge process ──
   if (renderMode === "cli") {
 
@@ -362,7 +370,7 @@ export async function dispatchTask(
     const systemPromptFile = join(promptDir, `${sessionId}-system.md`);
     const launcherFile = join(promptDir, `${sessionId}.sh`);
     writeFileSync(promptFile, prompt, "utf-8");
-    writeFileSync(systemPromptFile, proqSystemPrompt, "utf-8");
+    writeFileSync(systemPromptFile, combinedSystemPrompt, "utf-8");
     const claudeBin = await getClaudeBin();
     writeFileSync(
       launcherFile,
@@ -412,7 +420,7 @@ export async function dispatchTask(
 
   try {
     await startSession(projectId, taskId, prompt, effectivePath, {
-      proqSystemPrompt,
+      proqSystemPrompt: combinedSystemPrompt,
       mcpConfig: mcpConfigPath,
       permissionMode,
     });

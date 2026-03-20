@@ -18,12 +18,14 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
   const [viewType, setViewType] = useState<ViewType>(project.viewType || 'kanban');
   const [defaultBranch, setDefaultBranch] = useState(project.defaultBranch || 'main');
   const [serverUrl, setServerUrl] = useState(project.serverUrl || '');
+  const [systemPrompt, setSystemPrompt] = useState(project.systemPrompt || '');
 
   useEffect(() => {
     setName(project.name);
     setViewType(project.viewType || 'kanban');
     setDefaultBranch(project.defaultBranch || 'main');
     setServerUrl(project.serverUrl || '');
+    setSystemPrompt(project.systemPrompt || '');
   }, [project]);
 
   const handleSave = () => {
@@ -32,6 +34,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
       viewType,
       defaultBranch,
       serverUrl: serverUrl || undefined,
+      systemPrompt: systemPrompt || undefined,
     });
     onClose();
   };
@@ -140,6 +143,23 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3000"
               className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+            />
+          </div>
+
+          {/* System Prompt */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              System Prompt
+            </label>
+            <p className="text-[11px] text-text-tertiary mb-1.5">
+              Custom instructions for agents working on this project.
+            </p>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder="e.g. Use the project's ESLint config. Always run tests before committing..."
+              rows={3}
+              className="w-full px-3 py-2 text-sm bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong resize-y min-h-[60px]"
             />
           </div>
 

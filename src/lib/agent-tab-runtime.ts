@@ -308,6 +308,7 @@ export async function startAgentTabSession(
 
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
+  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
   systemParts.push(`You are a coding assistant inside proq, a kanban-style task board for AI-assisted development. You are working on the "${projectName}" project in ${cwd}.
 
 You have MCP tools from the **proq** server for managing tasks on the board:
@@ -412,6 +413,7 @@ export async function continueAgentTabSession(
 
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
+  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
   systemParts.push(`You are a coding assistant inside proq, a kanban-style task board for AI-assisted development. You are working on the "${projectName}" project in ${cwd}.
 
 You have MCP tools from the **proq** server for managing tasks on the board:

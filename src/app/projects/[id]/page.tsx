@@ -24,6 +24,7 @@ import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
 import { useRouteState } from '@/hooks/useRouteState';
+import { useShortcut } from '@/hooks/useShortcut';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -361,28 +362,17 @@ export default function ProjectPage() {
   }, [projectId, fetchBranchState]);
 
   // Cmd+Z to undo last delete — peeks without restoring
-  useEffect(() => {
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      if (e.key === 'z' && e.metaKey && !e.shiftKey && !e.ctrlKey && !undoEntry) {
-        // Don't intercept if user is typing in an input/textarea
-        const tag = (e.target as HTMLElement)?.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-        e.preventDefault();
-        try {
-          const res = await fetch(`/api/projects/${projectId}/tasks/undo`);
-          if (res.ok) {
-            const data = await res.json();
-            setUndoEntry({ task: data.task, column: data.column });
-          }
-        } catch {
-          // no-op
-        }
+  useShortcut('undo-delete', useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/undo`);
+      if (res.ok) {
+        const data = await res.json();
+        setUndoEntry({ task: data.task, column: data.column });
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [projectId, undoEntry]);
+    } catch {
+      // no-op
+    }
+  }, [projectId]), !undoEntry);
 
   const deleteTask = async (taskId: string) => {
     // Optimistically remove from UI
@@ -683,21 +673,15 @@ export default function ProjectPage() {
   }, [projectId, setProjects, setTab]);
 
   // Cmd+Option+Left/Right to switch Project/Live/Code tabs (like Chrome)
-  useEffect(() => {
-    const tabOrder: TabOption[] = ['project', 'live', 'code'];
-    const handler = (e: KeyboardEvent) => {
-      if (e.metaKey && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        e.preventDefault();
-        const idx = tabOrder.indexOf(activeTab);
-        const next = e.key === 'ArrowLeft'
-          ? tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]
-          : tabOrder[(idx + 1) % tabOrder.length];
-        handleTabChange(next);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [activeTab, handleTabChange]);
+  const tabOrder: TabOption[] = ['project', 'live', 'code'];
+  useShortcut('tab-prev', useCallback(() => {
+    const idx = tabOrder.indexOf(activeTab);
+    handleTabChange(tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]);
+  }, [activeTab, handleTabChange]));
+  useShortcut('tab-next', useCallback(() => {
+    const idx = tabOrder.indexOf(activeTab);
+    handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
+  }, [activeTab, handleTabChange]));
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));

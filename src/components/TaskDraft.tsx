@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useShortcut } from '@/hooks/useShortcut';
 import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
@@ -169,27 +170,20 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   }, []);
 
   // Cmd+Enter to trigger "Start Now"
-  useEffect(() => {
-    if (!isOpen || !onMoveToInProgress) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && e.metaKey && description.trim() && !dispatching) {
-        e.preventDefault();
-        if (saveTimeout.current) clearTimeout(saveTimeout.current);
-        if (autoTitleTimeout.current) {
-          clearTimeout(autoTitleTimeout.current);
-          autoTitleTimeout.current = null;
-        }
-        // Fire auto-title immediately if no title (server also handles this as fallback)
-        if (!title.trim() && description.trim()) {
-          fireAutoTitle(description);
-        }
-        setDispatching(true);
-        onMoveToInProgress(task.id, { title, description, attachments, mode });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onMoveToInProgress, title, description, attachments, mode, dispatching, task.id, fireAutoTitle]);
+  useShortcut('start-task', useCallback(() => {
+    if (!description.trim() || dispatching) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    if (autoTitleTimeout.current) {
+      clearTimeout(autoTitleTimeout.current);
+      autoTitleTimeout.current = null;
+    }
+    if (!title.trim() && description.trim()) {
+      fireAutoTitle(description);
+    }
+    setDispatching(true);
+    onMoveToInProgress!(task.id, { title, description, attachments, mode });
+  }, [title, description, attachments, mode, dispatching, task.id, fireAutoTitle, onMoveToInProgress]),
+  isOpen && !!onMoveToInProgress);
 
   // Compute modal height: grow with text content, clamp between 600px and 80vh
   useLayoutEffect(() => {

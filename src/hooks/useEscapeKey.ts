@@ -1,12 +1,5 @@
-import { useEffect } from 'react';
+import { useShortcut } from './useShortcut';
 
 export function useEscapeKey(onClose: () => void, enabled = true) {
-  useEffect(() => {
-    if (!enabled) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, enabled]);
+  useShortcut('close-modal', onClose, enabled);
 }

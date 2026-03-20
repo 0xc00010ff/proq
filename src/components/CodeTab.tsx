@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useShortcut } from '@/hooks/useShortcut';
 import 'highlight.js/styles/github-dark.css';
 import dynamic from 'next/dynamic';
 import type { editor as MonacoEditorType } from 'monaco-editor';
@@ -234,19 +235,12 @@ export function CodeTab({ project }: CodeTabProps) {
   }, [project.id, openTabs, activeTabPath]);
 
   // Cmd+P global shortcut — focuses the search input in the sidebar
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
-        e.preventDefault();
-        setPaletteQuery('');
-        setPaletteIndex(0);
-        setShowPalette(true);
-        setTimeout(() => paletteInputRef.current?.focus(), 0);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  useShortcut('file-palette', useCallback(() => {
+    setPaletteQuery('');
+    setPaletteIndex(0);
+    setShowPalette(true);
+    setTimeout(() => paletteInputRef.current?.focus(), 0);
+  }, []));
 
   // Save file
   const saveFile = useCallback(async (filePath: string, content: string) => {

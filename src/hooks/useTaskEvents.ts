@@ -27,6 +27,7 @@ export function useTaskEvents(
   onUpdate: (event: TaskUpdateEvent) => void,
   onCreated?: (event: TaskCreatedEvent) => void,
   onProjectUpdate?: (event: ProjectUpdateEvent) => void,
+  onReconnect?: () => void,
 ) {
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
@@ -34,6 +35,8 @@ export function useTaskEvents(
   onCreatedRef.current = onCreated;
   const onProjectUpdateRef = useRef(onProjectUpdate);
   onProjectUpdateRef.current = onProjectUpdate;
+  const onReconnectRef = useRef(onReconnect);
+  onReconnectRef.current = onReconnect;
 
   useEffect(() => {
     if (!projectId) return;
@@ -41,12 +44,21 @@ export function useTaskEvents(
     let es: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let disposed = false;
+    let hasConnectedBefore = false;
 
     function connect() {
       if (disposed) return;
 
       es?.close();
       es = new EventSource(`/api/projects/${projectId}/events`);
+
+      es.onopen = () => {
+        if (hasConnectedBefore) {
+          // SSE reconnected after a drop — refresh to catch missed events
+          onReconnectRef.current?.();
+        }
+        hasConnectedBefore = true;
+      };
 
       es.onmessage = (event) => {
         if (event.data === 'heartbeat') return;

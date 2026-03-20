@@ -33,10 +33,16 @@ export async function PATCH(request: Request, { params }: Params) {
 
   // Set needsAttention when summary is updated and task is (moving to) verify
   const effectiveStatus = body.status || prevStatus;
-  if (body.summary !== undefined && effectiveStatus === "verify") {
+  const shouldSetAttention = body.summary !== undefined && effectiveStatus === "verify";
+  if (shouldSetAttention) {
     await updateTask(id, taskId, { needsAttention: true });
     updated.needsAttention = true;
-    emitTaskUpdate(id, taskId, { needsAttention: true });
+    // Skip standalone SSE emit — merged into the status-change event below
+    // to avoid partial delivery (first event arrives, second is lost)
+    if (!(prevStatus && body.status && prevStatus !== body.status)) {
+      // No status transition follows — emit needsAttention on its own
+      emitTaskUpdate(id, taskId, { needsAttention: true });
+    }
   }
 
   // Handle status transitions
@@ -57,6 +63,7 @@ export async function PATCH(request: Request, { params }: Params) {
       if (body.agentStatus !== undefined) sseChanges.agentStatus = body.agentStatus;
       if (body.summary !== undefined) sseChanges.summary = body.summary;
       if (body.nextSteps !== undefined) sseChanges.nextSteps = body.nextSteps;
+      if (shouldSetAttention) sseChanges.needsAttention = true;
       emitTaskUpdate(id, taskId, sseChanges);
       notify(`✅ *${(updated.title || updated.description.slice(0, 40)).replace(/"/g, '\\"')}* → verify`);
     } else if (prevStatus === "in-progress" && body.status === "done") {

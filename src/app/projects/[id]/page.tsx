@@ -247,7 +247,13 @@ export default function ProjectPage() {
     );
   }, [projectId, setProjects]);
 
-  useTaskEvents(projectId, handleTaskUpdate, handleTaskCreated, handleProjectUpdate);
+  // On SSE reconnect, refresh tasks to catch any events missed during the gap
+  const handleSSEReconnect = useCallback(() => {
+    refreshTasks(projectId);
+    fetchBranchState();
+  }, [projectId, refreshTasks, fetchBranchState]);
+
+  useTaskEvents(projectId, handleTaskUpdate, handleTaskCreated, handleProjectUpdate, handleSSEReconnect);
 
   // Refresh tasks immediately when tab becomes visible — SSE events may have
   // been lost while the browser throttled the background tab's connection.

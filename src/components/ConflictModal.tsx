@@ -19,9 +19,9 @@ export function ConflictModal({ branch, baseBranch = 'main', files, diff, onReso
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={onDismiss}>
-      <div className="absolute inset-0 bg-black/60" />
+      <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative bg-surface-modal border border-border-default rounded-lg max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
+        className="relative bg-surface-detail border border-border-default rounded-lg max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-border-default shrink-0">
@@ -64,7 +64,7 @@ export function ConflictModal({ branch, baseBranch = 'main', files, diff, onReso
                 Diff details
               </button>
               {diffExpanded && (
-                <pre className="mt-1 text-[11px] font-mono text-text-secondary bg-surface-deep border border-border-default rounded-md p-3 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">
+                <pre className="mt-1 text-[11px] font-mono text-text-secondary bg-surface-secondary border border-border-default rounded-md p-3 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">
                   {diff}
                 </pre>
               )}

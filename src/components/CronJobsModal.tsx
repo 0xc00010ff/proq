@@ -263,7 +263,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg !bg-surface-detail">
+    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg">
       <div className="p-5 pt-4">
         {/* Header */}
         <div className="flex items-center gap-2 mb-4 pr-6">

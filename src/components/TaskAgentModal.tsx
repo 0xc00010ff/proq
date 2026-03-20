@@ -69,7 +69,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
       onClick={() => { if (!justDraggedRef.current) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-none" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-none" />
 
       {/* Modal */}
       <div

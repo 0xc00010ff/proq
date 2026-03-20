@@ -54,7 +54,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+              className="w-full px-3 py-2 text-sm bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 
@@ -107,7 +107,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
                 <select
                   value={defaultBranch}
                   onChange={(e) => setDefaultBranch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
+                  className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
                 >
                   {selectableBranches.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -124,7 +124,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
                 value={defaultBranch}
                 onChange={(e) => setDefaultBranch(e.target.value)}
                 placeholder="main"
-                className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+                className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
               />
             )}
           </div>
@@ -139,7 +139,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3000"
-              className="w-full px-3 py-2 text-sm font-mono bg-surface-deep border border-border-strong rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+              className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 
@@ -148,7 +148,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
             <label className="block text-xs font-medium text-text-secondary mb-1.5">
               Path
             </label>
-            <div className="px-3 py-2 text-sm font-mono text-text-tertiary bg-surface-deep/50 border border-border-default rounded-md truncate">
+            <div className="px-3 py-2 text-sm font-mono text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md truncate">
               {project.path}
             </div>
           </div>

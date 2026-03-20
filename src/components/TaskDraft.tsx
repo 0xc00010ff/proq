@@ -293,7 +293,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-none"
+        className="absolute inset-0 bg-black/40 backdrop-blur-none"
         onClick={handleClose}
       />
 

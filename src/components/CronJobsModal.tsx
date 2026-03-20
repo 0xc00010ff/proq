@@ -286,7 +286,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
             {!loading && (
               <button
                 onClick={startNew}
-                className="btn-secondary text-xs mb-3"
+                className="btn-secondary text-xs mb-3 inline-flex items-center gap-1.5"
               >
                 <PlusIcon className="w-3.5 h-3.5 -ml-0.5" />
                 Add schedule

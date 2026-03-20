@@ -263,8 +263,8 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-xl">
-      <div className="p-5 pt-4">
+    <Modal isOpen={isOpen} onClose={handleClose} className="w-full max-w-xl resize overflow-auto min-w-[360px] min-h-[280px]">
+      <div className="p-5 pt-4 h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-2 mb-4 pr-6">
           {editing ? (
@@ -395,7 +395,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
 
         {/* ── Edit / Create form ── */}
         {editing && (
-          <div>
+          <div className="flex flex-col flex-1 min-h-0">
             {/* Mode selector — pill style matching TaskDraft */}
             <div className="bg-surface-secondary/60 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-4">
               {MODES.map(({ value, label }) => (
@@ -436,8 +436,8 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
               value={form.prompt}
               onChange={(e) => setForm((f) => ({ ...f, prompt: e.target.value }))}
               placeholder="What should the agent do?"
-              rows={5}
-              className="w-full bg-transparent text-sm text-text-primary focus:outline-none placeholder:text-text-placeholder resize-y min-h-[5lh] leading-relaxed mb-4"
+              rows={4}
+              className="w-full bg-transparent text-sm text-text-primary focus:outline-none placeholder:text-text-placeholder resize-none leading-relaxed mb-4 flex-1 min-h-[4lh]"
             />
 
             {/* Schedule */}
@@ -554,6 +554,21 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
             </div>
           </div>
         )}
+      </div>
+      {/* Resize grip dots */}
+      <div className="absolute bottom-2 right-2 pointer-events-none flex flex-col items-end gap-[3px]">
+        <div className="flex gap-[3px]">
+          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+        </div>
+        <div className="flex gap-[3px]">
+          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+        </div>
+        <div className="flex gap-[3px]">
+          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+          <div className="w-[3px] h-[3px] rounded-full bg-text-chrome/50" />
+        </div>
       </div>
     </Modal>
   );

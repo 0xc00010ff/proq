@@ -160,14 +160,11 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                 </div>
               ) : jobs.length === 0 ? (
                 <div className="py-10 text-center">
-                  <p className="text-xs text-text-tertiary mb-3">
-                    No scheduled tasks yet
-                  </p>
                   <button
                     onClick={startNew}
-                    className="btn-secondary text-xs"
+                    className="text-xs text-text-tertiary hover:text-text-secondary transition-colors"
                   >
-                    Create your first schedule
+                    Create a schedule
                   </button>
                 </div>
               ) : (

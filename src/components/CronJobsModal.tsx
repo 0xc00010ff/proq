@@ -537,7 +537,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
                 </div>
               )}
 
-              <p className="mt-2.5 text-[10px] text-text-chrome font-mono">{form.schedule}</p>
+              <p className="mt-2.5 text-xs text-text-chrome font-mono font-semibold">{form.schedule}</p>
             </div>
 
             {/* Actions */}

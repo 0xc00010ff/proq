@@ -653,6 +653,32 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, [projectId, setProjects]);
 
+  // Cmd+Option+Left/Right to switch Project/Live/Code tabs (like Chrome)
+  useEffect(() => {
+    const tabOrder: TabOption[] = ['project', 'live', 'code'];
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        setActiveTab(prev => {
+          const idx = tabOrder.indexOf(prev);
+          const next = e.key === 'ArrowLeft'
+            ? tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]
+            : tabOrder[(idx + 1) % tabOrder.length];
+          // Persist the tab change
+          setProjects(p => p.map(pr => pr.id === projectId ? { ...pr, activeTab: next } : pr));
+          fetch(`/api/projects/${projectId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activeTab: next }),
+          }).catch(() => {});
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [projectId, setProjects]);
+
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));
     fetch(`/api/projects/${projectId}`, {

@@ -60,6 +60,14 @@ export function useTaskEvents(
         hasConnectedBefore = true;
       };
 
+      // Refresh shortly after first connect to catch any events that fired
+      // between the page rendering cached data and SSE becoming ready
+      if (!hasConnectedBefore) {
+        setTimeout(() => {
+          if (!disposed) onReconnectRef.current?.();
+        }, 1_000);
+      }
+
       es.onmessage = (event) => {
         if (event.data === 'heartbeat') return;
         try {

@@ -29,7 +29,7 @@ The Live tab shows proq's own UI. You can watch the interface update as agents m
 
 ## Caveats
 
-**Server-side code changes cause a brief restart.** When an agent modifies server code (API routes, `lib/` files), Next.js hot-reloads the server. This briefly drops WebSocket connections. tmux sessions survive — the agents keep running. WebSocket connections reconnect automatically, and structured mode sessions resume with full block history.
+**Server-side code changes cause a brief restart.** When an agent modifies server code (API routes, `lib/` files), Next.js hot-reloads the server. This briefly drops WebSocket connections. Detached agent processes survive — the agents keep running. WebSocket connections reconnect automatically, and structured mode sessions resume with full block history.
 
 **Avoid modifying core dispatch/db files while other agents are running.** Changes to `agent-dispatch.ts`, `db.ts`, `agent-session.ts`, or `ws-server.ts` can disrupt running agents if the server restarts mid-operation. If you need to change these, pause other tasks first.
 
@@ -42,7 +42,6 @@ The Live tab shows proq's own UI. You can watch the interface update as agents m
 - **Path alias**: `@/*` maps to `./src/*`
 - **lowdb v7**: uses ESM — all database operations are async
 - **Port**: 1337 by default
-- **Watch agents**: `tmux attach -t mc-{first8ofTaskId}` to observe a CLI-mode agent
 - **design-mock/**: separate Vite prototype in the repo root — not part of the main app, ignore it
 - **Styling**: dark mode only, Tailwind utility classes, zinc color palette
 - **Components**: shadcn/ui based, `'use client'` directive on all interactive components

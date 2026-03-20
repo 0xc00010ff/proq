@@ -26,10 +26,10 @@ interface UpdateCheckResult {
 
 interface ProqDesktopAPI {
   checkNode: () => Promise<CheckResult>
-  checkTmux: () => Promise<CheckResult>
-  installTmux: () => Promise<CheckResult>
   checkClaude: () => Promise<CheckResult>
   checkXcode: () => Promise<CheckResult>
+  installXcode: () => Promise<CheckResult>
+  installClaude: () => Promise<CheckResult>
   cloneRepo: (targetDir: string, overwrite?: boolean) => Promise<{ ok: boolean; error?: string }>
   validateInstall: (dirPath: string) => Promise<boolean>
   npmInstall: () => Promise<{ ok: boolean; error?: string }>
@@ -40,6 +40,7 @@ interface ProqDesktopAPI {
   setConfig: (partial: Partial<DesktopConfig>) => Promise<DesktopConfig>
   selectDirectory: () => Promise<string | null>
 
+  wizardComplete: () => Promise<void>
   startServer: () => Promise<{ ok: boolean; error?: string }>
   onServerReady: (cb: () => void) => () => void
   onServerLog: (cb: (e: unknown, line: string) => void) => () => void
@@ -51,6 +52,11 @@ interface ProqDesktopAPI {
   applyUpdate: () => Promise<{ ok: boolean; error?: string }>
   applyAndRestart: () => Promise<{ ok: boolean; error?: string }>
   onUpdateAvailable: (cb: (e: unknown, result: UpdateCheckResult) => void) => () => void
+
+  checkShellUpdate: () => Promise<{ available: boolean; version?: string; error?: string }>
+  installShellUpdate: () => Promise<void>
+  onShellUpdateAvailable: (cb: (e: unknown, result: { version: string }) => void) => () => void
+  onShellUpdateDownloaded: (cb: (e: unknown, result: { version: string }) => void) => () => void
 
   getVersion: () => Promise<string>
 }

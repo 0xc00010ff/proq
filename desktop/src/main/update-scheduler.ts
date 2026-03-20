@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { getConfig } from './config'
+import { getConfig, isDevMode } from './config'
 import { checkForUpdates, type UpdateCheckResult } from './updater'
 
 let checkTimer: ReturnType<typeof setTimeout> | null = null
@@ -36,6 +36,9 @@ async function runCheck(win: BrowserWindow): Promise<void> {
 
 export function startUpdateScheduler(win: BrowserWindow): void {
   stopUpdateScheduler()
+
+  // Dev mode: no background update checks
+  if (isDevMode()) return
 
   checkTimer = setTimeout(() => {
     runCheck(win)

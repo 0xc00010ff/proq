@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { renameSync, existsSync as fsExists, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync as fsExists, mkdirSync, readFileSync, writeFileSync, unlinkSync, renameSync } from "fs";
 import path from "path";
 import type {
   WorkspaceData,
@@ -13,27 +13,14 @@ import type {
   DeletedTaskEntry,
   ProqSettings,
   AgentBlock,
-  WorkbenchTabInfo,
-  AgentTabData,
 } from "./types";
 import { slugify } from "./utils";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 
-// ── Auto-migration from old naming ──
-const oldConfigPath = path.join(DATA_DIR, "config.json");
-const newWorkspacePath = path.join(DATA_DIR, "workspace.json");
-if (fsExists(oldConfigPath) && !fsExists(newWorkspacePath)) {
-  renameSync(oldConfigPath, newWorkspacePath);
-}
-const oldStateDir = path.join(DATA_DIR, "state");
-const newProjectsDir = path.join(DATA_DIR, "projects");
-if (fsExists(oldStateDir) && !fsExists(newProjectsDir)) {
-  renameSync(oldStateDir, newProjectsDir);
-}
-
 // Ensure data directories exist on first access (idempotent)
 mkdirSync(path.join(DATA_DIR, "projects"), { recursive: true });
+mkdirSync(path.join(DATA_DIR, "agent-blocks"), { recursive: true });
 
 // ── Write locks (attached to globalThis to survive HMR) ──
 const g = globalThis as unknown as {
@@ -56,7 +43,7 @@ async function withWriteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function emptyColumns(): TaskColumns {
+function emptyTasks(): TaskColumns {
   return { "todo": [], "in-progress": [], "verify": [], "done": [] };
 }
 
@@ -64,10 +51,19 @@ function emptyColumns(): TaskColumns {
 function readJSON<T>(filePath: string, defaultData: T): T {
   try {
     if (fsExists(filePath)) {
-      return JSON.parse(readFileSync(filePath, "utf-8"));
+      const raw = readFileSync(filePath, "utf-8");
+      return JSON.parse(raw);
     }
-  } catch {
-    // Corrupt file — use default
+  } catch (err) {
+    // Non-empty file that failed to parse — log a warning so data loss is visible
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      if (content.trim().length > 0) {
+        console.error(`[db] Failed to parse ${filePath}, falling back to defaults:`, err);
+      }
+    } catch {
+      // Can't read the file at all
+    }
   }
   return defaultData;
 }
@@ -87,103 +83,19 @@ function writeWorkspace(ws: WorkspaceData): void {
   writeJSON(filePath, ws);
 }
 
-// ── Project DB (per-project columns + chat) ────────────────
+// ── Project DB (per-project tasks + chat) ────────────────
 function getProjectData(projectId: string): ProjectState {
   const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
-  const raw = readJSON<ProjectState & { tasks?: Task[] }>(filePath, {
-    columns: emptyColumns(),
+  const raw = readJSON<ProjectState>(filePath, {
+    tasks: emptyTasks(),
     chatLog: [],
   });
 
-  // Auto-migration: old flat tasks[] → column-oriented
-  if (raw.tasks && !raw.columns) {
-    const columns = emptyColumns();
-    const sorted = [...raw.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    for (const task of sorted) {
-      const col = columns[task.status];
-      if (col) {
-        delete task.order;
-        col.push(task);
-      }
-    }
-    raw.columns = columns;
-    delete raw.tasks;
-    // Write migrated data back immediately
-    writeJSON(filePath, raw);
-  }
+  // ── Migrations ──
+  // Add future migrations here. Each should be idempotent and write back if changed.
 
-  // ── Auto-migration: old naming → new naming ──
-  const r = raw as ProjectState & Record<string, unknown>;
-  let migrated = false;
-
-  // Workbench state: terminalOpen/Height/Tabs/ActiveTabId → workbench*
-  if ('terminalOpen' in r && r.workbenchOpen === undefined) {
-    r.workbenchOpen = r.terminalOpen as boolean;
-    delete r.terminalOpen;
-    migrated = true;
-  }
-  if ('terminalHeight' in r && r.workbenchHeight === undefined) {
-    r.workbenchHeight = r.terminalHeight as number;
-    delete r.terminalHeight;
-    migrated = true;
-  }
-  if ('terminalTabs' in r && r.workbenchTabs === undefined) {
-    r.workbenchTabs = r.terminalTabs as WorkbenchTabInfo[];
-    delete r.terminalTabs;
-    migrated = true;
-  }
-  if ('terminalActiveTabId' in r && r.workbenchActiveTabId === undefined) {
-    r.workbenchActiveTabId = r.terminalActiveTabId as string;
-    delete r.terminalActiveTabId;
-    migrated = true;
-  }
-
-  // Task fields: prettyLog → agentBlocks, renderMode values "pretty"→"structured", "terminal"→"cli"
-  if (r.columns) {
-    for (const status of ["todo", "in-progress", "verify", "done"] as TaskStatus[]) {
-      for (const task of r.columns[status] || []) {
-        const t = task as Task & Record<string, unknown>;
-        if ('prettyLog' in t) {
-          t.agentBlocks = t.prettyLog as AgentBlock[];
-          delete t.prettyLog;
-          migrated = true;
-        }
-        if (t.renderMode === 'pretty' as string) {
-          t.renderMode = 'structured';
-          migrated = true;
-        }
-        if (t.renderMode === 'terminal' as string) {
-          t.renderMode = 'cli';
-          migrated = true;
-        }
-        if ('findings' in t && !('summary' in t)) {
-          t.summary = t.findings as string;
-          delete t.findings;
-          migrated = true;
-        }
-      }
-    }
-  }
-
-  // Agent tab data: prettyLog → agentBlocks
-  if (r.agentTabs) {
-    for (const [tabId, tabData] of Object.entries(r.agentTabs)) {
-      const td = tabData as unknown as Record<string, unknown>;
-      if ('prettyLog' in td && !('agentBlocks' in td)) {
-        td.agentBlocks = td.prettyLog;
-        delete td.prettyLog;
-        r.agentTabs[tabId] = td as unknown as AgentTabData;
-        migrated = true;
-      }
-    }
-  }
-
-  if (migrated) {
-    writeJSON(filePath, r);
-  }
-
-  // Ensure columns exist even if file was empty
-  if (!raw.columns) raw.columns = emptyColumns();
+  // Ensure tasks exist even if file was empty
+  if (!raw.tasks) raw.tasks = emptyTasks();
   if (!raw.chatLog) raw.chatLog = [];
   if (!raw.recentlyDeleted) raw.recentlyDeleted = [];
 
@@ -195,10 +107,10 @@ function writeProject(projectId: string, data: ProjectState): void {
   writeJSON(filePath, data);
 }
 
-// Helper: find a task across all columns, returns [task, columnKey, index]
+// Helper: find a task across all status lists, returns [task, status, index]
 function findTask(data: ProjectState, taskId: string): [Task, TaskStatus, number] | null {
   for (const status of ["todo", "in-progress", "verify", "done"] as TaskStatus[]) {
-    const col = data.columns[status];
+    const col = data.tasks[status];
     const idx = col.findIndex((t) => t.id === taskId);
     if (idx !== -1) return [col[idx], status, idx];
   }
@@ -312,7 +224,7 @@ export async function reorderProjects(
 
 export async function getAllTasks(projectId: string): Promise<TaskColumns> {
   const data = getProjectData(projectId);
-  return data.columns;
+  return data.tasks;
 }
 
 export async function getTask(
@@ -341,7 +253,7 @@ export async function createTask(
       createdAt: now,
       updatedAt: now,
     };
-    state.columns.todo.unshift(task);
+    state.tasks.todo.unshift(task);
     writeProject(projectId, state);
     return task;
   });
@@ -361,14 +273,14 @@ export async function moveTask(
     const [task, fromColumn, fromIndex] = found;
 
     // Splice from source
-    state.columns[fromColumn].splice(fromIndex, 1);
+    state.tasks[fromColumn].splice(fromIndex, 1);
 
     // Update status
     task.status = toColumn;
     task.updatedAt = new Date().toISOString();
 
     // Insert at target index (clamped)
-    const targetCol = state.columns[toColumn];
+    const targetCol = state.tasks[toColumn];
     const clampedIndex = Math.max(0, Math.min(toIndex, targetCol.length));
     targetCol.splice(clampedIndex, 0, task);
 
@@ -380,7 +292,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "agentBlocks" | "sessionId" | "startCommit" | "endCommit" | "commitHashes">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "sessionId" | "startCommit" | "commitHashes">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
     const state = getProjectData(projectId);
@@ -389,11 +301,11 @@ export async function updateTask(
 
     const [task, currentColumn, currentIndex] = found;
 
-    // If status is changing, move between columns
+    // If status is changing, move between lists
     if (data.status && data.status !== currentColumn) {
-      state.columns[currentColumn].splice(currentIndex, 1);
+      state.tasks[currentColumn].splice(currentIndex, 1);
       task.status = data.status;
-      state.columns[data.status].unshift(task);
+      state.tasks[data.status].unshift(task);
     }
 
     Object.assign(task, data, { updatedAt: new Date().toISOString() });
@@ -428,7 +340,7 @@ export async function deleteTask(
       (e) => new Date(e.deletedAt).getTime() > cutoff
     );
 
-    state.columns[column].splice(index, 1);
+    state.tasks[column].splice(index, 1);
     writeProject(projectId, state);
     return true;
   });
@@ -468,7 +380,7 @@ export async function restoreDeletedTask(
     const entry = state.recentlyDeleted.splice(recentIdx, 1)[0];
 
     // Restore task into its original column
-    const col = state.columns[entry.column];
+    const col = state.tasks[entry.column];
     const insertIdx = Math.min(entry.index, col.length);
     col.splice(insertIdx, 0, entry.task);
 
@@ -500,14 +412,14 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 
 export async function getWorkbenchState(projectId: string): Promise<{ open: boolean; height: number | null }> {
   const data = getProjectData(projectId);
-  return { open: data.workbenchOpen ?? false, height: data.workbenchHeight ?? null };
+  return { open: data.projectWorkbenchOpen ?? false, height: data.projectWorkbenchHeight ?? null };
 }
 
 export async function setWorkbenchState(projectId: string, state: { open?: boolean; height?: number }): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
-    if (state.open !== undefined) data.workbenchOpen = state.open;
-    if (state.height !== undefined) data.workbenchHeight = state.height;
+    if (state.open !== undefined) data.projectWorkbenchOpen = state.open;
+    if (state.height !== undefined) data.projectWorkbenchHeight = state.height;
     writeProject(projectId, data);
   });
 }
@@ -517,7 +429,7 @@ export async function getWorkbenchTabs(projectId: string, scope?: string): Promi
   if (scope === 'live') {
     return { tabs: data.liveWorkbenchTabs ?? [], activeTabId: data.liveWorkbenchActiveTabId };
   }
-  return { tabs: data.workbenchTabs ?? [], activeTabId: data.workbenchActiveTabId };
+  return { tabs: data.projectWorkbenchTabs ?? [], activeTabId: data.projectWorkbenchActiveTabId };
 }
 
 export async function setWorkbenchTabs(projectId: string, tabs: import("./types").WorkbenchTabInfo[], activeTabId?: string, scope?: string): Promise<void> {
@@ -527,29 +439,67 @@ export async function setWorkbenchTabs(projectId: string, tabs: import("./types"
       data.liveWorkbenchTabs = tabs;
       data.liveWorkbenchActiveTabId = activeTabId;
     } else {
-      data.workbenchTabs = tabs;
-      data.workbenchActiveTabId = activeTabId;
+      data.projectWorkbenchTabs = tabs;
+      data.projectWorkbenchActiveTabId = activeTabId;
     }
     writeProject(projectId, data);
   });
 }
 
 // ═══════════════════════════════════════════════════════════
-// AGENT TABS
+// WORKBENCH SESSIONS
 // ═══════════════════════════════════════════════════════════
 
-export async function getAgentTabData(projectId: string, tabId: string): Promise<import("./types").AgentTabData | null> {
+export async function getWorkbenchSession(projectId: string, tabId: string): Promise<import("./types").WorkbenchSessionData | null> {
   const data = getProjectData(projectId);
-  return data.agentTabs?.[tabId] ?? null;
+  return data.projectWorkbenchSessions?.[tabId] ?? null;
 }
 
-export async function setAgentTabData(projectId: string, tabId: string, agentData: import("./types").AgentTabData): Promise<void> {
+export async function setWorkbenchSession(projectId: string, tabId: string, sessionData: import("./types").WorkbenchSessionData): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
     const data = getProjectData(projectId);
-    if (!data.agentTabs) data.agentTabs = {};
-    data.agentTabs[tabId] = agentData;
+    if (!data.projectWorkbenchSessions) data.projectWorkbenchSessions = {};
+    data.projectWorkbenchSessions[tabId] = sessionData;
     writeProject(projectId, data);
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// TASK AGENT BLOCKS (separate file per task)
+// ═══════════════════════════════════════════════════════════
+
+const AGENT_BLOCKS_DIR = path.join(DATA_DIR, "agent-blocks");
+
+function agentBlocksPath(taskId: string): string {
+  return path.join(AGENT_BLOCKS_DIR, `${taskId}.json`);
+}
+
+export async function getTaskAgentBlocks(taskId: string): Promise<AgentBlock[]> {
+  return readAgentBlocksFile(taskId).blocks;
+}
+
+export async function setTaskAgentBlocks(taskId: string, blocks: AgentBlock[], sessionId?: string): Promise<void> {
+  return withWriteLock(`agent-blocks:${taskId}`, async () => {
+    const filePath = agentBlocksPath(taskId);
+    writeJSON(filePath, { blocks, sessionId });
+  });
+}
+
+export async function deleteTaskAgentBlocks(taskId: string): Promise<void> {
+  const filePath = agentBlocksPath(taskId);
+  try {
+    if (fsExists(filePath)) unlinkSync(filePath);
+  } catch {
+    // best effort
+  }
+}
+
+export function readAgentBlocksFile(taskId: string): { blocks: AgentBlock[]; sessionId?: string } {
+  const filePath = agentBlocksPath(taskId);
+  const data = readJSON<{ blocks?: AgentBlock[]; sessionId?: string }>(filePath, {});
+  // Handle legacy format (plain array) vs new format ({ blocks, sessionId })
+  if (Array.isArray(data)) return { blocks: data };
+  return { blocks: data.blocks || [], sessionId: data.sessionId };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -650,7 +600,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   autoUpdate: true,
 
   // Appearance
-  theme: "dark",
+  theme: "system",
 
   // Notifications
   soundNotifications: false,

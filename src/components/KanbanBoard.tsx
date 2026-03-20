@@ -28,6 +28,7 @@ import {
   PlusIcon,
   ListOrderedIcon,
   LayersIcon,
+  GitBranchIcon,
   ChevronDownIcon,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
@@ -72,7 +73,7 @@ export function AddTaskButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover/40 hover:border-border-hover/50 text-text-chrome hover:text-text-chrome-hover text-xs"
+      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover/40 hover:border-border-hover/50 text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500 text-xs"
     >
       <PlusIcon className="w-3.5 h-3.5" />
       <span>New</span>
@@ -342,7 +343,7 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex h-full min-w-[1000px] px-6 pt-6 space-x-4">
+        <div className="flex h-full min-w-[1000px] px-4 pt-6 space-x-4">
           {COLUMNS.map((column) => {
             const colTasks = columns[column.id];
             const isOver = overColumnId === column.id;
@@ -362,29 +363,43 @@ export function KanbanBoard({
                           <button
                             className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover"
                           >
-                            {executionMode === 'sequential' ? (
-                              <ListOrderedIcon className="w-3 h-3" />
-                            ) : (
-                              <LayersIcon className="w-3 h-3" />
-                            )}
-                            <span>{executionMode === 'sequential' ? 'Sequential' : 'Parallel'}</span>
+                            {executionMode === 'sequential' && <ListOrderedIcon className="w-3 h-3" />}
+                            {executionMode === 'parallel' && <LayersIcon className="w-3 h-3" />}
+                            {executionMode === 'worktrees' && <GitBranchIcon className="w-3 h-3" />}
+                            <span>{executionMode === 'sequential' ? 'Sequential' : executionMode === 'parallel' ? 'Parallel' : 'Worktrees'}</span>
                             <ChevronDownIcon className="w-3 h-3" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[140px]">
+                        <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[200px]">
                           <DropdownMenuItem
                             onSelect={() => onExecutionModeChange('sequential')}
                             className={`gap-2 text-xs ${executionMode === 'sequential' ? 'exec-mode-selected' : ''}`}
                           >
-                            <ListOrderedIcon className="w-3.5 h-3.5" />
-                            Sequential
+                            <ListOrderedIcon className="w-3.5 h-3.5 shrink-0" />
+                            <div>
+                              <div>Sequential</div>
+                              <div className="text-[10px] text-text-tertiary font-normal">One task at a time, queued in order</div>
+                            </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => onExecutionModeChange('parallel')}
                             className={`gap-2 text-xs ${executionMode === 'parallel' ? 'exec-mode-selected' : ''}`}
                           >
-                            <LayersIcon className="w-3.5 h-3.5" />
-                            Parallel
+                            <LayersIcon className="w-3.5 h-3.5 shrink-0" />
+                            <div>
+                              <div>Parallel</div>
+                              <div className="text-[10px] text-text-tertiary font-normal">Multiple tasks at once on the same branch</div>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => onExecutionModeChange('worktrees')}
+                            className={`gap-2 text-xs ${executionMode === 'worktrees' ? 'exec-mode-selected' : ''}`}
+                          >
+                            <GitBranchIcon className="w-3.5 h-3.5 shrink-0" />
+                            <div>
+                              <div>Worktrees</div>
+                              <div className="text-[10px] text-text-tertiary font-normal">Each task gets its own branch to preview before merge</div>
+                            </div>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

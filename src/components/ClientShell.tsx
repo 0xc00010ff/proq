@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ProjectsProvider } from './ProjectsProvider';
 import { WorkbenchTabsProvider } from './WorkbenchTabsProvider';
@@ -102,6 +102,31 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 }
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
+  // Listen for OS theme changes when theme is set to "system"
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      const stored = localStorage.getItem('theme');
+      if (!stored || stored === 'system') {
+        document.documentElement.classList.toggle('dark', mq.matches);
+      }
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Sync theme across windows (storage event fires in OTHER windows on same origin)
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const isDark = e.newValue === 'dark' || (e.newValue !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', isDark);
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+
   return (
     <ProjectsProvider>
       <WorkbenchTabsProvider>

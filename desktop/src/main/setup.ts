@@ -18,41 +18,23 @@ export async function checkNodeVersion(): Promise<CheckResult> {
     const { stdout } = await execFileAsync('node', ['-v'])
     const version = stdout.trim().replace(/^v/, '')
     const major = parseInt(version.split('.')[0], 10)
-    if (major >= 18) {
-      return { ok: true, version }
+    let nodePath: string | undefined
+    try {
+      const { stdout: whichOut } = await execFileAsync('which', ['node'])
+      nodePath = whichOut.trim()
+    } catch { /* not critical */ }
+    if (major >= 20) {
+      return { ok: true, version, path: nodePath }
     }
-    return { ok: false, version, error: `Node.js ${version} found — v18+ required` }
+    return { ok: false, version, path: nodePath, error: `Node.js ${version} found — v20+ required` }
   } catch {
     return { ok: false, error: 'Node.js not found' }
   }
 }
 
-export async function checkTmux(): Promise<CheckResult> {
-  try {
-    const { stdout } = await execFileAsync('tmux', ['-V'])
-    const version = stdout.trim().replace(/^tmux\s*/, '')
-    return { ok: true, version }
-  } catch {
-    return { ok: false, error: 'tmux not found' }
-  }
-}
-
-export async function installTmux(): Promise<CheckResult> {
-  try {
-    if (process.platform === 'darwin') {
-      await execFileAsync('brew', ['install', 'tmux'])
-    } else {
-      await execFileAsync('sudo', ['apt-get', 'install', '-y', 'tmux'])
-    }
-    return checkTmux()
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: `Failed to install tmux: ${message}` }
-  }
-}
-
 export async function checkClaudeCli(): Promise<CheckResult> {
   const searchPaths = [
+    path.join(process.env.HOME || '', '.local/bin/claude'),
     '/opt/homebrew/bin/claude',
     '/usr/local/bin/claude',
     path.join(process.env.HOME || '', '.npm-global/bin/claude')
@@ -100,13 +82,63 @@ export async function checkClaudeCli(): Promise<CheckResult> {
   return { ok: false, error: 'Claude Code CLI not found' }
 }
 
+export async function installXcodeTools(): Promise<CheckResult> {
+  if (process.platform !== 'darwin') {
+    return { ok: true, version: 'n/a' }
+  }
+  try {
+    await execFileAsync('xcode-select', ['--install'])
+    // This launches a system dialog — caller should re-check when user says they're done
+    return { ok: false, error: 'pending' }
+  } catch (e: unknown) {
+    // xcode-select --install returns non-zero if already installed or if dialog launched
+    const message = e instanceof Error ? e.message : String(e)
+    if (message.includes('already installed')) {
+      return checkXcodeTools()
+    }
+    // Dialog was launched
+    return { ok: false, error: 'pending' }
+  }
+}
+
+export async function installClaude(onLog: (line: string) => void): Promise<CheckResult> {
+  try {
+    await runStreamingCommand('npm', ['install', '-g', '@anthropic-ai/claude-code'], onLog)
+    return checkClaudeCli()
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: `Failed to install Claude CLI: ${message}` }
+  }
+}
+
+/** Run a command with streaming stdout/stderr to onLog callback */
+function runStreamingCommand(
+  cmd: string,
+  args: string[],
+  onLog: (line: string) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      env: { ...process.env },
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+    child.stdout?.on('data', (data: Buffer) => onLog(data.toString()))
+    child.stderr?.on('data', (data: Buffer) => onLog(data.toString()))
+    child.on('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`${cmd} ${args.join(' ')} exited with code ${code}`))
+    })
+    child.on('error', reject)
+  })
+}
+
 export async function checkXcodeTools(): Promise<CheckResult> {
   if (process.platform !== 'darwin') {
     return { ok: true, version: 'n/a' }
   }
   try {
-    await execFileAsync('xcode-select', ['-p'])
-    return { ok: true }
+    const { stdout } = await execFileAsync('xcode-select', ['-p'])
+    return { ok: true, path: stdout.trim() }
   } catch {
     return { ok: false, error: 'Xcode Command Line Tools not installed' }
   }

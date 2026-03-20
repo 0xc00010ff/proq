@@ -3,7 +3,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { mkdirSync, writeFileSync } from "fs";
 import type { AgentBlock, TaskAttachment } from "./types";
-import { getAgentTabData, setAgentTabData, getSettings, getProject } from "./db";
+import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject } from "./db";
 import { getClaudeBin } from "./claude-bin";
 import type WebSocket from "ws";
 
@@ -187,7 +187,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
     if (session.status === "aborted") {
       // Only persist if session is still tracked (skip if it was cleared)
       if (sessions.get(session.tabId) === session) {
-        await setAgentTabData(session.projectId, session.tabId, {
+        await setWorkbenchSession(session.projectId, session.tabId, {
           agentBlocks: session.blocks,
           sessionId: session.sessionId,
         });
@@ -216,7 +216,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
       });
     }
 
-    await setAgentTabData(session.projectId, session.tabId, {
+    await setWorkbenchSession(session.projectId, session.tabId, {
       agentBlocks: session.blocks,
       sessionId: session.sessionId,
     });
@@ -230,7 +230,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
       error: err.message,
       durationMs: Date.now() - startTime,
     });
-    await setAgentTabData(session.projectId, session.tabId, {
+    await setWorkbenchSession(session.projectId, session.tabId, {
       agentBlocks: session.blocks,
       sessionId: session.sessionId,
     });
@@ -347,7 +347,7 @@ export async function continueAgentTabSession(
 
   // Reconstruct from DB if no in-memory session
   if (!session) {
-    const stored = await getAgentTabData(projectId, tabId);
+    const stored = await getWorkbenchSession(projectId, tabId);
     if (!stored?.sessionId) {
       throw new Error("No session to continue — no sessionId stored");
     }
@@ -501,7 +501,7 @@ export async function clearAgentTabSession(tabId: string, projectId?: string): P
       session.queryHandle.kill("SIGTERM");
     }
     // Clear persisted data
-    await setAgentTabData(session.projectId, tabId, {
+    await setWorkbenchSession(session.projectId, tabId, {
       agentBlocks: [],
       sessionId: undefined,
     });
@@ -509,7 +509,7 @@ export async function clearAgentTabSession(tabId: string, projectId?: string): P
     sessions.delete(tabId);
   } else if (projectId) {
     // No in-memory session but clear persisted data
-    await setAgentTabData(projectId, tabId, {
+    await setWorkbenchSession(projectId, tabId, {
       agentBlocks: [],
       sessionId: undefined,
     });

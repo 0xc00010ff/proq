@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, SettingsIcon, GitCommitHorizontalIcon, PlusIcon } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, ListIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ export interface GitStatus {
   ahead: number;
   behind: number;
   dirty: number;
+  aheadOfMain?: number;
 }
 
 interface TopBarProps {
@@ -30,6 +31,7 @@ interface TopBarProps {
   onTabChange: (tab: TabOption) => void;
   currentBranch?: string;
   branches?: string[];
+  defaultBranch?: string;
   taskBranchMap?: Record<string, string>;
   onSwitchBranch?: (branch: string) => void;
   projectId?: string;
@@ -44,12 +46,13 @@ interface TopBarProps {
   onCreateBranch?: (name: string) => Promise<void>;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onCommit, onCreateBranch }: TopBarProps) {
-  // New branch creation
-  const [newBranchMode, setNewBranchMode] = useState(false);
-  const [newBranchName, setNewBranchName] = useState('');
-  const [newBranchLoading, setNewBranchLoading] = useState(false);
-  const newBranchInputRef = useRef<HTMLInputElement>(null);
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onCommit, onCreateBranch }: TopBarProps) {
+  // Branch selector popover
+  const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
+  const [branchFilter, setBranchFilter] = useState('');
+  const branchPopoverRef = useRef<HTMLDivElement>(null);
+  const branchTriggerRef = useRef<HTMLButtonElement>(null);
+  const branchSearchRef = useRef<HTMLInputElement>(null);
 
   // Dropdown data for status labels
   const [dirtyFiles, setDirtyFiles] = useState<{ path: string; status: string }[] | null>(null);
@@ -162,6 +165,29 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     });
   }, [gitStatus, currentBranch, aheadCommits, behindCommits]);
 
+  // Branch popover: click-outside to close
+  useEffect(() => {
+    if (!branchPopoverOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        branchPopoverRef.current && !branchPopoverRef.current.contains(e.target as Node) &&
+        branchTriggerRef.current && !branchTriggerRef.current.contains(e.target as Node)
+      ) {
+        setBranchPopoverOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [branchPopoverOpen]);
+
+  // Focus search input when branch popover opens
+  useEffect(() => {
+    if (branchPopoverOpen) {
+      setBranchFilter('');
+      setTimeout(() => branchSearchRef.current?.focus(), 0);
+    }
+  }, [branchPopoverOpen]);
+
   const tabs: { id: TabOption; label: string }[] = [
     { id: 'project', label: 'Project' },
     { id: 'live', label: 'Live' },
@@ -171,21 +197,23 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   const isOnPreviewBranch = currentBranch?.startsWith('proq/') ?? false;
   const hasGit = gitStatus?.hasGit !== false;
 
-  // Sort branches: main first, then proq/* branches, then others
+  // Sort branches: proq/* first, then default branch, then others
   const sortedBranches = branches ? [...branches].sort((a, b) => {
-    if (a === 'main' || a === 'master') return -1;
-    if (b === 'main' || b === 'master') return 1;
     const aIsProq = a.startsWith('proq/');
     const bIsProq = b.startsWith('proq/');
     if (aIsProq && !bIsProq) return -1;
     if (!aIsProq && bIsProq) return 1;
+    const aIsDefault = a === defaultBranch;
+    const bIsDefault = b === defaultBranch;
+    if (aIsDefault && !bIsDefault) return -1;
+    if (!aIsDefault && bIsDefault) return 1;
     return a.localeCompare(b);
   }) : [];
 
-  // Group branches: main/master, proq/* branches, others
-  const mainBranches = sortedBranches.filter(b => b === 'main' || b === 'master');
+  // Group branches: default branch, proq/* branches, others
+  const defaultBranches = sortedBranches.filter(b => b === defaultBranch);
   const proqBranches = sortedBranches.filter(b => b.startsWith('proq/'));
-  const otherBranches = sortedBranches.filter(b => b !== 'main' && b !== 'master' && !b.startsWith('proq/'));
+  const otherBranches = sortedBranches.filter(b => b !== defaultBranch && !b.startsWith('proq/'));
 
   // History button label + color
   const ahead = gitStatus?.ahead ?? 0;
@@ -208,11 +236,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
         : 'text-text-chrome';
 
   return (
-    <header className={`h-[48px] bg-surface-topbar flex items-center px-6 flex-shrink-0 border-b border-border-default${isElectron ? ' electron-drag' : ''}`}>
+    <header className="h-[48px] bg-surface-topbar flex items-center px-4 flex-shrink-0 border-b border-border-default relative">
+      {isElectron && <div className="absolute top-0 left-0 right-0 h-[18px] electron-drag" />}
       <div className="flex-1 flex items-center min-w-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 ml-1 text-text-chrome hover:text-text-chrome-hover">
+            <button className="flex items-center gap-1.5 text-text-secondary dark:text-zinc-300 hover:text-bronze-600 dark:hover:text-bronze-500">
               <h1 className="text-base font-semibold leading-tight truncate">
                 {project.name}
               </h1>
@@ -226,7 +255,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onSelect={() => onViewTypeChange?.('kanban')}
                 className={`text-xs gap-2 ${viewType === 'kanban' ? 'text-text-chrome-active' : ''}`}
               >
-                <LayoutGridIcon className="w-3.5 h-3.5" />
+                <Columns3Icon className="w-3.5 h-3.5" />
                 <span>Board</span>
                 {viewType === 'kanban' && <CheckIcon className="w-3 h-3 ml-auto" />}
               </DropdownMenuItem>
@@ -237,6 +266,14 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 <ListIcon className="w-3.5 h-3.5" />
                 <span>List</span>
                 {viewType === 'list' && <CheckIcon className="w-3 h-3 ml-auto" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => onViewTypeChange?.('grid')}
+                className={`text-xs gap-2 ${viewType === 'grid' ? 'text-text-chrome-active' : ''}`}
+              >
+                <LayoutGridIcon className="w-3.5 h-3.5" />
+                <span>Grid</span>
+                {viewType === 'grid' && <CheckIcon className="w-3 h-3 ml-auto" />}
               </DropdownMenuItem>
             </div>
             <DropdownMenuSeparator />
@@ -262,7 +299,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 className={`relative px-3.5 py-1 text-xs font-medium rounded-md z-10 ${
-                  isActive ? 'text-text-chrome-active' : 'text-text-chrome hover:text-text-chrome-hover'
+                  isActive ? 'text-text-chrome-active' : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
                 }`}
               >
                 {isActive && (
@@ -343,8 +380,17 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               </DropdownMenu>
             )}
 
+            {/* Preview branch: show commits ahead of default branch */}
+            {isOnPreviewBranch && gitStatus?.aheadOfMain != null && (
+              <span className="flex items-center text-xs text-text-tertiary px-1 py-1.5">
+                {gitStatus.aheadOfMain === 0
+                  ? 'No new commits'
+                  : `${gitStatus.aheadOfMain} ${gitStatus.aheadOfMain === 1 ? 'commit' : 'commits'}`}
+              </span>
+            )}
+
             {/* Unified history dropdown (or direct modal when up to date) */}
-            {gitStatus?.hasRemote && isUpToDate && (
+            {!isOnPreviewBranch && gitStatus?.hasRemote && isUpToDate && (
               <button
                 onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
                 className={`flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary ${historyTextColor} hover:bg-surface-hover overflow-hidden`}
@@ -355,7 +401,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 </span>
               </button>
             )}
-            {gitStatus?.hasRemote && !isUpToDate && (
+            {!isOnPreviewBranch && gitStatus?.hasRemote && !isUpToDate && (
               <DropdownMenu onOpenChange={(open) => { if (open) { setAheadCommits(null); setBehindCommits(null); fetchHistoryCommits(); setSyncError(null); } }}>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -480,123 +526,42 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
 
             {/* Branch selector */}
             {currentBranch && branches && branches.length > 0 && (
-              <DropdownMenu onOpenChange={(open) => { if (!open) { setNewBranchMode(false); setNewBranchName(''); } }}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border outline-none ${
-                      isOnPreviewBranch
-                        ? 'border-lazuli/40 bg-surface-secondary text-lazuli shadow-[0_0_8px_rgba(91,131,176,0.1)] hover:text-lazuli-light hover:bg-surface-hover'
-                        : 'border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover'
-                    }`}
-                  >
-                    <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-lazuli' : ''}`} />
-                    <span className="max-w-[180px] truncate">
-                      {isOnPreviewBranch && taskBranchMap?.[currentBranch!]
-                        ? taskBranchMap[currentBranch!].split(/\s+/).slice(0, 4).join(' ')
-                        : currentBranch}
-                    </span>
-                    <ChevronDownIcon className="w-3 h-3 opacity-50" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 max-h-64 overflow-hidden flex flex-col p-0">
-                  <div className="flex-shrink-0 py-1">
-                    <DropdownMenuLabel>Branches</DropdownMenuLabel>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <div className="flex-1 min-h-0 overflow-y-auto">
-                    {mainBranches.map((branch) => (
-                      <BranchItem
-                        key={branch}
-                        branch={branch}
-                        isCurrent={branch === currentBranch}
-                        onSelect={() => onSwitchBranch?.(branch)}
-                      />
-                    ))}
-                    {proqBranches.length > 0 && mainBranches.length > 0 && (
-                      <DropdownMenuSeparator />
-                    )}
-                    {proqBranches.map((branch) => (
-                      <BranchItem
-                        key={branch}
-                        branch={branch}
-                        isCurrent={branch === currentBranch}
-                        taskTitle={taskBranchMap?.[branch]}
-                        onSelect={() => onSwitchBranch?.(branch)}
-                      />
-                    ))}
-                    {otherBranches.length > 0 && (mainBranches.length > 0 || proqBranches.length > 0) && (
-                      <DropdownMenuSeparator />
-                    )}
-                    {otherBranches.map((branch) => (
-                      <BranchItem
-                        key={branch}
-                        branch={branch}
-                        isCurrent={branch === currentBranch}
-                        onSelect={() => onSwitchBranch?.(branch)}
-                      />
-                    ))}
-                  </div>
-                  {onCreateBranch && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="flex-shrink-0 p-1">
-                        {newBranchMode ? (
-                          <form
-                            className="flex items-center gap-1.5 px-2 py-1"
-                            onSubmit={async (e) => {
-                              e.preventDefault();
-                              const name = newBranchName.trim();
-                              if (!name || newBranchLoading) return;
-                              setNewBranchLoading(true);
-                              try {
-                                await onCreateBranch(name);
-                                setNewBranchName('');
-                                setNewBranchMode(false);
-                              } catch { /* handled by caller */ }
-                              setNewBranchLoading(false);
-                            }}
-                          >
-                            <input
-                              ref={newBranchInputRef}
-                              type="text"
-                              value={newBranchName}
-                              onChange={(e) => setNewBranchName(e.target.value)}
-                              placeholder="branch-name"
-                              autoFocus
-                              className="flex-1 min-w-0 px-2 py-1 text-xs font-mono bg-surface-deep border border-border-strong rounded text-text-primary focus:outline-none focus:border-border-hover"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Escape') {
-                                  setNewBranchMode(false);
-                                  setNewBranchName('');
-                                }
-                                e.stopPropagation();
-                              }}
-                            />
-                            <button
-                              type="submit"
-                              disabled={!newBranchName.trim() || newBranchLoading}
-                              className="text-xs font-medium text-text-chrome hover:text-text-chrome-hover disabled:opacity-40 px-1.5 py-1"
-                            >
-                              {newBranchLoading ? <Loader2Icon className="w-3 h-3 animate-spin" /> : 'Create'}
-                            </button>
-                          </form>
-                        ) : (
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setNewBranchMode(true);
-                            }}
-                            className="text-xs gap-2 text-text-chrome"
-                          >
-                            <PlusIcon className="w-3 h-3" />
-                            New branch...
-                          </DropdownMenuItem>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="relative">
+                <button
+                  ref={branchTriggerRef}
+                  onClick={() => setBranchPopoverOpen(!branchPopoverOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border outline-none ${
+                    isOnPreviewBranch
+                      ? 'border-lazuli/40 bg-surface-secondary text-lazuli shadow-[0_0_8px_rgba(91,131,176,0.1)] hover:text-lazuli-light hover:bg-surface-hover'
+                      : 'border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover'
+                  }`}
+                >
+                  <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-lazuli' : ''}`} />
+                  <span className="max-w-[180px] truncate">
+                    {isOnPreviewBranch && taskBranchMap?.[currentBranch!]
+                      ? taskBranchMap[currentBranch!].split(/\s+/).slice(0, 4).join(' ')
+                      : currentBranch}
+                  </span>
+                  <ChevronDownIcon className="w-3 h-3 opacity-50" />
+                </button>
+                {branchPopoverOpen && (
+                  <BranchPopover
+                    ref={branchPopoverRef}
+                    branches={sortedBranches}
+                    defaultBranches={defaultBranches}
+                    proqBranches={proqBranches}
+                    otherBranches={otherBranches}
+                    currentBranch={currentBranch}
+                    taskBranchMap={taskBranchMap}
+                    branchFilter={branchFilter}
+                    onFilterChange={setBranchFilter}
+                    searchRef={branchSearchRef}
+                    onSwitchBranch={(branch) => { onSwitchBranch?.(branch); setBranchPopoverOpen(false); }}
+                    onClose={() => setBranchPopoverOpen(false)}
+                    onCreateBranch={onCreateBranch ? async (name) => { await onCreateBranch(name); setBranchPopoverOpen(false); } : undefined}
+                  />
+                )}
+              </div>
             )}
           </>
         )}
@@ -605,22 +570,180 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   );
 }
 
-function BranchItem({ branch, isCurrent, taskTitle, onSelect }: {
+const BranchPopover = React.forwardRef<HTMLDivElement, {
+  branches: string[];
+  defaultBranches: string[];
+  proqBranches: string[];
+  otherBranches: string[];
+  currentBranch: string;
+  taskBranchMap?: Record<string, string>;
+  branchFilter: string;
+  onFilterChange: (v: string) => void;
+  searchRef: React.RefObject<HTMLInputElement | null>;
+  onSwitchBranch: (branch: string) => void;
+  onClose: () => void;
+  onCreateBranch?: (name: string) => Promise<void>;
+}>(function BranchPopover(props, ref) {
+  const {
+    branches, defaultBranches, proqBranches, otherBranches, currentBranch, taskBranchMap,
+    branchFilter, onFilterChange, searchRef, onSwitchBranch, onClose, onCreateBranch,
+  } = props;
+  const [creating, setCreating] = useState(false);
+
+  const filter = branchFilter.toLowerCase().trim();
+  const filteredDefault = defaultBranches.filter(b => b.toLowerCase().includes(filter));
+  const filteredProq = proqBranches.filter(b => {
+    const title = taskBranchMap?.[b]?.toLowerCase() || '';
+    return b.toLowerCase().includes(filter) || title.includes(filter);
+  });
+  const filteredOther = otherBranches.filter(b => b.toLowerCase().includes(filter));
+  const totalFiltered = filteredDefault.length + filteredProq.length + filteredOther.length;
+
+  // Show "Create branch" option when filter text doesn't exactly match any existing branch
+  const exactMatch = filter && branches.some(b => b.toLowerCase() === filter);
+  const showCreate = onCreateBranch && filter && !exactMatch;
+
+  const handleCreate = async () => {
+    if (!onCreateBranch || !filter || creating) return;
+    setCreating(true);
+    try {
+      await onCreateBranch(branchFilter.trim());
+    } catch { /* handled by caller */ }
+    setCreating(false);
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-full mt-1 w-[300px] z-50 rounded-lg border border-border-default bg-surface-modal shadow-lg overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
+        <span className="text-xs font-semibold text-text-primary">Switch branches</span>
+        <button
+          onClick={onClose}
+          className="text-text-tertiary hover:text-text-secondary p-0.5 rounded"
+        >
+          <XIcon className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Search / create input */}
+      <div className="px-2.5 py-2 border-b border-border-default">
+        <div className="relative">
+          <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-placeholder" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={branchFilter}
+            onChange={(e) => onFilterChange(e.target.value)}
+            placeholder={onCreateBranch ? 'Find or create a branch...' : 'Find a branch...'}
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-inset border border-border-strong rounded-md text-text-primary placeholder:text-text-placeholder focus:outline-none focus:border-border-strong"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') onClose();
+              if (e.key === 'Enter' && showCreate && totalFiltered === 0) {
+                e.preventDefault();
+                handleCreate();
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Branch list */}
+      <div className="max-h-[280px] overflow-y-auto">
+        {filteredProq.map((branch) => (
+          <BranchRow
+            key={branch}
+            branch={branch}
+            isCurrent={branch === currentBranch}
+            taskTitle={taskBranchMap?.[branch]}
+            onSelect={() => onSwitchBranch(branch)}
+          />
+        ))}
+        {filteredDefault.length > 0 && filteredProq.length > 0 && (
+          <div className="border-t border-border-default" />
+        )}
+        {filteredDefault.map((branch) => (
+          <BranchRow
+            key={branch}
+            branch={branch}
+            isCurrent={branch === currentBranch}
+            isDefault
+            onSelect={() => onSwitchBranch(branch)}
+          />
+        ))}
+        {filteredOther.length > 0 && (filteredDefault.length > 0 || filteredProq.length > 0) && (
+          <div className="border-t border-border-default" />
+        )}
+        {filteredOther.map((branch) => (
+          <BranchRow
+            key={branch}
+            branch={branch}
+            isCurrent={branch === currentBranch}
+            onSelect={() => onSwitchBranch(branch)}
+          />
+        ))}
+
+        {/* Create branch option — shown when filter doesn't match an existing branch */}
+        {showCreate && (
+          <>
+            {totalFiltered > 0 && <div className="border-t border-border-default" />}
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover transition-colors"
+            >
+              {creating ? (
+                <Loader2Icon className="w-3.5 h-3.5 shrink-0 animate-spin" />
+              ) : (
+                <GitBranchIcon className="w-3.5 h-3.5 shrink-0 text-text-tertiary" />
+              )}
+              <span>
+                Create branch <strong className="text-text-primary">{branchFilter.trim()}</strong> from <strong className="text-text-primary">{currentBranch}</strong>
+              </span>
+            </button>
+          </>
+        )}
+
+        {totalFiltered === 0 && !showCreate && (
+          <div className="px-3 py-4 text-xs text-text-tertiary text-center">No branches match</div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-border-default">
+        <button
+          onClick={() => onFilterChange('')}
+          className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-text-secondary hover:bg-surface-hover transition-colors"
+        >
+          <span className="w-4 shrink-0 flex justify-center">
+            <GitBranchIcon className="w-3.5 h-3.5 text-text-tertiary" />
+          </span>
+          View all branches
+        </button>
+      </div>
+    </div>
+  );
+});
+
+function BranchRow({ branch, isCurrent, isDefault, taskTitle, onSelect }: {
   branch: string;
   isCurrent: boolean;
+  isDefault?: boolean;
   taskTitle?: string;
   onSelect: () => void;
 }) {
   return (
-    <DropdownMenuItem
-      onSelect={() => { if (!isCurrent) onSelect(); }}
-      className={`text-xs gap-2 ${isCurrent ? 'text-text-chrome-active' : ''}`}
+    <button
+      onClick={() => { if (!isCurrent) onSelect(); }}
+      className={`flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-surface-hover transition-colors ${
+        isCurrent ? 'text-text-chrome-active' : 'text-text-secondary'
+      }`}
     >
-      {isCurrent ? (
-        <CheckIcon className="w-3 h-3 shrink-0" />
-      ) : (
-        <span className="w-3 shrink-0" />
-      )}
+      <span className="w-4 shrink-0 flex justify-center">
+        {isCurrent && <CheckIcon className="w-3.5 h-3.5" />}
+      </span>
       {taskTitle ? (
         <>
           <span className="truncate">{taskTitle}</span>
@@ -631,7 +754,12 @@ function BranchItem({ branch, isCurrent, taskTitle, onSelect }: {
       ) : (
         <span className="font-mono truncate">{branch}</span>
       )}
-    </DropdownMenuItem>
+      {isDefault && (
+        <span className="ml-auto text-[10px] font-medium text-text-tertiary border border-border-default rounded px-1.5 py-0.5 leading-none">
+          default
+        </span>
+      )}
+    </button>
   );
 }
 

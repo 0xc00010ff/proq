@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { spawnShellSession } from "@/lib/pty-server";
+import { safeParseBody } from "@/lib/api-utils";
 
 export async function POST(request: Request) {
-  const { tabId, cmd, cwd } = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
+  const { tabId, cmd, cwd } = body;
 
   if (!tabId) {
     return NextResponse.json({ error: "tabId is required" }, { status: 400 });

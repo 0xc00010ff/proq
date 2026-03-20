@@ -2,37 +2,38 @@
   <img src="public/proq-badge.png" alt="proq" width="140" />
 </p>
 
-<h3 align="center">Build something you'll love</h3>
+<h3 align="center">Serious vibe coding</h3>
 
 <p align="center">
   <a href="#download">Download</a> &nbsp;&middot;&nbsp;
   <a href="#run-locally">Run Locally</a> &nbsp;&middot;&nbsp;
-  <a href="#how-it-works">How It Works</a> &nbsp;&middot;&nbsp;
-  <a href="#api">API</a>
+  <a href="#docs">Docs</a>
 </p>
 
 ---
 
-Proq is an agentic development workspace. Not another AI — a process manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that keeps you focused while multiple agents work your codebase.
+<!-- TODO: Add screenshot/gif of the board in action -->
 
-Most agentic tools optimize for speed. Proq optimizes for quality. A kanban board, parallel git worktrees, branch previews, and a review step before anything touches main. You stay in control of what ships.
+#### Proq is an agentic development environment.
+A kanban-style task manager for local Claude Code instances.
 
-It's local, self-contained, and works with whatever agent config, MCPs, and tools you already use.
+Create a task → proq spins up an agent, gives it an isolated worktree, tracks the agent's work, and lets you preview changes.
 
-## Download
+The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops without managing a grid of terminals.
 
-> macOS app — no terminal required.
+Free, no signup, and works with whatever agent config, MCPs, and tools you already use with Claude.
 
-<!-- TODO: Replace with actual download links -->
+# Download
+
+### macOS app — get moving in 1 minute
 
 | Platform | Link |
 |---|---|
-| macOS (Apple Silicon) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest) |
-| macOS (Intel) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest) |
+| macOS (Apple Silicon) | [Download .dmg](https://github.com/0xc00010ff/proq/releases/latest/download/proq-desktop.dmg) |
 
-The desktop app handles setup, dependencies, and server management automatically. Just open it and add a project.
+Just open it and start cooking.
 
-## Run Locally
+# Run Locally
 
 Requires **Node.js 18+** and the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) on your PATH.
 
@@ -43,99 +44,33 @@ npm run setup
 npm run dev
 ```
 
-Open [localhost:1337](http://localhost:1337). Add a project path, create a task, drag it to In Progress.
+Open [localhost:1337](http://localhost:1337). Add proq as a project. Create a task and watch the app update itself.
 
-## How It Works
+# Explore
 
-Proq runs one Claude Code instance per task. That's it.
+- **Parallel agents** — each task gets its own git worktree and branch, multiple agents work the same codebase without conflicts
+- **Live preview** — start and view your project live, let agents view/use your app
+- **Project workbench** — freeform agent, terminal, and code editor for quick little edits
+- **HTTP API** — every board action is a REST endpoint, anything that can make HTTP requests can manage tasks
+- **MCP server** — manage projects and tasks from any MCP-compatible agent or tool
+- **Supervisor** — an agent that lives above all your projects, can be hooked up to OpenClaw / external agents
+- **Customization** - toggle kanban vs list, pretty chat vs raw CLI, light/dark mode
+- **Self-editing** — add proq to its own project list, add whatever features you want
 
-1. **Create tasks** on the kanban board — or from any agent, script, or chat interface via the API
-2. **Drag to In Progress** — Proq launches a Claude Code session against your project
-3. **Agent works** — reads code, makes changes, commits to a dedicated branch
-4. **You review** — approve to merge, or send it back
-
-In parallel mode, each task gets its own git worktree and branch. Multiple agents work the same codebase simultaneously without conflicts. Branches stay alive through review — code only merges to main when you say so.
-
-### What you get
-
-- **Parallel agents** — isolated worktrees per task, no conflicts
-- **Branch previews** — hot-reload your dev server with an agent's latest commits
-- **Deferred merge** — review before anything hits main, with conflict detection
-- **Structured output** — watch agent reasoning, tool calls, and edits in real time
-- **Built-in workbench** — shell tabs, code browser, and freeform agent conversations
-- **Supervisor** — a conversational AI at `/supervisor` that dispatches tasks across all your projects
-
-### Plays well with others
-
-Proq is API-first. Every board action is a REST endpoint. It ships with MCP servers that agents use to report progress, and a general-purpose MCP for managing tasks from any tool.
-
-Works with [OpenClaw](https://github.com/0xc00010ff/openclaw) and other agentic tools out of the box — anything that can make HTTP requests can create and manage tasks.
-
-## Customize Proq Using Proq
-
-Proq can develop itself. Add proq to its own project list, point the path at the repo, and set the server URL to `http://localhost:1337`. Now proq's agents modify its own codebase with hot reload showing changes instantly.
-
-```
-Name:       proq
-Path:       ~/projects/proq
-Server URL: http://localhost:1337
-```
-
-In parallel mode, agents work in isolated worktrees so they won't disrupt the running instance.
-
-## API
-
-Everything is programmable. Create projects, manage tasks, switch branches — all via REST.
-
-```
-GET/POST       /api/projects
-GET/PATCH/DEL  /api/projects/[id]
-GET/POST       /api/projects/[id]/tasks
-PATCH/DEL      /api/projects/[id]/tasks/[taskId]
-PUT            /api/projects/[id]/tasks/reorder
-GET/POST/PATCH /api/projects/[id]/git
-GET/POST       /api/projects/[id]/chat
-```
-
-Create a task and start it in one call:
-
-```bash
-curl -X POST http://localhost:1337/api/projects/$ID/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{"description": "Refactor the auth module", "status": "in-progress"}'
-```
-
-### MCP Servers
-
-**Per-task** (`proq-mcp.js`) — automatically available to every agent:
-- `read_task` — get current task state and summary
-- `update_task` — report findings, move to review
-- `commit_changes` — stage and commit changes
-
-**General** (`proq-mcp-general.js`) — for supervisors and external tools:
-- `list_projects`, `list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`
-
-## Documentation
+# Docs
 
 | Doc | What it covers |
 |---|---|
-| [Getting Started](docs/Getting-Started.md) | Full walkthrough — install, create tasks, watch agents, review |
-| [Architecture](docs/Architecture.md) | Data layer, dispatch engine, WebSocket protocol, settings |
+| [Getting Started](docs/Getting-Started.md) | Install, create tasks, watch agents, review |
+| [Architecture](docs/Architecture.md) | Data layer, dispatch engine, API routes, settings |
 | [Parallel Worktrees](docs/Parallel-Worktrees.md) | Worktree lifecycle, preview branches, merge conflicts |
 | [Self-Editing](docs/Self-Editing.md) | Developing proq with proq |
 | [Desktop App](desktop/README.md) | Electron app setup and packaging |
 
-## Configuration
-
-Settings are available in the UI (gear icon) or via `/api/settings`.
-
-| Category | Key options |
-|---|---|
-| **Agent** | Claude binary path, default model, system prompt additions, execution mode (sequential/parallel) |
-| **Git** | Auto-commit, commit style, auto-push, branch switcher |
-| **Notifications** | Slack (via OpenClaw), webhooks, system notifications |
-| **Process** | Cleanup delay, poll interval, terminal scrollback |
-
 ## License
 
 MIT
+
+---
+
+proq was built using proq

@@ -5,21 +5,22 @@ import { useParams } from 'next/navigation';
 import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { ListView } from '@/components/ListView';
+import { GridView } from '@/components/GridView';
 import WorkbenchPanel from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { TaskDraft } from '@/components/TaskDraft';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { UndoModal } from '@/components/UndoModal';
-import { ParallelModeModal } from '@/components/ParallelModeModal';
+import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
 import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
-import { emptyColumns } from '@/components/ProjectsProvider';
+import { emptyTasks } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
-import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent } from '@/hooks/useTaskEvents';
+import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -38,12 +39,13 @@ export default function ProjectPage() {
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
-  const [showParallelModal, setShowParallelModal] = useState(false);
+  const [pendingModeSwitch, setPendingModeSwitch] = useState<'parallel' | 'worktrees' | null>(null);
   const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
+  const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
@@ -53,7 +55,7 @@ export default function ProjectPage() {
   const viewingTaskIdRef = useRef<string | null>(null);
 
   const project = projects.find((p) => p.id === projectId);
-  const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
+  const columns: TaskColumns = tasksByProject[projectId] || emptyTasks();
 
   // Update document title with project id (slug)
   useEffect(() => {
@@ -101,9 +103,11 @@ export default function ProjectPage() {
           ahead: data.ahead || 0,
           behind: data.behind || 0,
           dirty: data.dirty || 0,
+          aheadOfMain: data.aheadOfMain,
         };
         setCurrentBranch(prev => prev === newBranch ? prev : newBranch);
         setBranches(prev => JSON.stringify(prev) === JSON.stringify(newBranches) ? prev : newBranches);
+        setDefaultBranch(prev => data.defaultBranch === prev ? prev : data.defaultBranch);
         setGitStatus(prev => JSON.stringify(prev) === JSON.stringify(newStatus) ? prev : newStatus);
       }
     } catch {
@@ -137,7 +141,7 @@ export default function ProjectPage() {
   const dismissAttention = useCallback((taskId: string) => {
     // Optimistically clear needsAttention in local state
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
         const idx = cols[status].findIndex((t) => t.id === taskId);
         if (idx === -1) continue;
@@ -168,7 +172,7 @@ export default function ProjectPage() {
     }
 
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       const { taskId, changes } = event;
 
       // Find the task in any column
@@ -211,7 +215,7 @@ export default function ProjectPage() {
     const task = event.task as unknown as Task;
     if (!task.id) return;
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       // Skip if task already exists (e.g. we created it locally)
       for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
         if (cols[status].some((t) => t.id === task.id)) return prev;
@@ -220,17 +224,34 @@ export default function ProjectPage() {
     });
   }, [projectId, setTasksByProject]);
 
-  useTaskEvents(projectId, handleTaskUpdate, handleTaskCreated);
+  // Handle project-level SSE updates (e.g. agent sets live URL)
+  const handleProjectUpdate = useCallback((event: ProjectUpdateEvent) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, ...event.changes } : p))
+    );
+  }, [projectId, setProjects]);
 
-  // 30s task poll as consistency backstop — SSE handles real-time updates.
-  // Skips during active drags.
+  useTaskEvents(projectId, handleTaskUpdate, handleTaskCreated, handleProjectUpdate);
+
+  // 30s poll as consistency backstop — SSE handles real-time updates.
+  // Refreshes both tasks (skipped during drags) and project-level data (e.g. serverUrl).
   useEffect(() => {
     if (!projectId) return;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (!kanbanDraggingRef.current) refreshTasks(projectId);
+      // Also refresh project-level fields (serverUrl, etc.) that SSE may have missed
+      try {
+        const res = await fetch(`/api/projects/${projectId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProjects((prev) =>
+            prev.map((p) => (p.id === projectId ? { ...p, ...data } : p))
+          );
+        }
+      } catch { /* ignore */ }
     }, 30_000);
     return () => clearInterval(interval);
-  }, [projectId, refreshTasks]);
+  }, [projectId, refreshTasks, setProjects]);
 
   // 5s poll for branch state (local dirty count, branch list, preview fast-forward)
   // Git changes are true externalities that don't pass through our API.
@@ -335,7 +356,7 @@ export default function ProjectPage() {
   const deleteTask = async (taskId: string) => {
     // Optimistically remove from UI
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       const updated: TaskColumns = { ...cols };
       for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
         const idx = updated[status].findIndex((t) => t.id === taskId);
@@ -354,7 +375,7 @@ export default function ProjectPage() {
   const moveTask = (taskId: string, toColumn: TaskStatus, toIndex: number) => {
     // Optimistically update task state so the UI is instant
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       // Find and remove the task from its current column
       let task: Task | undefined;
       const updated: TaskColumns = { ...cols };
@@ -416,7 +437,7 @@ export default function ProjectPage() {
     // Optimistic update for board
     if (data.status || data.title) {
       setTasksByProject((prev) => {
-        const cols = prev[projectId] || emptyColumns();
+        const cols = prev[projectId] || emptyTasks();
         const updated: TaskColumns = { ...cols };
         // Find the task
         let task: Task | undefined;
@@ -457,7 +478,7 @@ export default function ProjectPage() {
       const serverTask: Task = await res.json();
       if (data.status && serverTask.status !== data.status) {
         setTasksByProject((prev) => {
-          const cols = prev[projectId] || emptyColumns();
+          const cols = prev[projectId] || emptyTasks();
           const updated: TaskColumns = { ...cols };
           // Remove from the optimistic column
           const optimisticCol = data.status as TaskStatus;
@@ -524,9 +545,9 @@ export default function ProjectPage() {
       setShowModeBlockedModal(true);
       return;
     }
-    // Show confirmation modal when switching to parallel
-    if (mode === 'parallel' && executionMode !== 'parallel') {
-      setShowParallelModal(true);
+    // Show info modal when switching to parallel or worktrees
+    if ((mode === 'parallel' || mode === 'worktrees') && executionMode !== mode) {
+      setPendingModeSwitch(mode);
       return;
     }
     setExecutionMode(mode);
@@ -538,13 +559,15 @@ export default function ProjectPage() {
     refresh();
   };
 
-  const applyParallelMode = async () => {
-    setShowParallelModal(false);
-    setExecutionMode('parallel');
+  const applyPendingMode = async () => {
+    if (!pendingModeSwitch) return;
+    const mode = pendingModeSwitch;
+    setPendingModeSwitch(null);
+    setExecutionMode(mode);
     await fetch(`/api/projects/${projectId}/execution-mode`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'parallel' }),
+      body: JSON.stringify({ mode }),
     });
     refresh();
   };
@@ -559,7 +582,7 @@ export default function ProjectPage() {
     // Add to local state immediately so deleteTask can find it on discard.
     // Guard against duplicates — SSE task-created may arrive before the POST response.
     setTasksByProject((prev) => {
-      const cols = prev[projectId] || emptyColumns();
+      const cols = prev[projectId] || emptyTasks();
       if (cols.todo.some((t) => t.id === newTask.id)) return prev;
       return { ...prev, [projectId]: { ...cols, todo: [newTask, ...cols.todo] } };
     });
@@ -622,12 +645,13 @@ export default function ProjectPage() {
 
   const handleTabChange = useCallback((tab: TabOption) => {
     setActiveTab(tab);
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, activeTab: tab } : p));
     fetch(`/api/projects/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activeTab: tab }),
     }).catch(() => {});
-  }, [projectId]);
+  }, [projectId, setProjects]);
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));
@@ -785,6 +809,7 @@ export default function ProjectPage() {
         onTabChange={handleTabChange}
         currentBranch={currentBranch}
         branches={branches}
+        defaultBranch={defaultBranch}
         taskBranchMap={taskBranchMap}
         onSwitchBranch={handleSwitchBranch}
         gitStatus={gitStatus}
@@ -816,7 +841,29 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
-              {(project.viewType || 'kanban') === 'kanban' ? (
+              {(project.viewType || 'kanban') === 'grid' ? (
+                <GridView
+                  tasks={columns}
+                  projectId={projectId}
+                  executionMode={executionMode}
+                  onExecutionModeChange={handleExecutionModeChange}
+                  onAddTask={handleAddTask}
+                  onClickTask={(task) => {
+                    if (task.needsAttention) dismissAttention(task.id);
+                    viewingTaskIdRef.current = task.id;
+                    setAgentModalTask(task);
+                  }}
+                  followUpDraftsRef={followUpDraftsRef}
+                  onFollowUpDraftChange={(taskId, draft) => {
+                    if (draft) followUpDraftsRef.current.set(taskId, draft);
+                    else followUpDraftsRef.current.delete(taskId);
+                  }}
+                  parallelMode={executionMode === 'worktrees'}
+                  currentBranch={currentBranch}
+                  onSwitchBranch={handleSwitchBranch}
+                  defaultBranch={project?.defaultBranch || 'main'}
+                />
+              ) : (project.viewType || 'kanban') === 'kanban' ? (
                 <KanbanBoard
                   tasks={columns}
                   onMoveTask={moveTask}
@@ -871,7 +918,7 @@ export default function ProjectPage() {
                   onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
                   onDismissAttention={dismissAttention}
                   onSelectedTaskChange={(id) => { viewingTaskIdRef.current = id; }}
-                  parallelMode={executionMode === 'parallel'}
+                  parallelMode={executionMode === 'worktrees'}
                   currentBranch={currentBranch}
                   onSwitchBranch={handleSwitchBranch}
                   defaultBranch={project?.defaultBranch || 'main'}
@@ -931,7 +978,7 @@ export default function ProjectPage() {
           onResumeEditing={async (taskId) => {
             await updateTask(taskId, { status: 'verify' });
           }}
-          parallelMode={executionMode === 'parallel'}
+          parallelMode={executionMode === 'worktrees'}
           currentBranch={currentBranch}
           onSwitchBranch={handleSwitchBranch}
           defaultBranch={project?.defaultBranch || 'main'}
@@ -971,7 +1018,7 @@ export default function ProjectPage() {
             // Close modal and optimistically update immediately
             setModalTask(null);
             setTasksByProject((prev) => {
-              const cols = prev[projectId] || emptyColumns();
+              const cols = prev[projectId] || emptyTasks();
               const todoCol = cols.todo.filter((t) => t.id !== taskId);
               const task = cols.todo.find((t) => t.id === taskId);
               if (!task) return prev;
@@ -1001,10 +1048,11 @@ export default function ProjectPage() {
         />
       )}
 
-      <ParallelModeModal
-        isOpen={showParallelModal}
-        onConfirm={applyParallelMode}
-        onCancel={() => setShowParallelModal(false)}
+      <ExecutionModeInfoModal
+        isOpen={pendingModeSwitch !== null}
+        mode={pendingModeSwitch || 'parallel'}
+        onConfirm={applyPendingMode}
+        onCancel={() => setPendingModeSwitch(null)}
       />
 
       {showProjectSettings && project && (

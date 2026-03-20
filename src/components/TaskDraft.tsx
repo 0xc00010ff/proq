@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon } from 'lucide-react';
+import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 
@@ -81,17 +81,62 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     [task.id, onSave],
   );
 
+  // Fire auto-title request immediately (no debounce)
+  const fireAutoTitle = useCallback(
+    async (desc: string) => {
+      if (!desc.trim()) return;
+      setTitleGenerating(true);
+      try {
+        const res = await fetch(
+          `/api/projects/${projectId}/tasks/${task.id}/auto-title`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc }),
+          },
+        );
+        if (res.ok) {
+          const { title: generated } = await res.json();
+          if (generated) {
+            setTitle((cur) => {
+              if (!cur) {
+                autosave(generated, desc, attachments, mode);
+                return generated;
+              }
+              return cur;
+            });
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        setTitleGenerating(false);
+      }
+    },
+    [projectId, task.id, autosave, attachments, mode],
+  );
+
+  // Auto-title: 10s after description stops changing, if title is still empty
+  const triggerAutoTitle = useCallback(
+    (desc: string) => {
+      if (autoTitleTimeout.current) clearTimeout(autoTitleTimeout.current);
+      if (!desc.trim()) return;
+      autoTitleTimeout.current = setTimeout(() => {
+        fireAutoTitle(desc);
+      }, 5000);
+    },
+    [fireAutoTitle],
+  );
+
   const handleClose = useCallback(() => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    // If auto-title was pending (2s delay not yet elapsed), fire it now before closing
-    if (autoTitleTimeout.current && !title.trim() && description.trim()) {
+    // If title is still empty, fire auto-title immediately on close
+    if (autoTitleTimeout.current) {
       clearTimeout(autoTitleTimeout.current);
       autoTitleTimeout.current = null;
-      fetch(`/api/projects/${projectId}/tasks/${task.id}/auto-title`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description }),
-      }).catch(() => {});
+    }
+    if (!title.trim() && description.trim()) {
+      fireAutoTitle(description);
     }
     const isEmpty = !title.trim() && !description.trim();
     if (!isEmpty) {
@@ -103,7 +148,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
       });
     }
     onClose(isEmpty);
-  }, [projectId, task.id, title, description, attachments, mode, onSave, onClose]);
+  }, [title, description, attachments, mode, onSave, onClose, task.id, fireAutoTitle]);
 
   useEscapeKey(handleClose, isOpen);
 
@@ -123,44 +168,6 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     };
   }, []);
 
-  // Auto-title: 2s after description stops changing, if title is still empty
-  const triggerAutoTitle = useCallback(
-    (desc: string) => {
-      if (autoTitleTimeout.current) clearTimeout(autoTitleTimeout.current);
-      if (!desc.trim()) return;
-      setTitleGenerating(true);
-      autoTitleTimeout.current = setTimeout(async () => {
-        try {
-          const res = await fetch(
-            `/api/projects/${projectId}/tasks/${task.id}/auto-title`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ description: desc }),
-            },
-          );
-          if (res.ok) {
-            const { title: generated } = await res.json();
-            if (generated) {
-              setTitle((cur) => {
-                if (!cur) {
-                  autosave(generated, desc, attachments, mode);
-                  return generated;
-                }
-                return cur;
-              });
-            }
-          }
-        } catch {
-          // ignore
-        } finally {
-          setTitleGenerating(false);
-        }
-      }, 2000);
-    },
-    [projectId, task.id, autosave, attachments, mode],
-  );
-
   // Cmd+Enter to trigger "Start Now"
   useEffect(() => {
     if (!isOpen || !onMoveToInProgress) return;
@@ -168,13 +175,21 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
       if (e.key === 'Enter' && e.metaKey && description.trim() && !dispatching) {
         e.preventDefault();
         if (saveTimeout.current) clearTimeout(saveTimeout.current);
+        if (autoTitleTimeout.current) {
+          clearTimeout(autoTitleTimeout.current);
+          autoTitleTimeout.current = null;
+        }
+        // Fire auto-title immediately if no title (server also handles this as fallback)
+        if (!title.trim() && description.trim()) {
+          fireAutoTitle(description);
+        }
         setDispatching(true);
         onMoveToInProgress(task.id, { title, description, attachments, mode });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onMoveToInProgress, title, description, attachments, mode, dispatching, task.id]);
+  }, [isOpen, onMoveToInProgress, title, description, attachments, mode, dispatching, task.id, fireAutoTitle]);
 
   // Compute modal height: grow with text content, clamp between 600px and 80vh
   useLayoutEffect(() => {
@@ -312,7 +327,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                 className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
                   mode === value
                     ? 'text-text-chrome-active'
-                    : 'text-text-chrome hover:text-text-chrome-hover'
+                    : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
                 }`}
               >
                 {mode === value && (
@@ -326,24 +341,45 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
             ))}
           </div>
 
-          <input
-            ref={titleRef}
-            type="text"
-            value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Tab' && e.shiftKey) {
-                e.preventDefault();
-                cycleMode();
-              } else if (e.key === 'Enter') {
-                e.preventDefault();
-                descriptionRef.current?.focus();
-              }
-            }}
-            onPaste={handlePaste}
-            className="w-full bg-transparent text-xl font-semibold text-text-primary placeholder-text-placeholder focus:outline-none mb-1 pr-8"
-            placeholder={titleGenerating ? 'Generating title...' : '(Auto title)'}
-          />
+          <div className="relative mb-1">
+            <input
+              ref={titleRef}
+              type="text"
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Tab' && e.shiftKey) {
+                  e.preventDefault();
+                  cycleMode();
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  descriptionRef.current?.focus();
+                }
+              }}
+              onPaste={handlePaste}
+              className="w-full bg-transparent text-xl font-semibold text-text-primary focus:outline-none"
+              placeholder=""
+            />
+            {!title && (
+              <div className="absolute inset-0 flex items-center pointer-events-none">
+                <span className="text-xl font-semibold text-text-placeholder">
+                  {titleGenerating ? 'Generating title...' : 'Auto-title'}
+                </span>
+                {titleGenerating && (
+                  <Loader2Icon className="w-4 h-4 text-text-placeholder animate-spin ml-1.5 shrink-0" />
+                )}
+                {!titleGenerating && description.trim() && (
+                  <button
+                    onClick={() => fireAutoTitle(description)}
+                    className="pointer-events-auto p-1 text-text-placeholder hover:text-text-secondary ml-1 shrink-0"
+                    title="Generate title"
+                  >
+                    <RefreshCwIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Description: takes remaining space, scrolls only at max height */}
@@ -450,6 +486,13 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
             <button
               onClick={async () => {
                 if (saveTimeout.current) clearTimeout(saveTimeout.current);
+                if (autoTitleTimeout.current) {
+                  clearTimeout(autoTitleTimeout.current);
+                  autoTitleTimeout.current = null;
+                }
+                if (!title.trim() && description.trim()) {
+                  fireAutoTitle(description);
+                }
                 setDispatching(true);
                 await onMoveToInProgress(task.id, { title, description, attachments, mode });
               }}

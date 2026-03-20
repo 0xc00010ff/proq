@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
-import { updateTask, getTask, getProject, getSettings } from "./db";
+import { updateTask, getTask, getProject, getSettings, setTaskAgentBlocks, readAgentBlocksFile } from "./db";
 import {
   notify,
   buildProqSystemPrompt,
@@ -96,18 +96,7 @@ function wireProcess(
     }
 
     if (session.status === "aborted") {
-      // Move task to verify and clear agentStatus so the UI stops spinning
-      const abortedTask = await getTask(projectId, taskId);
-      if (abortedTask?.status === "in-progress") {
-        await updateTask(projectId, taskId, {
-          status: "verify",
-          agentStatus: null,
-          agentBlocks: session.blocks,
-        });
-        emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
-      } else {
-        await updateTask(projectId, taskId, { agentBlocks: session.blocks });
-      }
+      await setTaskAgentBlocks(taskId, session.blocks);
       return;
     }
 
@@ -181,13 +170,15 @@ function wireProcess(
       }
     }
 
+    // Persist agent blocks to separate file
+    await setTaskAgentBlocks(taskId, session.blocks, session.sessionId);
+
     if (stillInProgress) {
       // Safety net: move to verify and clear agentStatus
       const closeUpdate: Record<string, unknown> = {
         status: "verify",
         agentStatus: null,
         ...questionFields,
-        agentBlocks: session.blocks,
         sessionId: session.sessionId,
       };
       if (session.status === "error") {
@@ -202,9 +193,8 @@ function wireProcess(
         agentStatus: null,
       });
     } else {
-      // Agent already handled status via update_task — just persist agentBlocks
+      // Agent already handled status via update_task — just persist sessionId
       await updateTask(projectId, taskId, {
-        agentBlocks: session.blocks,
         sessionId: session.sessionId,
       });
     }
@@ -219,21 +209,17 @@ function wireProcess(
       error: errorMsg,
       durationMs: Date.now() - startTime,
     });
+    await setTaskAgentBlocks(taskId, session.blocks, session.sessionId);
     const task = await getTask(projectId, taskId);
     if (task?.status === "in-progress") {
       await updateTask(projectId, taskId, {
         status: "verify",
         agentStatus: null,
         summary: `Error: ${errorMsg}`,
-        agentBlocks: session.blocks,
       });
       emitTaskUpdate(projectId, taskId, {
         status: "verify",
         agentStatus: null,
-      });
-    } else {
-      await updateTask(projectId, taskId, {
-        agentBlocks: session.blocks,
       });
     }
   });
@@ -514,12 +500,13 @@ export async function continueSession(
     const task = await getTask(projectId, taskId);
     taskMode = task?.mode;
     canResume = false;
+    const stored = readAgentBlocksFile(taskId);
     session = {
       taskId,
       projectId,
-      sessionId: task?.sessionId,
+      sessionId: stored.sessionId || task?.sessionId,
       queryHandle: null,
-      blocks: task?.agentBlocks || [],
+      blocks: stored.blocks,
       clients: new Set(),
       status: "done",
     };

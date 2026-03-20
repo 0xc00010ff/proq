@@ -4,9 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
-import WorkbenchPanel from '@/components/WorkbenchPanel';
-import { useWorkbenchTabs } from '@/components/WorkbenchTabsProvider';
-import { setAgentDraft } from '@/components/AgentTabPane';
+import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -26,22 +24,26 @@ interface LiveTabProps {
 }
 
 export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDragging, onToggleCollapsed, onExpand, onResizeStart }: LiveTabProps) {
-  const [urlInput, setUrlInput] = useState('http://localhost:3000');
+  const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
   const initialVp = project.liveViewport ?? 'desktop';
   const [viewport, setViewport] = useState<ViewportSize>(initialVp);
   const [size, setSize] = useState(initialVp !== 'desktop' ? PRESETS[initialVp] : { w: 768, h: 1024 });
   const [iframeKey, setIframeKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const workbenchRef = useRef<WorkbenchPanelHandle>(null);
   const { refreshProjects } = useProjects();
-  const { setActiveTabId, getTabs } = useWorkbenchTabs();
   const prevServerUrl = useRef(project.serverUrl);
 
-  // Auto-refresh iframe when serverUrl changes (e.g. agent sets it)
+  // Auto-connect when serverUrl changes (e.g. agent sets it via API)
   useEffect(() => {
     if (project.serverUrl && project.serverUrl !== prevServerUrl.current) {
+      setUrlInput(project.serverUrl);
       setBarValue(project.serverUrl);
       setIframeKey(k => k + 1);
+    } else if (!project.serverUrl && prevServerUrl.current) {
+      // Disconnected — reset input to default
+      setUrlInput('http://localhost:3000');
     }
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
@@ -104,16 +106,13 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
   }, [size.w, size.h]);
 
   const activateTab = useCallback((type: 'agent' | 'shell') => {
-    const tabs = getTabs(project.id, 'live');
-    const target = tabs.find(t => t.type === type);
-    if (target) {
-      if (type === 'agent') {
-        setAgentDraft(target.id, 'Start the dev environment');
-      }
-      setActiveTabId(project.id, target.id, 'live');
+    if (type === 'agent') {
+      workbenchRef.current?.addAgentTab({ reuse: true });
+    } else {
+      workbenchRef.current?.addShellTab({ reuse: true });
     }
     onExpand();
-  }, [project.id, getTabs, setActiveTabId, onExpand]);
+  }, [onExpand]);
 
   const isDevice = viewport !== 'desktop';
 
@@ -194,16 +193,20 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
           /* ── Preview ── */
           <>
             <div className="h-10 bg-surface-base border-b border-border-default flex items-center px-4 space-x-4 shrink-0">
-              <div className="flex space-x-1.5">
+              <div className="flex space-x-1.5 group/lights">
                 <button
                   onClick={handleDisconnect}
                   title="Disconnect"
-                  className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50 hover:bg-crimson/60 flex items-center justify-center group/dot transition-colors"
+                  className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50 group-hover/lights:bg-crimson/60 flex items-center justify-center transition-colors"
                 >
-                  <XIcon className="w-1.5 h-1.5 text-transparent group-hover/dot:text-white transition-colors" />
+                  <XIcon className="w-1.5 h-1.5 text-transparent group-hover/lights:text-white transition-colors" />
                 </button>
-                <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50" />
-                <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50" />
+                <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50 group-hover/lights:bg-gold/60 flex items-center justify-center transition-colors">
+                  <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-gold transition-colors" />
+                </div>
+                <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50 group-hover/lights:bg-emerald/60 flex items-center justify-center transition-colors">
+                  <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-emerald transition-colors" />
+                </div>
               </div>
               <div className="flex-1 flex items-center justify-center space-x-2">
                 <button
@@ -318,6 +321,7 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
       </div>
 
       <WorkbenchPanel
+        ref={workbenchRef}
         projectId={project.id}
         projectPath={project.path}
         scope="live"

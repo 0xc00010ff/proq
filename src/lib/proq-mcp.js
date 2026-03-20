@@ -27,6 +27,29 @@ const server = new McpServer({
 });
 
 server.tool(
+  "set_live_url",
+  "Set the live preview URL for the project. Use this after starting a dev server so the human can see the running app in the Live tab. The Live tab will automatically refresh to show the new URL.",
+  {
+    url: z.string().describe("The local URL of the running dev server, e.g. http://localhost:3000"),
+  },
+  async ({ url }) => {
+    try {
+      const res = await fetch(`${API}/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serverUrl: url, _source: "agent" }),
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to set live URL: ${res.status}` }], isError: true };
+      }
+      return { content: [{ type: "text", text: `Live URL set to ${url} — the human can now see it in the Live tab.` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+server.tool(
   "update_task",
   "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new summary. Each call replaces the previous summary.",
   {

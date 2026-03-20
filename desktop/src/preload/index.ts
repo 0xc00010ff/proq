@@ -4,10 +4,10 @@ import { electronAPI } from '@electron-toolkit/preload'
 const proqDesktopAPI = {
   // Setup checks
   checkNode: (): Promise<unknown> => ipcRenderer.invoke('setup:check-node'),
-  checkTmux: (): Promise<unknown> => ipcRenderer.invoke('setup:check-tmux'),
-  installTmux: (): Promise<unknown> => ipcRenderer.invoke('setup:install-tmux'),
   checkClaude: (): Promise<unknown> => ipcRenderer.invoke('setup:check-claude'),
   checkXcode: (): Promise<unknown> => ipcRenderer.invoke('setup:check-xcode'),
+  installXcode: (): Promise<unknown> => ipcRenderer.invoke('setup:install-xcode'),
+  installClaude: (): Promise<unknown> => ipcRenderer.invoke('setup:install-claude'),
   cloneRepo: (targetDir: string, overwrite?: boolean): Promise<unknown> => ipcRenderer.invoke('setup:clone', targetDir, overwrite),
   validateInstall: (dirPath: string): Promise<unknown> =>
     ipcRenderer.invoke('setup:validate', dirPath),
@@ -21,6 +21,9 @@ const proqDesktopAPI = {
   setConfig: (partial: Record<string, unknown>): Promise<unknown> =>
     ipcRenderer.invoke('config:set', partial),
   selectDirectory: (): Promise<unknown> => ipcRenderer.invoke('dialog:select-directory'),
+
+  // Wizard
+  wizardComplete: (): Promise<unknown> => ipcRenderer.invoke('wizard:complete'),
 
   // Server
   startServer: (): Promise<unknown> => ipcRenderer.invoke('server:start'),
@@ -59,6 +62,22 @@ const proqDesktopAPI = {
     ipcRenderer.on('updates:available', cb as (...args: unknown[]) => void)
     return (): void => {
       ipcRenderer.removeListener('updates:available', cb as (...args: unknown[]) => void)
+    }
+  },
+
+  // Shell updates
+  checkShellUpdate: (): Promise<unknown> => ipcRenderer.invoke('shell-update:check'),
+  installShellUpdate: (): Promise<unknown> => ipcRenderer.invoke('shell-update:install'),
+  onShellUpdateAvailable: (cb: (_e: unknown, result: unknown) => void): (() => void) => {
+    ipcRenderer.on('shell-update:available', cb as (...args: unknown[]) => void)
+    return (): void => {
+      ipcRenderer.removeListener('shell-update:available', cb as (...args: unknown[]) => void)
+    }
+  },
+  onShellUpdateDownloaded: (cb: (_e: unknown, result: unknown) => void): (() => void) => {
+    ipcRenderer.on('shell-update:downloaded', cb as (...args: unknown[]) => void)
+    return (): void => {
+      ipcRenderer.removeListener('shell-update:downloaded', cb as (...args: unknown[]) => void)
     }
   },
 

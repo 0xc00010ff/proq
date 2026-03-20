@@ -192,14 +192,6 @@ export function GitDetailModal(props: GitDetailModalProps) {
               : <span className="text-[10px] text-text-tertiary font-semibold leading-none uppercase tracking-wide">{title}</span>
           }
         </h3>
-        {currentFiles.length > 0 && (
-          <button
-            onClick={handleExpandCollapseAll}
-            className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
-          >
-            {allExpanded ? 'Collapse All' : 'Expand All'}
-          </button>
-        )}
         <button
           onClick={handleClose}
           className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
@@ -209,8 +201,14 @@ export function GitDetailModal(props: GitDetailModalProps) {
       </div>
       <div className="flex-1 overflow-auto min-h-0">
         {type === 'diff' && diffFiles.length > 0 && (
-          <div className="px-5 py-3 border-b border-border-default">
+          <div className="px-5 py-3 border-b border-border-default flex items-center justify-between">
             <FileStatSummary files={diffFiles} />
+            <button
+              onClick={handleExpandCollapseAll}
+              className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
+            >
+              {allExpanded ? 'Collapse All' : 'Expand All'}
+            </button>
           </div>
         )}
         {type === 'diff' && (
@@ -244,7 +242,15 @@ export function GitDetailModal(props: GitDetailModalProps) {
               {body && (
                 <p className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed">{body}</p>
               )}
-              <FileStatSummary files={selectedCommit.files} />
+              <div className="flex items-center justify-between">
+                <FileStatSummary files={selectedCommit.files} />
+                <button
+                  onClick={handleExpandCollapseAll}
+                  className="text-xs text-text-chrome hover:text-text-chrome-hover px-2 py-1 rounded border border-border-strong/50 shrink-0"
+                >
+                  {allExpanded ? 'Collapse All' : 'Expand All'}
+                </button>
+              </div>
             </div>
           );
         })()}

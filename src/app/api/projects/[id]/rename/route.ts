@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { renameSync, existsSync } from "fs";
 import path from "path";
 import { getProject, updateProject } from "@/lib/db";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
-  const { name } = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
+  const { name } = body;
 
   if (!name || typeof name !== "string" || !name.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });

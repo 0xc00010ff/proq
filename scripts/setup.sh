@@ -30,29 +30,6 @@ else
   exit 1
 fi
 
-# ── tmux ─────────────────────────────────────────────────────────────
-if command -v tmux &>/dev/null; then
-  ok "tmux $(tmux -V | awk '{print $2}')"
-else
-  echo ""
-  info "tmux not found — installing..."
-  if [[ "$OSTYPE" == darwin* ]]; then
-    if command -v brew &>/dev/null; then
-      brew install tmux
-      ok "tmux installed"
-    else
-      fail "Homebrew not found — install tmux manually: brew install tmux"
-      exit 1
-    fi
-  elif command -v apt-get &>/dev/null; then
-    sudo apt-get update -qq && sudo apt-get install -y -qq tmux
-    ok "tmux installed"
-  else
-    fail "Could not auto-install tmux — install it with your package manager"
-    exit 1
-  fi
-fi
-
 # ── Claude Code CLI ──────────────────────────────────────────────────
 CLAUDE_BIN=""
 if command -v claude &>/dev/null; then

@@ -441,11 +441,44 @@ export function autoCommitIfDirty(
   }
 }
 
+/** Detect the default branch (main, master, develop, etc.) */
+export function detectDefaultBranch(projectPath: string): string | null {
+  // Try remote HEAD first (most reliable)
+  try {
+    const ref = execSync(
+      `git -C '${projectPath}' symbolic-ref refs/remotes/origin/HEAD 2>/dev/null`,
+      { timeout: 5_000, encoding: "utf-8" },
+    ).trim();
+    if (ref) {
+      const branch = ref.replace("refs/remotes/origin/", "");
+      // Verify the local branch exists
+      try {
+        execSync(`git -C '${projectPath}' rev-parse --verify '${branch}' 2>/dev/null`, { timeout: 5_000 });
+        return branch;
+      } catch { /* fall through */ }
+    }
+  } catch { /* fall through */ }
+
+  // Fall back to common default branch names
+  const candidates = ["main", "master", "develop", "development", "dev"];
+  try {
+    const localBranches = execSync(
+      `git -C '${projectPath}' branch --list`,
+      { timeout: 5_000, encoding: "utf-8" },
+    ).trim().split("\n").map(b => b.trim().replace(/^\*\s*/, ""));
+    for (const name of candidates) {
+      if (localBranches.includes(name)) return name;
+    }
+  } catch { /* best effort */ }
+
+  return null;
+}
+
 /** Get sync status for a git repository (ahead/behind upstream, dirty file count) */
 export function getGitSyncStatus(
   projectPath: string,
-): { hasRemote: boolean; ahead: number; behind: number; dirty: number } {
-  const result = { hasRemote: false, ahead: 0, behind: 0, dirty: 0 };
+): { hasRemote: boolean; ahead: number; behind: number; dirty: number; aheadOfMain?: number } {
+  const result: { hasRemote: boolean; ahead: number; behind: number; dirty: number; aheadOfMain?: number } = { hasRemote: false, ahead: 0, behind: 0, dirty: 0 };
 
   try {
     const remotes = execSync(
@@ -483,6 +516,24 @@ export function getGitSyncStatus(
     }
   }
 
+  // When on a proq branch, count commits ahead of the default branch
+  try {
+    const currentBranch = execSync(
+      `git -C '${projectPath}' rev-parse --abbrev-ref HEAD`,
+      { timeout: 5_000, encoding: "utf-8" },
+    ).trim();
+    if (currentBranch.startsWith("proq/") || currentBranch.startsWith("proq-preview/")) {
+      const defaultBranch = detectDefaultBranch(projectPath);
+      if (defaultBranch) {
+        const count = execSync(
+          `git -C '${projectPath}' rev-list --count '${defaultBranch}..HEAD'`,
+          { timeout: 5_000, encoding: "utf-8" },
+        ).trim();
+        result.aheadOfMain = parseInt(count, 10) || 0;
+      }
+    }
+  } catch { /* best effort */ }
+
   return result;
 }
 
@@ -492,7 +543,7 @@ export function gitStatusFiles(projectPath: string): { path: string; status: str
     const output = execSync(
       `git -C '${projectPath}' status --porcelain`,
       { timeout: 10_000, encoding: "utf-8" },
-    ).trim();
+    ).trimEnd();
     if (!output) return [];
     return output.split("\n").filter(Boolean).map((line) => {
       const status = line.slice(0, 2).trim();

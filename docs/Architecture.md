@@ -28,7 +28,7 @@ How proq works under the hood. For a usage walkthrough, see [Getting Started](./
 │  │  lowdb   │   │  Agent Processes           │           │
 │  │  (JSON)  │   │  ┌────────┐ ┌────────┐    │           │
 │  │          │   │  │Struct. │ │  CLI   │    │           │
-│  │          │   │  │Session │ │ (tmux) │    │           │
+│  │          │   │  │Session │ │(bridge)│    │           │
 │  └──────────┘   │  │(spawn) │ │        │    │           │
 │                 │  └────────┘ └────────┘    │           │
 │                 └───────────────────────────┘           │
@@ -42,7 +42,7 @@ How proq works under the hood. For a usage walkthrough, see [Getting Started](./
   └──────────┘     └──────────────────┘
 ```
 
-**Next.js server** handles the REST API, serves the React SPA, and runs the dispatch engine. **Agent processes** are spawned per-task — either as child processes (structured mode) or inside tmux sessions (CLI mode). **WebSocket hub** on port 42069 streams agent output, terminal PTY data, supervisor messages, and agent tab sessions. **lowdb** stores all state as JSON files — no external database.
+**Next.js server** handles the REST API, serves the React SPA, and runs the dispatch engine. **Agent processes** are spawned per-task — either as child processes (structured mode) or as detached bridge processes (CLI mode). **WebSocket hub** on port 42069 streams agent output, terminal PTY data, supervisor messages, and agent tab sessions. **lowdb** stores all state as JSON files — no external database.
 
 ## Data Layer
 
@@ -60,8 +60,11 @@ interface Project {
   status?: 'active' | 'review' | 'idle' | 'error';
   serverUrl?: string;      // dev server URL for live preview
   order?: number;           // sidebar sort order
+  pathValid?: boolean;      // whether the project path exists on disk
   activeTab?: 'project' | 'live' | 'code';
+  viewType?: 'kanban' | 'list';
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
+  defaultBranch?: string;   // e.g. 'main' or 'master'
   createdAt: string;
 }
 ```
@@ -72,23 +75,22 @@ Per-project state file containing:
 
 ```typescript
 interface ProjectState {
-  columns: Record<TaskStatus, Task[]>;  // todo, in-progress, verify, done
+  tasks: TaskColumns;  // Record<TaskStatus, Task[]> — todo, in-progress, verify, done
   chatLog: ChatLogEntry[];
+  agentSession?: AgentSession;
   executionMode?: 'sequential' | 'parallel';
-  workbenchOpen?: boolean;
-  workbenchHeight?: number;
-  workbenchTabs?: WorkbenchTabInfo[];
-  workbenchActiveTabId?: string;
-  agentTabs?: Record<string, AgentTabData>;
+  projectWorkbenchOpen?: boolean;
+  projectWorkbenchHeight?: number;
+  projectWorkbenchTabs?: WorkbenchTabInfo[];
+  projectWorkbenchActiveTabId?: string;
+  liveWorkbenchTabs?: WorkbenchTabInfo[];
+  liveWorkbenchActiveTabId?: string;
+  projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   recentlyDeleted?: DeletedTaskEntry[];
 }
 ```
 
 Tasks are stored in ordered arrays within each column — array position is the sort order.
-
-### Auto-Migration
-
-The database layer (`db.ts`) handles schema migration on read. Old formats (single `tasks` array, legacy `config.json`, `state/` directory) are automatically upgraded to the current column-based structure.
 
 ## Task Lifecycle
 
@@ -109,7 +111,7 @@ When a task moves to in-progress, it enters the dispatch pipeline:
 
 1. **queued** — waiting for its turn (sequential) or for processQueue to run (parallel)
 2. **starting** — selected by processQueue, agent process is launching
-3. **running** — agent is actively working (tmux session alive or child process running)
+3. **running** — agent is actively working (child process or detached bridge process running)
 4. **null** — not dispatched (task is in todo, verify, or done)
 
 ### Side Effects Per Transition
@@ -161,27 +163,30 @@ Follow-up messages use `--resume <sessionId>` to continue the conversation.
 
 ### CLI Mode
 
-Launches inside a tmux session with a PTY bridge:
+Launches a detached bridge process:
 
 ```
-tmux new-session -d -s mc-{shortId} -c {projectPath} \
-  node proq-bridge.js {socketPath} {launcherScript}
+spawn('node', [proq-bridge.js, socketPath, launcherScript], {
+  cwd: projectPath, detached: true, stdio: 'ignore'
+})
 ```
 
-The bridge (`proq-bridge.js`) spawns the Claude CLI in a real PTY via node-pty, exposes a unix socket at `/tmp/proq/mc-{shortId}.sock`, and maintains a 50KB scrollback ring buffer. Clients connect to the socket to stream terminal output. Reconnection replays the scrollback.
+The bridge (`proq-bridge.js`) spawns the Claude CLI in a real PTY via node-pty, exposes a unix socket at `/tmp/proq/proq-{shortId}.sock`, and maintains a 50KB scrollback ring buffer. PID files in `/tmp/proq/` track process lifecycle. Clients connect to the socket to stream terminal output. Reconnection replays the scrollback.
 
-tmux acts purely as a process container — crash survival, enumeration (`tmux ls | grep ^mc-`), and kill (`tmux kill-session`).
+The detached process survives server restarts. Lifecycle is managed via PID files — `process.kill(-pid, 'SIGTERM')` to kill the process group, `process.kill(pid, 0)` to check liveness.
 
 ## MCP Callback
 
-`proq-mcp.js` is a stdio MCP server spawned per-task via `--mcp-config`. It exposes two tools:
+`proq-mcp.js` is a stdio MCP server spawned per-task via `--mcp-config`. It exposes four tools:
 
 | Tool | Description |
 |---|---|
 | `read_task` | Fetch current task state (title, description, summary, status). Agent uses this before updating to build cumulative summary |
 | `update_task` | Set summary + optional nextSteps, move task to Verify. Each call replaces the previous summary |
+| `set_live_url` | Set the live preview URL for the project so the human can see the running app in the Live tab |
+| `commit_changes` | Stage and commit all current changes. Used after each logical unit of work to keep progress saved |
 
-The MCP server communicates with the proq REST API over localhost. This replaced the earlier curl-based callback — MCP tools are more reliable and the agent discovers them automatically.
+The MCP server communicates with the proq REST API over localhost.
 
 ## Render Modes
 
@@ -209,7 +214,7 @@ Raw terminal rendering via xterm.js. The bridge process (`proq-bridge.js`) maint
 - 50KB scrollback ring buffer
 - Reconnection with full scrollback replay
 - Resize propagation (cols/rows via JSON message → `proc.resize()`)
-- Session survives server restarts (tmux owns the process tree)
+- Session survives server restarts (detached process with PID file tracking)
 
 ## WebSocket Protocol
 
@@ -258,6 +263,20 @@ Electron App
 
 Key design: the server runs via `npm run start` (or `dev`), not inside Electron's Node. This avoids native module (node-pty) rebuild issues entirely. Config is stored separately in the OS app data directory (`~/Library/Application Support/proq-desktop/config.json` on macOS).
 
+### Updates
+
+Two independent update paths:
+
+- **Web content** — `git pull --rebase origin main` + `npm install` + `npm run build`. Runs automatically on launch (behind splash screen) and checked hourly in the background. Controlled by `updater.ts` (git ops) and `update-scheduler.ts` (hourly timer).
+- **Shell** — `electron-updater` checks GitHub Releases for a newer `.app` version. Managed by `shell-updater.ts`. Downloads in the background, prompts user to restart via Settings.
+
+All update logic is gated by `isDevMode()` (from `config.ts`), which checks `process.env.PROQ_DEV` or `config.devMode`. When either is true, no updates run.
+
+### Versioning
+
+- Patch bumps (0.5.0 → 0.5.1) — web content releases. Tag on main, no build artifact. Users receive via git pull on next launch.
+- Minor bumps (0.5.x → 0.6.0) — shell releases. Tag + Electron build + GitHub Release. Users receive via `electron-updater`.
+
 For full details, see the [desktop README](../desktop/README.md).
 
 ## Git Integration
@@ -282,12 +301,6 @@ For the full worktree and parallel mode deep dive, see [Parallel Worktrees](./Pa
 
 All settings are stored via the `/api/settings` endpoint and persisted in `data/settings.json`.
 
-### System
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `port` | number | 1337 | Server port |
-
 ### Agent
 
 | Field | Type | Default | Description |
@@ -297,39 +310,28 @@ All settings are stored via the `/api/settings` endpoint and persisted in `data/
 | `systemPromptAdditions` | string | `""` | Extra instructions appended to every agent's system prompt |
 | `executionMode` | `"sequential"` \| `"parallel"` | `"sequential"` | Whether tasks run one-at-a-time or simultaneously |
 | `agentRenderMode` | `"structured"` \| `"cli"` | `"structured"` | Default render mode for new tasks |
+| `showCosts` | boolean | `false` | Show cost estimates in agent UI |
+| `codingAgent` | string | `""` | Custom coding agent binary (overrides `claudeBin` for build tasks) |
 
-### Git
+### Updates
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `autoCommit` | boolean | `true` | Whether agents should auto-commit |
-| `commitStyle` | string | `""` | Commit message style instructions |
-| `autoPush` | boolean | `false` | Push after commit |
-| `showGitBranches` | boolean | `true` | Show branch switcher in TopBar |
+| `autoUpdate` | boolean | `false` | Automatically check for and apply updates |
 
 ### Appearance
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `theme` | `"dark"` \| `"light"` | `"dark"` | UI theme |
+| `theme` | `"dark"` \| `"light"` \| `"system"` | `"dark"` | UI theme |
 
 ### Notifications
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `notificationMethod` | `"none"` \| `"slack"` \| `"system"` \| `"sound"` | `"none"` | How to notify on task completion |
-| `openclawBin` | string | `""` | Path to OpenClaw CLI binary (for Slack notifications) |
-| `slackChannel` | string | `""` | Slack channel for notifications |
-| `webhooks` | string | `""` | Webhook URLs for notifications |
-
-### Process
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `cleanupDelay` | number | 3600000 | Milliseconds before cleaning up completed agent sessions (1 hour) |
-| `taskPollInterval` | number | 5000 | Dashboard polling interval in milliseconds |
-| `deletedTaskRetention` | number | 300000 | How long deleted tasks are kept for undo (5 minutes) |
-| `terminalScrollback` | number | 50000 | Terminal scrollback buffer size in characters |
+| `soundNotifications` | boolean | `false` | Play sound on task completion |
+| `localNotifications` | boolean | `false` | Show desktop notifications on task completion |
+| `webhooks` | string[] | `[]` | Webhook URLs to POST on task completion |
 
 ## REST API Reference
 
@@ -381,7 +383,7 @@ List tasks grouped by column.
 
 Create a task.
 
-**Body:** `{ title?: string, description: string, priority?: "low" | "medium" | "high", mode?: "build" | "plan" | "answer", status?: TaskStatus, attachments?: TaskAttachment[] }`
+**Body:** `{ title?: string, description: string, priority?: "low" | "medium" | "high", mode?: "auto" | "build" | "plan" | "answer", status?: TaskStatus, attachments?: TaskAttachment[] }`
 
 **Response:** `Task`
 

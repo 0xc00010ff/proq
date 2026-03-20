@@ -2,19 +2,19 @@
 
 ## What This Is
 
-proq is the command center for AI-assisted development. It's a Next.js kanban board (localhost:1337) that manages tasks across multiple coding projects. When a task moves to "In Progress", proq automatically launches a Claude Code instance in a tmux session to work on it autonomously.
+proq is the command center for AI-assisted development. It's a Next.js kanban board (localhost:1337) that manages tasks across multiple coding projects. When a task moves to "In Progress", proq automatically launches a Claude Code agent to work on it autonomously.
 
 **The loop:**
 
 1. Create tasks on the board (manually or via any chat agent that talks to the API)
-2. Task dragged/moved to "In Progress" → launches a Claude Code agent in tmux against that project's codebase
+2. Task dragged/moved to "In Progress" → launches a Claude Code agent against that project's codebase
 3. Agent works autonomously, commits, then curls back to the API to move itself to "Verify"
 4. Human reviews. Done or back to Todo.
 
 **Who's who:**
 
 - **Supervisor** — An AI assistant that creates/dispatches tasks via the API conversationally (e.g., via OpenClaw or any chat agent)
-- **Claude Code agents** — Disposable worker instances launched per-task in tmux
+- **Claude Code agents** — Disposable worker instances launched per-task
 
 **Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, @dnd-kit, uuid
 
@@ -54,7 +54,7 @@ src/
 │   ├── LiveTab.tsx             # Iframe dev server preview
 │   └── CodeTab.tsx             # Code editor launcher
 └── lib/
-    ├── agent-dispatch.ts       # tmux launch + abort + processQueue + optional notifications
+    ├── agent-dispatch.ts       # agent launch + abort + processQueue + optional notifications
     ├── agent-session.ts        # Structured agent session management (child process)
     ├── task-events.ts          # SSE event bus for server-initiated task updates
     ├── worktree.ts             # Git worktree + branch operations (create/remove/merge/checkout)
@@ -73,14 +73,14 @@ Centralized via `processQueue(projectId)` — the single source of truth for wha
 Key functions:
 
 - `processQueue()` — reads all tasks, dispatches queued ones per mode
-- `dispatchTask()` — launches a tmux session with the agent prompt
-- `abortTask()` — kills the tmux session and cleans up socket/log files
-- `isSessionAlive()` — checks if a tmux session is alive for a task
+- `dispatchTask()` — launches an agent process with the task prompt
+- `abortTask()` — kills the agent process and cleans up socket/log files
+- `isSessionAlive()` — checks if an agent process is alive for a task
 - `scheduleCleanup()` — deferred cleanup (1hr) to capture agent logs after completion
 
-**Launch:** `tmux new-session -d -s proq-{shortId} -c '{projectPath}'` running the agent via a bridge script that exposes a PTY over a unix socket.
+**Launch:** Spawns a detached bridge process (`proq-bridge.js`) that exposes the agent's PTY over a unix socket. PID files in `/tmp/proq/` track process lifecycle.
 
-**Callback:** Agent curls back when done:
+**Callback:** Agent reports back via MCP tools:
 
 ```bash
 curl -s -X PATCH http://localhost:1337/api/projects/{projectId}/tasks/{taskId} \
@@ -98,10 +98,10 @@ todo ──drag/API──→ in-progress ──agent callback──→ verify �
 ```
 
 - `agentStatus: "queued"` — waiting for another task or for processQueue to pick it up
-- `agentStatus: "starting"` — processQueue selected it, tmux is launching
-- `agentStatus: "running"` — agent is actively working (tmux session alive)
+- `agentStatus: "starting"` — processQueue selected it, agent process is launching
+- `agentStatus: "running"` — agent is actively working
 - Running tasks show blue pulsing border; starting tasks show gray spinner; queued tasks show clock icon
-- Dragging back to "Todo" aborts the agent (kills tmux session), then `processQueue()` starts the next queued task
+- Dragging back to "Todo" aborts the agent (kills the process), then `processQueue()` starts the next queued task
 - All API routes follow the pattern: update state → call `processQueue()`
 
 ### Branch Preview & Deferred Merge (Parallel Mode)
@@ -198,10 +198,19 @@ Tasks have fields specifically for AI agent use:
 - `branch` — Git branch name, e.g. `proq/abc12345` (parallel mode only)
 - `mergeConflict` — `{ error, files, branch }` if merge failed
 
+## Development & Release
+
+- **Branching**: daily work on `develop`, merge to `main` via PR for releases
+- **Dev mode**: `npm run dev` sets `PROQ_DEV=1` — disables all update checks (web + shell)
+- **`isDevMode()`** in `desktop/src/main/config.ts` — checks `PROQ_DEV` env or `config.devMode`; gates all update logic
+- **Deploy (web)**: `npm run deploy` — patch bump, merge develop → main, tag, push. Users get it via git pull on next launch
+- **Release (shell)**: `npm run release` — minor bump, build Electron, merge develop → main, tag, publish GitHub Release
+- **Updates on launch**: `showSplashAndStartServer()` checks for web updates behind the splash screen before starting the server
+- **Shell updates**: `electron-updater` checks GitHub Releases for newer `.app` versions (`desktop/src/main/shell-updater.ts`)
+
 ## Important Notes
 
 - Path alias: `@/*` maps to `./src/*`
 - `design-mock/` is a separate Vite prototype — not part of the main app
 - The app runs on port 1337 by default
-- Tmux sessions: `tmux attach -t proq-{first8ofTaskId}` to watch an agent work
 - Optional Slack notifications via OpenClaw CLI — set `OPENCLAW_BIN` and `SLACK_CHANNEL` in `.env.local`

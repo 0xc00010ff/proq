@@ -30,13 +30,9 @@ Plan-mode and answer-mode tasks skip worktree creation since they don't modify f
 
 ## Agent Execution
 
-The agent runs inside the worktree, not the main project directory:
+The agent runs inside the worktree, not the main project directory. The bridge process is spawned with `cwd` set to the worktree path.
 
-```
-tmux new-session -d -s 'mc-a1b2c3d4' -c '/path/to/project/.proq-worktrees/a1b2c3d4'
-```
-
-The agent commits its work to the `proq/a1b2c3d4` branch. When finished, it curls back to the API to move itself to verify. In parallel mode, multiple tmux sessions run concurrently in their own worktrees.
+The agent commits its work to the `proq/a1b2c3d4` branch. When finished, it reports back via MCP to move itself to verify. In parallel mode, multiple agent processes run concurrently in their own worktrees.
 
 ## Task Lifecycle
 
@@ -76,7 +72,7 @@ Same as above -- merge immediately. If conflict, the task lands in verify instea
 
 - If the user is on this task's branch, switch to main.
 - Remove the worktree and branch. No merge -- work is discarded.
-- If the task was in-progress, abort the tmux session.
+- If the task was in-progress, abort the agent process.
 
 ### delete
 
@@ -200,7 +196,7 @@ This is a full reset -- the agent starts from scratch on a new branch.
 
 After a task moves to done, `scheduleCleanup()` sets a 1-hour timer:
 
-1. Kills the tmux session if still alive.
+1. Kills the bridge process if still alive (via PID file).
 2. Reads the session log from the bridge socket.
 3. Saves it to the task's `agentLog` field.
 4. Removes socket/log files.
@@ -229,5 +225,5 @@ The timer is cancelled if the task re-enters in-progress (e.g., moved back from 
 | `src/app/api/projects/[id]/tasks/[taskId]/route.ts` | Status transition logic, merge/discard on transitions                                            |
 | `src/app/api/projects/[id]/tasks/reorder/route.ts`  | Same transitions for drag-drop moves                                                             |
 | `src/components/TopBar.tsx`                         | Branch switcher dropdown                                                                         |
-| `src/components/TaskAgentModal.tsx`                 | Preview/merge controls in task detail                                                            |
+| `src/components/TaskAgentDetail.tsx`                | Preview/merge controls in task detail                                                            |
 | `src/app/projects/[id]/page.tsx`                    | Dashboard wiring: branch state, polling, taskBranchMap                                           |

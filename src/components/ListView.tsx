@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ListOrderedIcon,
   LayersIcon,
+  GitBranchIcon,
   ChevronDownIcon,
   Loader2Icon,
   ClockIcon,
@@ -159,7 +160,7 @@ function SortableListRow({
     >
       <button
         onClick={() => onClick(task)}
-        className={`relative w-full text-left px-6 py-2.5 ${
+        className={`relative w-full text-left px-4 py-2.5 ${
           isPreviewActive
             ? 'bg-lazuli/5 border-l-2 border-lazuli/50'
             : isSelected
@@ -484,36 +485,50 @@ export function ListView({
       {/* Master panel */}
       <div data-master-panel className="shrink-0 flex flex-col border-r border-border-default bg-surface-topbar" style={{ width: masterWidth }}>
         {/* Master header */}
-        <div className="shrink-0 h-10 flex items-center gap-2 px-6 border-b border-border-default bg-surface-topbar">
+        <div className="shrink-0 h-10 flex items-center gap-2 px-4 border-b border-border-default bg-surface-topbar">
           {onExecutionModeChange && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-hover"
                 >
-                  {executionMode === 'sequential' ? (
-                    <ListOrderedIcon className="w-3 h-3" />
-                  ) : (
-                    <LayersIcon className="w-3 h-3" />
-                  )}
-                  <span>{executionMode === 'sequential' ? 'Sequential' : 'Parallel'}</span>
+                  {executionMode === 'sequential' && <ListOrderedIcon className="w-3 h-3" />}
+                  {executionMode === 'parallel' && <LayersIcon className="w-3 h-3" />}
+                  {executionMode === 'worktrees' && <GitBranchIcon className="w-3 h-3" />}
+                  <span>{executionMode === 'sequential' ? 'Sequential' : executionMode === 'parallel' ? 'Parallel' : 'Worktrees'}</span>
                   <ChevronDownIcon className="w-3 h-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[140px]">
+              <DropdownMenuContent align="start" className="exec-mode-dropdown min-w-[200px]">
                 <DropdownMenuItem
                   onSelect={() => onExecutionModeChange('sequential')}
                   className={`gap-2 text-xs ${executionMode === 'sequential' ? 'exec-mode-selected' : ''}`}
                 >
-                  <ListOrderedIcon className="w-3.5 h-3.5" />
-                  Sequential
+                  <ListOrderedIcon className="w-3.5 h-3.5 shrink-0" />
+                  <div>
+                    <div>Sequential</div>
+                    <div className="text-[10px] text-text-tertiary font-normal">One task at a time, queued in order</div>
+                  </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => onExecutionModeChange('parallel')}
                   className={`gap-2 text-xs ${executionMode === 'parallel' ? 'exec-mode-selected' : ''}`}
                 >
-                  <LayersIcon className="w-3.5 h-3.5" />
-                  Parallel
+                  <LayersIcon className="w-3.5 h-3.5 shrink-0" />
+                  <div>
+                    <div>Parallel</div>
+                    <div className="text-[10px] text-text-tertiary font-normal">Multiple tasks at once on the same branch</div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => onExecutionModeChange('worktrees')}
+                  className={`gap-2 text-xs ${executionMode === 'worktrees' ? 'exec-mode-selected' : ''}`}
+                >
+                  <GitBranchIcon className="w-3.5 h-3.5 shrink-0" />
+                  <div>
+                    <div>Worktrees</div>
+                    <div className="text-[10px] text-text-tertiary font-normal">Each task gets its own branch to preview before merge</div>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -539,7 +554,7 @@ export function ListView({
               return (
                 <React.Fragment key={status}>
                   {status === 'todo' && onAddTask && (
-                    <div className="px-6 mt-4 mb-2">
+                    <div className="px-4 mt-4 mb-2">
                       <AddTaskButton onClick={onAddTask} />
                     </div>
                   )}

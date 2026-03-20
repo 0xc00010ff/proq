@@ -61,6 +61,10 @@ export default function SettingsPage() {
   const [detectMessage, setDetectMessage] = useState<string | null>(null);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [updateResult, setUpdateResult] = useState<{ available: boolean; count: number } | null>(null);
+  const [shellVersion, setShellVersion] = useState<string | null>(null);
+  const [shellUpdateReady, setShellUpdateReady] = useState(false);
+  const [shellUpdateVersion, setShellUpdateVersion] = useState<string | null>(null);
+  const [checkingShell, setCheckingShell] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingTo = useRef(false);
@@ -70,6 +74,16 @@ export default function SettingsPage() {
       .then((res) => res.json())
       .then(setSettings)
       .catch(console.error);
+
+    // Get shell version and listen for shell updates
+    if (isElectron && window.proqDesktop) {
+      window.proqDesktop.getVersion().then((v) => setShellVersion(v));
+      const cleanup = window.proqDesktop.onShellUpdateDownloaded((_e, result) => {
+        setShellUpdateReady(true);
+        setShellUpdateVersion(result.version);
+      });
+      return cleanup;
+    }
   }, []);
 
   // Track which section is visible on scroll
@@ -122,9 +136,9 @@ export default function SettingsPage() {
 
     // Apply theme immediately
     if (key === "theme") {
-      const isDark = value === "dark";
+      const isDark = value === "dark" || (value === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
       document.documentElement.classList.toggle("dark", isDark);
-      localStorage.setItem("theme", isDark ? "dark" : "light");
+      localStorage.setItem("theme", value as string);
     }
 
     // Persist to API
@@ -192,8 +206,8 @@ export default function SettingsPage() {
               <p className="text-sm text-text-secondary leading-relaxed mb-2">
                 A task board that runs your coding agents. You write tasks,
                 agents do the work, you review and merge. proq is a kanban
-                board that dispatches AI coding agents per task against your
-                actual codebase.
+                board that launches coding agents, one per task,
+                against your actual codebase.
               </p>
               <p className="text-sm text-text-secondary leading-relaxed mb-4">
                 Locally hosted and self-contained — no external services
@@ -201,7 +215,7 @@ export default function SettingsPage() {
                 Codex SDK). Works with your existing agent config and MCPs.
               </p>
               <p className="text-xs text-text-tertiary mb-1">
-                This is version 0.1.0
+                This is version 0.3.7
               </p>
               <p className="text-xs text-text-tertiary">
                 Vibed with ♥ by{" "}
@@ -249,8 +263,9 @@ export default function SettingsPage() {
                 <Field label="Theme">
                   <Select
                     value={settings.theme}
-                    onChange={(v) => update("theme", v as "dark" | "light")}
+                    onChange={(v) => update("theme", v as "dark" | "light" | "system")}
                     options={[
+                      { value: "system", label: "System" },
                       { value: "dark", label: "Dark" },
                       { value: "light", label: "Light" },
                     ]}
@@ -408,34 +423,46 @@ export default function SettingsPage() {
                       onChange={(v) => update("autoUpdate", v)}
                     />
                   </Field>
-                  <Field label="Check for updates">
+                  <Field label="Check for web updates">
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={async () => {
-                          setCheckingUpdates(true);
-                          setUpdateResult(null);
-                          try {
-                            const result = await window.proqDesktop!.checkUpdates();
-                            setUpdateResult({
-                              available: result.available,
-                              count: result.commits?.length || 0,
-                            });
-                          } catch {
+                      {updateResult?.available ? (
+                        <button
+                          onClick={() => {
+                            window.proqDesktop?.applyAndRestart();
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
+                        >
+                          <DownloadIcon className="w-3.5 h-3.5" />
+                          Restart to update
+                        </button>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            setCheckingUpdates(true);
                             setUpdateResult(null);
-                          } finally {
-                            setCheckingUpdates(false);
-                          }
-                        }}
-                        disabled={checkingUpdates}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
-                      >
-                        {checkingUpdates ? (
-                          <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <SearchIcon className="w-3.5 h-3.5" />
-                        )}
-                        Check for Updates
-                      </button>
+                            try {
+                              const result = await window.proqDesktop!.checkUpdates();
+                              setUpdateResult({
+                                available: result.available,
+                                count: result.commits?.length || 0,
+                              });
+                            } catch {
+                              setUpdateResult(null);
+                            } finally {
+                              setCheckingUpdates(false);
+                            }
+                          }}
+                          disabled={checkingUpdates}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                        >
+                          {checkingUpdates ? (
+                            <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <SearchIcon className="w-3.5 h-3.5" />
+                          )}
+                          Check for Updates
+                        </button>
+                      )}
                       {updateResult && !updateResult.available && (
                         <span className="flex items-center gap-1 text-xs text-green-500">
                           <CheckIcon className="w-3.5 h-3.5" />
@@ -448,18 +475,52 @@ export default function SettingsPage() {
                         </span>
                       )}
                     </div>
-                    {updateResult?.available && (
-                      <button
-                        onClick={() => {
-                          window.proqDesktop?.applyAndRestart();
-                        }}
-                        className="mt-3 flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
-                      >
-                        <DownloadIcon className="w-3.5 h-3.5" />
-                        Restart to update
-                      </button>
-                    )}
                   </Field>
+                  <div className="border-t border-border-default pt-4 mt-4">
+                    <Field
+                      label="Shell updates"
+                      hint={shellVersion ? `Current shell version: ${shellVersion}` : undefined}
+                    >
+                      <div className="flex items-center gap-3">
+                        {shellUpdateReady ? (
+                          <button
+                            onClick={() => {
+                              window.proqDesktop?.installShellUpdate();
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
+                          >
+                            <DownloadIcon className="w-3.5 h-3.5" />
+                            Restart to update shell{shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              setCheckingShell(true);
+                              try {
+                                const result = await window.proqDesktop!.checkShellUpdate();
+                                if (!result.available) {
+                                  setShellUpdateReady(false);
+                                }
+                              } catch {
+                                // ignore
+                              } finally {
+                                setCheckingShell(false);
+                              }
+                            }}
+                            disabled={checkingShell}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                          >
+                            {checkingShell ? (
+                              <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <SearchIcon className="w-3.5 h-3.5" />
+                            )}
+                            Check for shell updates
+                          </button>
+                        )}
+                      </div>
+                    </Field>
+                  </div>
                 </div>
               </section>
             )}

@@ -5,6 +5,8 @@ import React, {
   useRef,
   useCallback,
   useState,
+  useImperativeHandle,
+  forwardRef,
 } from 'react';
 import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon, EraserIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,14 +26,26 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useWorkbenchTabs, type WorkbenchTab, type WorkbenchScope } from './WorkbenchTabsProvider';
-import { TerminalPane } from './TerminalPane';
-import { AgentTabPane } from './AgentTabPane';
+import { TerminalPane, setTerminalDraft } from './TerminalPane';
+import { AgentTabPane, setAgentDraft } from './AgentTabPane';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+
+interface AddTabOptions {
+  /** Pre-fill text: sent to terminal once WS connects, or placed in agent message input */
+  initialInput?: string;
+  /** If true, activate an existing tab of this type instead of creating a new one (default: false) */
+  reuse?: boolean;
+}
+
+export interface WorkbenchPanelHandle {
+  addShellTab: (opts?: AddTabOptions) => Promise<void>;
+  addAgentTab: (opts?: AddTabOptions) => void;
+}
 
 interface WorkbenchPanelProps {
   projectId: string;
@@ -153,7 +167,7 @@ function SortableTab({
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
-export default function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }: WorkbenchPanelProps) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }, ref) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -191,9 +205,22 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
     setRenameValue('');
   }, [renamingTabId, renameValue, renameTab, projectId, scope]);
 
-  const addShellTab = useCallback(async () => {
+  const addShellTab = useCallback(async (opts?: AddTabOptions) => {
+    const { initialInput, reuse } = opts ?? {};
+
+    if (reuse) {
+      const existing = tabs.find((t) => t.type === 'shell');
+      if (existing) {
+        if (initialInput) setTerminalDraft(existing.id, initialInput);
+        setActiveTabId(projectId, existing.id, scope);
+        return;
+      }
+    }
+
     const id = `shell-${uuidv4().slice(0, 8)}`;
     const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
+
+    if (initialInput) setTerminalDraft(id, initialInput);
 
     await fetch('/api/shell/spawn', {
       method: 'POST',
@@ -201,14 +228,28 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
       body: JSON.stringify({ tabId: id, cwd: projectPath }),
     });
 
-    openTab(projectId, id, scope === 'live' ? `Server ${shellCount}` : `Terminal ${shellCount}`, 'shell', scope);
-  }, [tabs, openTab, projectId, projectPath, scope]);
+    openTab(projectId, id, `Terminal ${shellCount}`, 'shell', scope);
+  }, [tabs, openTab, setActiveTabId, projectId, projectPath, scope]);
 
-  const addAgentTab = useCallback(() => {
+  const addAgentTab = useCallback((opts?: AddTabOptions) => {
+    const { initialInput, reuse } = opts ?? {};
+
+    if (reuse) {
+      const existing = tabs.find((t) => t.type === 'agent');
+      if (existing) {
+        if (initialInput) setAgentDraft(existing.id, initialInput);
+        setActiveTabId(projectId, existing.id, scope);
+        return;
+      }
+    }
+
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = tabs.filter((t) => t.type === 'agent').length + 1;
+    if (initialInput) setAgentDraft(id, initialInput);
     openTab(projectId, id, `Agent ${agentCount}`, 'agent', scope);
-  }, [tabs, openTab, projectId, scope]);
+  }, [tabs, openTab, setActiveTabId, projectId, scope]);
+
+  useImperativeHandle(ref, () => ({ addShellTab, addAgentTab }), [addShellTab, addAgentTab]);
 
   const removeTab = useCallback(
     (tabId: string) => {
@@ -242,7 +283,7 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
   return (
     <div
       ref={panelRef}
-      className="w-full flex flex-col bg-surface-deep flex-shrink-0 font-mono"
+      className="w-full flex flex-col bg-surface-deep flex-shrink-0"
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}
@@ -364,4 +405,6 @@ export default function WorkbenchPanel({ projectId, projectPath, scope = 'projec
 
     </div>
   );
-}
+});
+
+export default WorkbenchPanel;

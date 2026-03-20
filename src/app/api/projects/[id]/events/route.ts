@@ -26,7 +26,9 @@ export async function GET(
       // Listen for task events on this project
       const unsubscribe = onTaskEvent((event) => {
         if (event.projectId !== id) return;
-        if (event.type === 'created') {
+        if (event.type === 'project_update') {
+          send(JSON.stringify({ type: 'project_update', changes: event.changes }));
+        } else if (event.type === 'created') {
           send(JSON.stringify({ type: 'created', task: event.task }));
         } else {
           send(JSON.stringify({ taskId: event.taskId, changes: event.changes }));

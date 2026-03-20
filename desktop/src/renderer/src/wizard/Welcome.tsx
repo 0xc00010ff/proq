@@ -9,8 +9,8 @@ type Phase = 'blank' | 'logo' | 'reveal'
 function AnimatedLogo(): React.JSX.Element {
   return (
     <svg
-      width="80"
-      height="80"
+      width="64"
+      height="64"
       viewBox="0 0 256 256"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -58,12 +58,13 @@ export function Welcome({ onNext }: WelcomeProps): React.JSX.Element {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          paddingBottom: 60
         }}
       >
         <div
           style={{
-            transform: phase === 'reveal' ? 'translateY(0)' : 'translateY(60px)',
+            transform: phase === 'reveal' ? 'translateY(0)' : 'translateY(100px)',
             opacity: phase === 'blank' ? 0 : 1,
             transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease'
           }}
@@ -103,23 +104,22 @@ export function Welcome({ onNext }: WelcomeProps): React.JSX.Element {
           >
             <strong>An agentic coding IDE.</strong>
             <br />
-            proq simplifies local multi-agent orchestration so you can build fast and high quality
+            proq simplifies multi-agent orchestration so you can build fast and high quality
             software.
           </p>
         </div>
-      </div>
 
-      <div
-        className="wizard-footer"
-        style={{
-          justifyContent: 'center',
-          borderTop: 'none',
-          opacity: phase === 'reveal' ? 1 : 0,
-          transform: phase === 'reveal' ? 'translateY(0)' : 'translateY(8px)',
-          transition: 'opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s'
-        }}
-      >
-        <button className="btn-accent" onClick={onNext} style={{ minWidth: 160 }}>
+        <button
+          className="btn-accent"
+          onClick={onNext}
+          style={{
+            minWidth: 160,
+            marginTop: 28,
+            opacity: phase === 'reveal' ? 1 : 0,
+            transform: phase === 'reveal' ? 'translateY(0)' : 'translateY(8px)',
+            transition: 'opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s'
+          }}
+        >
           Get Started
         </button>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface CheckResult {
   ok: boolean
@@ -15,11 +15,17 @@ interface DependenciesProps {
 }
 
 interface DepState {
-  node: CheckResult | null
-  tmux: CheckResult | null
-  claude: CheckResult | null
   xcode: CheckResult | null
+  node: CheckResult | null
+  claude: CheckResult | null
 }
+
+type DepKey = keyof DepState
+
+type InstallingState = Partial<Record<DepKey, boolean>>
+
+// Dependencies that open external dialogs — user must re-check manually
+const INTERACTIVE_DEPS = new Set<DepKey>(['xcode'])
 
 export function Dependencies({
   claudePath,
@@ -28,40 +34,124 @@ export function Dependencies({
   onBack
 }: DependenciesProps): React.JSX.Element {
   const [deps, setDeps] = useState<DepState>({
+    xcode: null,
     node: null,
-    tmux: null,
-    claude: null,
-    xcode: null
+    claude: null
   })
-  const [installingTmux, setInstallingTmux] = useState(false)
+  const [installing, setInstalling] = useState<InstallingState>({})
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+  const [rechecking, setRechecking] = useState(false)
 
-  useEffect(() => {
-    runChecks()
-  }, [])
+  const isMac = navigator.platform.toLowerCase().includes('mac')
 
-  const runChecks = async (): Promise<void> => {
-    const [node, tmux, claude, xcode] = await Promise.all([
-      window.proqDesktop.checkNode(),
-      window.proqDesktop.checkTmux(),
-      window.proqDesktop.checkClaude(),
-      window.proqDesktop.checkXcode()
+  const runChecks = useCallback(async (isRecheck = false): Promise<DepState> => {
+    if (isRecheck) setRechecking(true)
+    const [results] = await Promise.all([
+      Promise.all([
+        window.proqDesktop.checkNode(),
+        window.proqDesktop.checkClaude(),
+        window.proqDesktop.checkXcode()
+      ]),
+      // Minimum visible duration for rechecks
+      isRecheck ? new Promise((r) => setTimeout(r, 500)) : Promise.resolve()
     ])
-
-    setDeps({ node, tmux, claude, xcode })
+    const [node, claude, xcode] = results
+    const state: DepState = { xcode, node, claude }
+    setDeps(state)
     if (claude.ok && claude.path) {
       setClaudePath(claude.path)
     }
+    setPendingMessage(null)
+    setRechecking(false)
+    return state
+  }, [setClaudePath])
+
+  useEffect(() => {
+    runChecks()
+  }, [runChecks])
+
+  const setDep = (key: DepKey, result: CheckResult): void => {
+    setDeps((prev) => ({ ...prev, [key]: result }))
   }
 
-  const handleInstallTmux = async (): Promise<void> => {
-    setInstallingTmux(true)
-    const result = await window.proqDesktop.installTmux()
-    setDeps((prev) => ({ ...prev, tmux: result }))
-    setInstallingTmux(false)
+  const setIsInstalling = (key: DepKey, value: boolean): void => {
+    setInstalling((prev) => ({ ...prev, [key]: value }))
   }
 
-  const isMac = navigator.platform.toLowerCase().includes('mac')
-  const canProceed = deps.node?.ok && deps.tmux?.ok
+  // Individual install handlers
+  const handleInstallXcode = async (): Promise<void> => {
+    setIsInstalling('xcode', true)
+    await window.proqDesktop.installXcode()
+    setIsInstalling('xcode', false)
+    setPendingMessage('Complete the Xcode dialog, then click Re-check All')
+  }
+
+  const handleInstallClaude = async (): Promise<void> => {
+    setIsInstalling('claude', true)
+    const result = await window.proqDesktop.installClaude()
+    setDep('claude', result)
+    if (result.ok && result.path) setClaudePath(result.path)
+    setIsInstalling('claude', false)
+  }
+
+  const canProceed = deps.node?.ok
+  const allChecked = deps.node !== null && deps.claude !== null && deps.xcode !== null
+  const anyMissing =
+    allChecked &&
+    (!deps.node?.ok || (isMac && !deps.xcode?.ok) || !deps.claude?.ok)
+  const anyInstalling = Object.values(installing).some(Boolean)
+
+  // Dependency row renderer
+  const depRow = (
+    key: DepKey,
+    label: string,
+    result: CheckResult | null,
+    onInstall?: () => Promise<void>,
+    detail?: string
+  ): React.JSX.Element => {
+    const detailText = result === null
+      ? 'Checking...'
+      : result.ok
+        ? (result.path || '')
+        : (result.error !== 'pending' ? (detail || result.error || '') : '')
+
+    const showSpinner = result === null || rechecking
+
+    return (
+      <div className="check-item" key={key} style={{ minHeight: 56 }}>
+        <div
+          className={`check-icon ${showSpinner ? 'loading' : result.ok ? 'success' : 'error'}`}
+        >
+          {showSpinner
+            ? <div style={{
+                width: 14, height: 14,
+                border: '2px solid var(--border)',
+                borderTopColor: 'var(--text-muted)',
+                borderRadius: '50%',
+                animation: 'spin 1.5s linear infinite'
+              }} />
+            : result.ok ? '\u2713' : '\u2717'
+          }
+        </div>
+        <div className="check-label">
+          {label} {result?.version ? `v${result.version}` : ''}
+          {detailText && <div className="check-detail">{detailText}</div>}
+        </div>
+        {result && !result.ok && onInstall && (
+          <div className="check-action">
+            <button
+              className="btn-secondary"
+              onClick={onInstall}
+              disabled={installing[key]}
+              style={{ padding: '6px 14px', fontSize: 12 }}
+            >
+              {installing[key] ? 'Installing...' : 'Install'}
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -71,80 +161,18 @@ export function Dependencies({
           Checking required tools are installed.
         </p>
 
-        <div className="check-item">
-          <div
-            className={`check-icon ${deps.node === null ? 'loading' : deps.node.ok ? 'success' : 'error'}`}
-          >
-            {deps.node === null ? '...' : deps.node.ok ? '\u2713' : '\u2717'}
-          </div>
-          <div className="check-label">
-            Node.js {deps.node?.version ? `v${deps.node.version}` : ''}
-            {deps.node && !deps.node.ok && (
-              <div className="check-detail">{deps.node.error}</div>
-            )}
-          </div>
-        </div>
+        {isMac &&
+          depRow('xcode', 'Xcode Command Line Tools (git)', deps.xcode, handleInstallXcode)}
 
-        <div className="check-item">
-          <div
-            className={`check-icon ${deps.tmux === null ? 'loading' : deps.tmux.ok ? 'success' : 'error'}`}
-          >
-            {deps.tmux === null ? '...' : deps.tmux.ok ? '\u2713' : '\u2717'}
-          </div>
-          <div className="check-label">
-            tmux {deps.tmux?.version || ''}
-            {deps.tmux && !deps.tmux.ok && (
-              <div className="check-detail">{deps.tmux.error}</div>
-            )}
-          </div>
-          {deps.tmux && !deps.tmux.ok && (
-            <div className="check-action">
-              <button
-                className="btn-secondary"
-                onClick={handleInstallTmux}
-                disabled={installingTmux}
-                style={{ padding: '6px 14px', fontSize: 12 }}
-              >
-                {installingTmux ? 'Installing...' : 'Install'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {isMac && (
-          <div className="check-item">
-            <div
-              className={`check-icon ${deps.xcode === null ? 'loading' : deps.xcode.ok ? 'success' : 'error'}`}
-            >
-              {deps.xcode === null ? '...' : deps.xcode.ok ? '\u2713' : '\u2717'}
-            </div>
-            <div className="check-label">
-              Xcode Command Line Tools
-              {deps.xcode && !deps.xcode.ok && (
-                <div className="check-detail">Run: xcode-select --install</div>
-              )}
-            </div>
-          </div>
+        {depRow('node', 'Node.js', deps.node, undefined,
+          deps.node?.error
         )}
 
-        <div className="check-item">
-          <div
-            className={`check-icon ${deps.claude === null ? 'loading' : deps.claude.ok ? 'success' : 'error'}`}
-          >
-            {deps.claude === null ? '...' : deps.claude.ok ? '\u2713' : '\u2717'}
-          </div>
-          <div className="check-label">
-            Claude Code CLI
-            {deps.claude?.ok && deps.claude.path && (
-              <div className="check-detail">{deps.claude.path}</div>
-            )}
-            {deps.claude && !deps.claude.ok && (
-              <div className="check-detail">
-                Optional — install with: npm i -g @anthropic-ai/claude-code
-              </div>
-            )}
-          </div>
-        </div>
+        {depRow('claude', 'Claude Code CLI', deps.claude, handleInstallClaude,
+          deps.claude && !deps.claude.ok && !deps.node?.ok
+            ? 'Install Node.js first'
+            : 'Optional — needed for agent dispatch'
+        )}
 
         {deps.claude && !deps.claude.ok && (
           <div className="field" style={{ marginTop: 16 }}>
@@ -155,6 +183,34 @@ export function Dependencies({
               onChange={(e): void => setClaudePath(e.target.value)}
               placeholder="/path/to/claude"
             />
+          </div>
+        )}
+
+        {pendingMessage && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: '10px 14px',
+              background: 'var(--bg-secondary, #1a1a2e)',
+              borderRadius: 8,
+              fontSize: 13,
+              color: 'var(--text-secondary, #a1a1aa)'
+            }}
+          >
+            {pendingMessage}
+          </div>
+        )}
+
+        {allChecked && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            <button
+              className="btn-secondary"
+              onClick={() => runChecks(true)}
+              disabled={anyInstalling || rechecking}
+              style={{ padding: '6px 14px', fontSize: 12 }}
+            >
+              {rechecking ? 'Checking...' : 'Re-check All'}
+            </button>
           </div>
         )}
       </div>

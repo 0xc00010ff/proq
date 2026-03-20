@@ -1,4 +1,4 @@
-import { execFile } from 'child_process'
+import { spawn, execFile } from 'child_process'
 import { promisify } from 'util'
 import { getConfig, setConfig } from './config'
 
@@ -33,22 +33,50 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
   }
 }
 
+function run(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  onLog?: (line: string) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+    const stderrTail: string[] = []
+    child.stdout?.on('data', (d: Buffer) => onLog?.(d.toString()))
+    child.stderr?.on('data', (d: Buffer) => {
+      const text = d.toString()
+      onLog?.(text)
+      stderrTail.push(text)
+      if (stderrTail.length > 20) stderrTail.shift()
+    })
+    child.on('error', reject)
+    child.on('close', (code) => {
+      if (code === 0) resolve()
+      else {
+        const tail = stderrTail.join('').trim().slice(-500)
+        reject(new Error(`${cmd} ${args[0]} exited with code ${code}${tail ? `\n${tail}` : ''}`))
+      }
+    })
+  })
+}
+
 export async function applyUpdate(
   onLog?: (line: string) => void
 ): Promise<{ ok: boolean; error?: string }> {
   const { proqPath } = getConfig()
 
   try {
-    const pull = await execFileAsync('git', ['pull', 'origin', 'main'], { cwd: proqPath })
-    onLog?.(pull.stdout)
+    await run('git', ['stash', '--include-untracked'], proqPath, onLog)
+    await run('git', ['pull', '--rebase', 'origin', 'main'], proqPath, onLog)
+    await run('git', ['stash', 'pop'], proqPath, onLog).catch(() => {
+      // stash pop fails if there was nothing stashed — that's fine
+    })
 
     onLog?.('Installing dependencies...')
-    const install = await execFileAsync('npm', ['install'], { cwd: proqPath })
-    onLog?.(install.stdout)
+    await run('npm', ['install'], proqPath, onLog)
 
     onLog?.('Building...')
-    const build = await execFileAsync('npm', ['run', 'build'], { cwd: proqPath })
-    onLog?.(build.stdout)
+    await run('npm', ['run', 'build'], proqPath, onLog)
 
     setConfig({ lastUpdated: new Date().toISOString() })
     return { ok: true }

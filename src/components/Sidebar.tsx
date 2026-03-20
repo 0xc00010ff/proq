@@ -342,7 +342,6 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [showBlockedModal, setShowBlockedModal] = useState(false);
 
   // Listen for update notifications from Electron
   useEffect(() => {
@@ -437,18 +436,6 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   const handleRenameCancel = useCallback(() => {
     setRenamingId(null);
   }, []);
-
-  const handleUpdateClick = useCallback(() => {
-    // Check if any tasks are in-progress across all projects
-    const hasInProgress = Object.values(tasksByProject).some((cols) =>
-      cols["in-progress"]?.some((t) => t.status === "in-progress")
-    );
-    if (hasInProgress) {
-      setShowBlockedModal(true);
-      return;
-    }
-    window.proqDesktop?.applyAndRestart();
-  }, [tasksByProject]);
 
   if (collapsed) {
     return (
@@ -574,16 +561,6 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
         </DndContext>
       </div>
 
-      {/* Update banner */}
-      {isElectron && updateAvailable && (
-        <button
-          onClick={handleUpdateClick}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-zinc-950 bg-bronze-600 hover:bg-bronze-500 cursor-pointer flex-shrink-0 transition-colors"
-        >
-          Restart for updates
-        </button>
-      )}
-
       {/* Fixed Settings at bottom */}
       <Link
         href="/settings"
@@ -593,28 +570,17 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
         {isSettingsActive && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-700 dark:bg-bronze-600" />
         )}
-        <SettingsIcon className={`w-4 h-4 flex-shrink-0 ${isSettingsActive ? "text-text-secondary" : "text-text-tertiary group-hover/settings:text-text-secondary"}`} />
+        <span className="relative">
+          <SettingsIcon className={`w-4 h-4 flex-shrink-0 ${isSettingsActive ? "text-text-secondary" : "text-text-tertiary group-hover/settings:text-text-secondary"}`} />
+          {isElectron && updateAvailable && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-bronze-600" />
+          )}
+        </span>
         <span className={`text-sm font-medium ${isSettingsActive ? "text-text-primary" : "text-text-secondary group-hover/settings:text-text-primary"}`}>
           Settings
         </span>
       </Link>
 
-      {/* Blocked modal — tasks in progress */}
-      {showBlockedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-surface-modal border border-border-default rounded-lg p-6 max-w-sm mx-4 shadow-xl">
-            <p className="text-sm text-text-primary mb-4">
-              Wait for in-progress tasks to finish and try again.
-            </p>
-            <button
-              onClick={() => setShowBlockedModal(false)}
-              className="btn-primary w-full"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
     </aside>
   );
 }

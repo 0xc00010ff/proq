@@ -7,17 +7,24 @@ interface PreferencesProps {
 }
 
 export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Element {
-  const [port, setPort] = useState(1337)
-  const [wsPort, setWsPort] = useState(42069)
+  const [port, setPort] = useState(7331)
+  const [wsPort, setWsPort] = useState(42067)
   const [devMode, setDevMode] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
     window.proqDesktop.getConfig().then((config) => {
       setPort(config.port)
+      setWsPort(config.wsPort)
       setDevMode(config.devMode)
     })
   }, [])
+
+  const handleModeChange = (dev: boolean): void => {
+    setDevMode(dev)
+    setPort(dev ? 1337 : 7331)
+    setWsPort(dev ? 42069 : 42067)
+  }
 
   const handleNext = async (): Promise<void> => {
     await window.proqDesktop.setConfig({ port, wsPort, devMode })
@@ -37,23 +44,23 @@ export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Ele
           <div className="radio-group">
             <div
               className={`radio-option ${!devMode ? 'selected' : ''}`}
-              onClick={(): void => setDevMode(false)}
+              onClick={(): void => handleModeChange(false)}
             >
-              <div className="label">Production</div>
-              <div className="desc">Official proq, fast and reliable</div>
+              <div className="label">Default</div>
+              <div className="desc">Fast and reliable</div>
             </div>
             <div
               className={`radio-option ${devMode ? 'selected' : ''}`}
-              onClick={(): void => setDevMode(true)}
+              onClick={(): void => handleModeChange(true)}
             >
               <div className="label">Development</div>
-              <div className="desc">Hot reload, to edit proq itself</div>
+              <div className="desc">For editing proq itself</div>
             </div>
           </div>
           <div className="field-hint" style={{ marginTop: 8 }}>
             {devMode
-              ? 'Uses npm run dev — changes to proq live-reload. Live-compile will make the app slower though.'
-              : 'Uses the pre-compiled proq server'}
+              ? 'Uses npm run dev — changes to proq live-reload, but the app will be slower'
+              : 'Uses a production build of proq'}
           </div>
         </div>
 
@@ -81,11 +88,11 @@ export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Ele
               <input
                 type="number"
                 value={port}
-                onChange={(e): void => setPort(parseInt(e.target.value, 10) || 1337)}
+                onChange={(e): void => setPort(parseInt(e.target.value, 10) || (devMode ? 1337 : 7331))}
                 min={1024}
                 max={65535}
               />
-              <div className="field-hint">The port proq's server listens on (default 1337)</div>
+              <div className="field-hint">The port proq's server listens on ({devMode ? 'default: 1337' : 'default: 7331'})</div>
             </div>
 
             <div className="field">
@@ -93,12 +100,12 @@ export function Preferences({ onNext, onBack }: PreferencesProps): React.JSX.Ele
               <input
                 type="number"
                 value={wsPort}
-                onChange={(e): void => setWsPort(parseInt(e.target.value, 10) || 42069)}
+                onChange={(e): void => setWsPort(parseInt(e.target.value, 10) || (devMode ? 42069 : 42067))}
                 min={1024}
                 max={65535}
               />
               <div className="field-hint">
-                The port for agent WebSocket connections (default 42069)
+                The port for agent WebSocket connections ({devMode ? 'default: 42069' : 'default: 42067'})
               </div>
             </div>
           </>

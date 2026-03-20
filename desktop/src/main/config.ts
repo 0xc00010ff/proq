@@ -16,8 +16,8 @@ export interface DesktopConfig {
 
 const defaults: DesktopConfig = {
   proqPath: path.join(os.homedir(), 'proq'),
-  port: 1337,
-  wsPort: 42069,
+  port: 7331,
+  wsPort: 42067,
   devMode: false,
   setupComplete: false,
   claudeBinPath: '',
@@ -62,4 +62,8 @@ export function setConfig(partial: Partial<DesktopConfig>): DesktopConfig {
 
 export function resetConfig(): void {
   writeStore({ ...defaults })
+}
+
+export function isDevMode(): boolean {
+  return !!process.env.PROQ_DEV || getConfig().devMode
 }

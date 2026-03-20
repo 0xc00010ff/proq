@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FileTextIcon } from 'lucide-react';
 
 interface TaskUpdateBlockProps {
@@ -9,7 +9,7 @@ interface TaskUpdateBlockProps {
 }
 
 export function TaskUpdateBlock({ summary, nextSteps }: TaskUpdateBlockProps) {
-  // Show first 2 lines as a preview
+  const [expanded, setExpanded] = useState(false);
   const lines = summary.split('\n').filter(Boolean);
   const preview = lines.slice(0, 2).join('\n');
   const hasMore = lines.length > 2;
@@ -21,11 +21,19 @@ export function TaskUpdateBlock({ summary, nextSteps }: TaskUpdateBlockProps) {
         Agent updated task
       </div>
       <div className="text-[11px] text-text-secondary font-mono whitespace-pre-wrap">
-        {preview}{hasMore && <span className="text-text-placeholder"> (+{lines.length - 2} more)</span>}
+        {expanded ? lines.join('\n') : preview}
+        {hasMore && (<>
+          {' '}<span
+            className="text-text-placeholder hover:underline cursor-pointer"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? '(show less)' : `(+${lines.length - 2} more)`}
+          </span>
+        </>)}
       </div>
       {nextSteps && (
-        <div className="mt-1.5 pt-1.5 border-t border-lazuli/15 text-[11px] text-lazuli-dark dark:text-lazuli/80 font-mono">
-          Next steps: {nextSteps.split('\n')[0]}
+        <div className="mt-1.5 pt-1.5 border-t border-lazuli/15 text-[11px] text-lazuli-dark dark:text-lazuli/80 font-mono whitespace-pre-wrap">
+          Next steps: {expanded ? nextSteps.split('\n').filter(Boolean).join('\n') : nextSteps.split('\n')[0]}
         </div>
       )}
     </div>

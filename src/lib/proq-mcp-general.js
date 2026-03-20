@@ -191,6 +191,33 @@ server.tool(
   },
 );
 
+// ── set_live_url ──
+
+server.tool(
+  "set_live_url",
+  "Set the live preview URL for the project. Use this after starting a dev server so the human can see the running app in the Live tab. The Live tab will automatically refresh to show the new URL.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    url: z.string().describe("The local URL of the running dev server, e.g. http://localhost:3000"),
+  },
+  async ({ projectId, url }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const res = await fetch(`${API}/api/projects/${pid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serverUrl: url }),
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to set live URL: ${res.status}` }], isError: true };
+      }
+      return { content: [{ type: "text", text: `Live URL set to ${url} — the human can now see it in the Live tab.` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
 // ── delete_task ──
 
 server.tool(

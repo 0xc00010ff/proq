@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProject } from "@/lib/db";
+import { safeParseBody } from "@/lib/api-utils";
 import {
   getCurrentBranch,
   listBranches,
@@ -9,6 +10,7 @@ import {
   sourceProqBranch,
   isGitRepo,
   getGitSyncStatus,
+  detectDefaultBranch,
   gitFetch,
   gitPush,
   gitPull,
@@ -69,6 +71,7 @@ export async function GET(_request: Request, { params }: Params) {
     current: currentName,
     detached: current.detached,
     branches,
+    defaultBranch: detectDefaultBranch(projectPath) || undefined,
     hasGit: true,
     ...syncStatus,
   });
@@ -82,7 +85,8 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const projectPath = resolveProjectPath(project.path);
 
   // Action-based dispatch

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// proq-bridge.js — Runs inside a tmux session, exposes the agent's PTY over a unix domain socket.
+// proq-bridge.js — Detached process that exposes a PTY over a unix domain socket.
 // Usage: node proq-bridge.js <socket-path> <launcher-script>
 //
-// This lets xterm.js connect directly to the PTY without going through tmux's terminal layer,
-// avoiding key interception issues (shift-enter, scroll conflicts, etc.).
+// Spawned with { detached: true } so it survives server restarts.
+// xterm.js connects to the unix socket for terminal I/O.
 
 const net = require("net");
 const fs = require("fs");

@@ -1,6 +1,6 @@
 import * as net from "net";
-import { execSync } from "child_process";
-import { existsSync, writeFileSync, mkdirSync, unlinkSync } from "fs";
+import { spawn } from "child_process";
+import { existsSync, writeFileSync, readFileSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir, homedir } from "os";
 import type { WebSocket } from "ws";
@@ -23,7 +23,7 @@ function defaultShell(): string {
 }
 
 /**
- * Derive tmux session name from tabId.
+ * Derive session name from tabId (used for socket/PID file naming).
  * Task tabs: "task-{shortId}" → "proq-{shortId}"
  * Shell tabs: "{tabId}" as-is (e.g. "default-abc12345", "shell-xyz98765")
  */
@@ -34,27 +34,33 @@ function sessionName(tabId: string): string {
   return tabId;
 }
 
-/**
- * Derive bridge socket path from tabId.
- */
 function socketPath(tabId: string): string {
   return `/tmp/proq/${sessionName(tabId)}.sock`;
 }
 
+function pidPath(tabId: string): string {
+  return `/tmp/proq/${sessionName(tabId)}.pid`;
+}
+
 /**
- * Spawn a shell terminal in tmux via proq-bridge.
- * Returns true if the session was launched (or already existed).
+ * Spawn a shell terminal via proq-bridge (detached process).
+ * Returns true if the session was launched (or already exists).
  */
 export function spawnShellSession(tabId: string, cmd?: string, cwd?: string): boolean {
   const session = sessionName(tabId);
   const sock = socketPath(tabId);
+  const pid = pidPath(tabId);
 
-  // Idempotent: if tmux session already exists, nothing to do
-  try {
-    execSync(`tmux has-session -t '${session}' 2>/dev/null`, { timeout: 3_000 });
-    return true;
-  } catch {
-    // Session doesn't exist, proceed to create it
+  // Idempotent: if bridge process is still alive, nothing to do
+  if (existsSync(pid)) {
+    try {
+      const p = parseInt(readFileSync(pid, "utf-8").trim(), 10);
+      process.kill(p, 0); // Throws if dead
+      return true;
+    } catch {
+      // Stale PID file — clean up and respawn
+      try { unlinkSync(pid); } catch {}
+    }
   }
 
   const resolvedCmd = cmd || defaultShell();
@@ -71,11 +77,16 @@ export function spawnShellSession(tabId: string, cmd?: string, cwd?: string): bo
   mkdirSync("/tmp/proq", { recursive: true });
 
   const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
-  const tmuxCmd = `tmux new-session -d -s '${session}' -c '${resolvedCwd}' node '${bridgePath}' '${sock}' '${launcherFile}'`;
 
   try {
-    execSync(tmuxCmd, { timeout: 10_000 });
-    console.log(`[pty] launched tmux shell session ${session} for tab ${tabId}`);
+    const child = spawn("node", [bridgePath, sock, launcherFile], {
+      cwd: resolvedCwd,
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+    writeFileSync(pid, String(child.pid));
+    console.log(`[pty] launched bridge process ${child.pid} for tab ${tabId}`);
     return true;
   } catch (err) {
     console.error(`[pty] failed to spawn shell session for ${tabId}:`, err);
@@ -147,7 +158,7 @@ export function attachWs(tabId: string, ws: WebSocket, cwd?: string): void {
   if (!entry) {
     const sock = socketPath(tabId);
 
-    // For shell tabs, ensure tmux session exists
+    // For shell tabs, ensure bridge process exists
     if (!tabId.startsWith("task-")) {
       spawnShellSession(tabId, undefined, cwd);
     }
@@ -218,8 +229,8 @@ export function detachWs(tabId: string): void {
     try { client.close(); } catch {}
   }
   entry.clients.clear();
-  // All tabs now use bridge sockets — no cleanup timer needed.
-  // Shells persist in tmux until explicitly killed via killPty().
+  // All tabs use bridge sockets — no cleanup timer needed.
+  // Shells persist until explicitly killed via killPty().
 }
 
 export function killPty(tabId: string): void {
@@ -232,13 +243,18 @@ export function killPty(tabId: string): void {
     try { entry.socket.destroy(); } catch {}
   }
 
-  // Kill the tmux session
+  // Kill the bridge process group
   const session = sessionName(tabId);
+  const pid = pidPath(tabId);
   try {
-    execSync(`tmux kill-session -t '${session}'`, { timeout: 5_000 });
-    console.log(`[pty] killed tmux session ${session}`);
+    if (existsSync(pid)) {
+      const p = parseInt(readFileSync(pid, "utf-8").trim(), 10);
+      process.kill(-p, "SIGTERM"); // Kill process group
+      unlinkSync(pid);
+      console.log(`[pty] killed bridge process ${p} (${session})`);
+    }
   } catch {
-    // Session may already be gone
+    // Process may already be gone
   }
 
   // Clean up launcher script and socket files for shell tabs

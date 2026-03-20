@@ -122,7 +122,7 @@
 }
 
 .xterm.enable-mouse-events {
-    /* When mouse events are enabled (eg. tmux), revert to the standard pointer cursor */
+    /* When mouse events are enabled, revert to the standard pointer cursor */
     cursor: default;
 }
 

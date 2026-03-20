@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, updateProject, deleteProject } from "@/lib/db";
+import { emitProjectUpdate } from "@/lib/task-events";
+import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,11 +16,17 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
-  const body = await request.json();
-  const updated = await updateProject(id, body);
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
+  // Strip internal _source flag before persisting
+  const { _source, ...fields } = body;
+  const updated = await updateProject(id, fields);
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  // Emit SSE for server-visible project changes (serverUrl, etc.)
+  // so the frontend updates in real-time regardless of who made the change.
+  emitProjectUpdate(id, fields);
   return NextResponse.json(updated);
 }
 

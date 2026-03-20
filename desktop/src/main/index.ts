@@ -1,14 +1,18 @@
-import { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell, powerMonitor } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, nativeTheme, ipcMain, dialog, shell, powerMonitor } from 'electron'
 import { join } from 'path'
+import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
-import { getConfig, setConfig, resetConfig } from './config'
+import iconDark from '../../resources/icon.png?asset'
+import iconLight from '../../resources/icon-light.png?asset'
+import iconDevDark from '../../resources/icon-dev-dark.png?asset'
+import iconDevLight from '../../resources/icon-dev-light.png?asset'
+import { getConfig, setConfig, resetConfig, isDevMode } from './config'
 import {
   checkNodeVersion,
-  checkTmux,
-  installTmux,
   checkClaudeCli,
   checkXcodeTools,
+  installXcodeTools,
+  installClaude,
   cloneProq,
   validateExistingInstall,
   runNpmInstall,
@@ -18,19 +22,44 @@ import {
 import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit } from './server'
 import { checkForUpdates, applyUpdate } from './updater'
 import { startUpdateScheduler, stopUpdateScheduler } from './update-scheduler'
+import { initShellUpdater, checkForShellUpdate, installShellUpdate, startShellUpdateScheduler, stopShellUpdateScheduler } from './shell-updater'
 
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
-try {
-  require('fix-path')()
-} catch {
-  // fix-path may fail in some environments, proceed without it
+import { ensurePath } from './shell-path'
+ensurePath()
+
+function getIcon(): Electron.NativeImage {
+  const dark = nativeTheme.shouldUseDarkColors
+  const path = is.dev ? (dark ? iconDevDark : iconDevLight) : (dark ? iconDark : iconLight)
+  return nativeImage.createFromPath(path)
 }
 
 let mainWindow: BrowserWindow | null = null
 let isResetting = false
+let isQuitting = false
+let isTransitioning = false
 let healthInterval: ReturnType<typeof setInterval> | null = null
 let consecutiveFailures = 0
 let isRecovering = false
+
+function getLogPath(): string {
+  try {
+    return join(app.getPath('userData'), 'desktop.log')
+  } catch {
+    return join(getConfig().proqPath, 'data', 'desktop.log')
+  }
+}
+
+function log(msg: string): void {
+  const line = `[${new Date().toISOString()}] ${msg}\n`
+  try { fs.appendFileSync(getLogPath(), line) } catch { /* */ }
+}
+
+function safeSend(channel: string, ...args: unknown[]): void {
+  if (!isQuitting && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, ...args)
+  }
+}
 
 function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
   const config = getConfig()
@@ -39,7 +68,7 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
     show: false,
     backgroundColor: '#09090b',
     autoHideMenuBar: true,
-    icon,
+    icon: getIcon(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -72,11 +101,12 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
 
     case 'app': {
       const bounds = config.windowBounds
+      const validBounds = bounds && bounds.width >= 800 && bounds.height >= 600 ? bounds : null
       Object.assign(windowOptions, {
-        width: bounds?.width || 1400,
-        height: bounds?.height || 900,
-        x: bounds?.x,
-        y: bounds?.y,
+        width: validBounds?.width || 1400,
+        height: validBounds?.height || 900,
+        x: validBounds?.x,
+        y: validBounds?.y,
         minWidth: 800,
         minHeight: 600,
         titleBarStyle: 'hiddenInset' as const,
@@ -120,24 +150,26 @@ function loadRendererPage(win: BrowserWindow, hash?: string): void {
 function registerIpcHandlers(): void {
   // Setup
   ipcMain.handle('setup:check-node', () => checkNodeVersion())
-  ipcMain.handle('setup:check-tmux', () => checkTmux())
-  ipcMain.handle('setup:install-tmux', () => installTmux())
   ipcMain.handle('setup:check-claude', () => checkClaudeCli())
   ipcMain.handle('setup:check-xcode', () => checkXcodeTools())
+  ipcMain.handle('setup:install-xcode', () => installXcodeTools())
+  ipcMain.handle('setup:install-claude', () =>
+    installClaude((line) => safeSend('setup:log', line))
+  )
   ipcMain.handle('setup:clone', (_e, targetDir: string, overwrite?: boolean) => cloneProq(targetDir, overwrite))
   ipcMain.handle('setup:validate', (_e, dirPath: string) => validateExistingInstall(dirPath))
 
   ipcMain.handle('setup:npm-install', async () => {
     const { proqPath } = getConfig()
     return runNpmInstall(proqPath, (line) => {
-      mainWindow?.webContents.send('setup:log', line)
+      safeSend('setup:log', line)
     })
   })
 
   ipcMain.handle('setup:build', async () => {
     const { proqPath } = getConfig()
     return runNpmBuild(proqPath, (line) => {
-      mainWindow?.webContents.send('setup:log', line)
+      safeSend('setup:log', line)
     })
   })
 
@@ -160,10 +192,15 @@ function registerIpcHandlers(): void {
     return result.filePaths[0]
   })
 
-  // Server
+  // Wizard complete — main process takes over to show splash + start server
+  ipcMain.handle('wizard:complete', () => {
+    showSplashAndStartServer()
+  })
+
+  // Server (used by splash Retry button)
   ipcMain.handle('server:start', async () => {
     const result = await startServer((line) => {
-      mainWindow?.webContents.send('server:log', line)
+      safeSend('server:log', line)
     })
     if (result.ok) {
       transitionToApp()
@@ -174,7 +211,7 @@ function registerIpcHandlers(): void {
   // Updates
   ipcMain.handle('updates:check', () => checkForUpdates())
   ipcMain.handle('updates:apply', () =>
-    applyUpdate((line) => mainWindow?.webContents.send('setup:log', line))
+    applyUpdate((line) => safeSend('setup:log', line))
   )
   ipcMain.handle('updates:apply-and-restart', async () => {
     try {
@@ -194,34 +231,52 @@ function registerIpcHandlers(): void {
       })
       mainWindow = splashWindow
 
+      // Only forward friendly status lines to the splash — raw command
+      // output (build warnings, npm noise) is silently dropped so it
+      // doesn't flood the small splash window.
+      const sendStatus = (line: string): void => {
+        safeSend('server:log', line)
+      }
+
+      sendStatus('Pulling updates...')
       const result = await applyUpdate((line) => {
-        mainWindow?.webContents.send('server:log', line)
+        const t = line.trim()
+        if (t === 'Installing dependencies...' || t === 'Building...') {
+          sendStatus(t)
+        }
       })
 
       if (!result.ok) {
-        mainWindow?.webContents.send('server:error', result.error || 'Update failed')
-        return result
+        // Build may exit non-zero (e.g. lint warnings) but still produce
+        // working artifacts — attempt to start the server anyway.
+        sendStatus(`Build warning: ${result.error?.split('\n').pop() || 'unknown error'}`)
+        await new Promise((r) => setTimeout(r, 3000))
+        sendStatus('Starting server anyway...')
       }
 
-      // Restart server
+      // Restart server — startServer streams its own status via onLog
       const serverResult = await startServer((line) => {
-        mainWindow?.webContents.send('server:log', line)
+        safeSend('server:log', line)
       })
 
       if (serverResult.ok) {
         await new Promise((r) => setTimeout(r, 1500))
         transitionToApp()
       } else {
-        mainWindow?.webContents.send('server:error', serverResult.error || 'Server failed to start')
+        safeSend('server:error', serverResult.error || 'Server failed to start')
       }
 
       return { ok: true }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e)
-      mainWindow?.webContents.send('server:error', message)
+      safeSend('server:error', 'Update failed. Click Retry to try again.')
       return { ok: false, error: message }
     }
   })
+
+  // Shell updates
+  ipcMain.handle('shell-update:check', () => checkForShellUpdate())
+  ipcMain.handle('shell-update:install', () => installShellUpdate())
 
   // App info
   ipcMain.handle('app:version', () => app.getVersion())
@@ -231,12 +286,17 @@ function registerIpcHandlers(): void {
 
 async function recoverServer(): Promise<void> {
   if (isRecovering) return
+  // Don't recover if setup isn't complete (wizard is showing)
+  const config = getConfig()
+  if (!config.setupComplete) return
   isRecovering = true
   try {
-    const config = getConfig()
     const result = await restartServer()
-    if (result.ok && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.loadURL(`http://localhost:${config.port}`)
+    if (result.ok) {
+      const url = `http://localhost:${config.port}`
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.loadURL(url)
+      }
     }
   } finally {
     isRecovering = false
@@ -270,21 +330,10 @@ function stopHealthMonitor(): void {
 
 // ── App Lifecycle ─────────────────────────────────────────────────────
 
-function transitionToApp(): void {
+function createAppWindow(): BrowserWindow {
   const config = getConfig()
   const appWindow = createWindow('app')
   appWindow.loadURL(`http://localhost:${config.port}`)
-
-  const previousWindow = mainWindow
-  appWindow.webContents.once('did-finish-load', () => {
-    if (previousWindow && previousWindow !== appWindow && !previousWindow.isDestroyed()) {
-      previousWindow.close()
-    }
-    mainWindow = appWindow
-    startHealthMonitor()
-    startUpdateScheduler(appWindow)
-    onServerExit(() => recoverServer())
-  })
 
   // Retry loading if the page fails (e.g. Cmd-R while server is slow)
   appWindow.webContents.on('did-fail-load', (_e, _code, _desc, url, isMainFrame) => {
@@ -300,52 +349,131 @@ function transitionToApp(): void {
     if (url.startsWith('http')) shell.openExternal(url)
     return { action: 'deny' }
   })
+
+  return appWindow
+}
+
+function transitionToApp(): void {
+  // Close previous window immediately — don't leave wizard/splash visible
+  isTransitioning = true
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.close()
+  }
+
+  const appWindow = createAppWindow()
+  mainWindow = appWindow
+  isTransitioning = false
+
+  appWindow.webContents.once('did-finish-load', () => {
+    startHealthMonitor()
+    startUpdateScheduler(appWindow)
+    initShellUpdater()
+    startShellUpdateScheduler()
+    onServerExit(() => recoverServer())
+  })
+}
+
+async function showSplashAndStartServer(): Promise<void> {
+  const config = getConfig()
+
+  // Check if server is already running before showing splash
+  const alreadyHealthy = await tryConnectToExisting(config.port)
+  if (alreadyHealthy) {
+    log('showSplash: existing server healthy, transitioning directly')
+    transitionToApp()
+    return
+  }
+
+  // Create splash before closing wizard so there's never zero windows
+  // (zero windows triggers app.quit via window-all-closed)
+  const previousWindow = mainWindow
+  mainWindow = createWindow('splash')
+  loadRendererPage(mainWindow, 'splash')
+  if (previousWindow && !previousWindow.isDestroyed()) {
+    previousWindow.close()
+  }
+  await new Promise<void>((resolve) => {
+    mainWindow!.webContents.once('did-finish-load', () => resolve())
+  })
+  log('showSplash: splash ready')
+
+  // Auto-update web content on launch (unless dev mode)
+  if (!isDevMode()) {
+    try {
+      safeSend('server:log', 'Checking for updates...')
+      const updateCheck = await checkForUpdates()
+      if (updateCheck.available) {
+        log(`showSplash: ${updateCheck.commits.length} update(s) available, applying`)
+        safeSend('server:log', 'Pulling updates...')
+        const updateResult = await applyUpdate((line) => {
+          const t = line.trim()
+          if (t === 'Installing dependencies...' || t === 'Building...') {
+            safeSend('server:log', t)
+          }
+        })
+        if (!updateResult.ok) {
+          log(`showSplash: update warning: ${updateResult.error}`)
+          // Continue to start server anyway — build may have partial success
+        }
+      } else {
+        log('showSplash: already up to date')
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      log(`showSplash: update check failed (non-fatal): ${message}`)
+      // Continue — update failure shouldn't block app launch
+    }
+  }
+
+  // Start server
+  try {
+    const result = await startServer((line) => {
+      log(`server: ${line.trim()}`)
+      safeSend('server:log', line)
+    })
+
+    log(`showSplash: startServer result ok=${result.ok} error=${result.error}`)
+    if (result.ok) {
+      await new Promise((r) => setTimeout(r, 1500))
+      transitionToApp()
+    } else {
+      safeSend('server:error', result.error || 'Server failed to start')
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    log(`showSplash: startServer exception: ${message}`)
+    safeSend('server:error', message)
+  }
 }
 
 async function launchApp(): Promise<void> {
   const config = getConfig()
+  log(`launchApp: setupComplete=${config.setupComplete} proqPath=${config.proqPath} port=${config.port} devMode=${config.devMode}`)
+  log(`launchApp: PATH=${process.env.PATH}`)
 
   if (!config.setupComplete) {
-    // First run — show wizard
+    // First run — show wizard. When wizard calls wizard:complete,
+    // the IPC handler calls showSplashAndStartServer().
     mainWindow = createWindow('wizard')
     loadRendererPage(mainWindow, 'wizard')
   } else {
-    // Check if server is already running (e.g. orphan from previous session)
-    const alreadyHealthy = await tryConnectToExisting(config.port)
-    if (alreadyHealthy) {
-      transitionToApp()
-      return
-    }
-
-    // Normal launch — show splash, start server, then navigate to app
-    mainWindow = createWindow('splash')
-    loadRendererPage(mainWindow, 'splash')
-
-    try {
-      const result = await startServer((line) => {
-        mainWindow?.webContents.send('server:log', line)
-      })
-
-      if (result.ok) {
-        // Brief pause so "Projecting..." is visible on the splash
-        await new Promise((r) => setTimeout(r, 1500))
-        transitionToApp()
-      } else {
-        mainWindow?.webContents.send('server:error', result.error || 'Server failed to start')
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      mainWindow?.webContents.send('server:error', message)
-    }
+    // Normal launch — splash → server → app
+    await showSplashAndStartServer()
   }
 }
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.proq.desktop')
 
-  // Set dock icon on macOS (in dev mode it doesn't come from the app bundle)
+  // Set dock icon on macOS (in dev mode always; in prod for theme switching)
   if (process.platform === 'darwin' && app.dock) {
-    app.dock.setIcon(icon)
+    app.dock.setIcon(getIcon())
+    nativeTheme.on('updated', () => {
+      if (app.dock) app.dock.setIcon(getIcon())
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.setIcon(getIcon())
+      }
+    })
   }
 
   app.on('browser-window-created', (_, window) => {
@@ -366,9 +494,7 @@ app.whenReady().then(() => {
                   applicationName: 'proq',
                   applicationVersion: app.getVersion(),
                   version: '',
-                  copyright: 'Build beautiful things',
-                  iconPath: icon,
-                  icons: [nativeImage.createFromPath(icon)]
+                  copyright: 'Build beautiful things'
                 })
                 app.showAboutPanel()
               }
@@ -382,7 +508,7 @@ app.whenReady().then(() => {
                 } else if (!result.available) {
                   dialog.showMessageBox({
                     type: 'info',
-                    icon: nativeImage.createFromPath(icon),
+                    icon: getIcon(),
                     buttons: ['OK'],
                     message: 'You\'re up to date',
                     detail: 'proq is running the latest version.'
@@ -394,16 +520,20 @@ app.whenReady().then(() => {
             {
               label: 'Reset to Defaults…',
               click: async (): Promise<void> => {
+                const config = getConfig()
                 const { response } = await dialog.showMessageBox({
                   type: 'warning',
-                  icon: nativeImage.createFromPath(icon),
+                  icon: getIcon(),
                   buttons: ['Cancel', 'Reset'],
                   defaultId: 0,
                   message: 'Reset proq Desktop?',
-                  detail: 'This will clear all settings and restart the setup wizard.'
+                  detail: `This resets the desktop app and restarts the setup wizard. Your project data at ${config.proqPath} will not be affected.\n\nUse this to switch to dev mode or change your proq installation path.`
                 })
                 if (response === 1) {
                   isResetting = true
+                  stopHealthMonitor()
+                  stopUpdateScheduler()
+                  stopShellUpdateScheduler()
                   await stopServer()
                   resetConfig()
                   // Close all existing windows before relaunching
@@ -411,13 +541,26 @@ app.whenReady().then(() => {
                     win.destroy()
                   }
                   mainWindow = null
+                  await launchApp()
                   isResetting = false
-                  launchApp()
                 }
               }
             },
             { type: 'separator' },
             { role: 'quit' }
+          ]
+        },
+        {
+          label: 'File',
+          submenu: [
+            {
+              label: 'New Window',
+              accelerator: 'CmdOrCtrl+N',
+              click: (): void => {
+                const config = getConfig()
+                if (config.setupComplete) createAppWindow()
+              }
+            }
           ]
         },
         { role: 'editMenu' },
@@ -431,6 +574,7 @@ app.whenReady().then(() => {
   powerMonitor.on('suspend', () => {
     stopHealthMonitor()
     stopUpdateScheduler()
+    stopShellUpdateScheduler()
   })
 
   powerMonitor.on('resume', async () => {
@@ -439,10 +583,25 @@ app.whenReady().then(() => {
     const healthy = await healthCheck(config.port)
     if (!healthy) {
       recoverServer()
+    } else {
+      const url = `http://localhost:${config.port}`
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          const alive = await win.webContents.executeJavaScript(
+            'document.body?.children.length > 0'
+          )
+          if (!alive) win.loadURL(url)
+        } catch {
+          win.loadURL(url)
+        }
+      }
     }
     startHealthMonitor()
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      startUpdateScheduler(mainWindow)
+    startShellUpdateScheduler()
+    const firstWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
+    if (firstWindow) {
+      startUpdateScheduler(firstWindow)
     }
   })
 
@@ -451,17 +610,21 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  if (!isResetting) app.quit()
+  if (process.platform !== 'darwin' && !isResetting && !isTransitioning) app.quit()
 })
 
 app.on('before-quit', async () => {
+  isQuitting = true
   stopHealthMonitor()
   stopUpdateScheduler()
+  stopShellUpdateScheduler()
   await stopServer()
 })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    launchApp()
+    const config = getConfig()
+    if (config.setupComplete) createAppWindow()
+    else launchApp()
   }
 })

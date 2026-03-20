@@ -47,108 +47,108 @@ const MODES: { value: TaskMode; label: string }[] = [
 // ── Schedule picker helpers ──
 
 type Frequency = 'interval' | 'daily' | 'weekly';
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_ABBREVS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+type IntervalUnit = 'minutes' | 'hours' | 'days';
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const HOURS = Array.from({ length: 24 }, (_, i) => {
   const h = i % 12 || 12;
   const ampm = i < 12 ? 'am' : 'pm';
   return { value: i, label: `${h}:00 ${ampm}` };
 });
-const INTERVALS = [
-  { value: '30m', label: 'Every 30 minutes' },
-  { value: '1h', label: 'Every hour' },
-  { value: '2h', label: 'Every 2 hours' },
-  { value: '3h', label: 'Every 3 hours' },
-  { value: '4h', label: 'Every 4 hours' },
-  { value: '6h', label: 'Every 6 hours' },
-  { value: '8h', label: 'Every 8 hours' },
-  { value: '12h', label: 'Every 12 hours' },
-];
 
 interface ScheduleState {
   frequency: Frequency;
-  interval: string;
+  intervalAmount: number;
+  intervalUnit: IntervalUnit;
   hour: number;
-  day: number;
+  days: number[]; // 0=Sun, 1=Mon, ... 6=Sat
 }
 
 function scheduleToString(s: ScheduleState): string {
   if (s.frequency === 'interval') {
-    const match = s.interval.match(/^(\d+)([hm])$/);
-    if (match) {
-      const [, n, unit] = match;
-      if (unit === 'm') return `*/${n} * * * *`;
-      return `0 */${n} * * *`;
-    }
-    return `0 */6 * * *`;
+    const n = Math.max(1, s.intervalAmount);
+    if (s.intervalUnit === 'minutes') return `*/${n} * * * *`;
+    if (s.intervalUnit === 'hours') return `0 */${n} * * *`;
+    // days: run at the given hour every N days — approximate with */N in dom field
+    return `0 ${s.hour} */${n} * *`;
   }
   if (s.frequency === 'daily') return `0 ${s.hour} * * *`;
-  return `0 ${s.hour} * * ${s.day}`;
+  // weekly: multiple days
+  const dayStr = s.days.length === 0 ? '*' : s.days.sort().join(',');
+  return `0 ${s.hour} * * ${dayStr}`;
 }
 
 function parseScheduleState(schedule: string): ScheduleState {
   const s = schedule.trim().toLowerCase();
+  const defaults: ScheduleState = { frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] };
 
-  // interval: "every Xh", "every Xm"
-  const intervalMatch = s.match(/^every\s+(\d+\s*[hm])/);
-  if (intervalMatch) {
-    const val = intervalMatch[1].replace(/\s/g, '');
-    const found = INTERVALS.find((i) => i.value === val);
-    return { frequency: 'interval', interval: found ? val : '6h', hour: 9, day: 1 };
+  // Friendly: "every Xh/Xm"
+  const friendlyInterval = s.match(/^every\s+(\d+)\s*([hmd])/);
+  if (friendlyInterval) {
+    const n = parseInt(friendlyInterval[1]);
+    const u = friendlyInterval[2];
+    const unit: IntervalUnit = u === 'm' ? 'minutes' : u === 'd' ? 'days' : 'hours';
+    return { ...defaults, frequency: 'interval', intervalAmount: n, intervalUnit: unit };
   }
 
-  // daily: "daily at Xam/pm" or cron "M H * * *"
+  // Friendly: "daily at Xam/pm"
   const dailyMatch = s.match(/daily\s+(?:at\s+)?(\d{1,2})\s*(am|pm)?/);
   if (dailyMatch) {
     let h = parseInt(dailyMatch[1]);
     if (dailyMatch[2] === 'pm' && h < 12) h += 12;
     if (dailyMatch[2] === 'am' && h === 12) h = 0;
-    return { frequency: 'daily', interval: '6h', hour: h, day: 1 };
+    return { ...defaults, frequency: 'daily', hour: h };
   }
 
-  // weekly: "every mon/tue... at Xam/pm"
+  // Friendly: "every mon/tue..."
   const weeklyMatch = s.match(/every\s+(sun|mon|tue|wed|thu|fri|sat)\w*\s+(?:at\s+)?(\d{1,2})\s*(am|pm)?/);
   if (weeklyMatch) {
-    const dayIdx = DAY_ABBREVS.indexOf(weeklyMatch[1]);
+    const dayAbbrevs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const dayIdx = dayAbbrevs.indexOf(weeklyMatch[1]);
     let h = parseInt(weeklyMatch[2]);
     if (weeklyMatch[3] === 'pm' && h < 12) h += 12;
     if (weeklyMatch[3] === 'am' && h === 12) h = 0;
-    return { frequency: 'weekly', interval: '6h', hour: h, day: dayIdx >= 0 ? dayIdx : 1 };
+    return { ...defaults, frequency: 'weekly', hour: h, days: dayIdx >= 0 ? [dayIdx] : [1] };
   }
 
-  // cron: try to detect "M H * * *" (daily) or "M H * * D" (weekly)
+  // Cron expression
   const parts = s.split(/\s+/);
   if (parts.length === 5) {
-    const min = parseInt(parts[0]);
     const hour = parseInt(parts[1]);
     const dow = parts[4];
-    if (dow === '*' && parts[2] === '*' && parts[3] === '*' && !isNaN(hour)) {
-      return { frequency: 'daily', interval: '6h', hour, day: 1 };
-    }
-    if (dow !== '*' && parts[2] === '*' && parts[3] === '*' && !isNaN(hour)) {
-      return { frequency: 'weekly', interval: '6h', hour, day: parseInt(dow) || 0 };
-    }
-    // interval-like cron: */N or 0 */N
+
+    // Interval: */N in minute or hour field
     if (parts[0].startsWith('*/')) {
-      return { frequency: 'interval', interval: `${parts[0].slice(2)}m`, hour: 9, day: 1 };
+      return { ...defaults, frequency: 'interval', intervalAmount: parseInt(parts[0].slice(2)) || 30, intervalUnit: 'minutes' };
     }
     if (parts[1].startsWith('*/')) {
-      return { frequency: 'interval', interval: `${parts[1].slice(2)}h`, hour: 9, day: 1 };
+      return { ...defaults, frequency: 'interval', intervalAmount: parseInt(parts[1].slice(2)) || 6, intervalUnit: 'hours' };
+    }
+    if (parts[2].startsWith('*/')) {
+      return { ...defaults, frequency: 'interval', intervalAmount: parseInt(parts[2].slice(2)) || 1, intervalUnit: 'days', hour: isNaN(hour) ? 9 : hour };
+    }
+
+    // Weekly: specific days
+    if (dow !== '*' && parts[2] === '*' && parts[3] === '*') {
+      const days = dow.split(',').map((d) => parseInt(d)).filter((d) => !isNaN(d));
+      return { ...defaults, frequency: 'weekly', hour: isNaN(hour) ? 9 : hour, days: days.length > 0 ? days : [1] };
+    }
+
+    // Daily: M H * * *
+    if (dow === '*' && parts[2] === '*' && parts[3] === '*' && !isNaN(hour)) {
+      return { ...defaults, frequency: 'daily', hour };
     }
   }
 
-  // Default
-  return { frequency: 'daily', interval: '6h', hour: 9, day: 1 };
+  return defaults;
 }
 
-function SelectField({ value, onChange, children, className = '' }: {
+function SelectField({ value, onChange, children }: {
   value: string | number;
   onChange: (v: string) => void;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={`relative ${className}`}>
+    <div className="relative">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -166,7 +166,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null); // job id or 'new'
   const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true });
-  const [schedState, setSchedState] = useState<ScheduleState>({ frequency: 'daily', interval: '6h', hour: 9, day: 1 });
+  const [schedState, setSchedState] = useState<ScheduleState>({ frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] });
   const nameRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
@@ -250,7 +250,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   };
 
   const startNew = () => {
-    const defaultSched: ScheduleState = { frequency: 'daily', interval: '6h', hour: 9, day: 1 };
+    const defaultSched: ScheduleState = { frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] };
     setEditing('new');
     setForm({ name: '', prompt: '', schedule: scheduleToString(defaultSched), mode: 'auto', enabled: true });
     setSchedState(defaultSched);
@@ -441,41 +441,103 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
 
             {/* Schedule */}
             <div className="border-t border-border-default/60 pt-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <SelectField value={schedState.frequency} onChange={(v) => updateSched({ frequency: v as Frequency })}>
-                  <option value="interval">Every</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                </SelectField>
+              {/* Frequency selector — pill style */}
+              <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
+                {([
+                  ['interval', 'Every'],
+                  ['daily', 'Daily'],
+                  ['weekly', 'Weekly'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => updateSched({ frequency: value })}
+                    className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
+                      schedState.frequency === value
+                        ? 'text-text-chrome-active'
+                        : 'text-text-tertiary hover:text-text-secondary'
+                    }`}
+                  >
+                    {schedState.frequency === value && (
+                      <div
+                        className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
+                        style={{ zIndex: -1 }}
+                      />
+                    )}
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-                {schedState.frequency === 'interval' && (
-                  <SelectField value={schedState.interval} onChange={(v) => updateSched({ interval: v })}>
-                    {INTERVALS.map((i) => (
-                      <option key={i.value} value={i.value}>{i.label.replace('Every ', '')}</option>
+              {/* Interval: number + unit */}
+              {schedState.frequency === 'interval' && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={schedState.intervalAmount}
+                    onChange={(e) => updateSched({ intervalAmount: Math.max(1, parseInt(e.target.value) || 1) })}
+                    className="w-16 bg-surface-deep border border-border-default rounded-md px-2.5 py-1.5 text-xs text-text-primary text-center focus:outline-none focus:border-border-strong [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <SelectField value={schedState.intervalUnit} onChange={(v) => updateSched({ intervalUnit: v as IntervalUnit })}>
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                  </SelectField>
+                </div>
+              )}
+
+              {/* Daily: time picker */}
+              {schedState.frequency === 'daily' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-text-tertiary">at</span>
+                  <SelectField value={schedState.hour} onChange={(v) => updateSched({ hour: parseInt(v) })}>
+                    {HOURS.map((h) => (
+                      <option key={h.value} value={h.value}>{h.label}</option>
                     ))}
                   </SelectField>
-                )}
+                </div>
+              )}
 
-                {schedState.frequency === 'weekly' && (
-                  <SelectField value={schedState.day} onChange={(v) => updateSched({ day: parseInt(v) })}>
-                    {DAYS.map((d, i) => (
-                      <option key={i} value={i}>{d}</option>
-                    ))}
-                  </SelectField>
-                )}
-
-                {(schedState.frequency === 'daily' || schedState.frequency === 'weekly') && (
-                  <>
+              {/* Weekly: day checkboxes + time */}
+              {schedState.frequency === 'weekly' && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-1">
+                    {DAY_LABELS.map((label, i) => {
+                      const active = schedState.days.includes(i);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            const next = active
+                              ? schedState.days.filter((d) => d !== i)
+                              : [...schedState.days, i];
+                            // Ensure at least one day selected
+                            if (next.length > 0) updateSched({ days: next });
+                          }}
+                          className={`w-7 h-7 rounded-md text-[11px] font-medium transition-colors ${
+                            active
+                              ? 'bg-bronze-600/80 text-white border border-bronze-500/60'
+                              : 'bg-surface-deep text-text-tertiary border border-border-default hover:border-border-strong hover:text-text-secondary'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-text-tertiary">at</span>
                     <SelectField value={schedState.hour} onChange={(v) => updateSched({ hour: parseInt(v) })}>
                       {HOURS.map((h) => (
                         <option key={h.value} value={h.value}>{h.label}</option>
                       ))}
                     </SelectField>
-                  </>
-                )}
-              </div>
-              <p className="mt-2 text-[10px] text-text-chrome font-mono">{form.schedule}</p>
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-2.5 text-[10px] text-text-chrome font-mono">{form.schedule}</p>
             </div>
 
             {/* Actions */}

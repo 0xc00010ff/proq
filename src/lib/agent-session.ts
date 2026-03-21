@@ -470,6 +470,13 @@ function processStreamEvent(
     const costUsd = event.total_cost_usd as number | undefined;
     const resultText = event.result as string | undefined;
 
+    // Set status BEFORE appendBlock so the broadcast carries active: false
+    if (isError) {
+      session.status = "error";
+    } else {
+      session.status = "done";
+    }
+
     appendBlock(session, {
       type: "status",
       subtype: isError ? "error" : "complete",
@@ -479,13 +486,6 @@ function processStreamEvent(
       turns: event.num_turns as number | undefined,
       error: isError ? resultText || "Agent error" : undefined,
     });
-
-    // Mark session done/error based on result — actual DB persistence happens in wireProcess close handler
-    if (isError) {
-      session.status = "error";
-    } else {
-      session.status = "done";
-    }
   }
 }
 
@@ -536,7 +536,9 @@ export async function continueSession(
     throw new Error("Session is already running");
   }
 
-  // Append user block so it renders immediately
+  // Set running BEFORE appending user block so it carries active: true
+  // and the client shows the thinking indicator immediately
+  session.status = "running";
   appendBlock(session, {
     type: "user",
     text,
@@ -544,8 +546,6 @@ export async function continueSession(
   });
 
   const settings = await getSettings();
-  session.status = "running";
-  broadcast(session, { type: "active", active: true });
 
   const startTime = Date.now();
 

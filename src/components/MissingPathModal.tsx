@@ -43,7 +43,7 @@ export function MissingPathModal({ project, onClose, onRelocate, onRemove }: Mis
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-md bg-surface-detail border border-border-default rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-md bg-surface-detail border border-border-default rounded-lg shadow-2xl animate-in fade-in duration-100">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-text-placeholder hover:text-text-secondary p-1 z-10"

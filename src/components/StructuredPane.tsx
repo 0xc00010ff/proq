@@ -211,8 +211,19 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
   const isRunning = active;
   const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
-  const isThinking = isRunning && !streamingText && blocks.length > 0 &&
+  const shouldThink = isRunning && !streamingText && blocks.length > 0 &&
     lastBlock?.type !== 'tool_use';
+
+  // Debounce: only show after the condition holds for 300ms to avoid blips
+  // (e.g. brief gap between last content block and result/active:false)
+  const [isThinking, setIsThinking] = useState(false);
+  useEffect(() => {
+    if (shouldThink) {
+      const timer = setTimeout(() => setIsThinking(true), 300);
+      return () => clearTimeout(timer);
+    }
+    setIsThinking(false);
+  }, [shouldThink]);
 
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =

@@ -85,13 +85,13 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="shrink-0 p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+                className="shrink-0 p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover"
                 title={expanded ? 'Restore size' : 'Expand'}
               >
                 {expanded ? <Minimize2Icon className="w-3.5 h-3.5" /> : <Maximize2Icon className="w-3.5 h-3.5" />}
               </button>
               <DialogPrimitive.Close
-                className="shrink-0 p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+                className="shrink-0 p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover"
               >
                 <XIcon className="w-4 h-4" />
               </DialogPrimitive.Close>

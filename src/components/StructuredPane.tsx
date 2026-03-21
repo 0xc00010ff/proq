@@ -210,13 +210,14 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     }
   }
 
-  // isRunning: stop button — WS active is primary, agentStatus (SSE) is fallback for reliability
-  // isThinking: if agent is active and we're not already showing streaming text, show indicator
-  const isRunning = active || agentStatus === 'running' || agentStatus === 'starting';
-  const isThinking = active && !streamingText && blocks.length > 0;
-
-  // Debug: trace active state
-  console.log('[StructuredPane]', { active, agentStatus, isRunning, isThinking, streamingText: !!streamingText, blocksLen: blocks.length });
+  // Use the blocks themselves as source of truth for "session ended" — immune to SSE lag
+  const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
+  const sessionEnded = lastBlock?.type === 'status' &&
+    (lastBlock.subtype === 'complete' || lastBlock.subtype === 'error' || lastBlock.subtype === 'abort');
+  // isRunning: active (WS) or agentStatus (SSE), but never after the session's final status block
+  const isRunning = !sessionEnded && (active || agentStatus === 'running' || agentStatus === 'starting');
+  // isThinking: show whenever isRunning and we're not already showing streaming text
+  const isThinking = isRunning && !streamingText && blocks.length > 0;
 
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =

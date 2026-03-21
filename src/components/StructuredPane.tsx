@@ -210,12 +210,10 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     }
   }
 
-  // isRunning: stop button uses agentStatus fallback (SSE) for reliability
-  // isThinking: uses WS active only (no SSE fallback — SSE lags behind WS on completion)
+  // isRunning: stop button — WS active is primary, agentStatus (SSE) is fallback for reliability
+  // isThinking: if agent is active and we're not already showing streaming text, show indicator
   const isRunning = active || agentStatus === 'running' || agentStatus === 'starting';
-  const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
-  const isThinking = active && !streamingText && blocks.length > 0 &&
-    lastBlock?.type !== 'tool_use';
+  const isThinking = active && !streamingText && blocks.length > 0;
 
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =

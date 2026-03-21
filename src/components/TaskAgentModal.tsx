@@ -31,6 +31,7 @@ interface TaskAgentModalProps {
 
 export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch }: TaskAgentModalProps) {
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleModalResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -73,7 +74,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         <DialogPrimitive.Content
           ref={modalRef}
           className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden animate-fade-in"
-          style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: 'calc(100% - 2rem)', maxWidth: '80rem', height: '90vh' }}
+          style={expanded ? { width: '100vw', height: '100vh', borderRadius: 0 } : modalSize ? { width: modalSize.width, height: modalSize.height } : { width: 'calc(100% - 2rem)', maxWidth: '80rem', height: '90vh' }}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           {/* Modal header bar */}
@@ -81,11 +82,20 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
             <DialogPrimitive.Title className="text-xs font-medium text-text-primary truncate mr-2">
               {task.title}
             </DialogPrimitive.Title>
-            <DialogPrimitive.Close
-              className="shrink-0 p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
-            >
-              <XIcon className="w-4 h-4" />
-            </DialogPrimitive.Close>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="shrink-0 p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+                title={expanded ? 'Restore size' : 'Expand'}
+              >
+                {expanded ? <Minimize2Icon className="w-3.5 h-3.5" /> : <Maximize2Icon className="w-3.5 h-3.5" />}
+              </button>
+              <DialogPrimitive.Close
+                className="shrink-0 p-1 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+              >
+                <XIcon className="w-4 h-4" />
+              </DialogPrimitive.Close>
+            </div>
           </div>
 
           <TaskAgentDetail

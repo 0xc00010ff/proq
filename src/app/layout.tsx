@@ -22,6 +22,8 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "proq",
   description: "Project management dashboard",

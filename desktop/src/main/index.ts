@@ -562,6 +562,16 @@ app.whenReady().then(() => {
             },
             { type: 'separator' },
             {
+              label: 'Settings…',
+              click: (): void => {
+                const config = getConfig()
+                if (!config.setupComplete) return
+                const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows().find(w => !w.isDestroyed())
+                if (win) win.loadURL(`http://localhost:${config.port}/settings`)
+              }
+            },
+            { type: 'separator' },
+            {
               label: 'Reset to Defaults…',
               click: async (): Promise<void> => {
                 const config = getConfig()

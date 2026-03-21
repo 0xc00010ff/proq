@@ -211,12 +211,8 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
 
   const isRunning = active;
   const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
-  const isThinking = isRunning && !streamingText && blocks.length > 0 && (
-    (lastBlock?.type === 'status' && lastBlock.subtype === 'init') ||
-    (lastBlock?.type === 'tool_result') ||
-    (lastBlock?.type === 'text') ||
-    (lastBlock?.type === 'user')
-  );
+  const isThinking = isRunning && !streamingText && blocks.length > 0 &&
+    lastBlock?.type !== 'tool_use';
 
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =

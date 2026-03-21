@@ -29,13 +29,14 @@ interface StructuredPaneProps {
   visible: boolean;
   taskStatus?: string;
   agentBlocks?: AgentBlock[];
+  initialBlocks?: AgentBlock[];
   followUpDraft?: FollowUpDraft;
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
   onTaskStatusChange?: (status: string) => void;
 }
 
-export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
-  const { blocks, streamingText, sessionDone, sendFollowUp, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
+export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBlocks, initialBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
+  const { blocks, streamingText, sessionDone, sendFollowUp, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks, initialBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

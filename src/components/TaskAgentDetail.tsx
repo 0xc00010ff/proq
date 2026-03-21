@@ -226,7 +226,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
     }
   }, [task.title]);
 
-  // Fetch stored agent blocks for done tasks (no live session, read-only)
+  // Fetch stored agent blocks for done tasks (static, read-only, no WebSocket)
   const needsStaticBlocks = isStructured && task.status === 'done';
   useEffect(() => {
     if (!needsStaticBlocks) {
@@ -240,6 +240,22 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       })
       .catch(() => {});
   }, [projectId, task.id, needsStaticBlocks]);
+
+  // Pre-fetch blocks for verify tasks so history renders instantly while WebSocket connects
+  const needsInitialBlocks = isStructured && task.status === 'verify' && !isDispatched;
+  const [prefetchedBlocks, setPrefetchedBlocks] = useState<AgentBlock[] | null>(null);
+  useEffect(() => {
+    if (!needsInitialBlocks) {
+      setPrefetchedBlocks(null);
+      return;
+    }
+    fetch(`/api/projects/${projectId}/tasks/${task.id}/agent-blocks`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.blocks?.length > 0) setPrefetchedBlocks(data.blocks);
+      })
+      .catch(() => {});
+  }, [projectId, task.id, needsInitialBlocks]);
 
   // Fetch commits for this task
   const hasCommitTracking = !!(task.commitHashes?.length || task.branch || task.startCommit);
@@ -356,6 +372,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             visible={true}
             taskStatus={task.status}
             agentBlocks={fetchedBlocks || undefined}
+            initialBlocks={prefetchedBlocks || undefined}
             followUpDraft={followUpDraft}
             onFollowUpDraftChange={onFollowUpDraftChange}
             onTaskStatusChange={(status) => {

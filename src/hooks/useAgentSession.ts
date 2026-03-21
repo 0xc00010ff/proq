@@ -24,14 +24,25 @@ export function useAgentSession(
   taskId: string,
   projectId: string,
   staticLog?: AgentBlock[],
+  initialBlocks?: AgentBlock[],
 ): UseAgentSessionResult {
-  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || []);
+  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || initialBlocks || []);
   const [connected, setConnected] = useState(false);
   const [sessionDone, setSessionDone] = useState(!!staticLog);
   const wsRef = useRef<WebSocket | null>(null);
   const { streamingText, appendDelta, clearBuffer } = useStreamingBuffer();
 
-  // If static log, just use it directly
+  // Seed blocks from initialBlocks when they arrive (HTTP fetch completes after mount)
+  const initialBlocksApplied = useRef(false);
+  useEffect(() => {
+    if (initialBlocks && initialBlocks.length > 0 && !initialBlocksApplied.current) {
+      initialBlocksApplied.current = true;
+      setBlocks(initialBlocks);
+      setSessionDone(true);
+    }
+  }, [initialBlocks]);
+
+  // If static log, just use it directly (no WebSocket)
   useEffect(() => {
     if (staticLog) {
       setBlocks(staticLog);

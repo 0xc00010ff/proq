@@ -13,15 +13,21 @@ export async function attachAgentWsWithProject(
   const session = getSession(taskId);
 
   if (session) {
-    ws.send(JSON.stringify({ type: "replay", blocks: session.blocks, live: true }));
+    const active = session.status === "running";
+    ws.send(JSON.stringify({ type: "replay", blocks: session.blocks, active }));
     attachClient(taskId, ws);
   } else {
     // No live session — load stored blocks from disk.
-    const blocks = await getTaskAgentBlocks(taskId);
-    ws.send(JSON.stringify({ type: "replay", blocks, live: false }));
-    // If no blocks on disk, the agent may still be starting up.
-    // Register as pending so when the session starts, this client gets attached.
-    if (blocks.length === 0) {
+    // Determine active from task DB (agent may be queued/starting).
+    const [blocks, task] = await Promise.all([
+      getTaskAgentBlocks(taskId),
+      getTask(projectId, taskId),
+    ]);
+    const active = task?.agentStatus === "queued" || task?.agentStatus === "starting" || task?.agentStatus === "running";
+    ws.send(JSON.stringify({ type: "replay", blocks, active }));
+    // If no blocks and agent is dispatched, register as pending so when
+    // the session starts, this client gets attached.
+    if (blocks.length === 0 && active) {
       addPendingClient(taskId, ws);
     }
   }

@@ -14,7 +14,7 @@ interface UseAgentSessionResult {
   blocks: AgentBlock[];
   streamingText: string;
   connected: boolean;
-  sessionDone: boolean;
+  active: boolean;
   sendFollowUp: (text: string, attachments?: TaskAttachment[]) => void;
   approvePlan: (text: string) => void;
   stop: () => void;
@@ -24,29 +24,18 @@ export function useAgentSession(
   taskId: string,
   projectId: string,
   staticLog?: AgentBlock[],
-  initialBlocks?: AgentBlock[],
 ): UseAgentSessionResult {
-  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || initialBlocks || []);
+  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || []);
   const [connected, setConnected] = useState(false);
-  const [sessionDone, setSessionDone] = useState(!!staticLog);
+  const [active, setActive] = useState(!staticLog);
   const wsRef = useRef<WebSocket | null>(null);
   const { streamingText, appendDelta, clearBuffer } = useStreamingBuffer();
-
-  // Seed blocks from initialBlocks when they arrive (HTTP fetch completes after mount)
-  const initialBlocksApplied = useRef(false);
-  useEffect(() => {
-    if (initialBlocks && initialBlocks.length > 0 && !initialBlocksApplied.current) {
-      initialBlocksApplied.current = true;
-      setBlocks(initialBlocks);
-      setSessionDone(true);
-    }
-  }, [initialBlocks]);
 
   // If static log, just use it directly (no WebSocket)
   useEffect(() => {
     if (staticLog) {
       setBlocks(staticLog);
-      setSessionDone(true);
+      setActive(false);
       return;
     }
 
@@ -74,33 +63,9 @@ export function useAgentSession(
 
           if (msg.type === 'replay') {
             clearBuffer();
+            retryCount = 0;
             setBlocks(msg.blocks);
-            // If the server says the session is not live (historical blocks from disk),
-            // mark as done immediately — no agent process is running.
-            if (msg.live === false && msg.blocks.length > 0) {
-              retryCount = 0;
-              setSessionDone(true);
-            } else if (msg.live === false) {
-              retryCount = 0;
-              // No session and no stored blocks — agent may still be starting.
-              // Server registered us as pending; keep "Starting session..." visible.
-            } else if (msg.blocks.length === 0) {
-              retryCount = 0;
-              // Live session but no blocks yet — agent just started.
-              // Keep sessionDone=false so "Starting session..." shows.
-              // We're attached as a client and will receive blocks via WS.
-            } else {
-              retryCount = 0;
-              // Live session — check if agent is between turns or still working
-              const statusBlocks = msg.blocks.filter(
-                (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
-              );
-              const lastStatus = statusBlocks[statusBlocks.length - 1];
-              const lastStatusIdx = lastStatus ? msg.blocks.lastIndexOf(lastStatus) : -1;
-              const hasUserAfter = msg.blocks.slice(lastStatusIdx + 1).some((b) => b.type === 'user');
-              const isDone = lastStatus?.type === 'status' && lastStatus.subtype !== 'init' && !hasUserAfter;
-              setSessionDone(isDone);
-            }
+            setActive(msg.active);
           } else if (msg.type === 'stream_delta') {
             appendDelta(msg.text);
           } else if (msg.type === 'block') {
@@ -123,12 +88,9 @@ export function useAgentSession(
               }
               return [...prev, msg.block];
             });
-            if (msg.block.type === 'status' && msg.block.subtype === 'init' || msg.block.type === 'user') {
-              // New turn starting (follow-up or initial) — reset done state
-              setSessionDone(false);
-            } else if (msg.block.type === 'status' && (msg.block.subtype === 'complete' || msg.block.subtype === 'error' || msg.block.subtype === 'abort')) {
-              setSessionDone(true);
-            }
+            setActive(msg.active);
+          } else if (msg.type === 'active') {
+            setActive(msg.active);
           } else if (msg.type === 'error') {
             // Session not ready yet — retry with backoff
             console.log('[useAgentSession] server error:', msg.error);
@@ -137,8 +99,8 @@ export function useAgentSession(
               ws.close();
               retryTimer = setTimeout(connect, RETRY_DELAY_MS);
             } else {
-              // Exhausted retries — mark as done so the UI doesn't hang
-              setSessionDone(true);
+              // Exhausted retries — mark as not active so the UI doesn't hang
+              setActive(false);
             }
           }
         } catch {
@@ -153,8 +115,8 @@ export function useAgentSession(
           retryCount++;
           retryTimer = setTimeout(connect, RETRY_DELAY_MS);
         } else if (!gotMessage && !cancelled) {
-          // Exhausted retries without ever connecting — mark done so UI doesn't hang
-          setSessionDone(true);
+          // Exhausted retries without ever connecting — mark not active so UI doesn't hang
+          setActive(false);
         }
       };
 
@@ -194,5 +156,5 @@ export function useAgentSession(
     }
   }, []);
 
-  return { blocks, streamingText, connected, sessionDone, sendFollowUp, approvePlan, stop };
+  return { blocks, streamingText, connected, active, sendFollowUp, approvePlan, stop };
 }

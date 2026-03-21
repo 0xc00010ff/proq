@@ -29,14 +29,13 @@ interface StructuredPaneProps {
   visible: boolean;
   taskStatus?: string;
   agentBlocks?: AgentBlock[];
-  initialBlocks?: AgentBlock[];
   followUpDraft?: FollowUpDraft;
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
   onTaskStatusChange?: (status: string) => void;
 }
 
-export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBlocks, initialBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
-  const { blocks, streamingText, sessionDone, sendFollowUp, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks, initialBlocks);
+export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
+  const { blocks, streamingText, active, sendFollowUp, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -210,8 +209,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
     }
   }
 
-  // Check if agent is actively thinking (last non-status block has no result yet)
-  const isRunning = !sessionDone;
+  const isRunning = active;
   const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
   const isThinking = isRunning && !streamingText && blocks.length > 0 && (
     (lastBlock?.type === 'status' && lastBlock.subtype === 'init') ||
@@ -361,7 +359,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentBl
           className="absolute inset-0 overflow-y-auto px-4 py-4 space-y-1"
         >
           {/* Starting session placeholder — shown before any blocks arrive */}
-          {blocks.length === 0 && !sessionDone && (
+          {blocks.length === 0 && active && (
             <div className="flex items-center gap-2 py-2 text-xs text-text-tertiary">
               <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
               <span>Starting session...</span>

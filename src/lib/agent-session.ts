@@ -49,7 +49,7 @@ function broadcast(session: AgentRuntimeSession, msg: object) {
 
 function appendBlock(session: AgentRuntimeSession, block: AgentBlock) {
   session.blocks.push(block);
-  broadcast(session, { type: "block", block });
+  broadcast(session, { type: "block", block, active: session.status === "running" });
 }
 
 // ── Shared process wiring ──
@@ -545,6 +545,7 @@ export async function continueSession(
 
   const settings = await getSettings();
   session.status = "running";
+  broadcast(session, { type: "active", active: true });
 
   const startTime = Date.now();
 

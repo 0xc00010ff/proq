@@ -30,7 +30,7 @@ linux:
   category: Development
   icon: build/icon.png
 dmg:
-  artifactName: ${name}.${ext}
+  artifactName: ${productName}.${ext}
 publish:
   provider: github
   owner: "0xc00010ff"

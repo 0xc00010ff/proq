@@ -100,6 +100,10 @@ cd desktop
 npm run build:mac -- --publish always
 cd ..
 
+echo ""
+echo "Publishing release..."
+gh release edit "v$NEXT" --draft=false
+
 # ── 6. Return to develop ────────────────────────────────
 echo ""
 echo "Returning to develop..."

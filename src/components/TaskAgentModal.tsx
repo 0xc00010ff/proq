@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { XIcon } from 'lucide-react';
+import { XIcon, Maximize2Icon, Minimize2Icon } from 'lucide-react';
 import {
   Dialog,
   DialogPortal,

@@ -61,16 +61,19 @@ function run(
 }
 
 export async function applyUpdate(
-  onLog?: (line: string) => void
-): Promise<{ ok: boolean; error?: string }> {
+  onLog?: (line: string) => void,
+  options?: { stashFirst?: boolean }
+): Promise<{ ok: boolean; error?: string; dirty?: boolean }> {
   const { proqPath } = getConfig()
 
   try {
-    await run('git', ['stash', '--include-untracked'], proqPath, onLog)
-    await run('git', ['pull', '--rebase', 'origin', 'main'], proqPath, onLog)
-    await run('git', ['stash', 'pop'], proqPath, onLog).catch(() => {
-      // stash pop fails if there was nothing stashed — that's fine
-    })
+    if (options?.stashFirst) {
+      onLog?.('Stashing local changes...')
+      await run('git', ['stash', '--include-untracked'], proqPath, onLog)
+    }
+
+    onLog?.('Pulling updates...')
+    await run('git', ['pull', 'origin', 'main'], proqPath, onLog)
 
     onLog?.('Installing dependencies...')
     await run('npm', ['install'], proqPath, onLog)
@@ -82,6 +85,10 @@ export async function applyUpdate(
     return { ok: true }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e)
+    // Detect dirty working tree blocking the pull
+    if (message.includes('Your local changes') || message.includes('overwritten by merge')) {
+      return { ok: false, error: message, dirty: true }
+    }
     return { ok: false, error: message }
   }
 }

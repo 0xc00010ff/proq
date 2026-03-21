@@ -244,12 +244,29 @@ function registerIpcHandlers(): void {
       }
 
       sendStatus('Pulling updates...')
-      const result = await applyUpdate((line) => {
+      const sendUpdateLog = (line: string): void => {
         const t = line.trim()
-        if (t === 'Installing dependencies...' || t === 'Building...') {
+        if (t === 'Installing dependencies...' || t === 'Building...' || t === 'Pulling updates...' || t === 'Stashing local changes...') {
           sendStatus(t)
         }
-      })
+      }
+      let result = await applyUpdate(sendUpdateLog)
+      if (!result.ok && result.dirty) {
+        const { response } = await dialog.showMessageBox({
+          type: 'question',
+          icon: getIcon(),
+          buttons: ['Stash & Update', 'Skip Update'],
+          defaultId: 0,
+          title: 'Local Changes Detected',
+          message: 'You have local changes to proq that need to be stashed before updating.',
+          detail: 'Your changes will be saved in the git stash and can be recovered later with "git stash pop".'
+        })
+        if (response === 0) {
+          result = await applyUpdate(sendUpdateLog, { stashFirst: true })
+        } else {
+          result = { ok: true }
+        }
+      }
 
       if (!result.ok) {
         // Build may exit non-zero (e.g. lint warnings) but still produce
@@ -417,12 +434,31 @@ async function showSplashAndStartServer(): Promise<void> {
       if (updateCheck.available) {
         log(`showSplash: ${updateCheck.commits.length} update(s) available, applying`)
         safeSend('server:log', 'Pulling updates...')
-        const updateResult = await applyUpdate((line) => {
+        const sendUpdateLog = (line: string): void => {
           const t = line.trim()
-          if (t === 'Installing dependencies...' || t === 'Building...') {
+          if (t === 'Installing dependencies...' || t === 'Building...' || t === 'Pulling updates...' || t === 'Stashing local changes...') {
             safeSend('server:log', t)
           }
-        })
+        }
+        let updateResult = await applyUpdate(sendUpdateLog)
+        if (!updateResult.ok && updateResult.dirty) {
+          log('showSplash: dirty working tree, prompting user')
+          const { response } = await dialog.showMessageBox({
+            type: 'question',
+            icon: getIcon(),
+            buttons: ['Stash & Update', 'Skip Update'],
+            defaultId: 0,
+            title: 'Local Changes Detected',
+            message: 'You have local changes to proq that need to be stashed before updating.',
+            detail: 'Your changes will be saved in the git stash and can be recovered later with "git stash pop".'
+          })
+          if (response === 0) {
+            updateResult = await applyUpdate(sendUpdateLog, { stashFirst: true })
+          } else {
+            log('showSplash: user skipped update')
+            updateResult = { ok: true }
+          }
+        }
         if (!updateResult.ok) {
           log(`showSplash: update warning: ${updateResult.error}`)
           // Continue to start server anyway — build may have partial success

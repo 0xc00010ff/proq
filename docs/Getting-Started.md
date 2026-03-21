@@ -1,6 +1,6 @@
 # Getting Started
 
-proq is a kanban IDE for parallel coding agents. You create tasks on a board, agents pick them up and work autonomously, then you review and approve. This guide walks through everything you can do.
+proq is a kanban IDE for parallel coding agents. You create tasks on a board (switch between kanban, list, and grid views), agents pick them up and work autonomously, then you review and approve. This guide walks through everything you can do.
 
 For a high-level overview, see the [README](../README.md). For internals, see [Architecture](./Architecture.md).
 
@@ -41,10 +41,10 @@ Click **New Task** on the board. Fill in:
 - **Title** — short summary
 - **Description** — detailed instructions for the agent
 - **Mode** — determines what the agent is allowed to do:
-  - **Auto** (default) — automatically picks the best mode based on the task
+  - **Auto** (default) — auto-selects the best mode based on the task
   - **Build** — full code changes, commits, the works
-  - **Plan** — research only, no file changes, agent reports summary
-  - **Answer** — same as plan, for quick questions
+  - **Plan** — creates a plan for approval, then implements it
+  - **Answer** — research only, no file changes
 - **Attachments** — drag or paste images (screenshots, mockups) that the agent can view
 
 ## Run the Agent
@@ -60,7 +60,7 @@ The task cycles through dispatch states:
 - **starting** — selected by the queue, agent is launching
 - **running** — agent is actively working
 
-In **sequential mode**, one task runs at a time. In **parallel mode**, all queued tasks launch simultaneously, each in its own git worktree.
+In **sequential mode**, one task runs at a time. In **parallel mode**, all queued tasks launch simultaneously in the project directory on the same branch. In **worktrees mode**, all queued tasks launch simultaneously, each in its own git worktree and branch.
 
 ## Watch It Work
 
@@ -96,8 +96,8 @@ When the agent finishes, it calls back via MCP to move the task to **Verify**. T
 
 From Verify, you can:
 
-- **Approve to Done** — in parallel mode, this merges the agent's branch into main
-- **Kick back to Todo** — discards the work (removes worktree/branch in parallel mode)
+- **Approve to Done** — in worktrees mode, this merges the agent's branch into main
+- **Kick back to Todo** — discards the work (removes worktree/branch in worktrees mode)
 
 ## Live Preview
 
@@ -106,7 +106,7 @@ The **Live** tab embeds your project's dev server in an iframe. Enter the server
 - **Viewport toggle** — switch between desktop, tablet, and mobile widths
 - Works with any dev server that supports hot reload — when an agent commits, the preview updates
 
-In parallel mode, you can preview a specific agent's branch by clicking "Preview" on the task card. The dev server hot-reloads to show that branch's changes, polling every 5 seconds to pick up new commits.
+In worktrees mode, you can preview a specific agent's branch by clicking "Preview" on the task card. The dev server hot-reloads to show that branch's changes, polling every 5 seconds to pick up new commits.
 
 ## Code Browser
 
@@ -139,13 +139,17 @@ Navigate to `/supervisor` (link in the sidebar) for a conversational AI that man
 
 Use it to dispatch work conversationally: "Create three tasks on project X to refactor the auth module."
 
+## Cron Jobs
+
+Cron jobs let you schedule recurring tasks. Create them from the project menu — they run on a schedule and create tasks automatically.
+
 ## Settings
 
 Click the gear icon to open Settings. Key sections:
 
 | Section | What it controls |
 |---|---|
-| **Agent** | Claude binary path, default model, system prompt additions, execution mode (sequential/parallel), render mode (structured/CLI), cost display, coding agent |
+| **Agent** | Claude binary path, default model, system prompt additions, execution mode (sequential/parallel/worktrees), render mode (structured/CLI), cost display, coding agent |
 | **Updates** | Auto-update |
 | **Appearance** | Theme (dark/light/system) |
 | **Notifications** | Sound, desktop, webhooks |

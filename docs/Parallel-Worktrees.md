@@ -1,16 +1,20 @@
-# Parallel Mode & Worktrees
+# Worktrees Mode
 
-This is the deep dive on parallel execution and git worktrees. For a usage-level overview, see [Getting Started](./Getting-Started.md). For broader architecture context, see [Architecture](./Architecture.md).
+This is the deep dive on worktrees execution mode and git worktrees. For a usage-level overview, see [Getting Started](./Getting-Started.md). For broader architecture context, see [Architecture](./Architecture.md).
 
 ## Overview
 
-In parallel mode, proq runs multiple agents simultaneously on the same project. Each task gets its own isolated git worktree on a dedicated branch (`proq/<shortId>`), so agents never interfere with each other. Merging is deferred until the human marks the task "done," and a preview branch mechanism lets the user inspect work before merging.
+proq has three execution modes:
 
-Sequential mode doesn't use worktrees at all -- every task runs directly in the project directory, one at a time.
+- **Sequential** — one task at a time, runs directly in the project directory.
+- **Parallel** — all tasks at once, runs in the project directory on the same branch. No worktrees.
+- **Worktrees** — all tasks at once, each gets its own isolated git worktree on a dedicated branch (`proq/<shortId>`), so agents never interfere with each other.
+
+This document covers **worktrees mode**. Merging is deferred until the human marks the task "done," and a preview branch mechanism lets the user inspect work before merging.
 
 ## How Worktrees Are Created
 
-When a task moves to in-progress in parallel mode, `dispatchTask()` in `agent-dispatch.ts` calls `createWorktree(projectPath, shortId)`:
+When a task moves to in-progress in worktrees mode, `dispatchTask()` in `agent-dispatch.ts` calls `createWorktree(projectPath, shortId)`:
 
 ```
 project-root/
@@ -32,7 +36,7 @@ Plan-mode and answer-mode tasks skip worktree creation since they don't modify f
 
 The agent runs inside the worktree, not the main project directory. The bridge process is spawned with `cwd` set to the worktree path.
 
-The agent commits its work to the `proq/a1b2c3d4` branch. When finished, it reports back via MCP to move itself to verify. In parallel mode, multiple agent processes run concurrently in their own worktrees.
+The agent commits its work to the `proq/a1b2c3d4` branch. When finished, it reports back via MCP to move itself to verify. In worktrees mode, multiple agent processes run concurrently in their own worktrees.
 
 ## Task Lifecycle
 
@@ -47,7 +51,7 @@ todo ── in-progress ── verify ── done
 
 ### in-progress
 
-- Worktree + branch created (parallel only).
+- Worktree + branch created (worktrees mode only).
 - Agent dispatched in worktree directory.
 - `agentStatus` cycles through `"queued"` -> `"starting"` -> `"running"`.
 
@@ -125,7 +129,7 @@ The TopBar shows a branch indicator between the project name and the tab switche
 - Other branches appear below.
 - Preview branches are hidden.
 
-Selecting a branch calls `POST /api/projects/<id>/git` with `{ branch: "proq/a1b2c3d4" }`. The branch switcher works in both sequential and parallel modes -- in sequential mode it's just a plain branch switcher.
+Selecting a branch calls `POST /api/projects/<id>/git` with `{ branch: "proq/a1b2c3d4" }`. The branch switcher works in all execution modes -- in sequential and parallel modes it's just a plain branch switcher.
 
 ## Task Modal Controls
 
@@ -203,24 +207,24 @@ After a task moves to done, `scheduleCleanup()` sets a 1-hour timer:
 
 The timer is cancelled if the task re-enters in-progress (e.g., moved back from verify).
 
-## Sequential Mode Comparison
+## Execution Mode Comparison
 
-| Aspect          | Sequential               | Parallel                          |
-| --------------- | ------------------------ | --------------------------------- |
-| Worktrees       | No                       | Yes, one per task                 |
-| Branches        | No task branches         | `proq/<shortId>` per task         |
-| Concurrency     | One task at a time       | All tasks dispatched immediately  |
-| Agent directory | Main project dir         | `.proq-worktrees/<shortId>/`      |
-| Merge timing    | N/A (commits go to main) | Deferred to done                  |
-| Preview         | N/A                      | Via `proq-preview/*` branches     |
-| Mode switch     | Allowed when idle        | Blocked while tasks are in-flight |
+| Aspect          | Sequential               | Parallel                         | Worktrees                         |
+| --------------- | ------------------------ | -------------------------------- | --------------------------------- |
+| Worktrees       | No                       | No                               | Yes, one per task                 |
+| Branches        | No task branches         | No task branches                 | `proq/<shortId>` per task         |
+| Concurrency     | One task at a time       | All tasks dispatched immediately | All tasks dispatched immediately  |
+| Agent directory | Main project dir         | Main project dir                 | `.proq-worktrees/<shortId>/`      |
+| Merge timing    | N/A (commits go to main) | N/A (commits go to main)        | Deferred to done                  |
+| Preview         | N/A                      | N/A                              | Via `proq-preview/*` branches     |
+| Mode switch     | Allowed when idle        | Allowed when idle                | Blocked while tasks are in-flight |
 
 ## Relevant Files
 
 | File                                                | Role                                                                                             |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `src/lib/worktree.ts`                               | All git operations: create/remove/merge worktrees, checkout/preview/refresh branches, auto-stash |
-| `src/lib/agent-dispatch.ts`                         | Task dispatch, processQueue, parallel vs sequential logic                                        |
+| `src/lib/agent-dispatch.ts`                         | Task dispatch, processQueue, execution mode logic                                                |
 | `src/app/api/projects/[id]/git/route.ts`            | Branch API: list, switch, refresh preview                                                        |
 | `src/app/api/projects/[id]/tasks/[taskId]/route.ts` | Status transition logic, merge/discard on transitions                                            |
 | `src/app/api/projects/[id]/tasks/reorder/route.ts`  | Same transitions for drag-drop moves                                                             |

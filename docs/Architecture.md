@@ -16,7 +16,7 @@ How proq works under the hood. For a usage walkthrough, see [Getting Started](./
 └───────┼──────────────────────────────────────┼──────────┘
         │                                      │
 ┌───────┴──────────────────────────────────────┴──────────┐
-│  Next.js Server (:1337)            WS Hub (:42069)      │
+│  Next.js Server (:1337)         WS Hub (configurable)   │
 │  ┌──────────┐ ┌──────────────┐     ┌──────────────────┐ │
 │  │ REST API │ │ Dispatch     │     │ /ws/agent        │ │
 │  │          │ │ Engine       │     │ /ws/terminal     │ │
@@ -42,7 +42,7 @@ How proq works under the hood. For a usage walkthrough, see [Getting Started](./
   └──────────┘     └──────────────────┘
 ```
 
-**Next.js server** handles the REST API, serves the React SPA, and runs the dispatch engine. **Agent processes** are spawned per-task — either as child processes (structured mode) or as detached bridge processes (CLI mode). **WebSocket hub** on port 42069 streams agent output, terminal PTY data, supervisor messages, and agent tab sessions. **lowdb** stores all state as JSON files — no external database.
+**Next.js server** handles the REST API, serves the React SPA, and runs the dispatch engine. **Agent processes** are spawned per-task — either as child processes (structured mode) or as detached bridge processes (CLI mode). **WebSocket hub** on a configurable port (production: 42067, dev: 42069) streams agent output, terminal PTY data, supervisor messages, and agent tab sessions. **lowdb** stores all state as JSON files — no external database.
 
 ## Data Layer
 
@@ -62,9 +62,10 @@ interface Project {
   order?: number;           // sidebar sort order
   pathValid?: boolean;      // whether the project path exists on disk
   activeTab?: 'project' | 'live' | 'code';
-  viewType?: 'kanban' | 'list';
+  viewType?: 'kanban' | 'list' | 'grid';
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   defaultBranch?: string;   // e.g. 'main' or 'master'
+  systemPrompt?: string;    // project-level system prompt for agents
   createdAt: string;
 }
 ```
@@ -78,7 +79,8 @@ interface ProjectState {
   tasks: TaskColumns;  // Record<TaskStatus, Task[]> — todo, in-progress, verify, done
   chatLog: ChatLogEntry[];
   agentSession?: AgentSession;
-  executionMode?: 'sequential' | 'parallel';
+  executionMode?: 'sequential' | 'parallel' | 'worktrees';
+  cronJobs?: CronJob[];
   projectWorkbenchOpen?: boolean;
   projectWorkbenchHeight?: number;
   projectWorkbenchTabs?: WorkbenchTabInfo[];
@@ -99,7 +101,7 @@ todo ────────→ in-progress ────────→ verify 
                agentStatus: "queued"             │         │
                agentStatus: "starting"           │         │ merge branch
                agentStatus: "running"            │         │ into main
-                                                 │         │ (parallel)
+                                                 │         │ (worktrees)
                ◄── abort (back to todo) ─────────┘         │
                                                            │
                ◄── reject (back to todo) ──────────────────┘
@@ -119,11 +121,11 @@ When a task moves to in-progress, it enters the dispatch pipeline:
 | Transition | What happens |
 |---|---|
 | → in-progress | Set `agentStatus: "queued"`, call `processQueue()` |
-| in-progress → verify | Keep worktree alive (parallel). Send notification |
-| in-progress → todo | Abort agent. Remove worktree/branch (parallel). Clear agentStatus/summary |
-| in-progress → done | Merge branch into main (parallel). Remove worktree. Send notification |
-| verify → done | Merge branch into main (parallel). Remove worktree. On conflict, stay in verify |
-| verify → todo | Remove worktree/branch (parallel). Discard work |
+| in-progress → verify | Keep worktree alive (worktrees mode). Send notification |
+| in-progress → todo | Abort agent. Remove worktree/branch (worktrees mode). Clear agentStatus/summary |
+| in-progress → done | Merge branch into main (worktrees mode). Remove worktree. Send notification |
+| verify → done | Merge branch into main (worktrees mode). Remove worktree. On conflict, stay in verify |
+| verify → todo | Remove worktree/branch (worktrees mode). Discard work |
 
 All API routes follow the same pattern: **update state → call `processQueue()`**.
 
@@ -131,8 +133,9 @@ All API routes follow the same pattern: **update state → call `processQueue()`
 
 The orchestrator. Called after any state change. Has a re-entrancy guard per project to prevent double-dispatching.
 
-- **Sequential mode**: launches the first queued task if nothing is running
-- **Parallel mode**: launches all queued tasks simultaneously
+- **Sequential mode**: launches the first queued task if nothing is running. Runs in the project directory.
+- **Parallel mode**: launches all queued tasks simultaneously. All run in the project directory (same branch).
+- **Worktrees mode**: launches all queued tasks simultaneously. Each gets its own git worktree + branch (`proq/{shortId}`) for full isolation.
 
 ## Agent Dispatch
 
@@ -141,7 +144,7 @@ The orchestrator. Called after any state change. Has a re-entrancy guard per pro
 1. **Write MCP config** — creates a temp JSON file pointing to `proq-mcp.js` with the project/task IDs
 2. **Build system prompt** — mode-specific instructions (build: commit code; plan/answer: no file changes)
 3. **Write image attachments** — base64 data URLs decoded to temp files the agent can read
-4. **Create worktree** (parallel mode, build tasks only) — isolated git worktree at `.proq-worktrees/{shortId}/`
+4. **Create worktree** (worktrees mode, build tasks only) — isolated git worktree at `.proq-worktrees/{shortId}/`
 5. **Launch agent** — two paths depending on render mode
 
 ### Structured Mode (default)
@@ -218,7 +221,7 @@ Raw terminal rendering via xterm.js. The bridge process (`proq-bridge.js`) maint
 
 ## WebSocket Protocol
 
-Central hub on port 42069 (`ws-server.ts`). Routes by pathname:
+Central hub on a configurable port (production: 42067, dev: 42069) via `ws-server.ts`. Routes by pathname:
 
 | Path | Purpose | Protocol |
 |---|---|---|
@@ -230,13 +233,27 @@ Central hub on port 42069 (`ws-server.ts`). Routes by pathname:
 ### Agent/Supervisor Message Flow
 
 **Server → Client:**
-- `{ type: "replay", blocks: AgentBlock[] }` — full history on connect
-- `{ type: "block", block: AgentBlock }` — new block appended
+- `{ type: "replay", blocks: AgentBlock[], active: boolean }` — full history on connect
+- `{ type: "block", block: AgentBlock, active: boolean }` — new block appended
+- `{ type: "active", active: boolean }` — active state change (no new block)
+- `{ type: "stream_delta", text: string }` — incremental text during streaming
 - `{ type: "error", error: string }` — error message
 
 **Client → Server:**
 - `{ type: "followup", text: string, attachments?: [] }` — send follow-up message
+- `{ type: "plan-approve", text: string }` — approve a plan-mode proposal
 - `{ type: "stop" }` — abort the running session
+- `{ type: "clear" }` — clear session history
+
+### Agent Session State
+
+The server sends `active: boolean` with every WS message. The client combines three signals for resilient state tracking:
+
+1. **WS `active` flag** — real-time process liveness from the server
+2. **SSE `agentStatus`** — task-level status from the REST layer (`queued`, `starting`, `running`, null)
+3. **Block-level session status** — derived from the last block (`status/complete`, `status/error`, `status/abort`)
+
+`sessionEnded` = last block is a terminal status (complete, error, or abort). `isRunning` = !sessionEnded && (active || agentStatus is running/starting).
 
 ## Supervisor
 
@@ -308,10 +325,10 @@ All settings are stored via the `/api/settings` endpoint and persisted in `data/
 | `claudeBin` | string | `"claude"` | Path to Claude Code binary |
 | `defaultModel` | string | `""` | Model to use (e.g. `claude-sonnet-4-20250514`) |
 | `systemPromptAdditions` | string | `""` | Extra instructions appended to every agent's system prompt |
-| `executionMode` | `"sequential"` \| `"parallel"` | `"sequential"` | Whether tasks run one-at-a-time or simultaneously |
+| `executionMode` | `"sequential"` \| `"parallel"` \| `"worktrees"` | `"sequential"` | `sequential`: one task at a time. `parallel`: all queued tasks simultaneously (same branch). `worktrees`: all queued tasks simultaneously (isolated git worktrees) |
 | `agentRenderMode` | `"structured"` \| `"cli"` | `"structured"` | Default render mode for new tasks |
 | `showCosts` | boolean | `false` | Show cost estimates in agent UI |
-| `codingAgent` | string | `""` | Custom coding agent binary (overrides `claudeBin` for build tasks) |
+| `codingAgent` | string | `""` | Custom coding agent binary (replaces Claude CLI entirely for build-mode tasks) |
 
 ### Updates
 
@@ -439,8 +456,76 @@ Add a chat message.
 
 **Body:** `{ role: "proq" | "user", message: string }`
 
-### Cross-Project
+### Additional Project Endpoints
 
-#### `GET /api/agent/tasks`
+| Endpoint | Description |
+|---|---|
+| `POST /api/projects/reorder` | Reorder projects in the sidebar |
+| `POST /api/projects/[id]/rename` | Rename a project |
+| `POST /api/projects/[id]/reveal` | Reveal project folder in Finder/file manager |
+| `PATCH /api/projects/[id]/execution-mode` | Set execution mode for a project |
+| `GET /api/projects/[id]/events` | SSE stream for task status updates |
 
-Get all currently in-progress tasks across all projects.
+### Additional Task Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `POST /api/projects/[id]/tasks/[taskId]/dispatch` | Manually dispatch a task |
+| `POST /api/projects/[id]/tasks/[taskId]/resolve` | Resolve a merge conflict |
+| `POST /api/projects/[id]/tasks/[taskId]/auto-title` | Generate title from task description |
+| `GET /api/projects/[id]/tasks/[taskId]/agent-blocks` | Get agent session blocks |
+| `POST /api/projects/[id]/tasks/undo` | Undo task deletion |
+
+### Cron Jobs
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/projects/[id]/crons` | List cron jobs for a project |
+| `POST /api/projects/[id]/crons` | Create a cron job |
+| `PATCH /api/projects/[id]/crons/[cronId]` | Update a cron job |
+| `DELETE /api/projects/[id]/crons/[cronId]` | Delete a cron job |
+| `POST /api/projects/[id]/crons/[cronId]/trigger` | Manually trigger a cron job |
+
+### Workbench
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/projects/[id]/workbench-state` | Get workbench panel state |
+| `PATCH /api/projects/[id]/workbench-state` | Update workbench panel state |
+| `GET /api/projects/[id]/workbench-tabs` | List workbench tabs |
+| `POST /api/projects/[id]/workbench-tabs` | Create a workbench tab |
+| `DELETE /api/projects/[id]/workbench-tabs` | Delete a workbench tab |
+
+### Settings
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/settings` | Read all settings |
+| `PATCH /api/settings` | Update settings |
+| `POST /api/settings/detect-claude-bin` | Auto-detect Claude binary path |
+
+### Cross-Project & Global
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/agent/tasks` | Get all in-progress tasks across all projects |
+| `GET /api/agent-tab/[tabId]` | Get workbench agent tab session |
+| `POST /api/agent-tab/[tabId]` | Create/interact with agent tab session |
+| `DELETE /api/agent-tab/[tabId]` | Delete agent tab session |
+| `GET /api/supervisor` | Get supervisor session |
+| `POST /api/supervisor` | Interact with supervisor session |
+
+### File & Shell Operations
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/files/read` | Read file contents |
+| `POST /api/files/write` | Write file contents |
+| `GET /api/files/tree` | Get directory tree |
+| `POST /api/files/open` | Open file in system editor |
+| `POST /api/shell/spawn` | Create a shell session |
+| `GET /api/shell/[tabId]` | Get shell session info |
+| `DELETE /api/shell/[tabId]` | Terminate shell session |
+| `POST /api/upload` | Upload files |
+| `GET /api/attachments/[...path]` | Serve uploaded files |
+| `POST /api/folder-picker` | Open folder selection dialog |

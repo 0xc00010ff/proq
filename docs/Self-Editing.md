@@ -40,8 +40,8 @@ The Live tab shows proq's own UI. You can watch the interface update as agents m
 - **Lint**: `npm run lint`
 - **TypeScript**: strict mode enabled
 - **Path alias**: `@/*` maps to `./src/*`
-- **lowdb v7**: uses ESM — all database operations are async
+- **Data layer**: custom JSON file storage with per-resource write locks
 - **Port**: 1337 by default
 - **design-mock/**: separate Vite prototype in the repo root — not part of the main app, ignore it
-- **Styling**: dark mode only, Tailwind utility classes, zinc color palette
+- **Styling**: theme supports dark/light/system, Tailwind utility classes, zinc color palette
 - **Components**: shadcn/ui based, `'use client'` directive on all interactive components

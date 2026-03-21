@@ -31,8 +31,6 @@ ensurePath()
 // Isolate dev mode: separate userData dir so dev and production don't share config/ports
 if (process.env.PROQ_DEV) {
   app.setName('proq-desktop-dev')
-  app.setPath('userData', join(app.getPath('appData'), 'proq-desktop-dev'))
-  app.setName('proq')
 }
 
 function getIcon(): Electron.NativeImage {

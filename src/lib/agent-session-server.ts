@@ -13,17 +13,14 @@ export async function attachAgentWsWithProject(
   const session = getSession(taskId);
 
   if (session) {
-    const replay = JSON.stringify({ type: "replay", blocks: session.blocks });
-    ws.send(replay);
+    ws.send(JSON.stringify({ type: "replay", blocks: session.blocks, live: true }));
     attachClient(taskId, ws);
   } else {
-    // Load from separate agent-blocks file
+    // No live session — load stored blocks from disk.
+    // Always send a replay (even if empty) so the client doesn't retry.
+    // Mark as not live so the client knows the session is historical.
     const blocks = await getTaskAgentBlocks(taskId);
-    if (blocks.length > 0) {
-      ws.send(JSON.stringify({ type: "replay", blocks }));
-    } else {
-      ws.send(JSON.stringify({ type: "error", error: "No session found" }));
-    }
+    ws.send(JSON.stringify({ type: "replay", blocks, live: false }));
   }
 
   ws.on("message", async (raw) => {

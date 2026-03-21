@@ -41,7 +41,7 @@ export type AgentBlock =
 // ── Agent WS Protocol ───────────────────────────────────
 // Server → Client
 export type AgentWsServerMsg =
-  | { type: 'replay'; blocks: AgentBlock[] }
+  | { type: 'replay'; blocks: AgentBlock[]; live?: boolean }
   | { type: 'block';  block: AgentBlock }
   | { type: 'stream_delta'; text: string }
   | { type: 'error';  error: string };

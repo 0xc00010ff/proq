@@ -63,16 +63,23 @@ export function useAgentSession(
             retryCount = 0; // successful — reset retries
             clearBuffer();
             setBlocks(msg.blocks);
-            // Check if session is done — look at last status block and user blocks
-            // A user block after the last complete/error/abort means a follow-up is pending
-            const statusBlocks = msg.blocks.filter(
-              (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
-            );
-            const lastStatus = statusBlocks[statusBlocks.length - 1];
-            const lastStatusIdx = lastStatus ? msg.blocks.lastIndexOf(lastStatus) : -1;
-            const hasUserAfter = msg.blocks.slice(lastStatusIdx + 1).some((b) => b.type === 'user');
-            const isDone = lastStatus?.type === 'status' && lastStatus.subtype !== 'init' && !hasUserAfter;
-            setSessionDone(isDone);
+            // If the server says the session is not live (historical blocks from disk),
+            // mark as done immediately — no agent process is running.
+            if (msg.live === false) {
+              setSessionDone(true);
+            } else if (msg.blocks.length === 0) {
+              setSessionDone(true);
+            } else {
+              // Live session — check if agent is between turns or still working
+              const statusBlocks = msg.blocks.filter(
+                (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)
+              );
+              const lastStatus = statusBlocks[statusBlocks.length - 1];
+              const lastStatusIdx = lastStatus ? msg.blocks.lastIndexOf(lastStatus) : -1;
+              const hasUserAfter = msg.blocks.slice(lastStatusIdx + 1).some((b) => b.type === 'user');
+              const isDone = lastStatus?.type === 'status' && lastStatus.subtype !== 'init' && !hasUserAfter;
+              setSessionDone(isDone);
+            }
           } else if (msg.type === 'stream_delta') {
             appendDelta(msg.text);
           } else if (msg.type === 'block') {
@@ -108,6 +115,9 @@ export function useAgentSession(
               retryCount++;
               ws.close();
               retryTimer = setTimeout(connect, RETRY_DELAY_MS);
+            } else {
+              // Exhausted retries — mark as done so the UI doesn't hang
+              setSessionDone(true);
             }
           }
         } catch {

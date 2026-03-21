@@ -42,6 +42,7 @@ export function useAgentSession(
     let retryCount = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
+    let gotMessage = false;
 
     function connect() {
       if (cancelled) return;
@@ -57,6 +58,7 @@ export function useAgentSession(
 
       ws.onmessage = (event) => {
         try {
+          gotMessage = true;
           const msg: AgentWsServerMsg = JSON.parse(event.data);
 
           if (msg.type === 'replay') {
@@ -127,10 +129,18 @@ export function useAgentSession(
 
       ws.onclose = () => {
         setConnected(false);
+        // If we never got a successful message (connection refused / WS server down), retry
+        if (!gotMessage && retryCount < MAX_RETRIES && !cancelled) {
+          retryCount++;
+          retryTimer = setTimeout(connect, RETRY_DELAY_MS);
+        } else if (!gotMessage && !cancelled) {
+          // Exhausted retries without ever connecting — mark done so UI doesn't hang
+          setSessionDone(true);
+        }
       };
 
       ws.onerror = () => {
-        setConnected(false);
+        // onerror is always followed by onclose, which handles retry
       };
     }
 

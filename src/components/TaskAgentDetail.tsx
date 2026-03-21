@@ -227,7 +227,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   }, [task.title]);
 
   // Fetch stored agent blocks for done tasks (no live session, read-only)
-  const needsStaticBlocks = isStructured && task.status === 'done';
+  const needsStaticBlocks = isStructured && (task.status === 'done' || (task.status === 'verify' && !isDispatched));
   useEffect(() => {
     if (!needsStaticBlocks) {
       setFetchedBlocks(null);

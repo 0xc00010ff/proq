@@ -360,7 +360,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
           className="absolute inset-0 overflow-y-auto px-4 py-4 space-y-1"
         >
           {/* Starting session placeholder — shown before any blocks arrive */}
-          {blocks.length === 0 && active && (
+          {blocks.length === 0 && isRunning && (
             <div className="flex items-center gap-2 py-2 text-xs text-text-tertiary">
               <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
               <span>Starting session...</span>

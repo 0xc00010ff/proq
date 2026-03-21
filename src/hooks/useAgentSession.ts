@@ -164,8 +164,15 @@ export function useAgentSession(
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'stop' }));
+    } else {
+      // WS not connected — fall back to HTTP PATCH to move task back to todo (triggers abort)
+      fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'todo' }),
+      }).catch(() => {});
     }
-  }, []);
+  }, [projectId, taskId]);
 
   return { blocks, streamingText, connected, active, sendFollowUp, approvePlan, stop };
 }

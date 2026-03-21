@@ -74,6 +74,13 @@ export function useAgentSession(
               clearBuffer();
             }
             setBlocks((prev) => {
+              // Dedup: skip user block if we already appended it optimistically
+              if (msg.block.type === 'user') {
+                const last = prev[prev.length - 1];
+                if (last?.type === 'user' && (last as Extract<typeof last, { type: 'user' }>).text === (msg.block as Extract<typeof msg.block, { type: 'user' }>).text) {
+                  return prev;
+                }
+              }
               // Dedup: if a tool_use block with the same toolId already exists, replace it
               // (e.g. server may re-broadcast an enriched ExitPlanMode block)
               if (msg.block.type === 'tool_use' && msg.block.toolId) {
@@ -139,6 +146,9 @@ export function useAgentSession(
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'followup', text, attachments }));
+      // Optimistically show the user message and thinking/stop immediately
+      setBlocks((prev) => [...prev, { type: 'user' as const, text, attachments }]);
+      setActive(true);
     }
   }, []);
 
@@ -146,6 +156,7 @@ export function useAgentSession(
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'plan-approve', text }));
+      setActive(true);
     }
   }, []);
 

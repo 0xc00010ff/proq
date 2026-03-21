@@ -72,7 +72,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
         <DialogOverlay />
         <DialogPrimitive.Content
           ref={modalRef}
-          className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-75"
+          className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-lg border border-border-default bg-surface-detail shadow-2xl shadow-black/60 mx-4 overflow-hidden animate-in fade-in duration-75"
           style={modalSize ? { width: modalSize.width, height: modalSize.height } : { width: 'calc(100% - 2rem)', maxWidth: '80rem', height: '90vh' }}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >

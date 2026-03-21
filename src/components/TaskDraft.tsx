@@ -292,7 +292,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-surface-secondary border rounded-lg shadow-2xl flex flex-col animate-in fade-in duration-100 overflow-hidden ${isDragOver ? 'border-bronze-500/50' : 'border-border-subtle'}`}
+        className={`relative w-full max-w-2xl bg-surface-secondary border rounded-lg shadow-2xl flex flex-col animate-fade-in overflow-hidden ${isDragOver ? 'border-bronze-500/50' : 'border-border-subtle'}`}
         style={{ height: modalHeight }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}

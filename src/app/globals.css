@@ -2,7 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes fade-in-only {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @layer utilities {
+  .animate-fade-in {
+    animation: fade-in-only 75ms ease-out;
+  }
   .text-balance {
     text-wrap: balance;
   }

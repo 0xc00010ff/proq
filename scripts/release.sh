@@ -102,7 +102,10 @@ cd ..
 
 echo ""
 echo "Publishing release..."
-gh release edit "v$NEXT" --draft=false
+gh release edit "v$NEXT" --draft=false --notes "$(cat <<EOF
+## [Download proq.dmg](https://github.com/0xc00010ff/proq/releases/download/v$NEXT/proq.dmg)
+EOF
+)"
 
 # ── 6. Return to develop ────────────────────────────────
 echo ""

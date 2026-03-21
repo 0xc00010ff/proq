@@ -355,6 +355,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             projectId={projectId}
             visible={true}
             taskStatus={task.status}
+            agentStatus={task.agentStatus}
             agentBlocks={fetchedBlocks || undefined}
             followUpDraft={followUpDraft}
             onFollowUpDraftChange={onFollowUpDraftChange}

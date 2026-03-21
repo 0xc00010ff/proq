@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, ipcMain, dialog, shell, powerMonitor } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, is } from '@electron-toolkit/utils'
 import iconDark from '../../resources/icon.png?asset'
 import iconLight from '../../resources/icon-light.png?asset'
 import iconDevDark from '../../resources/icon-dev-dark.png?asset'
@@ -523,10 +523,6 @@ app.whenReady().then(() => {
       }
     })
   }
-
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
 
   // App menu
   if (process.platform === 'darwin') {

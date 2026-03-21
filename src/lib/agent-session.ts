@@ -28,10 +28,13 @@ export interface AgentRuntimeSession {
 // ── Singleton attached to globalThis to survive HMR ──
 const g = globalThis as unknown as {
   __proqAgentRuntimeSessions?: Map<string, AgentRuntimeSession>;
+  __proqAgentPendingClients?: Map<string, Set<WebSocket>>;
 };
 if (!g.__proqAgentRuntimeSessions) g.__proqAgentRuntimeSessions = new Map();
+if (!g.__proqAgentPendingClients) g.__proqAgentPendingClients = new Map();
 
 const sessions = g.__proqAgentRuntimeSessions;
+const pendingClients = g.__proqAgentPendingClients;
 
 function broadcast(session: AgentRuntimeSession, msg: object) {
   const data = JSON.stringify(msg);
@@ -247,6 +250,15 @@ export async function startSession(
     status: "running",
   };
   sessions.set(taskId, session);
+
+  // Promote any clients that connected before the session was created
+  const waiting = pendingClients.get(taskId);
+  if (waiting) {
+    for (const ws of waiting) {
+      if (ws.readyState === 1) session.clients.add(ws);
+    }
+    pendingClients.delete(taskId);
+  }
 
   const settings = await getSettings();
 
@@ -687,11 +699,20 @@ export function attachClient(taskId: string, ws: WebSocket): void {
   }
 }
 
+export function addPendingClient(taskId: string, ws: WebSocket): void {
+  if (!pendingClients.has(taskId)) pendingClients.set(taskId, new Set());
+  pendingClients.get(taskId)!.add(ws);
+  ws.on("close", () => {
+    pendingClients.get(taskId)?.delete(ws);
+  });
+}
+
 export function detachClient(taskId: string, ws: WebSocket): void {
   const session = sessions.get(taskId);
   if (session) {
     session.clients.delete(ws);
   }
+  pendingClients.get(taskId)?.delete(ws);
 }
 
 export function clearSession(taskId: string): void {
@@ -700,6 +721,7 @@ export function clearSession(taskId: string): void {
     session.clients.clear();
     sessions.delete(taskId);
   }
+  pendingClients.delete(taskId);
 }
 
 export function isSessionRunning(taskId: string): boolean {

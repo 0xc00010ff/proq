@@ -1,5 +1,5 @@
 import type WebSocket from "ws";
-import { getSession, attachClient, detachClient, stopSession, continueSession } from "./agent-session";
+import { getSession, attachClient, addPendingClient, detachClient, stopSession, continueSession } from "./agent-session";
 import { getTask, getProject, updateTask, getTaskAgentBlocks } from "./db";
 import { resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
@@ -17,10 +17,13 @@ export async function attachAgentWsWithProject(
     attachClient(taskId, ws);
   } else {
     // No live session — load stored blocks from disk.
-    // Always send a replay (even if empty) so the client doesn't retry.
-    // Mark as not live so the client knows the session is historical.
     const blocks = await getTaskAgentBlocks(taskId);
     ws.send(JSON.stringify({ type: "replay", blocks, live: false }));
+    // If no blocks on disk, the agent may still be starting up.
+    // Register as pending so when the session starts, this client gets attached.
+    if (blocks.length === 0) {
+      addPendingClient(taskId, ws);
+    }
   }
 
   ws.on("message", async (raw) => {

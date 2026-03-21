@@ -73,16 +73,24 @@ export function useAgentSession(
           const msg: AgentWsServerMsg = JSON.parse(event.data);
 
           if (msg.type === 'replay') {
-            retryCount = 0; // successful — reset retries
             clearBuffer();
             setBlocks(msg.blocks);
             // If the server says the session is not live (historical blocks from disk),
             // mark as done immediately — no agent process is running.
-            if (msg.live === false) {
+            if (msg.live === false && msg.blocks.length > 0) {
+              retryCount = 0;
               setSessionDone(true);
+            } else if (msg.live === false) {
+              retryCount = 0;
+              // No session and no stored blocks — agent may still be starting.
+              // Server registered us as pending; keep "Starting session..." visible.
             } else if (msg.blocks.length === 0) {
-              setSessionDone(true);
+              retryCount = 0;
+              // Live session but no blocks yet — agent just started.
+              // Keep sessionDone=false so "Starting session..." shows.
+              // We're attached as a client and will receive blocks via WS.
             } else {
+              retryCount = 0;
               // Live session — check if agent is between turns or still working
               const statusBlocks = msg.blocks.filter(
                 (b) => b.type === 'status' && ['complete', 'error', 'abort', 'init'].includes(b.subtype)

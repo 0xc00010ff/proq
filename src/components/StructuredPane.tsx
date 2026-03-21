@@ -215,6 +215,9 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   const isRunning = active || agentStatus === 'running' || agentStatus === 'starting';
   const isThinking = active && !streamingText && blocks.length > 0;
 
+  // Debug: trace active state
+  console.log('[StructuredPane]', { active, agentStatus, isRunning, isThinking, streamingText: !!streamingText, blocksLen: blocks.length });
+
   // Group consecutive tool_use blocks of the same type into render items
   type RenderItem =
     | { kind: 'block'; block: AgentBlock; idx: number }

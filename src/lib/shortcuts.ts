@@ -27,6 +27,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'undo-delete',  key: 'z',          meta: true,               scope: 'global', label: 'Undo delete',     ignoreInputFocus: true },
   { id: 'tab-prev',     key: 'ArrowLeft',  meta: true, alt: true,    scope: 'global', label: 'Previous tab' },
   { id: 'tab-next',     key: 'ArrowRight', meta: true, alt: true,    scope: 'global', label: 'Next tab' },
+  { id: 'toggle-workbench', key: 'j',     meta: true,               scope: 'global', label: 'Toggle workbench' },
 
   // -- Modal --
   { id: 'close-modal',  key: 'Escape',                               scope: 'modal',  label: 'Close' },

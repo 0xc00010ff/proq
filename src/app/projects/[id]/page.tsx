@@ -687,6 +687,9 @@ export default function ProjectPage() {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
   }, [activeTab, handleTabChange]));
+  useShortcut('toggle-workbench', useCallback(() => {
+    toggleWorkbenchCollapsed();
+  }, [toggleWorkbenchCollapsed]));
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));

@@ -17,46 +17,31 @@ interface ProjectWorkbenchState {
 }
 
 interface WorkbenchTabsContextValue {
-  getTabs(projectId: string, scope?: WorkbenchScope): WorkbenchTab[];
-  getActiveTabId(projectId: string, scope?: WorkbenchScope): string;
-  setActiveTabId(projectId: string, tabId: string, scope?: WorkbenchScope): void;
-  openTab(projectId: string, tabId: string, label: string, type: WorkbenchTabType, scope?: WorkbenchScope): void;
-  closeTab(projectId: string, tabId: string, scope?: WorkbenchScope): void;
-  renameTab(projectId: string, tabId: string, label: string, scope?: WorkbenchScope): void;
-  reorderTabs(projectId: string, tabs: WorkbenchTab[], scope?: WorkbenchScope): void;
-  hydrateProject(projectId: string, scope?: WorkbenchScope): void;
+  getTabs(projectId: string): WorkbenchTab[];
+  getActiveTabId(projectId: string): string;
+  setActiveTabId(projectId: string, tabId: string): void;
+  openTab(projectId: string, tabId: string, label: string, type: WorkbenchTabType): void;
+  closeTab(projectId: string, tabId: string): void;
+  renameTab(projectId: string, tabId: string, label: string): void;
+  reorderTabs(projectId: string, tabs: WorkbenchTab[]): void;
+  hydrateProject(projectId: string): void;
 }
 
 const WorkbenchTabsContext = createContext<WorkbenchTabsContextValue | null>(null);
 
-export type WorkbenchScope = 'project' | 'live';
-
-function defaultTabs(projectId: string, scope: WorkbenchScope = 'project'): WorkbenchTab[] {
-  if (scope === 'live') {
-    return [
-      { id: `live-agent-${projectId}`, label: 'Agent', type: 'agent' },
-      { id: `live-shell-${projectId}`, label: 'Terminal', type: 'shell' },
-    ];
-  }
+function defaultTabs(projectId: string): WorkbenchTab[] {
   return [
     { id: `default-agent-${projectId}`, label: 'Agent', type: 'agent' },
     { id: `default-shell-${projectId}`, label: 'Terminal', type: 'shell' },
   ];
 }
 
-/** Derive a scoped key for storing workbench state per project + scope */
-function scopedKey(projectId: string, scope: WorkbenchScope = 'project'): string {
-  return scope === 'project' ? projectId : `${projectId}::${scope}`;
-}
-
 function getOrCreate(
   state: Record<string, ProjectWorkbenchState>,
   projectId: string,
-  scope: WorkbenchScope = 'project',
 ): ProjectWorkbenchState {
-  const key = scopedKey(projectId, scope);
-  const dts = defaultTabs(projectId, scope);
-  return state[key] || { tabs: dts, activeTabId: dts[0].id };
+  const dts = defaultTabs(projectId);
+  return state[projectId] || { tabs: dts, activeTabId: dts[0].id };
 }
 
 /** Extract tabs as persistable data (includes type for agent tabs) */
@@ -70,15 +55,11 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
   const hydratedSet = useRef<Set<string>>(new Set());
 
   // Persist tabs + active tab to server (debounced)
-  const persistTabs = useCallback((projectId: string, ps: ProjectWorkbenchState, scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
-    if (saveTimers.current[key]) clearTimeout(saveTimers.current[key]);
-    saveTimers.current[key] = setTimeout(() => {
+  const persistTabs = useCallback((projectId: string, ps: ProjectWorkbenchState) => {
+    if (saveTimers.current[projectId]) clearTimeout(saveTimers.current[projectId]);
+    saveTimers.current[projectId] = setTimeout(() => {
       const tabs = persistableTabsFor(ps);
-      const url = scope === 'project'
-        ? `/api/projects/${projectId}/workbench-tabs`
-        : `/api/projects/${projectId}/workbench-tabs?scope=${scope}`;
-      fetch(url, {
+      fetch(`/api/projects/${projectId}/workbench-tabs`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tabs, activeTabId: ps.activeTabId }),
@@ -87,28 +68,23 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
   }, []);
 
   // Hydrate tabs for a project from server
-  const hydrateProject = useCallback((projectId: string, scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
-    if (hydratedSet.current.has(key)) return;
-    hydratedSet.current.add(key);
+  const hydrateProject = useCallback((projectId: string) => {
+    if (hydratedSet.current.has(projectId)) return;
+    hydratedSet.current.add(projectId);
 
-    const url = scope === 'project'
-      ? `/api/projects/${projectId}/workbench-tabs`
-      : `/api/projects/${projectId}/workbench-tabs?scope=${scope}`;
-
-    fetch(url)
+    fetch(`/api/projects/${projectId}/workbench-tabs`)
       .then((res) => res.json())
       .then((data) => {
         const saved: Array<{ id: string; label: string; type?: WorkbenchTabType }> = data.tabs || [];
         const savedActiveTabId: string | undefined = data.activeTabId;
         setState((prev) => {
-          const existing = prev[key];
+          const existing = prev[projectId];
 
           let tabs: WorkbenchTab[];
           if (saved.length > 0) {
             tabs = saved.map((t) => ({ id: t.id, label: t.label, type: t.type || 'shell' }));
           } else {
-            tabs = defaultTabs(projectId, scope);
+            tabs = defaultTabs(projectId);
           }
 
           // Restore saved active tab if it still exists, otherwise fall back
@@ -117,7 +93,7 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
             ?? (existing?.activeTabId && tabs.find((t) => t.id === existing.activeTabId) ? existing.activeTabId : null)
             ?? tabs[0].id;
 
-          return { ...prev, [key]: { tabs, activeTabId, hydrated: true } };
+          return { ...prev, [projectId]: { tabs, activeTabId, hydrated: true } };
         });
       })
       .catch(() => {});
@@ -132,52 +108,49 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const getTabs = useCallback(
-    (projectId: string, scope: WorkbenchScope = 'project'): WorkbenchTab[] => getOrCreate(state, projectId, scope).tabs,
+    (projectId: string): WorkbenchTab[] => getOrCreate(state, projectId).tabs,
     [state]
   );
 
   const getActiveTabId = useCallback(
-    (projectId: string, scope: WorkbenchScope = 'project'): string => getOrCreate(state, projectId, scope).activeTabId,
+    (projectId: string): string => getOrCreate(state, projectId).activeTabId,
     [state]
   );
 
-  const setActiveTabId = useCallback((projectId: string, tabId: string, scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
+  const setActiveTabId = useCallback((projectId: string, tabId: string) => {
     setState((prev) => {
-      const ps = getOrCreate(prev, projectId, scope);
-      const next = { ...prev, [key]: { ...ps, activeTabId: tabId } };
-      persistTabs(projectId, next[key], scope);
+      const ps = getOrCreate(prev, projectId);
+      const next = { ...prev, [projectId]: { ...ps, activeTabId: tabId } };
+      persistTabs(projectId, next[projectId]);
       return next;
     });
   }, [persistTabs]);
 
   const openTab = useCallback(
-    (projectId: string, tabId: string, label: string, type: WorkbenchTabType, scope: WorkbenchScope = 'project') => {
-      const key = scopedKey(projectId, scope);
+    (projectId: string, tabId: string, label: string, type: WorkbenchTabType) => {
       setState((prev) => {
-        const ps = getOrCreate(prev, projectId, scope);
+        const ps = getOrCreate(prev, projectId);
         if (ps.tabs.find((t) => t.id === tabId)) {
-          return { ...prev, [key]: { ...ps, activeTabId: tabId } };
+          return { ...prev, [projectId]: { ...ps, activeTabId: tabId } };
         }
         const newTab: WorkbenchTab = { id: tabId, label, type };
         const next = {
           ...prev,
-          [key]: {
+          [projectId]: {
             ...ps,
             tabs: [...ps.tabs, newTab],
             activeTabId: tabId,
           },
         };
-        persistTabs(projectId, next[key], scope);
+        persistTabs(projectId, next[projectId]);
         return next;
       });
     },
     [persistTabs]
   );
 
-  const closeTab = useCallback((projectId: string, tabId: string, scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
-    const ps = getOrCreate(state, projectId, scope);
+  const closeTab = useCallback((projectId: string, tabId: string) => {
+    const ps = getOrCreate(state, projectId);
     const tab = ps.tabs.find((t) => t.id === tabId);
     if (tab?.type === 'agent') {
       fetch(`/api/agent-tab/${tabId}`, { method: 'DELETE' }).catch(() => {});
@@ -186,7 +159,7 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
     }
 
     setState((prev) => {
-      const ps = getOrCreate(prev, projectId, scope);
+      const ps = getOrCreate(prev, projectId);
       const closedIndex = ps.tabs.findIndex((t) => t.id === tabId);
       const filtered = ps.tabs.filter((t) => t.id !== tabId);
       let activeTabId: string;
@@ -198,36 +171,34 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
         // Select the previous tab, or the next if closing the first tab
         activeTabId = filtered[closedIndex > 0 ? closedIndex - 1 : 0].id;
       }
-      const next = { ...prev, [key]: { ...ps, tabs: filtered, activeTabId } };
-      persistTabs(projectId, next[key], scope);
+      const next = { ...prev, [projectId]: { ...ps, tabs: filtered, activeTabId } };
+      persistTabs(projectId, next[projectId]);
       return next;
     });
   }, [state, persistTabs]);
 
-  const renameTab = useCallback((projectId: string, tabId: string, label: string, scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
+  const renameTab = useCallback((projectId: string, tabId: string, label: string) => {
     setState((prev) => {
-      const ps = getOrCreate(prev, projectId, scope);
+      const ps = getOrCreate(prev, projectId);
       const next = {
         ...prev,
-        [key]: {
+        [projectId]: {
           ...ps,
           tabs: ps.tabs.map((t) =>
             t.id === tabId ? { ...t, label } : t
           ),
         },
       };
-      persistTabs(projectId, next[key], scope);
+      persistTabs(projectId, next[projectId]);
       return next;
     });
   }, [persistTabs]);
 
-  const reorderTabs = useCallback((projectId: string, newTabs: WorkbenchTab[], scope: WorkbenchScope = 'project') => {
-    const key = scopedKey(projectId, scope);
+  const reorderTabs = useCallback((projectId: string, newTabs: WorkbenchTab[]) => {
     setState((prev) => {
-      const ps = getOrCreate(prev, projectId, scope);
-      const next = { ...prev, [key]: { ...ps, tabs: newTabs } };
-      persistTabs(projectId, next[key], scope);
+      const ps = getOrCreate(prev, projectId);
+      const next = { ...prev, [projectId]: { ...ps, tabs: newTabs } };
+      persistTabs(projectId, next[projectId]);
       return next;
     });
   }, [persistTabs]);

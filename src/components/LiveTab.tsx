@@ -4,7 +4,6 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
-import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -15,15 +14,10 @@ const PRESETS: Record<Exclude<ViewportSize, 'desktop'>, { w: number; h: number }
 
 interface LiveTabProps {
   project: Project;
-  workbenchCollapsed: boolean;
-  workbenchHeight: number;
-  isDragging: boolean;
-  onToggleCollapsed: () => void;
-  onExpand: () => void;
-  onResizeStart: (e: React.MouseEvent) => void;
+  onActivateWorkbenchTab: (type: 'agent' | 'shell') => void;
 }
 
-export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDragging, onToggleCollapsed, onExpand, onResizeStart }: LiveTabProps) {
+export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
   const initialVp = project.liveViewport ?? 'desktop';
@@ -31,7 +25,6 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
   const [size, setSize] = useState(initialVp !== 'desktop' ? PRESETS[initialVp] : { w: 768, h: 1024 });
   const [iframeKey, setIframeKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const workbenchRef = useRef<WorkbenchPanelHandle>(null);
   const { refreshProjects } = useProjects();
   const prevServerUrl = useRef(project.serverUrl);
 
@@ -106,21 +99,14 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
   }, [size.w, size.h]);
 
   const activateTab = useCallback((type: 'agent' | 'shell') => {
-    if (type === 'agent') {
-      workbenchRef.current?.addAgentTab({ reuse: true });
-    } else {
-      workbenchRef.current?.addShellTab({ reuse: true });
-    }
-    onExpand();
-  }, [onExpand]);
+    onActivateWorkbenchTab(type);
+  }, [onActivateWorkbenchTab]);
 
   const isDevice = viewport !== 'desktop';
 
   return (
-    <>
       <div
-        className="flex-1 min-h-0 overflow-hidden flex flex-col bg-surface-deep"
-        style={workbenchCollapsed ? undefined : { flexBasis: `${100 - workbenchHeight}%` }}
+        className="h-full overflow-hidden flex flex-col bg-surface-deep"
       >
         {!project.serverUrl ? (
           /* ── Empty State ── */
@@ -319,20 +305,5 @@ export function LiveTab({ project, workbenchCollapsed, workbenchHeight, isDraggi
           </>
         )}
       </div>
-
-      <WorkbenchPanel
-        ref={workbenchRef}
-        projectId={project.id}
-        projectPath={project.path}
-        scope="live"
-        agentContext="live"
-        style={{ flexBasis: `${workbenchHeight}%` }}
-        collapsed={workbenchCollapsed}
-        onToggleCollapsed={onToggleCollapsed}
-        onExpand={onExpand}
-        onResizeStart={onResizeStart}
-        isDragging={isDragging}
-      />
-    </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, ListTodoIcon, CodeIcon, SearchIcon, GitBranchIcon, PlayIcon, RotateCcwIcon, PackageIcon, TerminalIcon } from 'lucide-react';
+import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, ListTodoIcon, CodeIcon, SearchIcon, GitBranchIcon } from 'lucide-react';
 import type { AgentBlock, TaskAttachment } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useAgentTabSession } from '@/hooks/useAgentTabSession';
@@ -34,11 +34,10 @@ interface AgentTabPaneProps {
   tabId: string;
   projectId: string;
   visible: boolean;
-  context?: string;
 }
 
-export function AgentTabPane({ tabId, projectId, visible, context }: AgentTabPaneProps) {
-  const { blocks, streamingText, sessionDone, loaded, sendMessage, stop, clear } = useAgentTabSession(tabId, projectId, context);
+export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
+  const { blocks, streamingText, sessionDone, loaded, sendMessage, stop, clear } = useAgentTabSession(tabId, projectId);
 
   // Listen for clear events from the tab dropdown
   useEffect(() => {
@@ -263,21 +262,14 @@ export function AgentTabPane({ tabId, projectId, visible, context }: AgentTabPan
             <div className="flex flex-col justify-end h-full gap-4 select-none pb-2">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-text-secondary">
-                  {context === 'live' ? 'Dev environment' : 'What can I help with?'}
+                  What can I help with?
                 </p>
                 <p className="text-xs text-text-placeholder">
-                  {context === 'live'
-                    ? 'Start or manage the dev server, or ask me anything:'
-                    : 'Ask me anything about this project, or try one of these:'}
+                  Ask me anything about this project, or try one of these:
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(context === 'live' ? [
-                  { icon: PlayIcon, label: 'Start dev server', prompt: 'Start the dev environment' },
-                  { icon: RotateCcwIcon, label: 'Restart server', prompt: 'Restart the dev server' },
-                  { icon: PackageIcon, label: 'Install dependencies', prompt: 'Install dependencies and start the dev server' },
-                  { icon: TerminalIcon, label: 'Check server logs', prompt: 'Check the dev server logs for any errors' },
-                ] : [
+                {([
                   { icon: ListTodoIcon, label: 'Create tasks from a goal', prompt: 'Let\'s break down a goal into specific, descriptive tasks. Start by asking for and understanding the goal.' },
                   { icon: CodeIcon, label: 'Review recent changes', prompt: 'Review recent changes in this project. Start by asking if I want to focus on specific files, a date range, or just the latest commits.' },
                   { icon: SearchIcon, label: 'Explore the codebase', prompt: 'Help me understand this project. Start by asking what area or aspect I\'d like to explore.' },

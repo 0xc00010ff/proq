@@ -6,7 +6,7 @@ import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { ListView } from '@/components/ListView';
 import { GridView } from '@/components/GridView';
-import WorkbenchPanel from '@/components/WorkbenchPanel';
+import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { TaskDraft } from '@/components/TaskDraft';
@@ -44,6 +44,7 @@ export default function ProjectPage() {
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const workbenchRef = useRef<WorkbenchPanelHandle>(null);
 
   const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
     fetch(`/api/projects/${projectId}/workbench-state`, {
@@ -57,10 +58,6 @@ export default function ProjectPage() {
     defaultPercent: 60,
     closedPercent: 25,
     onPersist: (height) => patchWorkbenchState({ height }),
-  });
-  const liveWorkbench = useResizablePanel(containerRef, {
-    defaultPercent: 40,
-    closedPercent: 40,
   });
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
@@ -759,11 +756,13 @@ export default function ProjectPage() {
       />
 
       <main ref={containerRef} className="flex-1 flex flex-col overflow-hidden relative">
-        {activeTab === 'project' && (
-          <>
+        <div
+          className="flex-1 min-h-0 overflow-hidden relative"
+          style={workbench.collapsed ? undefined : { flexBasis: `${100 - workbench.percent}%` }}
+        >
+          {activeTab === 'project' && (
             <div
-              className="flex-1 min-h-0 overflow-hidden relative"
-              style={workbench.collapsed ? undefined : { flexBasis: `${100 - workbench.percent}%` }}
+              className="h-full overflow-hidden relative"
               onDragEnter={handleBoardDragEnter}
               onDragLeave={handleBoardDragLeave}
               onDragOver={handleBoardDragOver}
@@ -850,35 +849,35 @@ export default function ProjectPage() {
                 />
               )}
             </div>
+          )}
 
-            <WorkbenchPanel
-              projectId={projectId}
-              projectPath={project.path}
-              style={{ flexBasis: `${workbench.percent}%` }}
-              collapsed={workbench.collapsed}
-              onToggleCollapsed={toggleWorkbenchCollapsed}
-              onExpand={expandWorkbench}
-              onResizeStart={workbench.onResizeStart}
-              isDragging={workbench.isDragging}
+          {activeTab === 'live' && project && (
+            <LiveTab
+              project={project}
+              onActivateWorkbenchTab={(type) => {
+                if (type === 'agent') workbenchRef.current?.addAgentTab({ reuse: true });
+                else workbenchRef.current?.addShellTab({ reuse: true });
+                expandWorkbench();
+              }}
             />
-          </>
-        )}
+          )}
+          {activeTab === 'code' && project && <CodeTab project={project} />}
+        </div>
 
-        {activeTab === 'live' && project && (
-          <LiveTab
-            project={project}
-            workbenchCollapsed={liveWorkbench.collapsed}
-            workbenchHeight={liveWorkbench.percent}
-            isDragging={liveWorkbench.isDragging}
-            onToggleCollapsed={liveWorkbench.toggleCollapsed}
-            onExpand={liveWorkbench.expand}
-            onResizeStart={liveWorkbench.onResizeStart}
-          />
-        )}
-        {activeTab === 'code' && project && <CodeTab project={project} />}
+        <WorkbenchPanel
+          ref={workbenchRef}
+          projectId={projectId}
+          projectPath={project.path}
+          style={{ flexBasis: `${workbench.percent}%` }}
+          collapsed={workbench.collapsed}
+          onToggleCollapsed={toggleWorkbenchCollapsed}
+          onExpand={expandWorkbench}
+          onResizeStart={workbench.onResizeStart}
+          isDragging={workbench.isDragging}
+        />
       </main>
 
-      {(workbench.isDragging || liveWorkbench.isDragging) && <div className="fixed inset-0 z-50 cursor-grabbing" />}
+      {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
 
       {agentModalTask && (
         <TaskAgentModal

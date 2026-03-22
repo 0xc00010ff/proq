@@ -25,7 +25,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useWorkbenchTabs, type WorkbenchTab, type WorkbenchScope } from './WorkbenchTabsProvider';
+import { useWorkbenchTabs, type WorkbenchTab } from './WorkbenchTabsProvider';
 import { TerminalPane, setTerminalDraft } from './TerminalPane';
 import { AgentTabPane, setAgentDraft } from './AgentTabPane';
 import {
@@ -50,8 +50,6 @@ export interface WorkbenchPanelHandle {
 interface WorkbenchPanelProps {
   projectId: string;
   projectPath?: string;
-  scope?: WorkbenchScope;
-  agentContext?: string;
   style?: React.CSSProperties;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -167,7 +165,7 @@ function SortableTab({
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, scope = 'project', agentContext, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }, ref) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }, ref) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
   const panelRef = useRef<HTMLDivElement>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -175,10 +173,10 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   // Hydrate persisted tabs on mount
-  useEffect(() => { hydrateProject(projectId, scope); }, [projectId, scope, hydrateProject]);
+  useEffect(() => { hydrateProject(projectId); }, [projectId, hydrateProject]);
 
-  const tabs = getTabs(projectId, scope);
-  const activeTabId = getActiveTabId(projectId, scope);
+  const tabs = getTabs(projectId);
+  const activeTabId = getActiveTabId(projectId);
 
   // Load xterm CSS once
   useEffect(() => {
@@ -199,11 +197,11 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
   const submitRename = useCallback(() => {
     if (renamingTabId && renameValue.trim()) {
-      renameTab(projectId, renamingTabId, renameValue.trim(), scope);
+      renameTab(projectId, renamingTabId, renameValue.trim());
     }
     setRenamingTabId(null);
     setRenameValue('');
-  }, [renamingTabId, renameValue, renameTab, projectId, scope]);
+  }, [renamingTabId, renameValue, renameTab, projectId]);
 
   const addShellTab = useCallback(async (opts?: AddTabOptions) => {
     const { initialInput, reuse } = opts ?? {};
@@ -212,7 +210,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       const existing = tabs.find((t) => t.type === 'shell');
       if (existing) {
         if (initialInput) setTerminalDraft(existing.id, initialInput);
-        setActiveTabId(projectId, existing.id, scope);
+        setActiveTabId(projectId, existing.id);
         return;
       }
     }
@@ -228,8 +226,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       body: JSON.stringify({ tabId: id, cwd: projectPath }),
     });
 
-    openTab(projectId, id, `Terminal ${shellCount}`, 'shell', scope);
-  }, [tabs, openTab, setActiveTabId, projectId, projectPath, scope]);
+    openTab(projectId, id, `Terminal ${shellCount}`, 'shell');
+  }, [tabs, openTab, setActiveTabId, projectId, projectPath]);
 
   const addAgentTab = useCallback((opts?: AddTabOptions) => {
     const { initialInput, reuse } = opts ?? {};
@@ -238,7 +236,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       const existing = tabs.find((t) => t.type === 'agent');
       if (existing) {
         if (initialInput) setAgentDraft(existing.id, initialInput);
-        setActiveTabId(projectId, existing.id, scope);
+        setActiveTabId(projectId, existing.id);
         return;
       }
     }
@@ -246,16 +244,16 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = tabs.filter((t) => t.type === 'agent').length + 1;
     if (initialInput) setAgentDraft(id, initialInput);
-    openTab(projectId, id, `Agent ${agentCount}`, 'agent', scope);
-  }, [tabs, openTab, setActiveTabId, projectId, scope]);
+    openTab(projectId, id, `Agent ${agentCount}`, 'agent');
+  }, [tabs, openTab, setActiveTabId, projectId]);
 
   useImperativeHandle(ref, () => ({ addShellTab, addAgentTab }), [addShellTab, addAgentTab]);
 
   const removeTab = useCallback(
     (tabId: string) => {
-      closeTab(projectId, tabId, scope);
+      closeTab(projectId, tabId);
     },
-    [closeTab, projectId, scope]
+    [closeTab, projectId]
   );
 
   const clearTab = useCallback(
@@ -275,9 +273,9 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       const oldIndex = tabs.findIndex((t) => t.id === active.id);
       const newIndex = tabs.findIndex((t) => t.id === over.id);
       if (oldIndex === -1 || newIndex === -1) return;
-      reorderTabs(projectId, arrayMove(tabs, oldIndex, newIndex), scope);
+      reorderTabs(projectId, arrayMove(tabs, oldIndex, newIndex));
     },
-    [tabs, reorderTabs, projectId, scope]
+    [tabs, reorderTabs, projectId]
   );
 
   return (
@@ -327,7 +325,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
                 setRenameValue={setRenameValue}
                 renameInputRef={renameInputRef}
                 onSelect={() => {
-                  setActiveTabId(projectId, tab.id, scope);
+                  setActiveTabId(projectId, tab.id);
                   if (collapsed) (onExpand ?? onToggleCollapsed)();
                 }}
                 onDoubleClick={() => {
@@ -394,7 +392,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           ) : (
             tabs.map((tab) =>
               tab.type === 'agent' ? (
-                <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} visible={activeTabId === tab.id} context={agentContext} />
+                <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} visible={activeTabId === tab.id} />
               ) : (
                 <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
               )

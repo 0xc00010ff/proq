@@ -79,8 +79,7 @@ export function startWsServer() {
       wss.handleUpgrade(req, socket, head, (ws) => {
         const tabId = query.tabId as string;
         const projectId = query.projectId as string;
-        const context = (query.context as string) || undefined;
-        console.log(`[ws] agent-tab connected: tab=${tabId} project=${projectId}${context ? ` context=${context}` : ''}`);
+        console.log(`[ws] agent-tab connected: tab=${tabId} project=${projectId}`);
 
         if (!tabId || !projectId) {
           ws.send(JSON.stringify({ type: "error", error: "tabId and projectId required" }));
@@ -88,7 +87,7 @@ export function startWsServer() {
           return;
         }
 
-        attachAgentTabWs(tabId, projectId, ws, context);
+        attachAgentTabWs(tabId, projectId, ws);
       });
     } else if (pathname === "/ws/supervisor") {
       wss.handleUpgrade(req, socket, head, (ws) => {

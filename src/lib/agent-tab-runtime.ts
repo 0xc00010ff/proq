@@ -263,7 +263,6 @@ export async function startAgentTabSession(
   projectId: string,
   text: string,
   cwd: string,
-  context?: string,
   attachments?: TaskAttachment[],
 ): Promise<void> {
   const existing = sessions.get(tabId);
@@ -334,9 +333,6 @@ You have MCP tools from the **proq** server for managing tasks on the board:
 - \`list_projects\` — List all projects in proq
 
 Use these tools to manage tasks. If you identify follow-up work beyond your current scope, create tasks for it.`);
-  if (context === "live") {
-    systemParts.push(buildLiveContextPrompt(projectId));
-  }
   args.push("--append-system-prompt", systemParts.join("\n\n"));
 
   const claudeBin = await getClaudeBin();
@@ -481,32 +477,6 @@ export function detachAgentTabClient(tabId: string, ws: WebSocket): void {
   if (session) {
     session.clients.delete(ws);
   }
-}
-
-function buildLiveContextPrompt(projectId: string): string {
-  return `## Live Preview Context
-
-You are working in the **Live Preview** tab of proq. Your primary job here is to help start, manage, and debug the project's development server.
-
-### When starting the dev environment:
-1. Look at the project's package.json (or equivalent) to determine the start command (e.g. \`npm run dev\`, \`yarn dev\`, \`bun dev\`, etc.)
-2. Run the appropriate command to start the development server
-3. Watch the output for the local server URL (e.g. \`http://localhost:3000\`, \`http://localhost:5173\`, etc.)
-4. Once you see the server is running, **immediately** set the live preview URL by making this API call:
-
-\`\`\`bash
-curl -s -X PATCH http://localhost:${process.env.PORT || 1337}/api/projects/${projectId} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"serverUrl":"<the-url-you-found>"}'
-\`\`\`
-
-This will update the Live preview iframe to show the running application.
-
-### Important:
-- Always check if a server is already running on common ports before starting a new one
-- If the server fails to start, diagnose the issue (missing dependencies, port conflicts, etc.)
-- After setting the URL, the Live preview will automatically refresh to show the app
-- If asked to install dependencies, run the appropriate install command first`;
 }
 
 export async function clearAgentTabSession(tabId: string, projectId?: string): Promise<void> {

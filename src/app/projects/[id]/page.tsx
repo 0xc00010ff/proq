@@ -687,6 +687,23 @@ export default function ProjectPage() {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
   }, [activeTab, handleTabChange]));
+  // Toggle callbacks that also persist open/closed state for the project workbench
+  const toggleWorkbenchCollapsed = useCallback(() => {
+    workbench.setCollapsed((prev: boolean) => {
+      patchWorkbenchState({ open: prev }); // prev=true means it was collapsed, now opening
+      return !prev;
+    });
+  }, [workbench, patchWorkbenchState]);
+
+  const expandWorkbench = useCallback(() => {
+    workbench.setCollapsed((prev: boolean) => {
+      if (!prev) return prev;
+      patchWorkbenchState({ open: true });
+      return false;
+    });
+    workbench.setPercent((prev: number) => Math.max(prev, 25));
+  }, [workbench, patchWorkbenchState]);
+
   useShortcut('toggle-workbench', useCallback(() => {
     toggleWorkbenchCollapsed();
   }, [toggleWorkbenchCollapsed]));
@@ -708,23 +725,6 @@ export default function ProjectPage() {
       body: JSON.stringify(data),
     }).catch(() => {});
   }, [projectId, setProjects]);
-
-  // Toggle callbacks that also persist open/closed state for the project workbench
-  const toggleWorkbenchCollapsed = useCallback(() => {
-    workbench.setCollapsed((prev: boolean) => {
-      patchWorkbenchState({ open: prev }); // prev=true means it was collapsed, now opening
-      return !prev;
-    });
-  }, [workbench, patchWorkbenchState]);
-
-  const expandWorkbench = useCallback(() => {
-    workbench.setCollapsed((prev: boolean) => {
-      if (!prev) return prev;
-      patchWorkbenchState({ open: true });
-      return false;
-    });
-    workbench.setPercent((prev: number) => Math.max(prev, 25));
-  }, [workbench, patchWorkbenchState]);
 
   if (!project) {
     return (

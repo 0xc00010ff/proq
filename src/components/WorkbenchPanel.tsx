@@ -298,7 +298,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           </div>
         )}
         <div
-          className={`h-12 flex items-stretch bg-surface-topbar overflow-visible border-t border-border-default ${
+          className={`h-12 flex items-stretch bg-surface-secondary overflow-visible border-t border-border-default ${
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
           onMouseDown={(e) => {

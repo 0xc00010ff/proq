@@ -500,16 +500,13 @@ export async function continueSession(
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
-  let canResume = true;
 
   // If no in-memory session, reconstruct from DB.
-  // The session was cleared (e.g. task moved to done), so the Claude CLI
-  // session is likely dead.  We'll start fresh with context instead of
-  // trying --resume on a stale session ID.
+  // Claude CLI persists sessions to disk, so --resume works even after
+  // proq server restarts — we just need the sessionId.
   if (!session) {
     const task = await getTask(projectId, taskId);
     taskMode = task?.mode;
-    canResume = false;
     const stored = readAgentBlocksFile(taskId);
     session = {
       taskId,
@@ -566,12 +563,12 @@ export async function continueSession(
     }
   }
 
-  // Build CLI args — use --resume only if we have a live in-memory session.
-  // Reconstructed sessions (from DB after clearSession) likely have a dead
-  // Claude CLI session, so we start fresh with task context instead.
+  // Build CLI args — use --resume whenever we have a sessionId.
+  // Claude CLI persists sessions to disk, so --resume works even for
+  // sessions reconstructed from DB after server restarts.
   const args: string[] = [];
 
-  if (canResume && session.sessionId) {
+  if (session.sessionId) {
     args.push("--resume", session.sessionId);
   }
 
@@ -615,7 +612,7 @@ export async function continueSession(
 
   // When starting fresh (no --resume), inject previous work context so the
   // agent knows what was done before.
-  if (!canResume || !session.sessionId) {
+  if (!session.sessionId) {
     const task = await getTask(projectId, taskId);
     const contextParts: string[] = [];
     if (task?.title) contextParts.push(`Task: ${task.title}`);
@@ -654,8 +651,8 @@ export async function continueSession(
     args.push("--allowedTools", allowedTools.join(","));
   }
 
-  // Emit init block for the new session turn
-  if (!canResume || !session.sessionId) {
+  // Emit init block for the new session turn (only when starting fresh)
+  if (!session.sessionId) {
     appendBlock(session, {
       type: "status",
       subtype: "init",

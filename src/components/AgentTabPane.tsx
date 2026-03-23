@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, ListTodoIcon, CodeIcon, SearchIcon, GitBranchIcon } from 'lucide-react';
+import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, GitBranchIcon, PlayIcon, FlaskConicalIcon, RocketIcon } from 'lucide-react';
 import type { AgentBlock, TaskAttachment } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useAgentTabSession } from '@/hooks/useAgentTabSession';
@@ -270,10 +270,10 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {([
-                  { icon: ListTodoIcon, label: 'Create tasks from a goal', prompt: 'Let\'s break down a goal into specific, descriptive tasks. Start by asking for and understanding the goal.' },
-                  { icon: CodeIcon, label: 'Review recent changes', prompt: 'Review recent changes in this project. Start by asking if I want to focus on specific files, a date range, or just the latest commits.' },
-                  { icon: SearchIcon, label: 'Explore the codebase', prompt: 'Help me understand this project. Start by asking what area or aspect I\'d like to explore.' },
-                  { icon: GitBranchIcon, label: 'Plan a feature', prompt: 'Help me plan the implementation of a new feature. Start by asking what I want to build.' },
+                  { icon: GitBranchIcon, label: 'Plan a feature', prompt: 'Help me plan the implementation of a new feature. Start by asking what I want to build. Once we have a plan, suggest creating one or more tasks on the board to track the work.' },
+                  { icon: PlayIcon, label: 'Start the server', prompt: 'Start the dev server for this project. Look at the package.json or equivalent to find the right command, then run it.' },
+                  { icon: FlaskConicalIcon, label: 'Test the app', prompt: 'Run the test suite for this project. Look at the package.json or equivalent to find the right test command, then run it and report the results.' },
+                  { icon: RocketIcon, label: 'Deploy', prompt: 'Help me deploy this project. Look at the project configuration to understand the deploy process, then guide me through it or run the deploy command.' },
                 ]).map(({ icon: Icon, label, prompt }) => (
                   <button
                     key={label}

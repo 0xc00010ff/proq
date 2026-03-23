@@ -22,7 +22,7 @@ export interface AgentRuntimeSession {
   queryHandle: ChildProcess | null;
   blocks: AgentBlock[];
   clients: Set<WebSocket>;
-  status: "running" | "done" | "error" | "aborted";
+  status: "running" | "done" | "error" | "aborted" | "interrupted";
 }
 
 // ── Singleton attached to globalThis to survive HMR ──
@@ -99,7 +99,7 @@ function wireProcess(
       }
     }
 
-    if (session.status === "aborted") {
+    if (session.status === "aborted" || session.status === "interrupted") {
       await setTaskAgentBlocks(taskId, session.blocks);
       return;
     }
@@ -687,6 +687,24 @@ export function stopSession(taskId: string): void {
     });
     session.queryHandle.kill("SIGTERM");
   }
+}
+
+export function interruptSession(taskId: string): Promise<void> {
+  const session = sessions.get(taskId);
+  if (!session || session.status !== "running" || !session.queryHandle) {
+    return Promise.resolve();
+  }
+
+  session.status = "interrupted";
+  appendBlock(session, {
+    type: "status",
+    subtype: "interrupted",
+  });
+
+  return new Promise<void>((resolve) => {
+    session.queryHandle!.on("close", () => resolve());
+    session.queryHandle!.kill("SIGTERM");
+  });
 }
 
 export function getSession(taskId: string): AgentRuntimeSession | null {

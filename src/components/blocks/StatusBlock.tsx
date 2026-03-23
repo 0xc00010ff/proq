@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { AlertCircleIcon, BanIcon, PlayIcon } from 'lucide-react';
+import { AlertCircleIcon, BanIcon, PauseIcon, PlayIcon } from 'lucide-react';
 
 interface StatusBlockProps {
-  subtype: 'init' | 'complete' | 'error' | 'abort';
+  subtype: 'init' | 'complete' | 'error' | 'abort' | 'interrupted';
   sessionId?: string;
   model?: string;
   costUsd?: number;
@@ -88,6 +88,17 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error,
           {durationMs != null && <span>{formatDuration(durationMs)}</span>}
           {turns != null && <span>{turns} turn{turns !== 1 ? 's' : ''}</span>}
         </div>
+      </div>
+    );
+  }
+
+  if (subtype === 'interrupted') {
+    return (
+      <div className="flex items-center gap-2 py-1.5 text-[11px] text-text-placeholder font-mono">
+        <div className="flex-1 border-t border-border-default" />
+        <PauseIcon className="w-3 h-3" />
+        <span>Agent stopped</span>
+        <div className="flex-1 border-t border-border-default" />
       </div>
     );
   }

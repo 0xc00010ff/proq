@@ -36,7 +36,7 @@ interface StructuredPaneProps {
 }
 
 export function StructuredPane({ taskId, projectId, visible, taskStatus, agentStatus, agentBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
-  const { blocks, streamingText, active, sendFollowUp, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
+  const { blocks, streamingText, active, sendFollowUp, sendInterrupt, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,14 +47,20 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [showCosts, setShowCosts] = useState(false);
+  const [allowInterrupts, setAllowInterrupts] = useState(false);
+  const [showInterruptModal, setShowInterruptModal] = useState(false);
+  const [dontAskAgain, setDontAskAgain] = useState(false);
   // Track user-originated input changes to avoid external sync overwriting them
   const localChangeRef = useRef(false);
 
-  // Fetch showCosts setting once on mount
+  // Fetch settings once on mount
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
-      .then((s) => setShowCosts(!!s.showCosts))
+      .then((s) => {
+        setShowCosts(!!s.showCosts);
+        setAllowInterrupts(!!s.allowAgentInterrupts);
+      })
       .catch(() => {});
   }, []);
 
@@ -160,10 +166,45 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     }
   };
 
+  const handleInterruptSend = () => {
+    const text = inputValue.trim();
+    if (!text && attachments.length === 0) return;
+    sendInterrupt(text, attachments.length > 0 ? attachments : undefined);
+    setInputValue('');
+    setAttachments([]);
+    onFollowUpDraftChange?.(null);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  };
+
+  const confirmInterrupt = () => {
+    if (dontAskAgain) {
+      setAllowInterrupts(true);
+      fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowAgentInterrupts: true }),
+      }).catch(() => {});
+    }
+    setShowInterruptModal(false);
+    setDontAskAgain(false);
+    handleInterruptSend();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (isRunning) return;
+      if (isRunning) {
+        const text = inputValue.trim();
+        if (!text && attachments.length === 0) return;
+        if (allowInterrupts) {
+          handleInterruptSend();
+        } else {
+          setShowInterruptModal(true);
+        }
+        return;
+      }
       handleSend();
     }
   };
@@ -570,13 +611,30 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
               <PaperclipIcon className="w-4 h-4" />
             </button>
             {isRunning ? (
-              <button
-                onClick={stop}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20"
-                title="Stop agent"
-              >
-                <SquareIcon className="w-3.5 h-3.5 text-red-400 fill-red-400" />
-              </button>
+              <div className="flex items-center gap-1">
+                {(inputValue.trim() || attachments.length > 0) && (
+                  <button
+                    onClick={() => {
+                      if (allowInterrupts) {
+                        handleInterruptSend();
+                      } else {
+                        setShowInterruptModal(true);
+                      }
+                    }}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-chrome bg-bronze-400/30 dark:bg-surface-hover"
+                    title="Send (interrupts agent)"
+                  >
+                    <SendIcon className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  onClick={stop}
+                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20"
+                  title="Stop agent"
+                >
+                  <SquareIcon className="w-3.5 h-3.5 text-red-400 fill-red-400" />
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleSend}
@@ -604,6 +662,41 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
         </>
         )}
       </div>
+
+      {/* Interrupt confirmation modal */}
+      {showInterruptModal && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40">
+          <div className="bg-surface-detail border border-border-default rounded-lg shadow-xl max-w-sm w-full mx-4 p-5">
+            <h3 className="text-sm font-medium text-text-primary mb-2">Send while agent is thinking</h3>
+            <p className="text-xs text-text-tertiary mb-4">
+              This will stop the current run and restart with your message. The agent keeps its full conversation history.
+            </p>
+            <label className="flex items-center gap-2 text-xs text-text-secondary mb-5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={dontAskAgain}
+                onChange={(e) => setDontAskAgain(e.target.checked)}
+                className="rounded border-border-strong"
+              />
+              Don&apos;t ask again
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setShowInterruptModal(false); setDontAskAgain(false); }}
+                className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmInterrupt}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-md"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

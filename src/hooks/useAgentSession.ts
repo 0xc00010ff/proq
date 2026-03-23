@@ -16,6 +16,7 @@ interface UseAgentSessionResult {
   connected: boolean;
   active: boolean;
   sendFollowUp: (text: string, attachments?: TaskAttachment[]) => void;
+  sendInterrupt: (text: string, attachments?: TaskAttachment[]) => void;
   approvePlan: (text: string) => void;
   stop: () => void;
 }
@@ -152,6 +153,15 @@ export function useAgentSession(
     }
   }, []);
 
+  const sendInterrupt = useCallback((text: string, attachments?: TaskAttachment[]) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'interrupt', text, attachments }));
+      // Optimistically show that the session will continue
+      setActive(true);
+    }
+  }, []);
+
   const approvePlan = useCallback((text: string) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -174,5 +184,5 @@ export function useAgentSession(
     }
   }, [projectId, taskId]);
 
-  return { blocks, streamingText, connected, active, sendFollowUp, approvePlan, stop };
+  return { blocks, streamingText, connected, active, sendFollowUp, sendInterrupt, approvePlan, stop };
 }

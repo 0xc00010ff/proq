@@ -368,6 +368,17 @@ export default function SettingsPage() {
                     />
                   </Field>
                 )}
+                {settings.agentRenderMode === "structured" && (
+                  <Field
+                    label="Allow agent interrupts"
+                    hint="Send messages while the agent is working without a confirmation prompt. The agent will be stopped and restarted with your message."
+                  >
+                    <Toggle
+                      checked={settings.allowAgentInterrupts}
+                      onChange={(v) => update("allowAgentInterrupts", v)}
+                    />
+                  </Field>
+                )}
                 <Field
                   label="Global system prompt"
                   hint="Custom instructions injected into every agent runner across all projects. Use this for preferences that apply universally."

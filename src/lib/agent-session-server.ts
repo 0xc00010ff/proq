@@ -1,5 +1,5 @@
 import type WebSocket from "ws";
-import { getSession, attachClient, addPendingClient, detachClient, stopSession, continueSession } from "./agent-session";
+import { getSession, attachClient, addPendingClient, detachClient, stopSession, interruptSession, continueSession } from "./agent-session";
 import { getTask, getProject, updateTask, getTaskAgentBlocks } from "./db";
 import { resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
@@ -37,6 +37,22 @@ export async function attachAgentWsWithProject(
       const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSession(taskId);
+      } else if (msg.type === "interrupt") {
+        try {
+          await interruptSession(taskId);
+          const task = await getTask(projectId, taskId);
+          const project = await getProject(projectId);
+          const projectPath = project ? resolveProjectPath(project.path) : ".";
+          const cwd = task?.worktreePath || projectPath;
+          if (task && task.agentStatus !== "running") {
+            await updateTask(projectId, taskId, { agentStatus: "running" });
+            emitTaskUpdate(projectId, taskId, { agentStatus: "running" });
+          }
+          await continueSession(projectId, taskId, msg.text, cwd, ws, msg.attachments);
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          ws.send(JSON.stringify({ type: "error", error: errorMsg }));
+        }
       } else if (msg.type === "followup" || msg.type === "plan-approve") {
         try {
           const task = await getTask(projectId, taskId);

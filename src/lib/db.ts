@@ -650,6 +650,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   agentRenderMode: "structured",
   showCosts: false,
   codingAgent: "claude-code",
+  allowAgentInterrupts: false,
 
   // Updates
   autoUpdate: true,

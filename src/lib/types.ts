@@ -32,7 +32,7 @@ export type AgentBlock =
   | { type: 'tool_use';    toolId: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; toolId: string; name: string; output: string; isError?: boolean }
   | { type: 'user';        text: string; attachments?: TaskAttachment[] }
-  | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort';
+  | { type: 'status';      subtype: 'init' | 'complete' | 'error' | 'abort' | 'interrupted';
       sessionId?: string; model?: string; costUsd?: number;
       durationMs?: number; turns?: number; error?: string; timestamp?: string }
   | { type: 'task_update'; summary: string; nextSteps?: string; timestamp: string }
@@ -51,6 +51,7 @@ export type AgentWsServerMsg =
 export type AgentWsClientMsg =
   | { type: 'followup'; text: string; attachments?: TaskAttachment[] }
   | { type: 'plan-approve'; text: string }
+  | { type: 'interrupt'; text: string; attachments?: TaskAttachment[] }
   | { type: 'stop' }
   | { type: 'clear' };
 
@@ -144,6 +145,7 @@ export interface ProqSettings {
   agentRenderMode: AgentRenderMode;
   showCosts: boolean;
   codingAgent: string;
+  allowAgentInterrupts: boolean;
 
   // Updates
   autoUpdate: boolean;

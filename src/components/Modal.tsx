@@ -58,6 +58,56 @@ export function Modal({
   );
 }
 
+/* ─── Small Modal ─────────────────────────────────────────────────── */
+
+interface SmallModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  /** Button row — pass your own buttons, or use ConfirmModal/AlertModal for standard layouts */
+  actions: React.ReactNode;
+  /** Primary action triggered by Cmd+Enter */
+  onPrimary?: () => void;
+  /** Extra class on the card */
+  className?: string;
+}
+
+/**
+ * Compositional base for small dialogs. Provides consistent title/body/actions
+ * layout and Cmd+Enter keyboard shortcut. Use directly for custom layouts,
+ * or use ConfirmModal/AlertModal for standard two-button/one-button patterns.
+ */
+export function SmallModal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  actions,
+  onPrimary,
+  className = '',
+}: SmallModalProps) {
+  useEffect(() => {
+    if (!isOpen || !onPrimary) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        onPrimary();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onPrimary]);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} showClose={false} className={`mx-4 p-6 ${className}`}>
+      <h3 className="text-sm font-semibold text-text-primary mb-3">{title}</h3>
+      {children}
+      <div className="flex justify-end gap-2">{actions}</div>
+    </Modal>
+  );
+}
+
 /* ─── Confirm Modal ────────────────────────────────────────────────── */
 
 interface ConfirmModalProps {
@@ -85,27 +135,20 @@ export function ConfirmModal({
   cancelLabel = 'Cancel',
   className = '',
 }: ConfirmModalProps) {
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        onConfirm();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onConfirm]);
-
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} showClose={false} className={`max-w-md mx-4 p-6 ${className}`}>
-      <h3 className="text-sm font-semibold text-text-primary mb-3">{title}</h3>
-      <div className="text-xs text-text-secondary leading-relaxed mb-5">{children}</div>
-      <div className="flex justify-end gap-2">
+    <SmallModal
+      isOpen={isOpen}
+      onClose={onCancel}
+      onPrimary={onConfirm}
+      title={title}
+      className={`max-w-md ${className}`}
+      actions={<>
         <button onClick={onCancel} className="btn-secondary">{cancelLabel}</button>
         <button onClick={onConfirm} className="btn-primary">{confirmLabel}</button>
-      </div>
-    </Modal>
+      </>}
+    >
+      <div className="text-xs text-text-secondary leading-relaxed mb-5">{children}</div>
+    </SmallModal>
   );
 }
 
@@ -133,12 +176,15 @@ export function AlertModal({
   className = '',
 }: AlertModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} showClose={false} className={`max-w-sm mx-4 p-6 ${className}`}>
-      <h3 className="text-sm font-semibold text-text-primary mb-3">{title}</h3>
+    <SmallModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onPrimary={onClose}
+      title={title}
+      className={`max-w-sm ${className}`}
+      actions={<button onClick={onClose} className="btn-primary">{buttonLabel}</button>}
+    >
       <div className="text-xs text-text-secondary leading-relaxed mb-5">{children}</div>
-      <div className="flex justify-end">
-        <button onClick={onClose} className="btn-primary">{buttonLabel}</button>
-      </div>
-    </Modal>
+    </SmallModal>
   );
 }

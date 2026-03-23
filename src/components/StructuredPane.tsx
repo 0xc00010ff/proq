@@ -16,6 +16,7 @@ import { TaskUpdateBlock } from './blocks/TaskUpdateBlock';
 import { UserBlock } from './blocks/UserBlock';
 import { AskQuestionBlock } from './blocks/AskQuestionBlock';
 import { PlanApprovalBlock } from './blocks/PlanApprovalBlock';
+import { SmallModal } from '@/components/Modal';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -177,19 +178,6 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
       textareaRef.current.style.height = 'auto';
     }
   };
-
-  // Cmd+Enter to confirm interrupt modal
-  useEffect(() => {
-    if (!showInterruptModal) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        confirmInterrupt();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [showInterruptModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const confirmInterrupt = () => {
     if (dontAskAgain) {
@@ -677,39 +665,30 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
       </div>
 
       {/* Interrupt confirmation modal */}
-      {showInterruptModal && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40">
-          <div className="bg-surface-detail border border-border-default rounded-lg shadow-xl max-w-sm w-full mx-4 p-5">
-            <h3 className="text-sm font-medium text-text-primary mb-2">Send while agent is thinking</h3>
-            <p className="text-xs text-text-tertiary mb-4">
-              This will stop the current run and restart with your message. The agent keeps its full conversation history.
-            </p>
-            <label className="flex items-center gap-2 text-xs text-text-secondary mb-5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={dontAskAgain}
-                onChange={(e) => setDontAskAgain(e.target.checked)}
-                className="rounded border-border-strong"
-              />
-              Don&apos;t ask again
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => { setShowInterruptModal(false); setDontAskAgain(false); }}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmInterrupt}
-                className="btn-primary"
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SmallModal
+        isOpen={showInterruptModal}
+        onClose={() => { setShowInterruptModal(false); setDontAskAgain(false); }}
+        onPrimary={confirmInterrupt}
+        title="Send while agent is thinking"
+        className="max-w-sm"
+        actions={<>
+          <button onClick={() => { setShowInterruptModal(false); setDontAskAgain(false); }} className="btn-secondary">Cancel</button>
+          <button onClick={confirmInterrupt} className="btn-primary">Send</button>
+        </>}
+      >
+        <p className="text-xs text-text-tertiary mb-4">
+          This will stop the current run and restart with your message. The agent keeps its full conversation history.
+        </p>
+        <label className="flex items-center gap-2 text-xs text-text-secondary mb-5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={dontAskAgain}
+            onChange={(e) => setDontAskAgain(e.target.checked)}
+            className="rounded border-border-strong"
+          />
+          Don&apos;t ask again
+        </label>
+      </SmallModal>
     </div>
   );
 }

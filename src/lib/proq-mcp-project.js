@@ -242,6 +242,154 @@ server.tool(
   },
 );
 
+// ── list_crons ──
+
+server.tool(
+  "list_crons",
+  "List all cron jobs for a project.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+  },
+  async ({ projectId }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const res = await fetch(`${API}/api/projects/${pid}/crons`);
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to list crons: ${res.status}` }], isError: true };
+      }
+      const jobs = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(jobs, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── create_cron ──
+
+server.tool(
+  "create_cron",
+  "Create a cron job that automatically creates and dispatches tasks on a schedule.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    name: z.string().describe("Name for the cron job"),
+    prompt: z.string().describe("The task description/prompt that will be used when the cron creates a task"),
+    schedule: z.string().describe("Cron schedule expression, e.g. '0 9 * * *' for daily at 9am"),
+    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task execution mode (default: auto)"),
+    enabled: z.boolean().optional().describe("Whether the cron is enabled (default: true)"),
+  },
+  async ({ projectId, name, prompt, schedule, mode, enabled }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const body = { name, prompt, schedule };
+      if (mode !== undefined) body.mode = mode;
+      if (enabled !== undefined) body.enabled = enabled;
+      const res = await fetch(`${API}/api/projects/${pid}/crons`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { content: [{ type: "text", text: `Failed to create cron: ${res.status} ${err.error || ""}` }], isError: true };
+      }
+      const job = await res.json();
+      return { content: [{ type: "text", text: `Created cron "${job.name}" (${job.id}) — schedule: ${job.schedule}` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── update_cron ──
+
+server.tool(
+  "update_cron",
+  "Update a cron job's fields such as name, prompt, schedule, mode, or enabled state.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    cronId: z.string().describe("Cron job ID"),
+    name: z.string().optional().describe("New name"),
+    prompt: z.string().optional().describe("New prompt"),
+    schedule: z.string().optional().describe("New cron schedule expression"),
+    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("New execution mode"),
+    enabled: z.boolean().optional().describe("Enable or disable the cron"),
+  },
+  async ({ projectId, cronId, ...fields }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const body = {};
+      if (fields.name !== undefined) body.name = fields.name;
+      if (fields.prompt !== undefined) body.prompt = fields.prompt;
+      if (fields.schedule !== undefined) body.schedule = fields.schedule;
+      if (fields.mode !== undefined) body.mode = fields.mode;
+      if (fields.enabled !== undefined) body.enabled = fields.enabled;
+      const res = await fetch(`${API}/api/projects/${pid}/crons/${cronId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to update cron: ${res.status}` }], isError: true };
+      }
+      return { content: [{ type: "text", text: `Cron ${cronId} updated.` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── delete_cron ──
+
+server.tool(
+  "delete_cron",
+  "Delete a cron job from a project.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    cronId: z.string().describe("Cron job ID"),
+  },
+  async ({ projectId, cronId }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const res = await fetch(`${API}/api/projects/${pid}/crons/${cronId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to delete cron: ${res.status}` }], isError: true };
+      }
+      return { content: [{ type: "text", text: `Cron ${cronId} deleted.` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── trigger_cron ──
+
+server.tool(
+  "trigger_cron",
+  "Manually trigger a cron job to create and dispatch a task immediately.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    cronId: z.string().describe("Cron job ID"),
+  },
+  async ({ projectId, cronId }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const res = await fetch(`${API}/api/projects/${pid}/crons/${cronId}/trigger`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to trigger cron: ${res.status}` }], isError: true };
+      }
+      const result = await res.json();
+      return { content: [{ type: "text", text: `Triggered cron — created task "${result.task.title}" (${result.task.id})` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

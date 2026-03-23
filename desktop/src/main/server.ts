@@ -1,6 +1,10 @@
 import { ChildProcess, spawn, execSync } from 'child_process'
+import fs from 'fs'
 import http from 'http'
 import { getConfig, isDevMode } from './config'
+
+const SERVER_LOG = '/tmp/proq-server.log'
+const SERVER_LOG_DEV = '/tmp/proq-server-dev.log'
 
 let serverProcess: ChildProcess | null = null
 let intentionalStop = false
@@ -36,6 +40,10 @@ export async function startServer(
   // Brief pause to let the ports free up
   await new Promise((r) => setTimeout(r, 500))
 
+  // Truncate log file on each start
+  const logPath = isDevMode() ? SERVER_LOG_DEV : SERVER_LOG
+  const logStream = fs.createWriteStream(logPath, { flags: 'w' })
+
   return new Promise((resolve) => {
 
     const child = spawn('npm', ['run', command], {
@@ -65,12 +73,14 @@ export async function startServer(
 
     child.stdout?.on('data', (data: Buffer) => {
       const text = data.toString()
+      logStream.write(text)
       onLog?.(text)
       detectPortError(text)
     })
 
     child.stderr?.on('data', (data: Buffer) => {
       const text = data.toString()
+      logStream.write(text)
       onLog?.(text)
       detectPortError(text)
     })
@@ -81,6 +91,7 @@ export async function startServer(
     })
 
     child.on('close', (code) => {
+      logStream.end()
       serverProcess = null
       if (earlyError) {
         resolve({ ok: false, error: earlyError })

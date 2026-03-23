@@ -15,11 +15,13 @@ import {
   X,
   Search,
   ChevronRight,
+  FolderTree,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { FileTree, type TreeNode } from './FileTree';
+import { SearchPanel } from './SearchPanel';
 import type { Project } from '@/lib/types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -112,6 +114,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState('');
   const [paletteIndex, setPaletteIndex] = useState(0);
+  const [sidebarMode, setSidebarMode] = useState<'files' | 'search'>('files');
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -240,6 +243,11 @@ export function CodeTab({ project }: CodeTabProps) {
     setPaletteIndex(0);
     setShowPalette(true);
     setTimeout(() => paletteInputRef.current?.focus(), 0);
+  }, []));
+
+  // Cmd+Shift+F — toggle global search panel
+  useShortcut('global-search', useCallback(() => {
+    setSidebarMode((m) => m === 'search' ? 'files' : 'search');
   }, []));
 
   // Save file
@@ -612,6 +620,36 @@ export function CodeTab({ project }: CodeTabProps) {
     [saveFile]
   );
 
+  // Search panel: open file at specific line
+  const handleSearchOpenFile = useCallback(
+    (filePath: string, line: number) => {
+      // If already open, switch to it and jump to line
+      const existing = tabsRef.current.find((t) => t.path === filePath);
+      if (existing) {
+        switchToTab(filePath);
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.revealLineInCenter(line);
+            editorRef.current.setPosition({ lineNumber: line, column: 1 });
+            editorRef.current.focus();
+          }
+        }, 50);
+        return;
+      }
+      // Otherwise load pinned, then jump
+      loadFilePinned(filePath).then(() => {
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.revealLineInCenter(line);
+            editorRef.current.setPosition({ lineNumber: line, column: 1 });
+            editorRef.current.focus();
+          }
+        }, 50);
+      });
+    },
+    [switchToTab, loadFilePinned]
+  );
+
   // Palette file selection — opens pinned (intentional open)
   const handlePaletteSelect = useCallback(
     (filePath: string) => {
@@ -772,88 +810,124 @@ export function CodeTab({ project }: CodeTabProps) {
 
       {/* Main content: file tree + editor */}
       <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden">
-        {/* File tree */}
+        {/* Sidebar: file tree or search panel */}
         <div
           className="h-full flex flex-col border-r border-border-default bg-surface-topbar flex-shrink-0"
           style={{ width: treeWidth }}
         >
-          {/* Go to file search — inline input with dropdown */}
-          <div className="p-2 border-b border-border-default shrink-0 relative">
-            <div
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] bg-surface-inset rounded-md border transition-colors ${
-                showPalette ? 'border-border-strong' : 'border-border-default hover:border-border-strong'
+          {/* Sidebar mode toggle */}
+          <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border-default shrink-0">
+            <button
+              onClick={() => setSidebarMode('files')}
+              className={`p-1 rounded transition-colors ${
+                sidebarMode === 'files'
+                  ? 'bg-surface-hover text-text-primary'
+                  : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/50'
               }`}
+              title="File explorer"
             >
-              <Search className="w-3 h-3 text-text-tertiary/60 flex-shrink-0" />
-              <input
-                ref={paletteInputRef}
-                type="text"
-                value={paletteQuery}
-                onChange={(e) => { setPaletteQuery(e.target.value); setPaletteIndex(0); }}
-                onFocus={() => { setShowPalette(true); setPaletteIndex(0); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setShowPalette(false);
-                    (e.target as HTMLInputElement).blur();
-                  }
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setPaletteIndex((i) => Math.min(i + 1, filteredFiles.length - 1));
-                  }
-                  if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setPaletteIndex((i) => Math.max(i - 1, 0));
-                  }
-                  if (e.key === 'Enter' && filteredFiles.length > 0) {
-                    handlePaletteSelect(filteredFiles[paletteIndex].path);
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-                placeholder="Go to file"
-                className="flex-1 bg-transparent text-[11px] text-text-primary placeholder:text-text-tertiary/50 outline-none min-w-0"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            {/* Dropdown results */}
-            {showPalette && (
-              <div className="absolute left-2 right-2 top-full mt-1 z-[60] bg-surface-modal border border-border-strong rounded-md shadow-xl overflow-hidden max-h-[300px] flex flex-col">
-                <div className="overflow-y-auto">
-                  {filteredFiles.length === 0 ? (
-                    <div className="px-3 py-3 text-[11px] text-text-tertiary text-center">
-                      No files found
-                    </div>
-                  ) : (
-                    filteredFiles.map((file, i) => (
-                      <button
-                        key={file.path}
-                        onClick={() => {
-                          handlePaletteSelect(file.path);
-                          paletteInputRef.current?.blur();
-                        }}
-                        className={`w-full flex flex-col gap-0 px-2.5 py-1.5 text-left transition-colors ${
-                          i === paletteIndex ? 'bg-surface-hover/80' : 'hover:bg-surface-hover/40'
-                        }`}
-                      >
-                        <span className="text-[11px] text-text-primary font-medium truncate">{file.name}</span>
-                        <span className="text-text-tertiary/50 font-mono text-[10px] truncate">
-                          {file.path.replace(project.path + '/', '')}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+              <FolderTree className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setSidebarMode('search')}
+              className={`p-1 rounded transition-colors ${
+                sidebarMode === 'search'
+                  ? 'bg-surface-hover text-text-primary'
+                  : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/50'
+              }`}
+              title="Search in files (⇧⌘F)"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <FileTree
-              nodes={tree}
-              selectedPath={activeTabPath}
-              onSelectFile={loadFile}
-              onDoubleClickFile={loadFilePinned}
+
+          {sidebarMode === 'search' ? (
+            <SearchPanel
+              projectPath={project.path}
+              onOpenFile={handleSearchOpenFile}
+              onClose={() => setSidebarMode('files')}
             />
-          </div>
+          ) : (
+            <>
+              {/* Go to file search — inline input with dropdown */}
+              <div className="p-2 border-b border-border-default shrink-0 relative">
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] bg-surface-inset rounded-md border transition-colors ${
+                    showPalette ? 'border-border-strong' : 'border-border-default hover:border-border-strong'
+                  }`}
+                >
+                  <Search className="w-3 h-3 text-text-tertiary/60 flex-shrink-0" />
+                  <input
+                    ref={paletteInputRef}
+                    type="text"
+                    value={paletteQuery}
+                    onChange={(e) => { setPaletteQuery(e.target.value); setPaletteIndex(0); }}
+                    onFocus={() => { setShowPalette(true); setPaletteIndex(0); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setShowPalette(false);
+                        (e.target as HTMLInputElement).blur();
+                      }
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setPaletteIndex((i) => Math.min(i + 1, filteredFiles.length - 1));
+                      }
+                      if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setPaletteIndex((i) => Math.max(i - 1, 0));
+                      }
+                      if (e.key === 'Enter' && filteredFiles.length > 0) {
+                        handlePaletteSelect(filteredFiles[paletteIndex].path);
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    placeholder="Go to file"
+                    className="flex-1 bg-transparent text-[11px] text-text-primary placeholder:text-text-tertiary/50 outline-none min-w-0"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+                {/* Dropdown results */}
+                {showPalette && (
+                  <div className="absolute left-2 right-2 top-full mt-1 z-[60] bg-surface-modal border border-border-strong rounded-md shadow-xl overflow-hidden max-h-[300px] flex flex-col">
+                    <div className="overflow-y-auto">
+                      {filteredFiles.length === 0 ? (
+                        <div className="px-3 py-3 text-[11px] text-text-tertiary text-center">
+                          No files found
+                        </div>
+                      ) : (
+                        filteredFiles.map((file, i) => (
+                          <button
+                            key={file.path}
+                            onClick={() => {
+                              handlePaletteSelect(file.path);
+                              paletteInputRef.current?.blur();
+                            }}
+                            className={`w-full flex flex-col gap-0 px-2.5 py-1.5 text-left transition-colors ${
+                              i === paletteIndex ? 'bg-surface-hover/80' : 'hover:bg-surface-hover/40'
+                            }`}
+                          >
+                            <span className="text-[11px] text-text-primary font-medium truncate">{file.name}</span>
+                            <span className="text-text-tertiary/50 font-mono text-[10px] truncate">
+                              {file.path.replace(project.path + '/', '')}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <FileTree
+                  nodes={tree}
+                  selectedPath={activeTabPath}
+                  onSelectFile={loadFile}
+                  onDoubleClickFile={loadFilePinned}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Resize handle */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import {
   Dialog,
@@ -85,6 +85,18 @@ export function ConfirmModal({
   cancelLabel = 'Cancel',
   className = '',
 }: ConfirmModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        onConfirm();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onConfirm]);
+
   return (
     <Modal isOpen={isOpen} onClose={onCancel} showClose={false} className={`max-w-md mx-4 p-6 ${className}`}>
       <h3 className="text-sm font-semibold text-text-primary mb-3">{title}</h3>

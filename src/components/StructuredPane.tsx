@@ -178,6 +178,19 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     }
   };
 
+  // Cmd+Enter to confirm interrupt modal
+  useEffect(() => {
+    if (!showInterruptModal) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        confirmInterrupt();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showInterruptModal]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const confirmInterrupt = () => {
     if (dontAskAgain) {
       setAllowInterrupts(true);
@@ -683,13 +696,13 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => { setShowInterruptModal(false); setDontAskAgain(false); }}
-                className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md hover:bg-surface-hover"
+                className="btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmInterrupt}
-                className="px-3 py-1.5 text-xs font-medium text-text-primary bg-surface-hover border border-border-strong rounded-md hover:bg-border-strong"
+                className="btn-primary"
               >
                 Send
               </button>

@@ -124,7 +124,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
         isRunning={isRunning}
         isThinking={isThinking}
         onAnswer={(answer) => sendMessage(answer)}
-        onApprovePlan={(text) => approvePlan(text)}
+        onApprovePlan={(text) => { approvePlan(text); setMode('auto'); }}
         onRejectPlan={(feedback) => sendMessage(`Plan rejected. ${feedback}`)}
         emptyState={emptyState}
         showLoading

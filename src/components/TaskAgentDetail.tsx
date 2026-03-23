@@ -18,7 +18,7 @@ import {
   ChevronRightIcon,
   ListChecksIcon,
 } from 'lucide-react';
-import type { Task, AgentBlock, FollowUpDraft } from '@/lib/types';
+import type { Task, AgentBlock, TaskMode, FollowUpDraft } from '@/lib/types';
 import { attachmentUrl } from '@/lib/upload';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -357,6 +357,14 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             taskStatus={task.status}
             agentStatus={task.agentStatus}
             agentBlocks={fetchedBlocks || undefined}
+            taskMode={task.mode}
+            onModeChange={(mode) => {
+              fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode }),
+              }).catch(() => {});
+            }}
             followUpDraft={followUpDraft}
             onFollowUpDraftChange={onFollowUpDraftChange}
             onTaskStatusChange={(status) => {

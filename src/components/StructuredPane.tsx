@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, RotateCcwIcon } from 'lucide-react';
-import type { AgentBlock, TaskAttachment, FollowUpDraft } from '@/lib/types';
+import { SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, RotateCcwIcon, ChevronDownIcon } from 'lucide-react';
+import type { AgentBlock, TaskAttachment, TaskMode, FollowUpDraft } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { ScrambleText } from './ScrambleText';
@@ -31,12 +31,14 @@ interface StructuredPaneProps {
   taskStatus?: string;
   agentStatus?: string | null;
   agentBlocks?: AgentBlock[];
+  taskMode?: TaskMode;
+  onModeChange?: (mode: TaskMode) => void;
   followUpDraft?: FollowUpDraft;
   onFollowUpDraftChange?: (draft: FollowUpDraft | null) => void;
   onTaskStatusChange?: (status: string) => void;
 }
 
-export function StructuredPane({ taskId, projectId, visible, taskStatus, agentStatus, agentBlocks, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
+export function StructuredPane({ taskId, projectId, visible, taskStatus, agentStatus, agentBlocks, taskMode, onModeChange, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
   const { blocks, streamingText, active, sendFollowUp, sendInterrupt, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,8 +53,28 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   const [allowInterrupts, setAllowInterrupts] = useState(false);
   const [showInterruptModal, setShowInterruptModal] = useState(false);
   const [dontAskAgain, setDontAskAgain] = useState(false);
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const [localMode, setLocalMode] = useState<TaskMode>(taskMode || 'auto');
+  const modeMenuRef = useRef<HTMLDivElement>(null);
   // Track user-originated input changes to avoid external sync overwriting them
   const localChangeRef = useRef(false);
+
+  // Sync local mode when prop changes (e.g. server-side plan→auto on approval)
+  useEffect(() => {
+    if (taskMode) setLocalMode(taskMode);
+  }, [taskMode]);
+
+  // Close mode menu on outside click
+  useEffect(() => {
+    if (!showModeMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) {
+        setShowModeMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showModeMenu]);
 
   // Fetch settings once on mount
   useEffect(() => {
@@ -601,16 +623,54 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
             className="w-full min-h-[36px] max-h-[160px] resize-none overflow-hidden bg-transparent px-3 pt-3 pb-2 text-sm leading-[20px] text-text-secondary placeholder:text-text-placeholder focus:outline-none"
           />
 
-          {/* Bottom bar: attach left, send right */}
+          {/* Bottom bar: attach left, mode center, send right */}
           <div className="flex items-center justify-between px-1.5 pb-1.5">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-chrome-hover hover:bg-surface-hover"
-              title="Attach file"
-            >
-              <PaperclipIcon className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-chrome-hover hover:bg-surface-hover"
+                title="Attach file"
+              >
+                <PaperclipIcon className="w-4 h-4" />
+              </button>
+
+              {/* Mode switcher */}
+              <div className="relative" ref={modeMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowModeMenu((v) => !v)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+                  title="Agent mode"
+                >
+                  <span className="capitalize">{localMode}</span>
+                  <ChevronDownIcon className="w-3 h-3" />
+                </button>
+                {showModeMenu && (
+                  <div className="absolute bottom-full left-0 mb-1 py-1 rounded-lg border border-border-strong bg-surface-detail shadow-lg z-30 min-w-[120px]">
+                    {(['auto', 'plan', 'build', 'answer'] as TaskMode[]).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setLocalMode(m);
+                          onModeChange?.(m);
+                          setShowModeMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-hover ${m === localMode ? 'text-text-primary font-medium' : 'text-text-secondary'}`}
+                      >
+                        <span className="capitalize">{m}</span>
+                        <span className="text-text-placeholder ml-1.5">
+                          {m === 'auto' && '— default'}
+                          {m === 'plan' && '— plan first'}
+                          {m === 'build' && '— code only'}
+                          {m === 'answer' && '— research'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             {isRunning ? (
               <div className="flex items-center gap-1">
                 {(inputValue.trim() || attachments.length > 0) && (

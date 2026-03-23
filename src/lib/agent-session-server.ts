@@ -65,6 +65,13 @@ export async function attachAgentWsWithProject(
           const cwd = task?.worktreePath || projectPath;
           const planApproved = msg.type === "plan-approve";
 
+          // When a plan is approved, switch mode from plan to auto so
+          // subsequent followups use full permissions instead of re-entering plan mode
+          if (planApproved && task && task.mode === "plan") {
+            await updateTask(projectId, taskId, { mode: "auto" });
+            emitTaskUpdate(projectId, taskId, { mode: "auto" });
+          }
+
           // Move task back to in-progress so the card shows "Agent working"
           if (task && task.status !== "in-progress") {
             await updateTask(projectId, taskId, { status: "in-progress", agentStatus: "running" });

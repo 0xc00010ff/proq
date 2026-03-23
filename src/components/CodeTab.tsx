@@ -663,9 +663,9 @@ export function CodeTab({ project }: CodeTabProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-base">
       {/* Sub-header bar — lightest chrome layer, 3-column layout */}
-      <div className="h-10 flex-shrink-0 grid grid-cols-[1fr_auto_1fr] items-center px-6 border-b border-border-default bg-surface-secondary">
-        {/* Left: breadcrumb + save status (ml-1 aligns with TopBar project name) */}
-        <div className="flex items-center gap-2 min-w-0 ml-1">
+      <div className="h-10 flex-shrink-0 grid grid-cols-[1fr_auto_1fr] items-center px-4 border-b border-border-default bg-surface-secondary">
+        {/* Left: breadcrumb + save status (px-4 aligns with TopBar project name) */}
+        <div className="flex items-center gap-2 min-w-0">
           {activeTabPath && (() => {
             const rel = activeTabPath.replace(project.path + '/', '');
             const parts = rel.split('/');

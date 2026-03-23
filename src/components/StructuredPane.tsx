@@ -689,7 +689,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
               </button>
               <button
                 onClick={confirmInterrupt}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-md"
+                className="px-3 py-1.5 text-xs font-medium text-text-primary bg-surface-hover border border-border-strong rounded-md hover:bg-border-strong"
               >
                 Send
               </button>

@@ -39,7 +39,9 @@ export async function attachAgentWsWithProject(
         stopSession(taskId);
       } else if (msg.type === "interrupt") {
         try {
+          console.log(`[agent-ws] interrupt requested for task ${taskId.slice(0, 8)}`);
           await interruptSession(taskId);
+          console.log(`[agent-ws] interrupt complete, resuming task ${taskId.slice(0, 8)}`);
           const task = await getTask(projectId, taskId);
           const project = await getProject(projectId);
           const projectPath = project ? resolveProjectPath(project.path) : ".";
@@ -49,7 +51,9 @@ export async function attachAgentWsWithProject(
             emitTaskUpdate(projectId, taskId, { agentStatus: "running" });
           }
           await continueSession(projectId, taskId, msg.text, cwd, ws, msg.attachments);
+          console.log(`[agent-ws] session resumed for task ${taskId.slice(0, 8)}`);
         } catch (err) {
+          console.error(`[agent-ws] interrupt failed for task ${taskId.slice(0, 8)}:`, err);
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));
         }

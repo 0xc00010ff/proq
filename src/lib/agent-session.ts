@@ -689,21 +689,33 @@ export function stopSession(taskId: string): void {
   }
 }
 
-export function interruptSession(taskId: string): Promise<void> {
+export async function interruptSession(taskId: string): Promise<void> {
   const session = sessions.get(taskId);
   if (!session || session.status !== "running" || !session.queryHandle) {
-    return Promise.resolve();
+    return;
   }
 
+  const proc = session.queryHandle;
   session.status = "interrupted";
   appendBlock(session, {
     type: "status",
     subtype: "interrupted",
   });
 
-  return new Promise<void>((resolve) => {
-    session.queryHandle!.on("close", () => resolve());
-    session.queryHandle!.kill("SIGTERM");
+  // If process already exited, nothing to wait for
+  if (proc.exitCode !== null) return;
+
+  // Wait for process to close with a safety timeout
+  await new Promise<void>((resolve) => {
+    const timeout = setTimeout(() => {
+      try { proc.kill("SIGKILL"); } catch {}
+      resolve();
+    }, 5000);
+    proc.once("close", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    proc.kill("SIGTERM");
   });
 }
 

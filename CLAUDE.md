@@ -104,7 +104,8 @@ src/
     ├── cron-scheduler.ts       # Cron job scheduling engine
     ├── worktree.ts             # Git worktree + branch operations
     ├── db.ts                   # JSON file storage with per-resource write locks
-    ├── proq-mcp.js             # MCP server exposing task tools (read_task, update_task, commit_changes, set_live_url)
+    ├── proq-mcp-task.js        # Task-scoped MCP server (read_task, update_task, commit_changes, create_task)
+    ├── proq-mcp-project.js     # Project-scoped MCP server for workbench agents
     ├── proq-bridge.js          # PTY bridge for CLI mode (unix socket + scrollback)
     ├── pty-server.ts           # Terminal PTY management for workbench shells
     ├── ws-server.ts            # WebSocket hub (agent, terminal, supervisor, agent-tab)
@@ -126,7 +127,7 @@ Key functions:
 - `abortTask()` — kills the agent process and cleans up
 - `isSessionAlive()` — checks if an agent process is alive for a task
 
-**Launch:** Spawns a Claude CLI child process with MCP tools (`proq-mcp.js`) for the agent to report status, commit changes, and set live URLs.
+**Launch:** Spawns a Claude CLI child process with MCP tools (`proq-mcp-task.js`) for the agent to report status, commit changes, and create follow-up tasks.
 
 **Callback:** Agent reports back via MCP tools (e.g., `update_task` to move to verify, `commit_changes` to commit work).
 

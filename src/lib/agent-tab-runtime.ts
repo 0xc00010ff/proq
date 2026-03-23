@@ -242,7 +242,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
 function writeWorkbenchMcpConfig(projectId: string, tabId: string): string {
   const promptDir = join(tmpdir(), "proq-prompts");
   mkdirSync(promptDir, { recursive: true });
-  const mcpScriptPath = join(process.cwd(), "src/lib/proq-mcp-general.js");
+  const mcpScriptPath = join(process.cwd(), "src/lib/proq-mcp-project.js");
   const configPath = join(promptDir, `mcp-workbench-${tabId.slice(0, 12)}.json`);
   const config = {
     mcpServers: {

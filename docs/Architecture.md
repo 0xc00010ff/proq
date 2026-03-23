@@ -141,8 +141,8 @@ The orchestrator. Called after any state change. Has a re-entrancy guard per pro
 
 `dispatchTask()` in `agent-dispatch.ts` handles the full launch sequence:
 
-1. **Write MCP config** — creates a temp JSON file pointing to `proq-mcp.js` with the project/task IDs
-2. **Build system prompt** — mode-specific instructions (build: commit code; plan/answer: no file changes)
+1. **Write MCP config** — creates a temp JSON file pointing to `proq-mcp-task.js` with the project/task IDs
+2. **Build system prompt** — mode-aware instructions with flexible guidance that allows mode transitions
 3. **Write image attachments** — base64 data URLs decoded to temp files the agent can read
 4. **Create worktree** (worktrees mode, build tasks only) — isolated git worktree at `.proq-worktrees/{shortId}/`
 5. **Launch agent** — two paths depending on render mode
@@ -180,14 +180,14 @@ The detached process survives server restarts. Lifecycle is managed via PID file
 
 ## MCP Callback
 
-`proq-mcp.js` is a stdio MCP server spawned per-task via `--mcp-config`. It exposes four tools:
+`proq-mcp-task.js` is a task-scoped stdio MCP server spawned per-task via `--mcp-config`. It exposes four tools:
 
 | Tool | Description |
 |---|---|
 | `read_task` | Fetch current task state (title, description, summary, status). Agent uses this before updating to build cumulative summary |
 | `update_task` | Set summary + optional nextSteps, move task to Verify. Each call replaces the previous summary |
-| `set_live_url` | Set the live preview URL for the project so the human can see the running app in the Live tab |
 | `commit_changes` | Stage and commit all current changes. Used after each logical unit of work to keep progress saved |
+| `create_task` | Create a follow-up task in the same project for work outside the agent's current scope |
 
 The MCP server communicates with the proq REST API over localhost.
 

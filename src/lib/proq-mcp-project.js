@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * General-purpose proq MCP stdio server — exposes project and task management tools.
- * Can be used by any agent (workbench tabs, external Claude Code instances, etc.).
+ * Project-scoped proq MCP server — tools for workbench agents working within a project.
  *
- * Usage: node proq-mcp-general.js [--project <projectId>]
+ * Usage: node proq-mcp-project.js [--project <projectId>]
  *
  * When --project is set, projectId becomes optional on task tools (defaults to that project).
  */
@@ -249,6 +248,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  process.stderr.write(`proq-mcp-general fatal: ${err.message}\n`);
+  process.stderr.write(`proq-mcp-project fatal: ${err.message}\n`);
   process.exit(1);
 });

@@ -38,7 +38,7 @@ import { getClaudeBin } from "./claude-bin";
 export function writeMcpConfig(projectId: string, taskId: string): string {
   const promptDir = join(tmpdir(), "proq-prompts");
   mkdirSync(promptDir, { recursive: true });
-  const mcpScriptPath = join(process.cwd(), "src/lib/proq-mcp.js");
+  const mcpScriptPath = join(process.cwd(), "src/lib/proq-mcp-task.js");
   const configPath = join(promptDir, `mcp-${taskId.slice(0, 8)}.json`);
   const config = {
     mcpServers: {

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * proq MCP stdio server — exposes read_task and update_task tools to agents.
+ * Task-scoped proq MCP server — tools for the agent working on a specific task.
  * Spawned per-task by dispatchTask() via --mcp-config.
  *
- * Usage: node proq-mcp.js <projectId> <taskId>
+ * Usage: node proq-mcp-task.js <projectId> <taskId>
  */
 
 const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
@@ -15,7 +15,7 @@ const API = process.env.PROQ_API || "http://localhost:1337";
 const [projectId, taskId] = process.argv.slice(2);
 
 if (!projectId || !taskId) {
-  process.stderr.write("Usage: node proq-mcp.js <projectId> <taskId>\n");
+  process.stderr.write("Usage: node proq-mcp-task.js <projectId> <taskId>\n");
   process.exit(1);
 }
 
@@ -182,6 +182,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  process.stderr.write(`proq-mcp fatal: ${err.message}\n`);
+  process.stderr.write(`proq-mcp-task fatal: ${err.message}\n`);
   process.exit(1);
 });

@@ -629,10 +629,10 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-chrome-hover hover:bg-surface-hover"
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-chrome-hover hover:bg-surface-hover"
                 title="Attach file"
               >
-                <PaperclipIcon className="w-4 h-4" />
+                <PaperclipIcon className="w-3.5 h-3.5" />
               </button>
 
               {/* Mode switcher */}
@@ -640,14 +640,14 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
                 <button
                   type="button"
                   onClick={() => setShowModeMenu((v) => !v)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover"
+                  className="flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-medium text-text-tertiary hover:text-text-chrome-hover hover:bg-surface-hover"
                   title="Agent mode"
                 >
                   <span className="capitalize">{localMode}</span>
                   <ChevronDownIcon className="w-3 h-3" />
                 </button>
                 {showModeMenu && (
-                  <div className="absolute bottom-full left-0 mb-1 py-1 rounded-lg border border-border-strong bg-surface-detail shadow-lg z-30 min-w-[120px]">
+                  <div className="absolute bottom-full left-0 mb-1 py-1 rounded-lg border border-border-strong bg-surface-detail shadow-lg z-30 min-w-[160px]">
                     {(['auto', 'plan', 'build', 'answer'] as TaskMode[]).map((m) => (
                       <button
                         key={m}

@@ -281,7 +281,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
                       sendMessage(prompt);
                     }}
                     title={prompt}
-                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-border-strong/30 bg-surface-hover/30 hover:bg-surface-hover hover:border-border-strong/60 text-left transition-colors group"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border-strong/30 bg-surface-hover/30 hover:bg-surface-hover hover:border-border-strong/60 text-left transition-colors group"
                   >
                     <Icon className="w-4 h-4 text-text-placeholder group-hover:text-bronze-500 shrink-0 transition-colors" />
                     <span className="text-xs text-text-tertiary group-hover:text-text-secondary transition-colors">{label}</span>

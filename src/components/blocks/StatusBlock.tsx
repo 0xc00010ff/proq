@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircleIcon, BanIcon, PauseIcon, PlayIcon } from 'lucide-react';
+import { AlertCircleIcon, PauseIcon, PlayIcon } from 'lucide-react';
 
 interface StatusBlockProps {
   subtype: 'init' | 'complete' | 'error' | 'abort' | 'interrupted';
@@ -97,23 +97,21 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error,
       <div className="flex items-center gap-2 py-1.5 text-[11px] text-text-placeholder font-mono">
         <div className="flex-1 border-t border-border-default" />
         <PauseIcon className="w-3 h-3" />
-        <span>Agent stopped</span>
+        <span>Agent paused to listen</span>
         <div className="flex-1 border-t border-border-default" />
       </div>
     );
   }
 
-  // abort
+  // abort — calm gray style, not alarming
   return (
-    <div className="my-2 py-2.5">
-      <div className="flex items-center gap-2 text-xs font-medium text-red-400">
-        <BanIcon className="w-3.5 h-3.5" />
-        Session aborted
-      </div>
-      <div className="flex items-center gap-3 text-[11px] text-red-400/60 font-mono mt-1">
-        {durationMs != null && <span>{formatDuration(durationMs)}</span>}
-        {turns != null && <span>{turns} turn{turns !== 1 ? 's' : ''}</span>}
-      </div>
+    <div className="flex items-center gap-2 py-1.5 text-[11px] text-text-placeholder font-mono">
+      <div className="flex-1 border-t border-border-default" />
+      <PauseIcon className="w-3 h-3" />
+      <span>Session stopped</span>
+      {durationMs != null && <span>· {formatDuration(durationMs)}</span>}
+      {turns != null && <span>· {turns} turn{turns !== 1 ? 's' : ''}</span>}
+      <div className="flex-1 border-t border-border-default" />
     </div>
   );
 }

@@ -561,7 +561,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
           </div>
         ) : (
         <>
-        <div className="rounded-xl border border-border-strong/40 focus-within:border-border-strong bg-surface-topbar overflow-hidden transition-colors">
+        <div className="rounded-xl border border-border-strong/40 focus-within:border-border-strong bg-surface-topbar transition-colors">
           {/* Attachment previews inside container */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 px-3 pt-3">

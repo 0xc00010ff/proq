@@ -14,7 +14,9 @@ interface UseAgentTabSessionResult {
   connected: boolean;
   sessionDone: boolean;
   loaded: boolean;
-  sendMessage: (text: string, attachments?: TaskAttachment[]) => void;
+  sendMessage: (text: string, attachments?: TaskAttachment[], mode?: string) => void;
+  sendInterrupt: (text: string, attachments?: TaskAttachment[]) => void;
+  approvePlan: (text: string) => void;
   stop: () => void;
   clear: () => void;
 }
@@ -91,10 +93,26 @@ export function useAgentTabSession(
     };
   }, [tabId, projectId]);
 
-  const sendMessage = useCallback((text: string, attachments?: TaskAttachment[]) => {
+  const sendMessage = useCallback((text: string, attachments?: TaskAttachment[], mode?: string) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'followup', text, attachments }));
+      ws.send(JSON.stringify({ type: 'followup', text, attachments, mode }));
+    }
+  }, []);
+
+  const sendInterrupt = useCallback((text: string, attachments?: TaskAttachment[]) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'interrupt', text, attachments }));
+      setSessionDone(false);
+    }
+  }, []);
+
+  const approvePlan = useCallback((text: string) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'plan-approve', text }));
+      setSessionDone(false);
     }
   }, []);
 
@@ -112,5 +130,5 @@ export function useAgentTabSession(
     }
   }, []);
 
-  return { blocks, streamingText, connected, sessionDone, loaded, sendMessage, stop, clear };
+  return { blocks, streamingText, connected, sessionDone, loaded, sendMessage, sendInterrupt, approvePlan, stop, clear };
 }

@@ -478,7 +478,7 @@ export default function ProjectPage() {
         if (toStatus !== fromStatus) {
           // Move between columns
           updated[fromStatus] = updated[fromStatus].filter((t) => t.id !== taskId);
-          updated[toStatus] = [...updated[toStatus], merged];
+          updated[toStatus] = [merged, ...updated[toStatus]];
         } else {
           // Update in place
           updated[fromStatus] = [...updated[fromStatus]];
@@ -912,7 +912,7 @@ export default function ProjectPage() {
                 for (const s of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
                   updated[s] = cols[s].filter((t) => t.id !== taskId);
                 }
-                updated[serverTask.status as TaskStatus] = [...updated[serverTask.status as TaskStatus], serverTask];
+                updated[serverTask.status as TaskStatus] = [serverTask, ...updated[serverTask.status as TaskStatus]];
                 return { ...prev, [projectId]: updated };
               });
               // Only close if it actually moved to done (merge conflict keeps it in verify)

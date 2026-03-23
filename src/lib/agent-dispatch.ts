@@ -66,10 +66,22 @@ export function buildProqSystemPrompt(
   const cronPreamble = options?.isCronTask
     ? `\n\nThis is a **scheduled task** (cron job) running automatically.${projectName ? ` Project: **${projectName}**.` : ""} There is no human actively watching — be thorough, self-contained, and report clear results. If you encounter errors or ambiguity, document them in your summary rather than asking questions.`
     : "";
+
+  const modeLabels: Record<string, string> = {
+    auto: "Auto (full autonomy)",
+    build: "Build (code changes expected)",
+    plan: "Plan (propose a plan before acting)",
+    answer: "Answer (research only, no code changes)",
+  };
+  const modeLabel = modeLabels[mode || "auto"] || modeLabels.auto;
+
   const sections: string[] = [
     `## Fulfilling the task
 
 You are working on a task assigned to you by proq, an agentic coding task board.${projectName ? ` The project is **${projectName}**.` : ""}${cronPreamble}
+
+**Starting mode: ${modeLabel}.**
+The mode describes the initial intent, but may change during the conversation. If the human asks you to do something outside the starting mode (e.g., make code changes after an answer-mode task, or execute after a plan is approved), follow their instructions — the mode is guidance, not a hard constraint.
 
 You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.
 
@@ -77,28 +89,22 @@ You have MCP tools from the **proq** server for reporting progress. Use them ins
 - \`read_task\` — Read current task state and any existing summary
 - \`update_task\` — Update summary and move task to Verify for review
 - \`commit_changes\` — Stage and commit all current changes with a message
-- \`set_live_url\` — Set the live preview URL (e.g. after starting a dev server)`,
+- \`create_task\` — Create a follow-up task for work outside your current scope`,
   ];
 
-  if (mode === "auto") {
-    sections.push(`### Workflow
-If you make code changes, use \`commit_changes\` to commit them before reporting.
-When the task is complete, use \`read_task\` to check existing summary, then \`update_task\` to report and move to Verify.`);
-  } else if (mode === "answer") {
-    sections.push(`### Research Mode
-This is an answer-only task. Do NOT make any code changes, create files, edit files, or commit anything. Only research, analyze, and report your summary.
-
-### Reporting Results
-When finished, use the \`read_task\` tool to check for any existing summary, then use \`update_task\` with a cumulative summary incorporating prior work.`);
+  // Mode-specific guidance
+  if (mode === "answer") {
+    sections.push(`### Answer Mode Guidance
+Start by researching and analyzing — do not make code changes unless the human explicitly asks you to. If they do ask for changes, proceed normally with commits and reporting.`);
   } else if (mode === "plan") {
-    sections.push(`### Reporting Results
-When finished, use the \`read_task\` tool to check for any existing summary, then use \`update_task\` with a cumulative summary incorporating prior work.`);
-  } else {
-    sections.push(`### Code Changes
-Use the \`commit_changes\` tool to commit after each logical unit of work. Always commit your code changes before reporting — don't leave uncommitted work behind.
+    sections.push(`### Plan Mode Guidance
+Start by creating a plan for the human to review. Do not make code changes until the human approves your plan. Once approved, your mode switches to auto and you should execute the plan, committing changes as you go.`);
+  }
 
-### Reporting Progress
-After making substantial changes (committing code, completing a phase of work), use the \`update_task\` tool to update the task board and move the task to Verify for human review. Before reporting, use \`read_task\` to see existing summary so you can write a cumulative summary.
+  // Workflow applies to all modes (agent may transition into code changes)
+  sections.push(`### Workflow
+- If you make code changes, use \`commit_changes\` to commit after each logical unit of work. Always commit before reporting — don't leave uncommitted work behind.
+- When the task is complete, use \`read_task\` to check existing summary, then \`update_task\` to report and move to Verify for human review. Write a cumulative summary incorporating any prior work.
 
 **When to report:**
 - After committing code changes
@@ -109,7 +115,6 @@ After making substantial changes (committing code, completing a phase of work), 
 - Simple clarifying responses or short answers
 - Asking questions back to the user
 - Minor adjustments that don't change the overall summary`);
-  }
 
   sections.push(`### Asking Questions
 When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.`);
@@ -252,9 +257,9 @@ function buildTaskPrompt(
   if (mode === "plan") {
     prompt = heading;
   } else if (mode === "answer") {
-    prompt = `${heading}\n\nIMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as a summary.`;
+    prompt = `${heading}\n\nThis task was created in answer mode — start by researching and providing your answer as a summary. If you're asked to make changes in a follow-up, go ahead.`;
   } else {
-    prompt = `${heading}\n\nWhen completely finished, use the commit_changes tool to commit your changes with a descriptive message.`;
+    prompt = `${heading}\n\nWhen you make changes, use the commit_changes tool to commit after each logical unit of work.`;
   }
 
   return prompt + formatAttachments(attachments);

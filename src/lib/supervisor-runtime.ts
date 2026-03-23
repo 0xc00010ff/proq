@@ -79,11 +79,34 @@ Tasks:
   POST   ${PROQ_API}/api/projects/{id}/tasks              — Create task { title?, description, priority?, mode? }
   PATCH  ${PROQ_API}/api/projects/{id}/tasks/{taskId}     — Update task (status, title, description, summary, etc.)
   DELETE ${PROQ_API}/api/projects/{id}/tasks/{taskId}     — Delete task
+  POST   ${PROQ_API}/api/projects/{id}/tasks/{taskId}/dispatch — Dispatch a task (moves to in-progress and launches agent)
   PUT    ${PROQ_API}/api/projects/{id}/tasks/reorder      — Bulk reorder tasks
 
+Dispatching tasks:
+  The simplest way to create and dispatch a task is to POST to create it, then POST to its /dispatch endpoint.
+  Alternatively, PATCH the task with { status: "in-progress", agentStatus: "queued" } — this also triggers dispatch.
+
+Task modes:
+  - \`auto\` (default) — Full autonomy, agent decides what to do
+  - \`build\` — Code changes expected, agent commits incrementally
+  - \`plan\` — Agent proposes a plan first, waits for human approval before executing
+  - \`answer\` — Research only, no code changes unless the human asks for them later
+  Set the mode when creating or updating a task: { mode: "plan" }
+
 Task lifecycle: todo → in-progress → verify → done
-When a task moves to "in-progress", it gets dispatched to a Claude Code agent automatically.
-When setting status to "in-progress", also set agentStatus to "queued".
+
+Execution modes (per-project):
+  GET/PATCH ${PROQ_API}/api/projects/{id}/execution-mode  — Get or set execution mode
+  - \`sequential\` — One task at a time per project (default)
+  - \`parallel\` — All queued tasks dispatch immediately, sharing the same directory
+  - \`worktrees\` — Each task gets its own git worktree and branch for isolation
+
+Cron jobs:
+  GET    ${PROQ_API}/api/projects/{id}/crons              — List cron jobs
+  POST   ${PROQ_API}/api/projects/{id}/crons              — Create cron { name, prompt, schedule, mode?, enabled? }
+  PATCH  ${PROQ_API}/api/projects/{id}/crons/{cronId}     — Update cron job
+  DELETE ${PROQ_API}/api/projects/{id}/crons/{cronId}     — Delete cron job
+  POST   ${PROQ_API}/api/projects/{id}/crons/{cronId}/trigger — Trigger cron manually
 
 Chat:
   GET    ${PROQ_API}/api/projects/{id}/chat               — Get project chat log
@@ -91,6 +114,10 @@ Chat:
 
 Cross-project:
   GET    ${PROQ_API}/api/agent/tasks                      — All currently in-progress tasks across all projects
+
+Settings:
+  GET    ${PROQ_API}/api/settings                         — Get global settings
+  PATCH  ${PROQ_API}/api/settings                         — Update settings
 
 ## Guidelines
 

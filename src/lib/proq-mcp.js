@@ -27,29 +27,6 @@ const server = new McpServer({
 });
 
 server.tool(
-  "set_live_url",
-  "Set the live preview URL for the project. Use this after starting a dev server so the human can see the running app in the Live tab. The Live tab will automatically refresh to show the new URL.",
-  {
-    url: z.string().describe("The local URL of the running dev server, e.g. http://localhost:3000"),
-  },
-  async ({ url }) => {
-    try {
-      const res = await fetch(`${API}/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ serverUrl: url, _source: "agent" }),
-      });
-      if (!res.ok) {
-        return { content: [{ type: "text", text: `Failed to set live URL: ${res.status}` }], isError: true };
-      }
-      return { content: [{ type: "text", text: `Live URL set to ${url} — the human can now see it in the Live tab.` }] };
-    } catch (err) {
-      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
-    }
-  },
-);
-
-server.tool(
   "update_task",
   "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new summary. Each call replaces the previous summary.",
   {
@@ -169,6 +146,32 @@ server.tool(
       return { content: [{ type: "text", text: `Committed${hash ? ` (${hash})` : ""}: ${message}` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Commit failed: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+server.tool(
+  "create_task",
+  "Create a follow-up task in the same project. Use this when you identify work that is outside your current scope but should be done next.",
+  {
+    title: z.string().describe("Short task title"),
+    description: z.string().describe("Task description with details about what needs to be done"),
+    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task mode (default: auto)"),
+  },
+  async ({ title, description, mode }) => {
+    try {
+      const res = await fetch(`${API}/api/projects/${projectId}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, mode }),
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to create task: ${res.status}` }], isError: true };
+      }
+      const task = await res.json();
+      return { content: [{ type: "text", text: `Created follow-up task "${task.title}" (${task.id})` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
     }
   },
 );

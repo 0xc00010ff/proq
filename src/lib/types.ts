@@ -186,6 +186,7 @@ export interface WorkbenchTabInfo {
 export interface WorkbenchSessionData {
   agentBlocks: AgentBlock[];
   sessionId?: string;
+  mode?: TaskMode;
 }
 
 

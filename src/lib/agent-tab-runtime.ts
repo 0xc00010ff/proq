@@ -2,7 +2,8 @@ import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
 import { mkdirSync, writeFileSync } from "fs";
-import type { AgentBlock, TaskAttachment } from "./types";
+import { readFile } from "fs/promises";
+import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
 import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject } from "./db";
 import { getClaudeBin } from "./claude-bin";
 import type WebSocket from "ws";
@@ -11,10 +12,11 @@ export interface AgentTabSession {
   tabId: string;
   projectId: string;
   sessionId?: string;
+  mode?: TaskMode;
   queryHandle: ChildProcess | null;
   blocks: AgentBlock[];
   clients: Set<WebSocket>;
-  status: "running" | "done" | "error" | "aborted";
+  status: "running" | "done" | "error" | "aborted" | "interrupted";
 }
 
 // ── Multi-session Map on globalThis to survive HMR ──
@@ -84,12 +86,43 @@ function processStreamEvent(session: AgentTabSession, event: Record<string, unkn
         } else if (b.type === "thinking") {
           appendBlock(session, { type: "thinking", thinking: b.thinking as string });
         } else if (b.type === "tool_use") {
-          appendBlock(session, {
+          const toolBlock: AgentBlock & { type: "tool_use" } = {
             type: "tool_use",
             toolId: b.id as string,
             name: b.name as string,
             input: b.input as Record<string, unknown>,
-          });
+          };
+
+          if (b.name === "ExitPlanMode") {
+            // Find the plan file by scanning backwards through blocks
+            let planPath: string | undefined;
+            for (let j = session.blocks.length - 1; j >= 0; j--) {
+              const prev = session.blocks[j];
+              if (prev.type === "tool_use" && (prev.name === "Write" || prev.name === "Edit")) {
+                const fp = prev.input.file_path as string;
+                if (fp && fp.endsWith(".md")) {
+                  planPath = fp;
+                  break;
+                }
+              }
+            }
+            // Read plan file, enrich block, then append+broadcast and kill
+            const enrichAndKill = planPath
+              ? readFile(planPath, "utf-8").then((content) => {
+                  toolBlock.input._planContent = content;
+                  toolBlock.input._planFilePath = planPath;
+                }).catch(() => { /* plan file may not exist */ })
+              : Promise.resolve();
+            enrichAndKill.then(() => {
+              appendBlock(session, toolBlock);
+            }).finally(() => {
+              if (session.queryHandle) {
+                session.queryHandle.kill("SIGTERM");
+              }
+            });
+          } else {
+            appendBlock(session, toolBlock);
+          }
         }
       }
     }
@@ -184,19 +217,21 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
       }
     }
 
-    if (session.status === "aborted") {
+    if (session.status === "aborted" || session.status === "interrupted") {
       // Only persist if session is still tracked (skip if it was cleared)
       if (sessions.get(session.tabId) === session) {
         await setWorkbenchSession(session.projectId, session.tabId, {
           agentBlocks: session.blocks,
           sessionId: session.sessionId,
+          mode: session.mode,
         });
       }
       return;
     }
 
     // When killed with SIGTERM (e.g. ExitPlanMode, AskUserQuestion), code is null — not an error
-    const intentionalKill = code === null && signal === "SIGTERM";
+    const intentionalKill =
+      (code === null && signal === "SIGTERM") || code === 143;
 
     if (code !== 0 && !intentionalKill && session.status === "running") {
       session.status = "error";
@@ -219,6 +254,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
     await setWorkbenchSession(session.projectId, session.tabId, {
       agentBlocks: session.blocks,
       sessionId: session.sessionId,
+      mode: session.mode,
     });
   });
 
@@ -233,6 +269,7 @@ function wireProcess(session: AgentTabSession, proc: ChildProcess, startTime: nu
     await setWorkbenchSession(session.projectId, session.tabId, {
       agentBlocks: session.blocks,
       sessionId: session.sessionId,
+      mode: session.mode,
     });
   });
 }
@@ -258,12 +295,49 @@ function writeWorkbenchMcpConfig(projectId: string, tabId: string): string {
 
 // ── Public API ──
 
+function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, settings?: { systemPromptAdditions?: string }, project?: { systemPrompt?: string } | null): string {
+  const systemParts: string[] = [];
+  if (settings?.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
+  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
+
+  let modeGuidance = "";
+  if (mode === "plan") {
+    modeGuidance = `\n\n**Starting mode: plan** — Create a detailed plan for the human to review. Do not make code changes until the human approves your plan. Once approved, your mode switches to auto and you should execute the plan, committing changes as you go.`;
+  } else if (mode === "answer") {
+    modeGuidance = `\n\n**Starting mode: answer** — Start by researching and analyzing — do not make code changes unless the human explicitly asks you to.`;
+  } else if (mode === "build") {
+    modeGuidance = `\n\n**Starting mode: build** — Focus on writing code. Skip unnecessary planning and get straight to implementation.`;
+  }
+
+  systemParts.push(`You are a coding assistant inside proq, a kanban-style task board for AI-assisted development. You are working on the "${projectName}" project in ${cwd}.${modeGuidance}
+
+You have MCP tools from the **proq** server for managing tasks on the board:
+- \`list_tasks\` — List all tasks in this project by status
+- \`create_task\` — Create a new task in the Todo column
+- \`get_task\` — Read a specific task's details
+- \`update_task\` — Update a task (title, description, status, priority)
+- \`delete_task\` — Delete a task
+- \`list_projects\` — List all projects in proq
+- \`set_live_url\` — Set the live preview URL (e.g. after starting a dev server)
+
+Use these tools to manage tasks. If you identify follow-up work beyond your current scope, create tasks for it.
+
+### Asking Questions
+When you use \`AskUserQuestion\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your question is displayed to the human and their real answer will arrive as a follow-up message.
+
+### Plan Mode
+When you use \`ExitPlanMode\`, the tool result will show an auto-resolved error — this is expected, ignore it. Your plan is displayed to the human and their approval or feedback will arrive as a follow-up message.`);
+
+  return systemParts.join("\n\n");
+}
+
 export async function startAgentTabSession(
   tabId: string,
   projectId: string,
   text: string,
   cwd: string,
   attachments?: TaskAttachment[],
+  mode?: TaskMode,
 ): Promise<void> {
   const existing = sessions.get(tabId);
   if (existing?.status === "running") {
@@ -273,6 +347,7 @@ export async function startAgentTabSession(
   const session: AgentTabSession = {
     tabId,
     projectId,
+    mode,
     queryHandle: null,
     blocks: [],
     clients: new Set(),
@@ -309,31 +384,23 @@ export async function startAgentTabSession(
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",
-    "--dangerously-skip-permissions",
     "--max-turns", "200",
     "--mcp-config", mcpConfigPath,
     "--allowedTools", "mcp__proq__*",
   ];
 
+  // Plan mode uses restricted permissions; all other modes skip permissions
+  if (mode === "plan") {
+    args.push("--permission-mode", "plan");
+  } else {
+    args.push("--dangerously-skip-permissions");
+  }
+
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
   }
 
-  const systemParts: string[] = [];
-  if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
-  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
-  systemParts.push(`You are a coding assistant inside proq, a kanban-style task board for AI-assisted development. You are working on the "${projectName}" project in ${cwd}.
-
-You have MCP tools from the **proq** server for managing tasks on the board:
-- \`list_tasks\` — List all tasks in this project by status
-- \`create_task\` — Create a new task in the Todo column
-- \`get_task\` — Read a specific task's details
-- \`update_task\` — Update a task (title, description, status, priority)
-- \`delete_task\` — Delete a task
-- \`list_projects\` — List all projects in proq
-
-Use these tools to manage tasks. If you identify follow-up work beyond your current scope, create tasks for it.`);
-  args.push("--append-system-prompt", systemParts.join("\n\n"));
+  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, mode, settings, project));
 
   const claudeBin = await getClaudeBin();
   const proc = spawn(claudeBin, args, {
@@ -353,6 +420,7 @@ export async function continueAgentTabSession(
   cwd: string,
   preAttachClient?: WebSocket,
   attachments?: TaskAttachment[],
+  options?: { planApproved?: boolean },
 ): Promise<void> {
   let session = sessions.get(tabId);
 
@@ -366,6 +434,7 @@ export async function continueAgentTabSession(
       tabId,
       projectId,
       sessionId: stored.sessionId,
+      mode: stored.mode,
       queryHandle: null,
       blocks: stored.agentBlocks || [],
       clients: new Set(),
@@ -380,6 +449,11 @@ export async function continueAgentTabSession(
 
   if (session.status === "running") {
     throw new Error("Session is already running");
+  }
+
+  // Plan approval: switch mode from plan to auto
+  if (options?.planApproved && session.mode === "plan") {
+    session.mode = "auto";
   }
 
   // Append file attachment paths to prompt
@@ -411,31 +485,23 @@ export async function continueAgentTabSession(
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",
-    "--dangerously-skip-permissions",
     "--max-turns", "200",
     "--mcp-config", mcpConfigPath,
     "--allowedTools", "mcp__proq__*",
   ];
 
+  // After plan approval or non-plan modes: skip permissions. In plan mode: restricted.
+  if (session.mode === "plan" && !options?.planApproved) {
+    args.push("--permission-mode", "plan");
+  } else {
+    args.push("--dangerously-skip-permissions");
+  }
+
   if (settings.defaultModel) {
     args.push("--model", settings.defaultModel);
   }
 
-  const systemParts: string[] = [];
-  if (settings.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
-  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
-  systemParts.push(`You are a coding assistant inside proq, a kanban-style task board for AI-assisted development. You are working on the "${projectName}" project in ${cwd}.
-
-You have MCP tools from the **proq** server for managing tasks on the board:
-- \`list_tasks\` — List all tasks in this project by status
-- \`create_task\` — Create a new task in the Todo column
-- \`get_task\` — Read a specific task's details
-- \`update_task\` — Update a task (title, description, status, priority)
-- \`delete_task\` — Delete a task
-- \`list_projects\` — List all projects in proq
-
-Use these tools to manage tasks. If you identify follow-up work beyond your current scope, create tasks for it.`);
-  args.push("--append-system-prompt", systemParts.join("\n\n"));
+  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, session.mode, settings, project));
 
   const claudeBin = await getClaudeBin();
   const proc = spawn(claudeBin, args, {
@@ -459,6 +525,25 @@ export function stopAgentTabSession(tabId: string): void {
     });
     session.queryHandle.kill("SIGTERM");
   }
+}
+
+export function interruptAgentTabSession(tabId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const session = sessions.get(tabId);
+    if (!session || session.status !== "running" || !session.queryHandle) {
+      resolve();
+      return;
+    }
+    session.status = "interrupted";
+    appendBlock(session, {
+      type: "status",
+      subtype: "interrupted" as "abort",
+      error: "Session interrupted",
+    });
+    const proc = session.queryHandle;
+    proc.once("close", () => resolve());
+    proc.kill("SIGTERM");
+  });
 }
 
 export function getAgentTabSession(tabId: string): AgentTabSession | null {

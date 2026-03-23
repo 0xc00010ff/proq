@@ -4,6 +4,7 @@ import {
   attachAgentTabClient,
   detachAgentTabClient,
   stopAgentTabSession,
+  interruptAgentTabSession,
   startAgentTabSession,
   continueAgentTabSession,
   clearAgentTabSession,
@@ -46,27 +47,43 @@ export async function attachAgentTabWs(
         try {
           const project = await getProject(projectId);
           const cwd = project ? resolveProjectPath(project.path) : ".";
+          const mode = (msg as Record<string, unknown>).mode as string | undefined;
 
           const session = getAgentTabSession(tabId);
           if (session) {
-            // Continue existing session
             await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments);
           } else {
-            // Check if there's a stored session to resume
             const stored = await getWorkbenchSession(projectId, tabId);
             if (stored?.sessionId) {
               await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments);
             } else {
-              // Start a new session
-              await startAgentTabSession(tabId, projectId, msg.text, cwd, msg.attachments);
+              await startAgentTabSession(tabId, projectId, msg.text, cwd, msg.attachments, mode as import("./types").TaskMode | undefined);
               const newSession = getAgentTabSession(tabId);
               if (newSession) {
                 attachAgentTabClient(tabId, ws);
-                // Replay blocks that were already emitted before client was attached
                 ws.send(JSON.stringify({ type: "replay", blocks: newSession.blocks }));
               }
             }
           }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          ws.send(JSON.stringify({ type: "error", error: errorMsg }));
+        }
+      } else if (msg.type === "plan-approve") {
+        try {
+          const project = await getProject(projectId);
+          const cwd = project ? resolveProjectPath(project.path) : ".";
+          await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, undefined, { planApproved: true });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          ws.send(JSON.stringify({ type: "error", error: errorMsg }));
+        }
+      } else if (msg.type === "interrupt") {
+        try {
+          const project = await getProject(projectId);
+          const cwd = project ? resolveProjectPath(project.path) : ".";
+          await interruptAgentTabSession(tabId);
+          await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));

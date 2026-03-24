@@ -6,6 +6,7 @@ import type { TaskAttachment, TaskMode } from '@/lib/types';
 import { useAgentTabSession } from '@/hooks/useAgentTabSession';
 import { AgentBlockList } from './AgentBlockList';
 import { AgentInputBar } from './AgentInputBar';
+import { useFileDrop } from '@/hooks/useFileDrop';
 
 // Persist drafts across project switches (survives unmount/remount)
 const draftMap = new Map<string, string>();
@@ -79,6 +80,8 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     setAttachments([]);
   }, [inputValue, attachments, sendInterrupt, tabId]);
 
+  const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange);
+
   if (!visible) return null;
 
   const isRunning = !sessionDone;
@@ -117,7 +120,12 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
   ) : undefined;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-surface-deep font-sans">
+    <div className="absolute inset-0 flex flex-col bg-surface-deep font-sans" {...dropProps}>
+      {isDragOver && (
+        <div className="absolute inset-0 bg-bronze-600/20 dark:bg-bronze-600/15 border-2 border-bronze-600/50 flex items-center justify-center pointer-events-none z-20 rounded-md">
+          <div className="text-sm text-text-secondary font-medium bg-bronze-400 dark:bg-bronze-800 border border-bronze-500 dark:border-bronze-700 px-4 py-2 rounded-md shadow-sm">Drop files here</div>
+        </div>
+      )}
       <AgentBlockList
         blocks={blocks}
         streamingText={streamingText}

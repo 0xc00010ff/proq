@@ -341,7 +341,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-crimson hover:bg-surface-hover hover:text-crimson overflow-hidden">
                     <span className="flex items-center gap-1.5 px-2.5 py-1.5">
-                      {gitStatus.dirty} uncommitted {gitStatus.dirty === 1 ? 'file' : 'files'}
+                      {gitStatus.dirty} {gitStatus.dirty === 1 ? 'change' : 'changes'}
                     </span>
                     <span className="px-1.5 py-1.5 border-l border-border-default text-text-chrome">
                       <ChevronDownIcon className="w-3 h-3" />
@@ -398,6 +398,16 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             )}
 
             {/* Unified history dropdown (or direct modal when up to date) */}
+            {!isOnPreviewBranch && !gitStatus?.hasRemote && (
+              <button
+                onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
+                className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover overflow-hidden"
+              >
+                <span className="flex items-center gap-1.5 px-2.5 py-1.5">
+                  History
+                </span>
+              </button>
+            )}
             {!isOnPreviewBranch && gitStatus?.hasRemote && isUpToDate && (
               <button
                 onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
@@ -545,11 +555,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                   }`}
                 >
                   <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-lazuli' : ''}`} />
-                  <span className="max-w-[180px] truncate">
-                    {isOnPreviewBranch && taskBranchMap?.[currentBranch!]
-                      ? taskBranchMap[currentBranch!].split(/\s+/).slice(0, 4).join(' ')
-                      : currentBranch}
-                  </span>
+                  {(!gitStatus?.hasRemote && currentBranch === defaultBranch) ? null : (
+                    <span className="max-w-[180px] truncate">
+                      {isOnPreviewBranch && taskBranchMap?.[currentBranch!]
+                        ? taskBranchMap[currentBranch!].split(/\s+/).slice(0, 4).join(' ')
+                        : currentBranch}
+                    </span>
+                  )}
                   <ChevronDownIcon className="w-3 h-3 opacity-50" />
                 </button>
                 {branchPopoverOpen && (

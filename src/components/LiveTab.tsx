@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon } from 'lucide-react';
+import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 
@@ -41,7 +41,21 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
   const handleRefresh = () => setIframeKey(k => k + 1);
+
+  const handleBack = () => {
+    try { iframeRef.current?.contentWindow?.history.back(); } catch {}
+  };
+
+  const handleForward = () => {
+    try { iframeRef.current?.contentWindow?.history.forward(); } catch {}
+  };
+
+  const handleOpenInBrowser = () => {
+    if (project.serverUrl) window.open(project.serverUrl, '_blank');
+  };
 
   const pickViewport = async (v: ViewportSize) => {
     setViewport(v);
@@ -196,11 +210,18 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
               </div>
               <div className="flex-1 flex items-center justify-center space-x-2">
                 <button
-                  onClick={handleRefresh}
-                  title="Refresh"
+                  onClick={handleBack}
+                  title="Back"
                   className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
                 >
-                  <RotateCwIcon className="w-3.5 h-3.5" />
+                  <ChevronLeftIcon className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleForward}
+                  title="Forward"
+                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+                >
+                  <ChevronRightIcon className="w-3.5 h-3.5" />
                 </button>
                 <div className="bg-surface-deep border border-border-default rounded px-3 py-1 text-xs text-text-secondary flex items-center space-x-2 min-w-[300px]">
                   <GlobeIcon className="w-3 h-3 shrink-0" />
@@ -222,7 +243,21 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                     }}
                     className="flex-1 bg-transparent text-xs text-text-secondary focus:text-text-primary outline-none"
                   />
+                  <button
+                    onClick={handleRefresh}
+                    title="Refresh"
+                    className="p-0.5 rounded text-text-placeholder hover:text-text-secondary shrink-0"
+                  >
+                    <RotateCwIcon className="w-3 h-3" />
+                  </button>
                 </div>
+                <button
+                  onClick={handleOpenInBrowser}
+                  title="Open in browser"
+                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+                >
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                </button>
               </div>
               <div className="flex items-center space-x-1">
                 {([
@@ -267,7 +302,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                       maxWidth: '100%',
                     }}
                   >
-                    <iframe key={iframeKey} src={project.serverUrl} className="w-full h-full border-0" />
+                    <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="w-full h-full border-0" />
                   </div>
 
                   {/* Right resize handle */}
@@ -300,7 +335,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 </div>
               </div>
             ) : (
-              <iframe key={iframeKey} src={project.serverUrl} className="flex-1 w-full border-0" />
+              <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="flex-1 w-full border-0" />
             )}
           </>
         )}

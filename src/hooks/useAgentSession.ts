@@ -25,12 +25,22 @@ export function useAgentSession(
   taskId: string,
   projectId: string,
   staticLog?: AgentBlock[],
+  initialBlocks?: AgentBlock[],
 ): UseAgentSessionResult {
-  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || []);
+  const [blocks, setBlocks] = useState<AgentBlock[]>(staticLog || initialBlocks || []);
   const [connected, setConnected] = useState(false);
-  const [active, setActive] = useState(!staticLog);
+  const [active, setActive] = useState(!(staticLog || initialBlocks));
   const wsRef = useRef<WebSocket | null>(null);
   const { streamingText, appendDelta, clearBuffer } = useStreamingBuffer();
+
+  // Seed blocks from initialBlocks when they arrive (HTTP fetch completes after mount).
+  // Unlike staticLog, initialBlocks still allows the WebSocket to connect for follow-ups.
+  useEffect(() => {
+    if (initialBlocks && initialBlocks.length > 0) {
+      setBlocks(prev => prev.length === 0 ? initialBlocks : prev);
+      setActive(prev => prev ? prev : false);
+    }
+  }, [initialBlocks]);
 
   // If static log, just use it directly (no WebSocket)
   useEffect(() => {
@@ -65,7 +75,8 @@ export function useAgentSession(
           if (msg.type === 'replay') {
             clearBuffer();
             retryCount = 0;
-            setBlocks(msg.blocks);
+            // Don't replace pre-seeded blocks (initialBlocks) with an empty WS replay
+            setBlocks(prev => msg.blocks.length > 0 ? msg.blocks : (prev.length > 0 ? prev : msg.blocks));
             setActive(msg.active);
           } else if (msg.type === 'stream_delta') {
             appendDelta(msg.text);

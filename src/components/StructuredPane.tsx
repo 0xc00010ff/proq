@@ -17,6 +17,7 @@ interface StructuredPaneProps {
   taskStatus?: string;
   agentStatus?: string | null;
   agentBlocks?: AgentBlock[];
+  initialBlocks?: AgentBlock[];
   taskMode?: TaskMode;
   onModeChange?: (mode: TaskMode) => void;
   followUpDraft?: FollowUpDraft;
@@ -24,8 +25,8 @@ interface StructuredPaneProps {
   onTaskStatusChange?: (status: string) => void;
 }
 
-export function StructuredPane({ taskId, projectId, visible, taskStatus, agentStatus, agentBlocks, taskMode, onModeChange, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
-  const { blocks, streamingText, active, sendFollowUp, sendInterrupt, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks);
+export function StructuredPane({ taskId, projectId, visible, taskStatus, agentStatus, agentBlocks, initialBlocks, taskMode, onModeChange, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
+  const { blocks, streamingText, active, sendFollowUp, sendInterrupt, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks, initialBlocks);
 
   const [inputValue, setInputValue] = useState(followUpDraft?.text ?? '');
   const [attachments, setAttachments] = useState<TaskAttachment[]>(followUpDraft?.attachments ?? []);

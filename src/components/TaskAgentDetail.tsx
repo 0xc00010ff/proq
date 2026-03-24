@@ -241,6 +241,22 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
       .catch(() => {});
   }, [projectId, task.id, needsStaticBlocks]);
 
+  // Pre-fetch blocks for verify tasks so history renders instantly while WebSocket connects
+  const needsInitialBlocks = isStructured && task.status === 'verify' && !isDispatched;
+  const [prefetchedBlocks, setPrefetchedBlocks] = useState<AgentBlock[] | null>(null);
+  useEffect(() => {
+    if (!needsInitialBlocks) {
+      setPrefetchedBlocks(null);
+      return;
+    }
+    fetch(`/api/projects/${projectId}/tasks/${task.id}/agent-blocks`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.blocks?.length > 0) setPrefetchedBlocks(data.blocks);
+      })
+      .catch(() => {});
+  }, [projectId, task.id, needsInitialBlocks]);
+
   // Fetch commits for this task
   const hasCommitTracking = !!(task.commitHashes?.length || task.branch || task.startCommit);
   useEffect(() => {
@@ -357,6 +373,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             taskStatus={task.status}
             agentStatus={task.agentStatus}
             agentBlocks={fetchedBlocks || undefined}
+            initialBlocks={prefetchedBlocks || undefined}
             taskMode={task.mode}
             onModeChange={(mode) => {
               fetch(`/api/projects/${projectId}/tasks/${task.id}`, {

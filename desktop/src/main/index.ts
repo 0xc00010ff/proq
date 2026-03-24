@@ -123,6 +123,39 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
 
   const win = new BrowserWindow(windowOptions)
 
+  // Enable native right-click context menu (copy/paste/etc)
+  win.webContents.on('context-menu', (_e, params) => {
+    const menuItems: Electron.MenuItemConstructorOptions[] = []
+
+    if (params.isEditable) {
+      menuItems.push(
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      )
+    } else if (params.selectionText) {
+      menuItems.push(
+        { role: 'copy' }
+      )
+    }
+
+    if (params.linkURL) {
+      if (menuItems.length > 0) menuItems.push({ type: 'separator' })
+      menuItems.push({
+        label: 'Open Link in Browser',
+        click: () => shell.openExternal(params.linkURL)
+      })
+    }
+
+    if (menuItems.length > 0) {
+      Menu.buildFromTemplate(menuItems).popup({ window: win })
+    }
+  })
+
   win.once('ready-to-show', () => win.show())
 
   // Save window bounds on resize/move

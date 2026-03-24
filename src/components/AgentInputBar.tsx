@@ -73,12 +73,13 @@ export function AgentInputBar({
     if (!ta) return;
     ta.style.height = '0';
     const sh = ta.scrollHeight;
-    ta.style.height = Math.max(36, Math.min(sh, maxHeight)) + 'px';
+    const h = Math.max(36, Math.min(sh, maxHeight));
+    ta.style.height = h + 'px';
+    ta.style.overflowY = sh > maxHeight ? 'auto' : 'hidden';
   }, [maxHeight]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
-    resizeTextarea();
   };
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
@@ -159,11 +160,10 @@ export function AgentInputBar({
     }
   }, []);
 
-  // Expose resize for parents that need to trigger it (e.g. on draft restore)
+  // Resize whenever value changes (handles send clearing, draft restore, etc.)
   useEffect(() => {
-    if (value) resizeTextarea();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    resizeTextarea();
+  }, [value, resizeTextarea]);
 
   if (readOnlyMessage) {
     return (

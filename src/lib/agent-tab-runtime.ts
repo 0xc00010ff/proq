@@ -420,7 +420,7 @@ export async function continueAgentTabSession(
   cwd: string,
   preAttachClient?: WebSocket,
   attachments?: TaskAttachment[],
-  options?: { planApproved?: boolean },
+  options?: { planApproved?: boolean; mode?: TaskMode },
 ): Promise<void> {
   let session = sessions.get(tabId);
 
@@ -454,6 +454,11 @@ export async function continueAgentTabSession(
   // Plan approval: switch mode from plan to auto
   if (options?.planApproved && session.mode === "plan") {
     session.mode = "auto";
+  }
+
+  // Mid-session mode switch (e.g. user selects plan mode after starting in auto)
+  if (options?.mode && options.mode !== session.mode && !options.planApproved) {
+    session.mode = options.mode;
   }
 
   // Append file attachment paths to prompt

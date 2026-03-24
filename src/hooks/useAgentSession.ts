@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { AgentBlock, AgentWsServerMsg, TaskAttachment } from '@/lib/types';
+import type { AgentBlock, AgentWsServerMsg, TaskAttachment, TaskMode } from '@/lib/types';
 import { useStreamingBuffer } from './useStreamingBuffer';
 
 function getWsPort(): string {
@@ -15,7 +15,7 @@ interface UseAgentSessionResult {
   streamingText: string;
   connected: boolean;
   active: boolean;
-  sendFollowUp: (text: string, attachments?: TaskAttachment[]) => void;
+  sendFollowUp: (text: string, attachments?: TaskAttachment[], mode?: TaskMode) => void;
   sendInterrupt: (text: string, attachments?: TaskAttachment[]) => void;
   approvePlan: (text: string) => void;
   stop: () => void;
@@ -143,10 +143,10 @@ export function useAgentSession(
     };
   }, [taskId, projectId, staticLog]);
 
-  const sendFollowUp = useCallback((text: string, attachments?: TaskAttachment[]) => {
+  const sendFollowUp = useCallback((text: string, attachments?: TaskAttachment[], mode?: TaskMode) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'followup', text, attachments }));
+      ws.send(JSON.stringify({ type: 'followup', text, attachments, mode }));
       // Optimistically show the user message and thinking/stop immediately
       setBlocks((prev) => [...prev, { type: 'user' as const, text, attachments }]);
       setActive(true);

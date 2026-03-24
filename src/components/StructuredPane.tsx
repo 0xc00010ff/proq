@@ -84,11 +84,11 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   const handleSend = useCallback(() => {
     const text = inputValue.trim();
     if (!text && attachments.length === 0) return;
-    sendFollowUp(text, attachments.length > 0 ? attachments : undefined);
+    sendFollowUp(text, attachments.length > 0 ? attachments : undefined, localMode);
     setInputValue('');
     setAttachments([]);
     onFollowUpDraftChange?.(null);
-  }, [inputValue, attachments, sendFollowUp, onFollowUpDraftChange]);
+  }, [inputValue, attachments, sendFollowUp, onFollowUpDraftChange, localMode]);
 
   const handleInterrupt = useCallback(() => {
     const text = inputValue.trim();
@@ -171,9 +171,9 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
         showCosts={showCosts}
         mapToolUse={mapToolUse}
         renderCustomBlock={renderCustomBlock}
-        onAnswer={(answer) => sendFollowUp(answer)}
+        onAnswer={(answer) => sendFollowUp(answer, undefined, localMode)}
         onApprovePlan={(text) => approvePlan(text)}
-        onRejectPlan={(feedback) => sendFollowUp(`Plan rejected. ${feedback}`)}
+        onRejectPlan={(feedback) => sendFollowUp(`Plan rejected. ${feedback}`, undefined, localMode)}
         showLoading
       />
 

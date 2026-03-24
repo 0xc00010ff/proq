@@ -49,7 +49,7 @@ export type AgentWsServerMsg =
 
 // Client → Server
 export type AgentWsClientMsg =
-  | { type: 'followup'; text: string; attachments?: TaskAttachment[] }
+  | { type: 'followup'; text: string; attachments?: TaskAttachment[]; mode?: TaskMode }
   | { type: 'plan-approve'; text: string }
   | { type: 'interrupt'; text: string; attachments?: TaskAttachment[] }
   | { type: 'stop' }

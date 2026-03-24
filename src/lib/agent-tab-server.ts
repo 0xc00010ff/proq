@@ -47,15 +47,15 @@ export async function attachAgentTabWs(
         try {
           const project = await getProject(projectId);
           const cwd = project ? resolveProjectPath(project.path) : ".";
-          const mode = (msg as Record<string, unknown>).mode as string | undefined;
+          const mode = msg.mode;
 
           const session = getAgentTabSession(tabId);
           if (session) {
-            await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments);
+            await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments, { mode });
           } else {
             const stored = await getWorkbenchSession(projectId, tabId);
             if (stored?.sessionId) {
-              await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments);
+              await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments, { mode });
             } else {
               await startAgentTabSession(tabId, projectId, msg.text, cwd, msg.attachments, mode as import("./types").TaskMode | undefined);
               const newSession = getAgentTabSession(tabId);

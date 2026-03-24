@@ -64,12 +64,19 @@ export async function attachAgentWsWithProject(
           const projectPath = project ? resolveProjectPath(project.path) : ".";
           const cwd = task?.worktreePath || projectPath;
           const planApproved = msg.type === "plan-approve";
+          const mode = msg.type === "followup" ? msg.mode : undefined;
 
           // When a plan is approved, switch mode from plan to auto so
           // subsequent followups use full permissions instead of re-entering plan mode
           if (planApproved && task && task.mode === "plan") {
             await updateTask(projectId, taskId, { mode: "auto" });
             emitTaskUpdate(projectId, taskId, { mode: "auto" });
+          }
+
+          // Mid-session mode switch: persist new mode to DB
+          if (mode && task && mode !== task.mode && !planApproved) {
+            await updateTask(projectId, taskId, { mode });
+            emitTaskUpdate(projectId, taskId, { mode });
           }
 
           // Move task back to in-progress so the card shows "Agent working"
@@ -81,7 +88,7 @@ export async function attachAgentWsWithProject(
             emitTaskUpdate(projectId, taskId, { agentStatus: "running" });
           }
 
-          await continueSession(projectId, taskId, msg.text, cwd, ws, msg.type === "followup" ? msg.attachments : undefined, { planApproved });
+          await continueSession(projectId, taskId, msg.text, cwd, ws, msg.type === "followup" ? msg.attachments : undefined, { planApproved, mode });
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           ws.send(JSON.stringify({ type: "error", error: errorMsg }));

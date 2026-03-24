@@ -496,7 +496,7 @@ export async function continueSession(
   cwd: string,
   preAttachClient?: WebSocket,
   attachments?: TaskAttachment[],
-  options?: { planApproved?: boolean },
+  options?: { planApproved?: boolean; mode?: TaskMode },
 ): Promise<void> {
   let session = sessions.get(taskId);
   let taskMode: string | undefined;
@@ -522,6 +522,12 @@ export async function continueSession(
     // Fetch task mode for system prompt
     const task = await getTask(projectId, taskId);
     taskMode = task?.mode;
+  }
+
+  // Mid-session mode switch: use the mode from the followup message
+  // (already persisted to DB by the caller)
+  if (options?.mode && !options.planApproved) {
+    taskMode = options.mode;
   }
 
   // Attach client before appending any blocks so it receives the user message

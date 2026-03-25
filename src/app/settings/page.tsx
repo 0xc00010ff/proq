@@ -423,12 +423,12 @@ export default function SettingsPage() {
                         {(webUpdate?.available || shellUpdateReady) ? (
                           <button
                             onClick={() => {
-                              if (webUpdate?.available) {
-                                // Web update includes a restart, which will also
-                                // apply any pending shell update on next launch
-                                window.proqDesktop?.applyAndRestart();
-                              } else if (shellUpdateReady) {
+                              if (shellUpdateReady) {
+                                // Desktop app update replaces the whole binary —
+                                // web updates get picked up on next launch via splash
                                 window.proqDesktop?.installShellUpdate();
+                              } else if (webUpdate?.available) {
+                                window.proqDesktop?.applyAndRestart();
                               }
                             }}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
@@ -478,7 +478,7 @@ export default function SettingsPage() {
                         <p className="text-xs text-text-secondary">
                           {[
                             webUpdate?.available && `${webUpdate.count} app update${webUpdate.count !== 1 ? "s" : ""}`,
-                            shellUpdateReady && `shell update${shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}`,
+                            shellUpdateReady && `desktop update${shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}`,
                           ].filter(Boolean).join(" and ")}{" "}
                           available
                         </p>

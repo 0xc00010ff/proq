@@ -203,49 +203,51 @@ export default function SettingsPage() {
                 icon={<InfoIcon className="w-4 h-4" />}
                 label="About"
               />
-              <p className="text-sm text-text-secondary leading-relaxed mb-2">
-                A task board that runs your coding agents. You write tasks,
-                agents do the work, you review and merge. proq is a kanban
-                board that launches coding agents, one per task,
-                against your actual codebase.
-              </p>
-              <p className="text-sm text-text-secondary leading-relaxed mb-4">
-                Internally it&apos;s a process manager — local, self-contained,
-                no external services. It works with whatever agent config, MCPs,
-                and subagents you already have.
-              </p>
-              <p className="text-xs text-text-tertiary mb-1">
-                Version {settings.version ?? "…"}
-              </p>
-              <p className="text-xs text-text-tertiary">
-                Vibed with ♥ by{" "}
-                <a
-                  href="https://brian.online"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-bronze-700 dark:text-bronze-400 hover:underline"
-                >
-                  brian.online
-                </a>{" "}
-                &mdash; 0xc00010ff on{" "}
-                <a
-                  href="https://x.com/0xc00010ff"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-bronze-700 dark:text-bronze-400 hover:underline"
-                >
-                  X
-                </a>{" "}
-                and{" "}
-                <a
-                  href="https://github.com/0xc00010ff"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-bronze-700 dark:text-bronze-400 hover:underline"
-                >
-                  GitHub
-                </a>
-              </p>
+              <SectionCard>
+                <p className="text-sm text-text-secondary leading-relaxed mb-2">
+                  A task board that runs your coding agents. You write tasks,
+                  agents do the work, you review and merge. proq is a kanban
+                  board that launches coding agents, one per task,
+                  against your actual codebase.
+                </p>
+                <p className="text-sm text-text-secondary leading-relaxed mb-4">
+                  Internally it&apos;s a process manager — local, self-contained,
+                  no external services. It works with whatever agent config, MCPs,
+                  and subagents you already have.
+                </p>
+                <p className="text-xs text-text-tertiary mb-1">
+                  Version {settings.version ?? "…"}
+                </p>
+                <p className="text-xs text-text-tertiary">
+                  Vibed with ♥ by{" "}
+                  <a
+                    href="https://brian.online"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-bronze-700 dark:text-bronze-400 hover:underline"
+                  >
+                    brian.online
+                  </a>{" "}
+                  &mdash; 0xc00010ff on{" "}
+                  <a
+                    href="https://x.com/0xc00010ff"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-bronze-700 dark:text-bronze-400 hover:underline"
+                  >
+                    X
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="https://github.com/0xc00010ff"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-bronze-700 dark:text-bronze-400 hover:underline"
+                  >
+                    GitHub
+                  </a>
+                </p>
+              </SectionCard>
             </section>
 
             {/* Appearance */}
@@ -259,7 +261,7 @@ export default function SettingsPage() {
                 icon={<PaletteIcon className="w-4 h-4" />}
                 label="Appearance"
               />
-              <div className="space-y-4">
+              <SectionCard>
                 <Field label="Theme">
                   <Select
                     value={settings.theme}
@@ -271,7 +273,7 @@ export default function SettingsPage() {
                     ]}
                   />
                 </Field>
-              </div>
+              </SectionCard>
             </section>
 
             {/* Agent */}
@@ -285,7 +287,7 @@ export default function SettingsPage() {
                 icon={<BotIcon className="w-4 h-4" />}
                 label="Agent"
               />
-              <div className="space-y-4">
+              <SectionCard>
                 <Field label="Coding agent">
                   <div className="flex items-center gap-2">
                     <div
@@ -379,6 +381,8 @@ export default function SettingsPage() {
                     />
                   </Field>
                 )}
+              </SectionCard>
+              <SectionCard>
                 <Field
                   label="Global system prompt"
                   hint="Custom instructions injected into every agent runner across all projects. Use this for preferences that apply universally."
@@ -391,7 +395,7 @@ export default function SettingsPage() {
                     className={`${inputClass} resize-y min-h-[80px]`}
                   />
                 </Field>
-              </div>
+              </SectionCard>
             </section>
 
             {/* Updates — Electron only */}
@@ -406,7 +410,7 @@ export default function SettingsPage() {
                   icon={<DownloadIcon className="w-4 h-4" />}
                   label="Updates"
                 />
-                <div className="space-y-4">
+                <SectionCard>
                   <Field
                     label="Auto-update"
                     hint="Automatically check for updates in the background."
@@ -469,52 +473,52 @@ export default function SettingsPage() {
                       )}
                     </div>
                   </Field>
-                  <div className="border-t border-border-default pt-4 mt-4">
-                    <Field
-                      label="Shell updates"
-                      hint={shellVersion ? `Current shell version: ${shellVersion}` : undefined}
-                    >
-                      <div className="flex items-center gap-3">
-                        {shellUpdateReady ? (
-                          <button
-                            onClick={() => {
-                              window.proqDesktop?.installShellUpdate();
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
-                          >
-                            <DownloadIcon className="w-3.5 h-3.5" />
-                            Restart to update shell{shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={async () => {
-                              setCheckingShell(true);
-                              try {
-                                const result = await window.proqDesktop!.checkShellUpdate();
-                                if (!result.available) {
-                                  setShellUpdateReady(false);
-                                }
-                              } catch {
-                                // ignore
-                              } finally {
-                                setCheckingShell(false);
+                </SectionCard>
+                <SectionCard>
+                  <Field
+                    label="Shell updates"
+                    hint={shellVersion ? `Current shell version: ${shellVersion}` : undefined}
+                  >
+                    <div className="flex items-center gap-3">
+                      {shellUpdateReady ? (
+                        <button
+                          onClick={() => {
+                            window.proqDesktop?.installShellUpdate();
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
+                        >
+                          <DownloadIcon className="w-3.5 h-3.5" />
+                          Restart to update shell{shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            setCheckingShell(true);
+                            try {
+                              const result = await window.proqDesktop!.checkShellUpdate();
+                              if (!result.available) {
+                                setShellUpdateReady(false);
                               }
-                            }}
-                            disabled={checkingShell}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
-                          >
-                            {checkingShell ? (
-                              <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <SearchIcon className="w-3.5 h-3.5" />
-                            )}
-                            Check for shell updates
-                          </button>
-                        )}
-                      </div>
-                    </Field>
-                  </div>
-                </div>
+                            } catch {
+                              // ignore
+                            } finally {
+                              setCheckingShell(false);
+                            }
+                          }}
+                          disabled={checkingShell}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                        >
+                          {checkingShell ? (
+                            <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <SearchIcon className="w-3.5 h-3.5" />
+                          )}
+                          Check for shell updates
+                        </button>
+                      )}
+                    </div>
+                  </Field>
+                </SectionCard>
               </section>
             )}
 
@@ -529,47 +533,49 @@ export default function SettingsPage() {
                 icon={<BellIcon className="w-4 h-4" />}
                 label="Notifications"
               />
-              <p className="text-xs text-text-tertiary italic mb-4">
-                Notifications coming soon.
-              </p>
-              <div className="space-y-4 opacity-50 pointer-events-none select-none">
-                <Field label="Sounds">
-                  <Toggle
-                    checked={settings.soundNotifications}
-                    onChange={(v) => update("soundNotifications", v)}
-                  />
-                </Field>
-                <Field label="Local notifications">
-                  <Toggle
-                    checked={settings.localNotifications}
-                    onChange={(v) => update("localNotifications", v)}
-                  />
-                </Field>
-                <Field label="Webhooks" hint="URLs to notify on task events.">
-                  <div className="space-y-2">
-                    {webhooks.map((url, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={url}
-                          readOnly
-                          className={`${inputClassMono} flex-1`}
-                        />
-                        <button
-                          className="p-1.5 rounded hover:bg-surface-hover text-text-secondary"
-                          tabIndex={-1}
-                        >
-                          <XIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                    <button className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary py-1">
-                      <PlusIcon className="w-3.5 h-3.5" />
-                      Add webhook
-                    </button>
-                  </div>
-                </Field>
-              </div>
+              <SectionCard className="opacity-50 pointer-events-none select-none">
+                <p className="text-xs text-text-tertiary italic mb-4">
+                  Notifications coming soon.
+                </p>
+                <div className="space-y-4">
+                  <Field label="Sounds">
+                    <Toggle
+                      checked={settings.soundNotifications}
+                      onChange={(v) => update("soundNotifications", v)}
+                    />
+                  </Field>
+                  <Field label="Local notifications">
+                    <Toggle
+                      checked={settings.localNotifications}
+                      onChange={(v) => update("localNotifications", v)}
+                    />
+                  </Field>
+                  <Field label="Webhooks" hint="URLs to notify on task events.">
+                    <div className="space-y-2">
+                      {webhooks.map((url, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={url}
+                            readOnly
+                            className={`${inputClassMono} flex-1`}
+                          />
+                          <button
+                            className="p-1.5 rounded hover:bg-surface-hover text-text-secondary"
+                            tabIndex={-1}
+                          >
+                            <XIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <button className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary py-1">
+                        <PlusIcon className="w-3.5 h-3.5" />
+                        Add webhook
+                      </button>
+                    </div>
+                  </Field>
+                </div>
+              </SectionCard>
             </section>
           </div>
         </div>
@@ -597,11 +603,27 @@ function SectionHeading({
   label: string;
 }) {
   return (
-    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border-default">
+    <div className="flex items-center gap-2 mb-3">
       <span className="text-text-tertiary">{icon}</span>
       <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
         {label}
       </h2>
+    </div>
+  );
+}
+
+function SectionCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-lg border border-border-default bg-surface-secondary p-5 space-y-4 mb-3 ${className ?? ""}`}
+    >
+      {children}
     </div>
   );
 }

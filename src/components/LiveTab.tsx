@@ -17,19 +17,6 @@ interface LiveTabProps {
   onActivateWorkbenchTab: (type: 'agent' | 'shell') => void;
 }
 
-function getProxyOrigin(): string {
-  const wsPort = parseInt(
-    (typeof window !== 'undefined' && (window as unknown as { __PROQ_WS_PORT?: string }).__PROQ_WS_PORT) || '42069',
-    10
-  );
-  const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  return `http://${host}:${wsPort + 1}`;
-}
-
-function proxyUrl(serverUrl: string): string {
-  return `${getProxyOrigin()}/__proq_init?target=${encodeURIComponent(serverUrl)}`;
-}
-
 export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
@@ -54,23 +41,29 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
 
-  // Listen for URL changes reported by the injected tracker script in the proxy
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Poll the iframe's location to keep the URL bar in sync.
+  // Reading contentWindow.location works when the iframe is same-origin
+  // (or in relaxed-security contexts like Electron). For strict cross-origin
+  // it silently no-ops — the bar just stays on the last known URL.
   useEffect(() => {
     if (!project.serverUrl) return;
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'proq-live-url' && typeof e.data.url === 'string') {
-        try {
-          const origin = new URL(project.serverUrl!).origin;
-          const path = e.data.url === '/' ? '' : e.data.url;
-          setBarValue(origin + path);
-        } catch { /* ignore malformed */ }
-      }
+    const tryReadUrl = () => {
+      try {
+        const href = iframeRef.current?.contentWindow?.location?.href;
+        if (href && href !== 'about:blank') setBarValue(href);
+      } catch { /* cross-origin — ignore */ }
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [project.serverUrl]);
-
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+    const onLoad = () => tryReadUrl();
+    const iframe = iframeRef.current;
+    iframe?.addEventListener('load', onLoad);
+    const interval = setInterval(tryReadUrl, 500);
+    return () => {
+      iframe?.removeEventListener('load', onLoad);
+      clearInterval(interval);
+    };
+  }, [project.serverUrl, iframeKey]);
 
   const handleRefresh = () => setIframeKey(k => k + 1);
 
@@ -83,7 +76,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   };
 
   const handleOpenInBrowser = () => {
-    if (project.serverUrl) window.open(project.serverUrl, '_blank');
+    if (barValue) window.open(barValue, '_blank');
   };
 
   const pickViewport = async (v: ViewportSize) => {
@@ -258,32 +251,33 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                     type="text"
                     value={barValue}
                     onChange={(e) => setBarValue(e.target.value)}
-                    onKeyDown={(e) => {
+                    onKeyDown={async (e) => {
                       if (e.key === 'Enter') {
-                        const raw = barValue.trim();
-                        if (!raw) return;
+                        const url = barValue.trim();
+                        if (!url) return;
+                        // If typing a path (e.g. /about), navigate within the current server
+                        if (!url.startsWith('http') && iframeRef.current) {
+                          try {
+                            const base = new URL(project.serverUrl!);
+                            iframeRef.current.src = base.origin + (url.startsWith('/') ? url : '/' + url);
+                          } catch {}
+                          return;
+                        }
+                        // Full URL — if same origin, navigate; if different, reconnect
                         try {
-                          const entered = new URL(raw);
+                          const entered = new URL(url);
                           const current = new URL(project.serverUrl!);
-                          if (entered.origin === current.origin) {
-                            // Same server — navigate iframe to that path through the proxy
-                            if (iframeRef.current) {
-                              iframeRef.current.src = getProxyOrigin() + entered.pathname + entered.search + entered.hash;
-                            }
+                          if (entered.origin === current.origin && iframeRef.current) {
+                            iframeRef.current.src = url;
                           } else {
-                            // Different server — reconnect
-                            fetch(`/api/projects/${project.id}`, {
+                            await fetch(`/api/projects/${project.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ serverUrl: raw }),
-                            }).then(() => refreshProjects());
+                              body: JSON.stringify({ serverUrl: url }),
+                            });
+                            await refreshProjects();
                           }
-                        } catch {
-                          // Treat as a path on the current server
-                          if (iframeRef.current) {
-                            iframeRef.current.src = getProxyOrigin() + (raw.startsWith('/') ? raw : '/' + raw);
-                          }
-                        }
+                        } catch {}
                       }
                     }}
                     className="flex-1 bg-transparent text-xs text-text-secondary focus:text-text-primary outline-none"
@@ -347,7 +341,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                       maxWidth: '100%',
                     }}
                   >
-                    <iframe ref={iframeRef} key={iframeKey} src={proxyUrl(project.serverUrl!)} className="w-full h-full border-0" />
+                    <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="w-full h-full border-0" />
                   </div>
 
                   {/* Right resize handle */}
@@ -380,7 +374,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 </div>
               </div>
             ) : (
-              <iframe ref={iframeRef} key={iframeKey} src={proxyUrl(project.serverUrl!)} className="flex-1 w-full border-0" />
+              <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="flex-1 w-full border-0" />
             )}
           </>
         )}

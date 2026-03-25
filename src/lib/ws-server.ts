@@ -5,7 +5,6 @@ import { attachWs, writeToPty, resizePty } from "./pty-server";
 import { attachAgentWsWithProject } from "./agent-session-server";
 import { attachSupervisorWs } from "./supervisor-server";
 import { attachAgentTabWs } from "./agent-tab-server";
-import { startProxyServer } from "./live-proxy";
 
 const PORT = parseInt(process.env.PROQ_WS_PORT || process.env.NEXT_PUBLIC_WS_PORT || "42069", 10);
 
@@ -14,8 +13,6 @@ let started = false;
 export function startWsServer() {
   if (started) return;
   started = true;
-
-  startProxyServer();
 
   const server = createServer((_req, res) => {
     res.writeHead(200);

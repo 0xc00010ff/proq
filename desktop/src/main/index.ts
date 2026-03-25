@@ -45,6 +45,7 @@ function getIcon(): Electron.NativeImage {
 }
 
 let mainWindow: BrowserWindow | null = null
+let findWindow: BrowserWindow | null = null
 let isResetting = false
 let isQuitting = false
 let isTransitioning = false
@@ -164,11 +165,11 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
 
   win.once('ready-to-show', () => win.show())
 
-  // Forward find-in-page results to renderer
+  // Forward find-in-page results to the find bar child window
   if (mode === 'app') {
     win.webContents.on('found-in-page', (_e, result) => {
-      if (!win.isDestroyed()) {
-        win.webContents.send('find:result', {
+      if (findWindow && !findWindow.isDestroyed()) {
+        findWindow.webContents.send('find:result', {
           activeMatchOrdinal: result.activeMatchOrdinal,
           matches: result.matches
         })
@@ -354,18 +355,105 @@ function registerIpcHandlers(): void {
   // App info
   ipcMain.handle('app:version', () => app.getVersion())
 
-  // Find in page
-  ipcMain.handle('find:find', (_e, text: string, options?: { forward?: boolean; findNext?: boolean }) => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win && text) {
-      win.webContents.findInPage(text, options)
+  // Find in page — target the parent window (caller is the find bar child window)
+  ipcMain.handle('find:find', (event, text: string, options?: { forward?: boolean; findNext?: boolean }) => {
+    const sender = BrowserWindow.fromWebContents(event.sender)
+    const target = sender?.getParentWindow() || sender
+    if (target && text) {
+      target.webContents.findInPage(text, options)
     }
   })
-  ipcMain.handle('find:stop', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win) {
-      win.webContents.stopFindInPage('clearSelection')
+  ipcMain.handle('find:stop', (event) => {
+    const sender = BrowserWindow.fromWebContents(event.sender)
+    const target = sender?.getParentWindow() || sender
+    if (target) {
+      target.webContents.stopFindInPage('clearSelection')
     }
+  })
+}
+
+// ── Find Bar (child window) ──────────────────────────────────────────
+
+const FIND_BAR_HTML = `<!DOCTYPE html><html><head><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:transparent}
+.bar{display:flex;align-items:center;gap:6px;padding:6px 12px;background:#27272a;border:1px solid #52525b;border-radius:8px}
+input{width:192px;background:#18181b;border:1px solid #52525b;border-radius:4px;padding:4px 8px;font-size:13px;color:#f4f4f5;outline:none}
+input:focus{border-color:#3b82f6}input::placeholder{color:#71717a}
+.count{font-size:12px;color:#a1a1aa;white-space:nowrap;min-width:60px;text-align:center}
+button{background:none;border:none;padding:4px;color:#a1a1aa;cursor:pointer;border-radius:4px;display:flex;align-items:center}
+button:hover{color:#e4e4e7;background:#3f3f46}
+svg{width:14px;height:14px}
+</style></head><body><div class="bar">
+<input id="q" type="text" placeholder="Find..." autofocus/>
+<span id="count" class="count"></span>
+<button id="prev" title="Previous (Shift+Enter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></button>
+<button id="next" title="Next (Enter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<button id="close" title="Close (Escape)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+</div><script>
+const q=document.getElementById('q'),countEl=document.getElementById('count'),api=window.proqDesktop;
+let cur='';
+q.addEventListener('input',()=>{cur=q.value;if(cur){api.findInPage(cur)}else{api.stopFind();countEl.textContent=''}});
+q.addEventListener('keydown',(e)=>{if(e.key==='Escape'){api.stopFind();window.close()}else if(e.key==='Enter'){e.preventDefault();if(cur)api.findInPage(cur,{forward:!e.shiftKey,findNext:true})}});
+document.getElementById('prev').addEventListener('click',()=>{if(cur)api.findInPage(cur,{forward:false,findNext:true});q.focus()});
+document.getElementById('next').addEventListener('click',()=>{if(cur)api.findInPage(cur,{forward:true,findNext:true});q.focus()});
+document.getElementById('close').addEventListener('click',()=>{api.stopFind();window.close()});
+if(api&&api.onFindResult){api.onFindResult((r)=>{if(cur){countEl.textContent=r.matches>0?r.activeMatchOrdinal+' of '+r.matches:'No results'}})}
+</script></body></html>`
+
+function showFindBar(parent: BrowserWindow): void {
+  if (findWindow && !findWindow.isDestroyed()) {
+    findWindow.focus()
+    // Select all text in the input for easy replacement
+    findWindow.webContents.executeJavaScript('document.getElementById("q").select()')
+    return
+  }
+
+  const parentBounds = parent.getBounds()
+  const w = 380
+  const h = 48
+
+  findWindow = new BrowserWindow({
+    width: w,
+    height: h,
+    x: parentBounds.x + parentBounds.width - w - 20,
+    y: parentBounds.y + 52,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    parent,
+    show: false,
+    hasShadow: false,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  findWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(FIND_BAR_HTML))
+  findWindow.once('ready-to-show', () => findWindow?.show())
+
+  findWindow.on('closed', () => {
+    // Clear highlights when find bar closes
+    if (!parent.isDestroyed()) {
+      parent.webContents.stopFindInPage('clearSelection')
+    }
+    findWindow = null
+  })
+
+  // Reposition when parent moves or resizes
+  const reposition = (): void => {
+    if (!findWindow || findWindow.isDestroyed()) return
+    const b = parent.getBounds()
+    findWindow.setPosition(b.x + b.width - w - 20, b.y + 52)
+  }
+  parent.on('move', reposition)
+  parent.on('resize', reposition)
+
+  findWindow.on('closed', () => {
+    parent.removeListener('move', reposition)
+    parent.removeListener('resize', reposition)
   })
 }
 
@@ -698,7 +786,7 @@ app.whenReady().then(() => {
               accelerator: 'CmdOrCtrl+F',
               click: (): void => {
                 const win = BrowserWindow.getFocusedWindow()
-                if (win) win.webContents.send('find:show')
+                if (win) showFindBar(win)
               }
             }
           ]

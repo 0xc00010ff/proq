@@ -17,6 +17,20 @@ interface LiveTabProps {
   onActivateWorkbenchTab: (type: 'agent' | 'shell') => void;
 }
 
+// Electron exposes window.proqDesktop via preload — when present, we can use <webview>.
+const isElectron = typeof window !== 'undefined' && 'proqDesktop' in window;
+
+// Electron's webview element provides navigation methods + events beyond standard HTMLElement.
+interface WebviewElement {
+  getURL(): string;
+  goBack(): void;
+  goForward(): void;
+  reload(): void;
+  loadURL(url: string): void;
+  addEventListener(type: string, listener: (event: { url: string; isMainFrame?: boolean }) => void): void;
+  removeEventListener(type: string, listener: (event: { url: string; isMainFrame?: boolean }) => void): void;
+}
+
 export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
@@ -35,52 +49,62 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
       setBarValue(project.serverUrl);
       setIframeKey(k => k + 1);
     } else if (!project.serverUrl && prevServerUrl.current) {
-      // Disconnected — reset input to default
       setUrlInput('http://localhost:3000');
     }
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const webviewRef = useRef<WebviewElement>(null);
 
-  // Poll the iframe's location to keep the URL bar in sync.
-  // Reading contentWindow.location works when the iframe is same-origin
-  // (or in relaxed-security contexts like Electron). For strict cross-origin
-  // it silently no-ops — the bar just stays on the last known URL.
+  // Electron webview: listen for navigation events to update the URL bar.
   useEffect(() => {
-    if (!project.serverUrl) return;
-    let lastHref = '';
-    const tryReadUrl = () => {
-      try {
-        const href = iframeRef.current?.contentWindow?.location?.href;
-        if (href && href !== 'about:blank' && href !== lastHref) {
-          lastHref = href;
-          setBarValue(href);
-        }
-      } catch { /* cross-origin — ignore */ }
-    };
-    const onLoad = () => tryReadUrl();
-    const iframe = iframeRef.current;
-    iframe?.addEventListener('load', onLoad);
-    const interval = setInterval(tryReadUrl, 1000);
+    if (!isElectron || !project.serverUrl) return;
+    const wv = webviewRef.current;
+    if (!wv) return;
+    const onNav = (e: { url: string }) => setBarValue(e.url);
+    wv.addEventListener('did-navigate', onNav);
+    wv.addEventListener('did-navigate-in-page', onNav);
     return () => {
-      iframe?.removeEventListener('load', onLoad);
-      clearInterval(interval);
+      wv.removeEventListener('did-navigate', onNav);
+      wv.removeEventListener('did-navigate-in-page', onNav);
     };
   }, [project.serverUrl, iframeKey]);
 
-  const handleRefresh = () => setIframeKey(k => k + 1);
+  const handleRefresh = () => {
+    if (isElectron && webviewRef.current) {
+      webviewRef.current.reload();
+    } else {
+      setIframeKey(k => k + 1);
+    }
+  };
 
   const handleBack = () => {
-    try { iframeRef.current?.contentWindow?.history.back(); } catch {}
+    if (isElectron && webviewRef.current) {
+      webviewRef.current.goBack();
+    } else {
+      try { iframeRef.current?.contentWindow?.history.back(); } catch {}
+    }
   };
 
   const handleForward = () => {
-    try { iframeRef.current?.contentWindow?.history.forward(); } catch {}
+    if (isElectron && webviewRef.current) {
+      webviewRef.current.goForward();
+    } else {
+      try { iframeRef.current?.contentWindow?.history.forward(); } catch {}
+    }
   };
 
   const handleOpenInBrowser = () => {
     if (barValue) window.open(barValue, '_blank');
+  };
+
+  const navigateTo = (url: string) => {
+    if (isElectron && webviewRef.current) {
+      webviewRef.current.loadURL(url);
+    } else if (iframeRef.current) {
+      iframeRef.current.src = url;
+    }
   };
 
   const pickViewport = async (v: ViewportSize) => {
@@ -130,10 +154,10 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
-      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
+      document.querySelectorAll('iframe, webview').forEach(f => (f as HTMLElement).style.pointerEvents = '');
     };
 
-    document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
+    document.querySelectorAll('iframe, webview').forEach(f => (f as HTMLElement).style.pointerEvents = 'none');
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   }, [size.w, size.h]);
@@ -143,6 +167,24 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   }, [onActivateWorkbenchTab]);
 
   const isDevice = viewport !== 'desktop';
+
+  const embedElement = isElectron ? (
+    <webview
+      ref={webviewRef as React.Ref<HTMLElement>}
+      key={iframeKey}
+      src={project.serverUrl}
+      allowpopups
+      className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
+      style={{ display: 'inline-flex' }}
+    />
+  ) : (
+    <iframe
+      ref={iframeRef}
+      key={iframeKey}
+      src={project.serverUrl}
+      className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
+    />
+  );
 
   return (
       <div
@@ -257,27 +299,26 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                     onChange={(e) => setBarValue(e.target.value)}
                     onKeyDown={async (e) => {
                       if (e.key === 'Enter') {
-                        const url = barValue.trim();
-                        if (!url) return;
-                        // If typing a path (e.g. /about), navigate within the current server
-                        if (!url.startsWith('http') && iframeRef.current) {
+                        const raw = barValue.trim();
+                        if (!raw) return;
+                        if (!raw.startsWith('http')) {
+                          // Bare path — navigate within the current server
                           try {
                             const base = new URL(project.serverUrl!);
-                            iframeRef.current.src = base.origin + (url.startsWith('/') ? url : '/' + url);
+                            navigateTo(base.origin + (raw.startsWith('/') ? raw : '/' + raw));
                           } catch {}
                           return;
                         }
-                        // Full URL — if same origin, navigate; if different, reconnect
                         try {
-                          const entered = new URL(url);
+                          const entered = new URL(raw);
                           const current = new URL(project.serverUrl!);
-                          if (entered.origin === current.origin && iframeRef.current) {
-                            iframeRef.current.src = url;
+                          if (entered.origin === current.origin) {
+                            navigateTo(raw);
                           } else {
                             await fetch(`/api/projects/${project.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ serverUrl: url }),
+                              body: JSON.stringify({ serverUrl: raw }),
                             });
                             await refreshProjects();
                           }
@@ -345,7 +386,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                       maxWidth: '100%',
                     }}
                   >
-                    <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="w-full h-full border-0" />
+                    {embedElement}
                   </div>
 
                   {/* Right resize handle */}
@@ -378,7 +419,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 </div>
               </div>
             ) : (
-              <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="flex-1 w-full border-0" />
+              embedElement
             )}
           </>
         )}

@@ -73,9 +73,8 @@ export default function SettingsPage() {
       .then(setSettings)
       .catch(console.error);
 
-    // Get shell version and listen for shell updates
+    // Listen for background shell update downloads
     if (isElectron && window.proqDesktop) {
-      window.proqDesktop.getVersion().then((v) => setShellVersion(v));
       const cleanup = window.proqDesktop.onShellUpdateDownloaded((_e, result) => {
         setShellUpdateReady(true);
         setShellUpdateVersion(result.version);
@@ -418,101 +417,71 @@ export default function SettingsPage() {
                       onChange={(v) => update("autoUpdate", v)}
                     />
                   </Field>
-                  <Field label="Check for web updates">
-                    <div className="flex items-center gap-3">
-                      {updateResult?.available ? (
-                        <button
-                          onClick={() => {
-                            window.proqDesktop?.applyAndRestart();
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
-                        >
-                          <DownloadIcon className="w-3.5 h-3.5" />
-                          Restart to update
-                        </button>
-                      ) : (
-                        <button
-                          onClick={async () => {
-                            setCheckingUpdates(true);
-                            setUpdateResult(null);
-                            try {
-                              const result = await window.proqDesktop!.checkUpdates();
-                              setUpdateResult({
-                                available: result.available,
-                                count: result.commits?.length || 0,
-                              });
-                            } catch {
-                              setUpdateResult(null);
-                            } finally {
-                              setCheckingUpdates(false);
-                            }
-                          }}
-                          disabled={checkingUpdates}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
-                        >
-                          {checkingUpdates ? (
-                            <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <SearchIcon className="w-3.5 h-3.5" />
-                          )}
-                          Check for Updates
-                        </button>
-                      )}
-                      {updateResult && !updateResult.available && (
-                        <span className="flex items-center gap-1 text-xs text-green-500">
-                          <CheckIcon className="w-3.5 h-3.5" />
-                          You&apos;re up to date
-                        </span>
-                      )}
-                      {updateResult && updateResult.available && (
-                        <span className="text-xs text-text-secondary">
-                          {updateResult.count} update{updateResult.count !== 1 ? "s" : ""} available
-                        </span>
-                      )}
-                    </div>
-                  </Field>
-                </SectionCard>
-                <SectionCard>
-                  <Field
-                    label="Shell updates"
-                    hint={shellVersion ? `Current shell version: ${shellVersion}` : undefined}
-                  >
-                    <div className="flex items-center gap-3">
-                      {shellUpdateReady ? (
-                        <button
-                          onClick={() => {
-                            window.proqDesktop?.installShellUpdate();
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
-                        >
-                          <DownloadIcon className="w-3.5 h-3.5" />
-                          Restart to update shell{shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={async () => {
-                            setCheckingShell(true);
-                            try {
-                              const result = await window.proqDesktop!.checkShellUpdate();
-                              if (!result.available) {
-                                setShellUpdateReady(false);
+                  <Field label="Check for updates">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        {(webUpdate?.available || shellUpdateReady) ? (
+                          <button
+                            onClick={() => {
+                              if (webUpdate?.available) {
+                                // Web update includes a restart, which will also
+                                // apply any pending shell update on next launch
+                                window.proqDesktop?.applyAndRestart();
+                              } else if (shellUpdateReady) {
+                                window.proqDesktop?.installShellUpdate();
                               }
-                            } catch {
-                              // ignore
-                            } finally {
-                              setCheckingShell(false);
-                            }
-                          }}
-                          disabled={checkingShell}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
-                        >
-                          {checkingShell ? (
-                            <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <SearchIcon className="w-3.5 h-3.5" />
-                          )}
-                          Check for shell updates
-                        </button>
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
+                          >
+                            <DownloadIcon className="w-3.5 h-3.5" />
+                            Restart to update
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              setCheckingUpdates(true);
+                              setWebUpdate(null);
+                              try {
+                                const [webResult] = await Promise.all([
+                                  window.proqDesktop!.checkUpdates(),
+                                  window.proqDesktop!.checkShellUpdate(),
+                                ]);
+                                setWebUpdate({
+                                  available: webResult.available,
+                                  count: webResult.commits?.length || 0,
+                                });
+                              } catch {
+                                setWebUpdate(null);
+                              } finally {
+                                setCheckingUpdates(false);
+                              }
+                            }}
+                            disabled={checkingUpdates}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                          >
+                            {checkingUpdates ? (
+                              <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <SearchIcon className="w-3.5 h-3.5" />
+                            )}
+                            Check for Updates
+                          </button>
+                        )}
+                        {webUpdate && !webUpdate.available && !shellUpdateReady && (
+                          <span className="flex items-center gap-1 text-xs text-green-500">
+                            <CheckIcon className="w-3.5 h-3.5" />
+                            You&apos;re up to date
+                          </span>
+                        )}
+                      </div>
+                      {(webUpdate?.available || shellUpdateReady) && (
+                        <p className="text-xs text-text-secondary">
+                          {[
+                            webUpdate?.available && `${webUpdate.count} app update${webUpdate.count !== 1 ? "s" : ""}`,
+                            shellUpdateReady && `shell update${shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}`,
+                          ].filter(Boolean).join(" and ")}{" "}
+                          available
+                        </p>
                       )}
                     </div>
                   </Field>

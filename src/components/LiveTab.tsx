@@ -49,16 +49,20 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   // it silently no-ops — the bar just stays on the last known URL.
   useEffect(() => {
     if (!project.serverUrl) return;
+    let lastHref = '';
     const tryReadUrl = () => {
       try {
         const href = iframeRef.current?.contentWindow?.location?.href;
-        if (href && href !== 'about:blank') setBarValue(href);
+        if (href && href !== 'about:blank' && href !== lastHref) {
+          lastHref = href;
+          setBarValue(href);
+        }
       } catch { /* cross-origin — ignore */ }
     };
     const onLoad = () => tryReadUrl();
     const iframe = iframeRef.current;
     iframe?.addEventListener('load', onLoad);
-    const interval = setInterval(tryReadUrl, 500);
+    const interval = setInterval(tryReadUrl, 1000);
     return () => {
       iframe?.removeEventListener('load', onLoad);
       clearInterval(interval);

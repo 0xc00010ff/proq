@@ -328,7 +328,7 @@ export default function SettingsPage() {
                         }
                       }}
                       disabled={detectingBin}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
                     >
                       {detectingBin ? (
                         <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
@@ -450,7 +450,7 @@ export default function SettingsPage() {
                             }
                           }}
                           disabled={checkingUpdates}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
                         >
                           {checkingUpdates ? (
                             <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
@@ -506,7 +506,7 @@ export default function SettingsPage() {
                             }
                           }}
                           disabled={checkingShell}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-base border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
                         >
                           {checkingShell ? (
                             <LoaderIcon className="w-3.5 h-3.5 animate-spin" />

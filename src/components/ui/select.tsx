@@ -34,7 +34,7 @@ export function Select({ value, onChange, options, label, className, placeholder
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center justify-between bg-surface-inset border border-border-strong/50 rounded-md px-3 py-2 text-sm text-text-primary outline-none hover:border-border-hover hover:bg-surface-hover/40 transition-colors",
+            "w-full flex items-center justify-between bg-surface-modal border border-border-strong/50 rounded-md px-3 py-2 text-sm text-text-primary outline-none hover:border-border-hover hover:bg-surface-hover/40 transition-colors",
             className
           )}
         >

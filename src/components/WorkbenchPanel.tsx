@@ -177,6 +177,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
   const tabs = getTabs(projectId);
   const activeTabId = getActiveTabId(projectId);
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
 
   // Load xterm CSS once
   useEffect(() => {
@@ -205,9 +207,10 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
   const addShellTab = useCallback(async (opts?: AddTabOptions) => {
     const { initialInput, reuse } = opts ?? {};
+    const currentTabs = tabsRef.current;
 
     if (reuse) {
-      const existing = tabs.find((t) => t.type === 'shell');
+      const existing = currentTabs.find((t) => t.type === 'shell');
       if (existing) {
         if (initialInput) setTerminalDraft(existing.id, initialInput);
         setActiveTabId(projectId, existing.id);
@@ -216,7 +219,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     }
 
     const id = `shell-${uuidv4().slice(0, 8)}`;
-    const shellCount = tabs.filter((t) => t.type === 'shell').length + 1;
+    const shellCount = currentTabs.filter((t) => t.type === 'shell').length + 1;
 
     if (initialInput) setTerminalDraft(id, initialInput);
 
@@ -227,13 +230,14 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     });
 
     openTab(projectId, id, `Terminal ${shellCount}`, 'shell');
-  }, [tabs, openTab, setActiveTabId, projectId, projectPath]);
+  }, [openTab, setActiveTabId, projectId, projectPath]);
 
   const addAgentTab = useCallback((opts?: AddTabOptions) => {
     const { initialInput, reuse } = opts ?? {};
+    const currentTabs = tabsRef.current;
 
     if (reuse) {
-      const existing = tabs.find((t) => t.type === 'agent');
+      const existing = currentTabs.find((t) => t.type === 'agent');
       if (existing) {
         if (initialInput) setAgentDraft(existing.id, initialInput);
         setActiveTabId(projectId, existing.id);
@@ -242,10 +246,10 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     }
 
     const id = `agent-${uuidv4().slice(0, 8)}`;
-    const agentCount = tabs.filter((t) => t.type === 'agent').length + 1;
+    const agentCount = currentTabs.filter((t) => t.type === 'agent').length + 1;
     if (initialInput) setAgentDraft(id, initialInput);
     openTab(projectId, id, `Agent ${agentCount}`, 'agent');
-  }, [tabs, openTab, setActiveTabId, projectId]);
+  }, [openTab, setActiveTabId, projectId]);
 
   useImperativeHandle(ref, () => ({ addShellTab, addAgentTab }), [addShellTab, addAgentTab]);
 
@@ -282,7 +286,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     <div
       ref={panelRef}
       className="w-full flex flex-col bg-surface-deep flex-shrink-0"
-      style={{ minHeight: 0, ...(collapsed ? {} : style) }}
+      style={{ minHeight: 0, ...style }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}
       <div className="relative shrink-0">
@@ -358,8 +362,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           <DropdownMenuContent align="start" side="bottom" className="w-40">
             <DropdownMenuItem
               onSelect={() => {
-                addAgentTab();
                 if (collapsed) (onExpand ?? onToggleCollapsed)();
+                addAgentTab();
               }}
             >
               <SquareChevronUpIcon className="w-3.5 h-3.5" />
@@ -367,8 +371,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
-                addShellTab();
                 if (collapsed) (onExpand ?? onToggleCollapsed)();
+                addShellTab();
               }}
             >
               <TerminalIcon className="w-3.5 h-3.5" />

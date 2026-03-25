@@ -150,32 +150,35 @@ export function WorkbenchTabsProvider({ children }: { children: React.ReactNode 
   );
 
   const closeTab = useCallback((projectId: string, tabId: string) => {
-    const ps = getOrCreate(state, projectId);
-    const tab = ps.tabs.find((t) => t.id === tabId);
-    if (tab?.type === 'agent') {
-      fetch(`/api/agent-tab/${tabId}`, { method: 'DELETE' }).catch(() => {});
-    } else {
-      fetch(`/api/shell/${tabId}`, { method: 'DELETE' }).catch(() => {});
-    }
-
     setState((prev) => {
       const ps = getOrCreate(prev, projectId);
-      const closedIndex = ps.tabs.findIndex((t) => t.id === tabId);
-      const filtered = ps.tabs.filter((t) => t.id !== tabId);
-      let activeTabId: string;
-      if (filtered.length === 0) {
-        activeTabId = '';
-      } else if (ps.activeTabId !== tabId) {
-        activeTabId = ps.activeTabId;
+      const idx = ps.tabs.findIndex((t) => t.id === tabId);
+      if (idx === -1) return prev;
+      const tab = ps.tabs[idx];
+
+      // Clean up backend resource
+      if (tab.type === 'agent') {
+        fetch(`/api/agent-tab/${tabId}`, { method: 'DELETE' }).catch(() => {});
       } else {
-        // Select the previous tab, or the next if closing the first tab
-        activeTabId = filtered[closedIndex > 0 ? closedIndex - 1 : 0].id;
+        fetch(`/api/shell/${tabId}`, { method: 'DELETE' }).catch(() => {});
       }
-      const next = { ...prev, [projectId]: { ...ps, tabs: filtered, activeTabId } };
-      persistTabs(projectId, next[projectId]);
+
+      // 1. Pick adjacent tab: right if there, left if not
+      let newActiveTabId = ps.activeTabId;
+      if (ps.activeTabId === tabId) {
+        if (idx < ps.tabs.length - 1) newActiveTabId = ps.tabs[idx + 1].id;
+        else if (idx > 0) newActiveTabId = ps.tabs[idx - 1].id;
+        else newActiveTabId = '';
+      }
+
+      // 2. Remove tab and set new active — explicit fields, no spread
+      const filtered = ps.tabs.filter((t) => t.id !== tabId);
+      const updated: ProjectWorkbenchState = { tabs: filtered, activeTabId: newActiveTabId, hydrated: ps.hydrated };
+      const next = { ...prev, [projectId]: updated };
+      persistTabs(projectId, updated);
       return next;
     });
-  }, [state, persistTabs]);
+  }, [persistTabs]);
 
   const renameTab = useCallback((projectId: string, tabId: string, label: string) => {
     setState((prev) => {

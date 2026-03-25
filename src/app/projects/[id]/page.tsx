@@ -761,7 +761,11 @@ export default function ProjectPage() {
       <main ref={containerRef} className="flex-1 flex flex-col overflow-hidden relative">
         <div
           className="flex-1 min-h-0 overflow-hidden relative"
-          style={workbench.collapsed ? undefined : { flexBasis: `${100 - workbench.percent}%` }}
+          style={{
+            flexBasis: workbench.collapsed ? '100%' : `${100 - workbench.percent}%`,
+            flexShrink: 1,
+            transition: workbench.isDragging ? 'none' : 'flex-basis 150ms ease-out',
+          }}
         >
           {activeTab === 'project' && (
             <div
@@ -871,7 +875,7 @@ export default function ProjectPage() {
           ref={workbenchRef}
           projectId={projectId}
           projectPath={project.path}
-          style={{ flexBasis: `${workbench.percent}%` }}
+          style={workbench.collapsed ? { flexBasis: 'auto', flexGrow: 0 } : { flexBasis: `${workbench.percent}%` }}
           collapsed={workbench.collapsed}
           onToggleCollapsed={toggleWorkbenchCollapsed}
           onExpand={expandWorkbench}

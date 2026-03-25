@@ -17,6 +17,19 @@ interface LiveTabProps {
   onActivateWorkbenchTab: (type: 'agent' | 'shell') => void;
 }
 
+function getProxyOrigin(): string {
+  const wsPort = parseInt(
+    (typeof window !== 'undefined' && (window as unknown as { __PROQ_WS_PORT?: string }).__PROQ_WS_PORT) || '42069',
+    10
+  );
+  const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  return `http://${host}:${wsPort + 1}`;
+}
+
+function proxyUrl(serverUrl: string): string {
+  return `${getProxyOrigin()}/__proq_init?target=${encodeURIComponent(serverUrl)}`;
+}
+
 export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
   const [barValue, setBarValue] = useState(project.serverUrl ?? '');
@@ -39,6 +52,22 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
       setUrlInput('http://localhost:3000');
     }
     prevServerUrl.current = project.serverUrl;
+  }, [project.serverUrl]);
+
+  // Listen for URL changes reported by the injected tracker script in the proxy
+  useEffect(() => {
+    if (!project.serverUrl) return;
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'proq-live-url' && typeof e.data.url === 'string') {
+        try {
+          const origin = new URL(project.serverUrl!).origin;
+          const path = e.data.url === '/' ? '' : e.data.url;
+          setBarValue(origin + path);
+        } catch { /* ignore malformed */ }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, [project.serverUrl]);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -229,16 +258,32 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                     type="text"
                     value={barValue}
                     onChange={(e) => setBarValue(e.target.value)}
-                    onKeyDown={async (e) => {
+                    onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        const url = barValue.trim();
-                        if (!url || url === project.serverUrl) return;
-                        await fetch(`/api/projects/${project.id}`, {
-                          method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ serverUrl: url }),
-                        });
-                        await refreshProjects();
+                        const raw = barValue.trim();
+                        if (!raw) return;
+                        try {
+                          const entered = new URL(raw);
+                          const current = new URL(project.serverUrl!);
+                          if (entered.origin === current.origin) {
+                            // Same server — navigate iframe to that path through the proxy
+                            if (iframeRef.current) {
+                              iframeRef.current.src = getProxyOrigin() + entered.pathname + entered.search + entered.hash;
+                            }
+                          } else {
+                            // Different server — reconnect
+                            fetch(`/api/projects/${project.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ serverUrl: raw }),
+                            }).then(() => refreshProjects());
+                          }
+                        } catch {
+                          // Treat as a path on the current server
+                          if (iframeRef.current) {
+                            iframeRef.current.src = getProxyOrigin() + (raw.startsWith('/') ? raw : '/' + raw);
+                          }
+                        }
                       }
                     }}
                     className="flex-1 bg-transparent text-xs text-text-secondary focus:text-text-primary outline-none"
@@ -302,7 +347,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                       maxWidth: '100%',
                     }}
                   >
-                    <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="w-full h-full border-0" />
+                    <iframe ref={iframeRef} key={iframeKey} src={proxyUrl(project.serverUrl!)} className="w-full h-full border-0" />
                   </div>
 
                   {/* Right resize handle */}
@@ -335,7 +380,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 </div>
               </div>
             ) : (
-              <iframe ref={iframeRef} key={iframeKey} src={project.serverUrl} className="flex-1 w-full border-0" />
+              <iframe ref={iframeRef} key={iframeKey} src={proxyUrl(project.serverUrl!)} className="flex-1 w-full border-0" />
             )}
           </>
         )}

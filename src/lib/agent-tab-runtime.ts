@@ -6,6 +6,7 @@ import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
 import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject } from "./db";
 import { getClaudeBin } from "./claude-bin";
+import { escapePrompt } from "./utils";
 import type WebSocket from "ws";
 
 export interface AgentTabSession {
@@ -380,7 +381,7 @@ export async function startAgentTabSession(
   const mcpConfigPath = writeWorkbenchMcpConfig(projectId, tabId);
 
   const args: string[] = [
-    "-p", promptText,
+    "-p", escapePrompt(promptText),
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",
@@ -486,7 +487,7 @@ export async function continueAgentTabSession(
 
   const args: string[] = [
     "--resume", session.sessionId!,
-    "-p", promptText,
+    "-p", escapePrompt(promptText),
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",

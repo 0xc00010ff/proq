@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { getAllProjects, getSupervisorAgentBlocks, setSupervisorAgentBlocks, getSettings } from "./db";
 import { getClaudeBin } from "./claude-bin";
+import { escapePrompt } from "./utils";
 import type WebSocket from "ws";
 
 export interface SupervisorSession {
@@ -336,7 +337,7 @@ export async function startSupervisorSession(text: string): Promise<void> {
   const startTime = Date.now();
 
   const args: string[] = [
-    "-p", text,
+    "-p", escapePrompt(text),
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",
@@ -405,7 +406,7 @@ export async function continueSupervisorSession(
 
   const args: string[] = [
     "--resume", session.sessionId!,
-    "-p", text,
+    "-p", escapePrompt(text),
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",

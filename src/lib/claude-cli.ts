@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import { getClaudeBin } from "./claude-bin";
+import { escapePrompt } from "./utils";
 
 /**
  * One-shot Claude CLI call. Spawns `claude -p <prompt>` and returns the text output.
@@ -10,7 +11,7 @@ export async function claudeOneShot(
   options?: { model?: string },
 ): Promise<string> {
   const claudeBin = await getClaudeBin();
-  const args = ["-p", prompt, "--model", options?.model ?? "haiku"];
+  const args = ["-p", escapePrompt(prompt), "--model", options?.model ?? "haiku"];
 
   return new Promise((resolve, reject) => {
     const proc = spawn(claudeBin, args, {

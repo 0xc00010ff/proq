@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
-import { resolveProjectPath } from "./utils";
+import { resolveProjectPath, escapePrompt } from "./utils";
 import { updateTask, getTask, getProject, getSettings, setTaskAgentBlocks, readAgentBlocksFile } from "./db";
 import {
   notify,

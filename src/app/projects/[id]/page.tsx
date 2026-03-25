@@ -224,7 +224,7 @@ export default function ProjectPage() {
         if (newStatus && newStatus !== status) {
           // Move between columns
           updated[status] = cols[status].filter((t) => t.id !== taskId);
-          updated[newStatus] = [...cols[newStatus], merged];
+          updated[newStatus] = [merged, ...cols[newStatus]];
         } else {
           // Update in place
           updated[status] = [...cols[status]];

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { Project, TaskColumns } from '@/lib/types';
+import type { Project, Task, TaskColumns, TaskStatus } from '@/lib/types';
+import { useGlobalTaskEvents, type GlobalSSEEvent } from '@/hooks/useGlobalTaskEvents';
 
 interface ProjectsContextValue {
   projects: Project[];
@@ -59,6 +60,52 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshProjects();
   }, [refreshProjects]);
+
+  // Global SSE: keep sidebar task counts fresh across all projects in real time.
+  const handleGlobalEvent = useCallback((event: GlobalSSEEvent) => {
+    const { projectId } = event;
+
+    if (event.type === 'update') {
+      const newStatus = event.changes.status as TaskStatus | undefined;
+      setTasksByProject((prev) => {
+        const cols = prev[projectId];
+        if (!cols) return prev;
+        for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+          const idx = cols[status].findIndex((t) => t.id === event.taskId);
+          if (idx === -1) continue;
+          const merged = { ...cols[status][idx], ...event.changes } as Task;
+          const updated = { ...cols };
+          if (newStatus && newStatus !== status) {
+            updated[status] = cols[status].filter((t) => t.id !== event.taskId);
+            updated[newStatus] = [merged, ...cols[newStatus]];
+          } else {
+            updated[status] = [...cols[status]];
+            updated[status][idx] = merged;
+          }
+          return { ...prev, [projectId]: updated };
+        }
+        return prev;
+      });
+    } else if (event.type === 'created') {
+      const task = event.task as unknown as Task;
+      if (!task.id) return;
+      const targetStatus = (task.status as TaskStatus) || 'todo';
+      setTasksByProject((prev) => {
+        const cols = prev[projectId];
+        if (!cols) return prev;
+        for (const status of ['todo', 'in-progress', 'verify', 'done'] as TaskStatus[]) {
+          if (cols[status].some((t) => t.id === task.id)) return prev;
+        }
+        return { ...prev, [projectId]: { ...cols, [targetStatus]: [task, ...cols[targetStatus]] } };
+      });
+    } else if (event.type === 'project_update') {
+      setProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, ...event.changes } : p))
+      );
+    }
+  }, [setTasksByProject, setProjects]);
+
+  useGlobalTaskEvents(handleGlobalEvent);
 
   return (
     <ProjectsContext.Provider

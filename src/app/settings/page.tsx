@@ -60,11 +60,9 @@ export default function SettingsPage() {
   const [detectingBin, setDetectingBin] = useState(false);
   const [detectMessage, setDetectMessage] = useState<string | null>(null);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
-  const [updateResult, setUpdateResult] = useState<{ available: boolean; count: number } | null>(null);
-  const [shellVersion, setShellVersion] = useState<string | null>(null);
+  const [webUpdate, setWebUpdate] = useState<{ available: boolean; count: number } | null>(null);
   const [shellUpdateReady, setShellUpdateReady] = useState(false);
   const [shellUpdateVersion, setShellUpdateVersion] = useState<string | null>(null);
-  const [checkingShell, setCheckingShell] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingTo = useRef(false);

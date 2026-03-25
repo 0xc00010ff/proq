@@ -278,7 +278,7 @@ export async function startSession(
   // Build CLI args
   const args: string[] = [
     "-p",
-    prompt,
+    escapePrompt(prompt),
     "--output-format",
     "stream-json",
     "--include-partial-messages",
@@ -580,7 +580,7 @@ export async function continueSession(
 
   args.push(
     "-p",
-    promptText,
+    escapePrompt(promptText),
     "--output-format",
     "stream-json",
     "--include-partial-messages",

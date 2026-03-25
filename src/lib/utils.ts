@@ -21,6 +21,14 @@ export function resolveProjectPath(p: string): string {
   return p.replace(/^~/, process.env.HOME || "~");
 }
 
+/**
+ * Escape a prompt so it isn't misinterpreted as a CLI flag when passed to `-p`.
+ * A leading hyphen/dash causes the argument parser to treat the value as an option.
+ */
+export function escapePrompt(text: string): string {
+  return text.replace(/^-/, ' -');
+}
+
 export function slugify(name: string): string {
   return name
     .toLowerCase()

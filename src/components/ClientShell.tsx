@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ProjectsProvider } from './ProjectsProvider';
-import { WorkbenchTabsProvider } from './WorkbenchTabsProvider';
+
 import { Sidebar } from './Sidebar';
 import { MissingPathModal } from './MissingPathModal';
 import { useProjects } from './ProjectsProvider';
@@ -129,9 +129,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ProjectsProvider>
-      <WorkbenchTabsProvider>
-        <ShellInner>{children}</ShellInner>
-      </WorkbenchTabsProvider>
+      <ShellInner>{children}</ShellInner>
     </ProjectsProvider>
   );
 }

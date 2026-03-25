@@ -22,7 +22,7 @@ import { emptyTasks } from '@/components/ProjectsProvider';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
-import { useResizablePanel } from '@/hooks/useResizablePanel';
+
 import { useRouteState } from '@/hooks/useRouteState';
 import { useShortcut } from '@/hooks/useShortcut';
 
@@ -43,22 +43,7 @@ export default function ProjectPage() {
   const [branches, setBranches] = useState<string[]>([]);
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
   const workbenchRef = useRef<WorkbenchPanelHandle>(null);
-
-  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
-    fetch(`/api/projects/${projectId}/workbench-state`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).catch(() => {});
-  }, [projectId]);
-
-  const workbench = useResizablePanel(containerRef, {
-    defaultPercent: 60,
-    closedPercent: 25,
-    onPersist: (height) => patchWorkbenchState({ height }),
-  });
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
   const [boardDragOver, setBoardDragOver] = useState(false);
@@ -103,17 +88,6 @@ export default function ProjectPage() {
     document.title = project ? `proq | ${project.name}` : 'proq';
   }, [project?.id]);
 
-  // Restore terminal open/closed state and height from project
-  useEffect(() => {
-    if (!projectId) return;
-    fetch(`/api/projects/${projectId}/workbench-state`)
-      .then((res) => res.json())
-      .then((data) => {
-        workbench.setCollapsed(!data.open);
-        if (typeof data.height === 'number') workbench.setPercent(data.height);
-      })
-      .catch(() => {});
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchExecutionMode = useCallback(async () => {
     try {
@@ -687,26 +661,9 @@ export default function ProjectPage() {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
   }, [activeTab, handleTabChange]));
-  // Toggle callbacks that also persist open/closed state for the project workbench
-  const toggleWorkbenchCollapsed = useCallback(() => {
-    workbench.setCollapsed((prev: boolean) => {
-      patchWorkbenchState({ open: prev }); // prev=true means it was collapsed, now opening
-      return !prev;
-    });
-  }, [workbench, patchWorkbenchState]);
-
-  const expandWorkbench = useCallback(() => {
-    workbench.setCollapsed((prev: boolean) => {
-      if (!prev) return prev;
-      patchWorkbenchState({ open: true });
-      return false;
-    });
-    workbench.setPercent((prev: number) => Math.max(prev, 25));
-  }, [workbench, patchWorkbenchState]);
-
   useShortcut('toggle-workbench', useCallback(() => {
-    toggleWorkbenchCollapsed();
-  }, [toggleWorkbenchCollapsed]));
+    workbenchRef.current?.toggle();
+  }, []));
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));
@@ -758,15 +715,8 @@ export default function ProjectPage() {
         onCreateBranch={handleCreateBranch}
       />
 
-      <main ref={containerRef} className="flex-1 flex flex-col overflow-hidden relative">
-        <div
-          className="flex-1 min-h-0 overflow-hidden relative"
-          style={{
-            flexBasis: workbench.collapsed ? '100%' : `${100 - workbench.percent}%`,
-            flexShrink: 1,
-            transition: workbench.isDragging ? 'none' : 'flex-basis 150ms ease-out',
-          }}
-        >
+      <main className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex-1 min-h-0 overflow-hidden relative">
           {activeTab === 'project' && (
             <div
               className="h-full overflow-hidden relative"
@@ -864,7 +814,7 @@ export default function ProjectPage() {
               onActivateWorkbenchTab={(type) => {
                 if (type === 'agent') workbenchRef.current?.addAgentTab({ reuse: true });
                 else workbenchRef.current?.addShellTab({ reuse: true });
-                expandWorkbench();
+                workbenchRef.current?.expand();
               }}
             />
           )}
@@ -875,16 +825,9 @@ export default function ProjectPage() {
           ref={workbenchRef}
           projectId={projectId}
           projectPath={project.path}
-          style={workbench.collapsed ? { flexBasis: 'auto', flexGrow: 0 } : { flexBasis: `${workbench.percent}%` }}
-          collapsed={workbench.collapsed}
-          onToggleCollapsed={toggleWorkbenchCollapsed}
-          onExpand={expandWorkbench}
-          onResizeStart={workbench.onResizeStart}
-          isDragging={workbench.isDragging}
         />
       </main>
 
-      {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
 
       {agentModalTask && (
         <TaskAgentModal

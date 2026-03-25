@@ -5,6 +5,7 @@ import React, {
   useRef,
   useCallback,
   useState,
+  useReducer,
   useImperativeHandle,
   forwardRef,
 } from 'react';
@@ -25,7 +26,6 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useWorkbenchTabs, type WorkbenchTab } from './WorkbenchTabsProvider';
 import { TerminalPane, setTerminalDraft } from './TerminalPane';
 import { AgentTabPane, setAgentDraft } from './AgentTabPane';
 import {
@@ -34,6 +34,19 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { useResizablePanel } from '@/hooks/useResizablePanel';
+
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export type WorkbenchTabType = 'shell' | 'agent';
+
+export interface WorkbenchTab {
+  id: string;
+  label: string;
+  type: WorkbenchTabType;
+}
 
 interface AddTabOptions {
   /** Pre-fill text: sent to terminal once WS connects, or placed in agent message input */
@@ -45,17 +58,78 @@ interface AddTabOptions {
 export interface WorkbenchPanelHandle {
   addShellTab: (opts?: AddTabOptions) => Promise<void>;
   addAgentTab: (opts?: AddTabOptions) => void;
+  expand: () => void;
+  toggle: () => void;
 }
 
 interface WorkbenchPanelProps {
   projectId: string;
   projectPath?: string;
-  style?: React.CSSProperties;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
-  onExpand?: () => void;
-  onResizeStart?: (e: React.MouseEvent) => void;
-  isDragging?: boolean;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Tab reducer                                                                */
+/* -------------------------------------------------------------------------- */
+
+interface TabState {
+  tabs: WorkbenchTab[];
+  activeTabId: string;
+}
+
+type TabAction =
+  | { type: 'hydrate'; tabs: WorkbenchTab[]; activeTabId: string }
+  | { type: 'open'; tab: WorkbenchTab }
+  | { type: 'close'; tabId: string }
+  | { type: 'activate'; tabId: string }
+  | { type: 'rename'; tabId: string; label: string }
+  | { type: 'reorder'; tabs: WorkbenchTab[] };
+
+function defaultTabs(projectId: string): WorkbenchTab[] {
+  return [
+    { id: `default-agent-${projectId}`, label: 'Agent', type: 'agent' },
+    { id: `default-shell-${projectId}`, label: 'Terminal', type: 'shell' },
+  ];
+}
+
+function tabReducer(state: TabState, action: TabAction): TabState {
+  switch (action.type) {
+    case 'hydrate':
+      return { tabs: action.tabs, activeTabId: action.activeTabId };
+
+    case 'open': {
+      const existing = state.tabs.find((t) => t.id === action.tab.id);
+      if (existing) return { ...state, activeTabId: action.tab.id };
+      return { tabs: [...state.tabs, action.tab], activeTabId: action.tab.id };
+    }
+
+    case 'close': {
+      const idx = state.tabs.findIndex((t) => t.id === action.tabId);
+      if (idx === -1) return state;
+      const filtered = state.tabs.filter((t) => t.id !== action.tabId);
+      let newActiveTabId = state.activeTabId;
+      if (state.activeTabId === action.tabId) {
+        if (idx < state.tabs.length - 1) newActiveTabId = state.tabs[idx + 1].id;
+        else if (idx > 0) newActiveTabId = state.tabs[idx - 1].id;
+        else newActiveTabId = '';
+      }
+      return { tabs: filtered, activeTabId: newActiveTabId };
+    }
+
+    case 'activate':
+      return { ...state, activeTabId: action.tabId };
+
+    case 'rename':
+      return {
+        ...state,
+        tabs: state.tabs.map((t) => t.id === action.tabId ? { ...t, label: action.label } : t),
+      };
+
+    case 'reorder':
+      return { ...state, tabs: action.tabs };
+
+    default:
+      return state;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -165,20 +239,149 @@ function SortableTab({
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, onExpand, onResizeStart, isDragging }, ref) {
-  const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab, renameTab, reorderTabs, hydrateProject } = useWorkbenchTabs();
+const TAB_BAR_HEIGHT = 48; // px — matches h-12
+
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Discover parent container for resize calculations
+  useEffect(() => {
+    containerRef.current = panelRef.current?.parentElement as HTMLDivElement | null;
+  }, []);
+
+  // --- Resize state (internalized from page.tsx) ---
+  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
+    fetch(`/api/projects/${projectId}/workbench-state`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(() => {});
+  }, [projectId]);
+
+  const workbench = useResizablePanel(containerRef, {
+    defaultPercent: 60,
+    closedPercent: 25,
+    onPersist: (height) => patchWorkbenchState({ height }),
+  });
+
+  // Restore collapsed/height from server on mount
+  useEffect(() => {
+    if (!projectId) return;
+    fetch(`/api/projects/${projectId}/workbench-state`)
+      .then((res) => res.json())
+      .then((data) => {
+        workbench.setCollapsed(!data.open);
+        if (typeof data.height === 'number') workbench.setPercent(data.height);
+      })
+      .catch(() => {});
+  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleCollapsed = useCallback(() => {
+    workbench.setCollapsed((prev: boolean) => {
+      patchWorkbenchState({ open: prev }); // prev=true means it was collapsed, now opening
+      return !prev;
+    });
+  }, [workbench, patchWorkbenchState]);
+
+  const expandPanel = useCallback(() => {
+    workbench.setCollapsed((prev: boolean) => {
+      if (!prev) return prev;
+      patchWorkbenchState({ open: true });
+      return false;
+    });
+    workbench.setPercent((prev: number) => Math.max(prev, 25));
+  }, [workbench, patchWorkbenchState]);
+
+  // --- Tab state (internalized from WorkbenchTabsProvider) ---
+  const initialTabs = defaultTabs(projectId);
+  const [tabState, dispatch] = useReducer(tabReducer, { tabs: initialTabs, activeTabId: initialTabs[0].id });
+  const [hydrated, setHydrated] = useState(false);
+  const prevProjectIdRef = useRef(projectId);
+
+  // Re-initialize when projectId changes
+  useEffect(() => {
+    if (prevProjectIdRef.current !== projectId) {
+      prevProjectIdRef.current = projectId;
+      const dts = defaultTabs(projectId);
+      dispatch({ type: 'hydrate', tabs: dts, activeTabId: dts[0].id });
+      setHydrated(false);
+    }
+  }, [projectId]);
+
+  // Hydrate tabs from server
+  useEffect(() => {
+    fetch(`/api/projects/${projectId}/workbench-tabs`)
+      .then((res) => res.json())
+      .then((data) => {
+        const saved: Array<{ id: string; label: string; type?: WorkbenchTabType }> = data.tabs || [];
+        let tabs: WorkbenchTab[];
+        if (saved.length > 0) {
+          tabs = saved.map((t) => ({ id: t.id, label: t.label, type: t.type || 'shell' }));
+        } else {
+          tabs = defaultTabs(projectId);
+        }
+        const savedActiveTabId: string | undefined = data.activeTabId;
+        const activeTabId =
+          (savedActiveTabId && tabs.find((t) => t.id === savedActiveTabId) ? savedActiveTabId : null)
+          ?? tabs[0]?.id
+          ?? '';
+        dispatch({ type: 'hydrate', tabs, activeTabId });
+        setHydrated(true);
+      })
+      .catch(() => { setHydrated(true); });
+  }, [projectId]);
+
+  // Persist tabs on change (debounced), gated on hydrated
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = setTimeout(() => {
+      const persistable = tabState.tabs.map(({ id, label, type }) => ({
+        id, label, ...(type !== 'shell' ? { type } : {}),
+      }));
+      fetch(`/api/projects/${projectId}/workbench-tabs`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tabs: persistable, activeTabId: tabState.activeTabId }),
+      }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tabState.tabs, tabState.activeTabId, hydrated, projectId]);
+
+  // Track closed tabs for backend cleanup
+  const prevTabIdsRef = useRef<Set<string>>(new Set(tabState.tabs.map((t) => t.id)));
+  const tabTypeMapRef = useRef<Map<string, WorkbenchTabType>>(new Map(tabState.tabs.map((t) => [t.id, t.type])));
+
+  // Keep type map up to date
+  useEffect(() => {
+    tabTypeMapRef.current = new Map(tabState.tabs.map((t) => [t.id, t.type]));
+  }, [tabState.tabs]);
+
+  // Cleanup backend resources for closed tabs
+  useEffect(() => {
+    const currentIds = new Set(tabState.tabs.map((t) => t.id));
+    const prevIds = prevTabIdsRef.current;
+    for (const id of prevIds) {
+      if (!currentIds.has(id)) {
+        const type = tabTypeMapRef.current.get(id) || 'shell';
+        if (type === 'agent') {
+          fetch(`/api/agent-tab/${id}`, { method: 'DELETE' }).catch(() => {});
+        } else {
+          fetch(`/api/shell/${id}`, { method: 'DELETE' }).catch(() => {});
+        }
+      }
+    }
+    prevTabIdsRef.current = currentIds;
+  }, [tabState.tabs]);
+
+  const { tabs, activeTabId } = tabState;
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+
+  // --- Rename state ---
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
-
-  // Hydrate persisted tabs on mount
-  useEffect(() => { hydrateProject(projectId); }, [projectId, hydrateProject]);
-
-  const tabs = getTabs(projectId);
-  const activeTabId = getActiveTabId(projectId);
-  const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
 
   // Load xterm CSS once
   useEffect(() => {
@@ -199,11 +402,11 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
   const submitRename = useCallback(() => {
     if (renamingTabId && renameValue.trim()) {
-      renameTab(projectId, renamingTabId, renameValue.trim());
+      dispatch({ type: 'rename', tabId: renamingTabId, label: renameValue.trim() });
     }
     setRenamingTabId(null);
     setRenameValue('');
-  }, [renamingTabId, renameValue, renameTab, projectId]);
+  }, [renamingTabId, renameValue]);
 
   const addShellTab = useCallback(async (opts?: AddTabOptions) => {
     const { initialInput, reuse } = opts ?? {};
@@ -213,7 +416,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       const existing = currentTabs.find((t) => t.type === 'shell');
       if (existing) {
         if (initialInput) setTerminalDraft(existing.id, initialInput);
-        setActiveTabId(projectId, existing.id);
+        dispatch({ type: 'activate', tabId: existing.id });
         return;
       }
     }
@@ -229,8 +432,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       body: JSON.stringify({ tabId: id, cwd: projectPath }),
     });
 
-    openTab(projectId, id, `Terminal ${shellCount}`, 'shell');
-  }, [openTab, setActiveTabId, projectId, projectPath]);
+    dispatch({ type: 'open', tab: { id, label: `Terminal ${shellCount}`, type: 'shell' } });
+  }, [projectPath]);
 
   const addAgentTab = useCallback((opts?: AddTabOptions) => {
     const { initialInput, reuse } = opts ?? {};
@@ -240,7 +443,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       const existing = currentTabs.find((t) => t.type === 'agent');
       if (existing) {
         if (initialInput) setAgentDraft(existing.id, initialInput);
-        setActiveTabId(projectId, existing.id);
+        dispatch({ type: 'activate', tabId: existing.id });
         return;
       }
     }
@@ -248,24 +451,18 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = currentTabs.filter((t) => t.type === 'agent').length + 1;
     if (initialInput) setAgentDraft(id, initialInput);
-    openTab(projectId, id, `Agent ${agentCount}`, 'agent');
-  }, [openTab, setActiveTabId, projectId]);
+    dispatch({ type: 'open', tab: { id, label: `Agent ${agentCount}`, type: 'agent' } });
+  }, []);
 
-  useImperativeHandle(ref, () => ({ addShellTab, addAgentTab }), [addShellTab, addAgentTab]);
+  useImperativeHandle(ref, () => ({ addShellTab, addAgentTab, expand: expandPanel, toggle: toggleCollapsed }), [addShellTab, addAgentTab, expandPanel, toggleCollapsed]);
 
-  const removeTab = useCallback(
-    (tabId: string) => {
-      closeTab(projectId, tabId);
-    },
-    [closeTab, projectId]
-  );
+  const removeTab = useCallback((tabId: string) => {
+    dispatch({ type: 'close', tabId });
+  }, []);
 
-  const clearTab = useCallback(
-    (tab: WorkbenchTab) => {
-      window.dispatchEvent(new CustomEvent('workbench-clear-tab', { detail: { tabId: tab.id, type: tab.type } }));
-    },
-    []
-  );
+  const clearTab = useCallback((tab: WorkbenchTab) => {
+    window.dispatchEvent(new CustomEvent('workbench-clear-tab', { detail: { tabId: tab.id, type: tab.type } }));
+  }, []);
 
   // DnD sensors — require 5px movement before activating to avoid blocking clicks
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -277,23 +474,28 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       const oldIndex = tabs.findIndex((t) => t.id === active.id);
       const newIndex = tabs.findIndex((t) => t.id === over.id);
       if (oldIndex === -1 || newIndex === -1) return;
-      reorderTabs(projectId, arrayMove(tabs, oldIndex, newIndex));
+      dispatch({ type: 'reorder', tabs: arrayMove(tabs, oldIndex, newIndex) });
     },
-    [tabs, reorderTabs, projectId]
+    [tabs]
   );
 
   return (
     <div
       ref={panelRef}
       className="w-full flex flex-col bg-surface-deep flex-shrink-0"
-      style={{ minHeight: 0, ...style }}
+      style={{
+        minHeight: 0,
+        ...(workbench.collapsed
+          ? { flexBasis: 'auto', flexGrow: 0 }
+          : { flexBasis: `${workbench.percent}%` }),
+      }}
     >
       {/* Tab Bar — also serves as the resize drag handle */}
       <div className="relative shrink-0">
         {/* Edge resize strip — sits over the top border */}
-        {!collapsed && (
+        {!workbench.collapsed && (
           <div
-            onMouseDown={(e) => onResizeStart?.(e)}
+            onMouseDown={(e) => workbench.onResizeStart(e)}
             className="absolute inset-x-0 top-0 h-[5px] -translate-y-1/2 cursor-row-resize z-20 group/edge"
           >
             <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
@@ -301,21 +503,21 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         )}
         <div
           className={`h-12 flex items-stretch bg-surface-secondary overflow-visible border-t border-border-default ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
           onMouseDown={(e) => {
             // Don't start resize if clicking on interactive elements
             const target = e.target as HTMLElement;
             if (target.closest('button') || target.closest('[data-clickable]')) return;
-            onResizeStart?.(e);
+            workbench.onResizeStart(e);
           }}
         >
         <button
-          onClick={onToggleCollapsed}
+          onClick={toggleCollapsed}
           className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-          title={collapsed ? 'Expand terminal' : 'Collapse terminal'}
+          title={workbench.collapsed ? 'Expand terminal' : 'Collapse terminal'}
         >
-          {collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {workbench.collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
@@ -329,8 +531,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
                 setRenameValue={setRenameValue}
                 renameInputRef={renameInputRef}
                 onSelect={() => {
-                  setActiveTabId(projectId, tab.id);
-                  if (collapsed) (onExpand ?? onToggleCollapsed)();
+                  dispatch({ type: 'activate', tabId: tab.id });
+                  if (workbench.collapsed) expandPanel();
                 }}
                 onDoubleClick={() => {
                   setRenamingTabId(tab.id);
@@ -362,7 +564,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           <DropdownMenuContent align="start" side="bottom" className="w-40">
             <DropdownMenuItem
               onSelect={() => {
-                if (collapsed) (onExpand ?? onToggleCollapsed)();
+                if (workbench.collapsed) expandPanel();
                 addAgentTab();
               }}
             >
@@ -371,7 +573,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
-                if (collapsed) (onExpand ?? onToggleCollapsed)();
+                if (workbench.collapsed) expandPanel();
                 addShellTab();
               }}
             >
@@ -387,7 +589,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       </div>
 
       {/* Panes — each manages its own lifecycle */}
-      {!collapsed && (
+      {!workbench.collapsed && (
         <div className="flex-1 relative" style={{ minHeight: 0 }}>
           {tabs.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-text-placeholder text-xs">
@@ -405,6 +607,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         </div>
       )}
 
+      {/* Full-screen overlay while dragging to prevent interaction interference */}
+      {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
     </div>
   );
 });

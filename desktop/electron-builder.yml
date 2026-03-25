@@ -23,6 +23,10 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
+  extendInfo:
+    NSDesktopFolderUsageDescription: "proq needs access to your Desktop to manage coding projects stored there."
+    NSDocumentsFolderUsageDescription: "proq needs access to your Documents to manage coding projects stored there."
+    NSDownloadsFolderUsageDescription: "proq needs access to your Downloads to manage coding projects stored there."
 linux:
   target:
     - AppImage

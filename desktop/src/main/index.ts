@@ -28,6 +28,11 @@ import { initShellUpdater, checkForShellUpdate, installShellUpdate, startShellUp
 import { ensurePath } from './shell-path'
 ensurePath()
 
+// Suppress Chromium's Media Session integration — it probes macOS media frameworks
+// on startup, which triggers a scary "would like to access Apple Music" TCC prompt
+// that has nothing to do with our app.
+app.commandLine.appendSwitch('disable-features', 'HardwareMediaKeyHandling,MediaSessionService')
+
 // Isolate dev mode: separate userData dir so dev and production don't share config/ports
 if (process.env.PROQ_DEV) {
   app.setName('proq-desktop-dev')

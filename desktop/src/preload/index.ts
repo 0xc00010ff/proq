@@ -81,6 +81,21 @@ const proqDesktopAPI = {
     }
   },
 
+  // Find in page
+  findInPage: (text: string, options?: { forward?: boolean; findNext?: boolean }): Promise<unknown> =>
+    ipcRenderer.invoke('find:find', text, options),
+  stopFind: (): Promise<unknown> => ipcRenderer.invoke('find:stop'),
+  onFindShow: (cb: () => void): (() => void) => {
+    const handler = (): void => cb()
+    ipcRenderer.on('find:show', handler)
+    return (): void => { ipcRenderer.removeListener('find:show', handler) }
+  },
+  onFindResult: (cb: (result: { activeMatchOrdinal: number; matches: number }) => void): (() => void) => {
+    const handler = (_e: unknown, result: { activeMatchOrdinal: number; matches: number }): void => cb(result)
+    ipcRenderer.on('find:result', handler)
+    return (): void => { ipcRenderer.removeListener('find:result', handler) }
+  },
+
   // App
   getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version')
 }

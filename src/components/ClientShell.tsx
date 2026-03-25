@@ -6,6 +6,7 @@ import { ProjectsProvider } from './ProjectsProvider';
 import { WorkbenchTabsProvider } from './WorkbenchTabsProvider';
 import { Sidebar } from './Sidebar';
 import { MissingPathModal } from './MissingPathModal';
+import { FindBar } from './FindBar';
 import { useProjects } from './ProjectsProvider';
 import type { Project } from '@/lib/types';
 
@@ -130,6 +131,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <ProjectsProvider>
       <WorkbenchTabsProvider>
+        <FindBar />
         <ShellInner>{children}</ShellInner>
       </WorkbenchTabsProvider>
     </ProjectsProvider>

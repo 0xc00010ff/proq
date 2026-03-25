@@ -164,6 +164,18 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
 
   win.once('ready-to-show', () => win.show())
 
+  // Forward find-in-page results to renderer
+  if (mode === 'app') {
+    win.webContents.on('found-in-page', (_e, result) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('find:result', {
+          activeMatchOrdinal: result.activeMatchOrdinal,
+          matches: result.matches
+        })
+      }
+    })
+  }
+
   // Save window bounds on resize/move
   if (mode === 'app') {
     const saveBounds = (): void => {
@@ -341,6 +353,20 @@ function registerIpcHandlers(): void {
 
   // App info
   ipcMain.handle('app:version', () => app.getVersion())
+
+  // Find in page
+  ipcMain.handle('find:find', (_e, text: string, options?: { forward?: boolean; findNext?: boolean }) => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win && text) {
+      win.webContents.findInPage(text, options)
+    }
+  })
+  ipcMain.handle('find:stop', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) {
+      win.webContents.stopFindInPage('clearSelection')
+    }
+  })
 }
 
 // ── Health Monitor & Recovery ─────────────────────────────────────────
@@ -656,7 +682,27 @@ app.whenReady().then(() => {
             }
           ]
         },
-        { role: 'editMenu' },
+        {
+          label: 'Edit',
+          submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            { role: 'selectAll' },
+            { type: 'separator' },
+            {
+              label: 'Find',
+              accelerator: 'CmdOrCtrl+F',
+              click: (): void => {
+                const win = BrowserWindow.getFocusedWindow()
+                if (win) win.webContents.send('find:show')
+              }
+            }
+          ]
+        },
         {
           label: 'History',
           submenu: [

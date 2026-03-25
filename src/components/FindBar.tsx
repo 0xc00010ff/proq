@@ -39,6 +39,19 @@ export function FindBar() {
     });
   }, []);
 
+  // Restore focus to input after findInPage selects a match
+  // (Chromium's findInPage searches input fields too, stealing focus/selection)
+  const restoreInputFocus = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el && document.activeElement !== el) {
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    });
+  }, []);
+
   // Trigger search when query changes
   useEffect(() => {
     if (!visible || !query) {
@@ -48,19 +61,22 @@ export function FindBar() {
       return;
     }
     window.proqDesktop?.findInPage(query);
-  }, [query, visible]);
+    restoreInputFocus();
+  }, [query, visible, restoreInputFocus]);
 
   const findNext = useCallback(() => {
     if (queryRef.current) {
       window.proqDesktop?.findInPage(queryRef.current, { forward: true, findNext: true });
+      restoreInputFocus();
     }
-  }, []);
+  }, [restoreInputFocus]);
 
   const findPrev = useCallback(() => {
     if (queryRef.current) {
       window.proqDesktop?.findInPage(queryRef.current, { forward: false, findNext: true });
+      restoreInputFocus();
     }
-  }, []);
+  }, [restoreInputFocus]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {

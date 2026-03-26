@@ -157,6 +157,9 @@ export interface ProqSettings {
   soundNotifications: boolean;
   localNotifications: boolean;
   webhooks: string[];
+
+  // Read-only (injected by API, not stored)
+  version?: string;
 }
 
 // ── Cron Jobs ───────────────────────────────────────────

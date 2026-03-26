@@ -1,6 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
 import logoAnimationRepeat from './assets/LogoAnimationRepeat.svg'
 
+interface StartupError {
+  message: string
+  phase: 'build' | 'server'
+  logPath?: string
+}
+
 function friendlyStatus(line: string): string | null {
   const t = line.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim()
   if (!t) return null
@@ -11,14 +17,15 @@ function friendlyStatus(line: string): string | null {
   if (t.includes('Listening') || t.includes('started server')) return 'System test...'
   if (t.includes('Pulling') || t.includes('git pull')) return 'Pulling updates...'
   if (t.includes('Installing dependencies') || t.includes('npm install')) return 'Installing dependencies...'
-  if (t.includes('Building') || t.includes('npm run build')) return 'Building...'
+  if (t.includes('Building') || t.includes('Rebuilding') || t.includes('npm run build')) return 'Building...'
   return null
 }
 
 export function Splash(): React.JSX.Element {
   const [status, setStatus] = useState('Initializing...')
   const [fading, setFading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<StartupError | null>(null)
+  const [retrying, setRetrying] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -35,7 +42,12 @@ export function Splash(): React.JSX.Element {
     })
 
     const cleanupError = window.proqDesktop.onServerError((_e, err) => {
-      setError(err)
+      setRetrying(false)
+      try {
+        setError(JSON.parse(err))
+      } catch {
+        setError({ message: err, phase: 'server' })
+      }
     })
 
     return (): void => {
@@ -44,6 +56,18 @@ export function Splash(): React.JSX.Element {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
   }, [])
+
+  const handleRetry = (): void => {
+    setError(null)
+    setRetrying(true)
+    if (error?.phase === 'build') {
+      setStatus('Rebuilding...')
+      window.proqDesktop.rebuildAndStart()
+    } else {
+      setStatus('Restarting...')
+      window.proqDesktop.startServer()
+    }
+  }
 
   return (
     <div className="splash-container titlebar-drag">
@@ -55,16 +79,32 @@ export function Splash(): React.JSX.Element {
 
       {error ? (
         <>
-          <p style={{ color: 'var(--error)', fontSize: 14, marginBottom: 16, textAlign: 'center', padding: '0 24px' }}>
-            {error}
+          <p style={{ color: 'var(--error)', fontSize: 13, marginBottom: 8, textAlign: 'center', padding: '0 24px', lineHeight: 1.5 }}>
+            {error.message}
           </p>
+          {error.logPath && (
+            <button
+              className="titlebar-no-drag"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                fontSize: 11,
+                cursor: 'pointer',
+                marginBottom: 16,
+                textDecoration: 'underline',
+                opacity: 0.7,
+              }}
+              onClick={(): void => {
+                window.proqDesktop.openLogFile(error.logPath!)
+              }}
+            >
+              View full log
+            </button>
+          )}
           <button
             className="btn-primary titlebar-no-drag"
-            onClick={(): void => {
-              setError(null)
-              setStatus('Restarting...')
-              window.proqDesktop.startServer()
-            }}
+            onClick={handleRetry}
           >
             Retry
           </button>

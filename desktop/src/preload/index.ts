@@ -96,6 +96,12 @@ const proqDesktopAPI = {
     return (): void => { ipcRenderer.removeListener('find:result', handler) }
   },
 
+  // Rebuild + start (used by splash Retry when build failed)
+  rebuildAndStart: (): Promise<unknown> => ipcRenderer.invoke('server:rebuild-and-start'),
+
+  // Open log file
+  openLogFile: (logPath: string): Promise<unknown> => ipcRenderer.invoke('app:open-log', logPath),
+
   // App
   getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version')
 }

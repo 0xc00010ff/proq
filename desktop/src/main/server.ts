@@ -6,6 +6,10 @@ import { getConfig, isDevMode } from './config'
 const SERVER_LOG = '/tmp/proq-server.log'
 const SERVER_LOG_DEV = '/tmp/proq-server-dev.log'
 
+export function getServerLogPath(): string {
+  return isDevMode() ? SERVER_LOG_DEV : SERVER_LOG
+}
+
 let serverProcess: ChildProcess | null = null
 let intentionalStop = false
 let exitCallback: (() => void) | null = null
@@ -60,6 +64,7 @@ export async function startServer(
 
     serverProcess = child
     let earlyError: string | null = null
+    const stderrTail: string[] = []
 
     const detectPortError = (text: string): void => {
       if (earlyError) return
@@ -83,6 +88,8 @@ export async function startServer(
       logStream.write(text)
       onLog?.(text)
       detectPortError(text)
+      stderrTail.push(text)
+      if (stderrTail.length > 20) stderrTail.shift()
     })
 
     child.on('error', (err) => {
@@ -96,7 +103,8 @@ export async function startServer(
       if (earlyError) {
         resolve({ ok: false, error: earlyError })
       } else if (code !== null && code !== 0) {
-        resolve({ ok: false, error: `Server exited with code ${code}` })
+        const tail = stderrTail.join('').trim().slice(-500)
+        resolve({ ok: false, error: tail || `Server exited with code ${code}` })
       } else if (!intentionalStop && exitCallback) {
         exitCallback()
       }

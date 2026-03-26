@@ -230,14 +230,21 @@ export function runNpmBuild(
       stdio: ['ignore', 'pipe', 'pipe']
     })
 
+    const stderrTail: string[] = []
     child.stdout?.on('data', (data: Buffer) => onLog(data.toString()))
-    child.stderr?.on('data', (data: Buffer) => onLog(data.toString()))
+    child.stderr?.on('data', (data: Buffer) => {
+      const text = data.toString()
+      onLog(text)
+      stderrTail.push(text)
+      if (stderrTail.length > 20) stderrTail.shift()
+    })
 
     child.on('close', (code) => {
       if (code === 0) {
         resolve({ ok: true })
       } else {
-        resolve({ ok: false, error: `npm run build exited with code ${code}` })
+        const tail = stderrTail.join('').trim().slice(-500)
+        resolve({ ok: false, error: tail || `npm run build exited with code ${code}` })
       }
     })
 

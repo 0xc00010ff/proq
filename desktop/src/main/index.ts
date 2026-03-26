@@ -19,7 +19,8 @@ import {
   runNpmBuild,
   persistClaudePath
 } from './setup'
-import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit } from './server'
+import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit, getServerLogPath } from './server'
+import { parseErrorSummary } from './error-diagnostics'
 import { checkForUpdates, applyUpdate } from './updater'
 import { startUpdateScheduler, stopUpdateScheduler } from './update-scheduler'
 import { initShellUpdater, checkForShellUpdate, installShellUpdate, startShellUpdateScheduler, stopShellUpdateScheduler } from './shell-updater'
@@ -265,6 +266,44 @@ function registerIpcHandlers(): void {
     return result
   })
 
+  // Rebuild + start (used by splash Retry when build failed)
+  ipcMain.handle('server:rebuild-and-start', async () => {
+    const { proqPath } = getConfig()
+    safeSend('server:log', 'Rebuilding...')
+    const buildResult = await runNpmBuild(proqPath, (line) => {
+      safeSend('server:log', line)
+    })
+    if (!buildResult.ok) {
+      const err = {
+        message: parseErrorSummary(buildResult.error || '', 'build'),
+        phase: 'build',
+        logPath: getServerLogPath()
+      }
+      safeSend('server:error', JSON.stringify(err))
+      return { ok: false }
+    }
+    safeSend('server:log', 'Starting server...')
+    const result = await startServer((line) => {
+      safeSend('server:log', line)
+    })
+    if (result.ok) {
+      transitionToApp()
+    } else {
+      const err = {
+        message: parseErrorSummary(result.error || '', 'server'),
+        phase: 'server',
+        logPath: getServerLogPath()
+      }
+      safeSend('server:error', JSON.stringify(err))
+    }
+    return result
+  })
+
+  // Open log file (used by splash "View full log" link)
+  ipcMain.handle('app:open-log', (_e, logPath: string) => {
+    shell.openPath(logPath)
+  })
+
   // Updates
   ipcMain.handle('updates:check', () => checkForUpdates())
   ipcMain.handle('updates:apply', () =>
@@ -321,11 +360,12 @@ function registerIpcHandlers(): void {
       }
 
       if (!result.ok) {
-        // Build may exit non-zero (e.g. lint warnings) but still produce
-        // working artifacts — attempt to start the server anyway.
-        sendStatus(`Build warning: ${result.error?.split('\n').pop() || 'unknown error'}`)
-        await new Promise((r) => setTimeout(r, 3000))
-        sendStatus('Starting server anyway...')
+        safeSend('server:error', JSON.stringify({
+          message: parseErrorSummary(result.error || '', 'build'),
+          phase: 'build',
+          logPath: getServerLogPath()
+        }))
+        return { ok: false, error: result.error }
       }
 
       // Restart server — startServer streams its own status via onLog
@@ -337,13 +377,21 @@ function registerIpcHandlers(): void {
         await new Promise((r) => setTimeout(r, 1500))
         transitionToApp()
       } else {
-        safeSend('server:error', serverResult.error || 'Server failed to start')
+        safeSend('server:error', JSON.stringify({
+          message: parseErrorSummary(serverResult.error || '', 'server'),
+          phase: 'server',
+          logPath: getServerLogPath()
+        }))
       }
 
       return { ok: true }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e)
-      safeSend('server:error', 'Update failed. Click Retry to try again.')
+      safeSend('server:error', JSON.stringify({
+        message: 'Update failed. Click Retry to try again.',
+        phase: 'build',
+        logPath: getServerLogPath()
+      }))
       return { ok: false, error: message }
     }
   })
@@ -613,8 +661,13 @@ async function showSplashAndStartServer(): Promise<void> {
           }
         }
         if (!updateResult.ok) {
-          log(`showSplash: update warning: ${updateResult.error}`)
-          // Continue to start server anyway — build may have partial success
+          log(`showSplash: update failed: ${updateResult.error}`)
+          safeSend('server:error', JSON.stringify({
+            message: parseErrorSummary(updateResult.error || '', 'build'),
+            phase: 'build',
+            logPath: getServerLogPath()
+          }))
+          return
         }
       } else {
         log('showSplash: already up to date')
@@ -638,12 +691,20 @@ async function showSplashAndStartServer(): Promise<void> {
       await new Promise((r) => setTimeout(r, 1500))
       transitionToApp()
     } else {
-      safeSend('server:error', result.error || 'Server failed to start')
+      safeSend('server:error', JSON.stringify({
+        message: parseErrorSummary(result.error || '', 'server'),
+        phase: 'server',
+        logPath: getServerLogPath()
+      }))
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     log(`showSplash: startServer exception: ${message}`)
-    safeSend('server:error', message)
+    safeSend('server:error', JSON.stringify({
+      message,
+      phase: 'server',
+      logPath: getServerLogPath()
+    }))
   }
 }
 

@@ -58,6 +58,9 @@ interface ProqDesktopAPI {
   onShellUpdateAvailable: (cb: (e: unknown, result: { version: string }) => void) => () => void
   onShellUpdateDownloaded: (cb: (e: unknown, result: { version: string }) => void) => () => void
 
+  rebuildAndStart: () => Promise<{ ok: boolean; error?: string }>
+  openLogFile: (logPath: string) => Promise<void>
+
   getVersion: () => Promise<string>
 }
 

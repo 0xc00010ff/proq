@@ -506,7 +506,7 @@ export function getGitSyncStatus(
     try {
       const output = execSync(
         `git -C '${projectPath}' rev-list --count --left-right '@{upstream}...HEAD'`,
-        { timeout: 10_000, encoding: "utf-8" },
+        { timeout: 10_000, encoding: "utf-8", stdio: ['pipe', 'pipe', 'pipe'] },
       ).trim();
       const [behind, ahead] = output.split(/\s+/).map(Number);
       result.ahead = ahead || 0;
@@ -588,7 +588,7 @@ export function gitLogShort(
     const range = direction === "ahead" ? "@{upstream}..HEAD" : "HEAD..@{upstream}";
     const output = execSync(
       `git -C '${projectPath}' log ${range} --format='%x1e%h%x1f%s%x1f%an%x1f%ar' --shortstat -n ${count}`,
-      { timeout: 15_000, encoding: "utf-8" },
+      { timeout: 15_000, encoding: "utf-8", stdio: ['pipe', 'pipe', 'pipe'] },
     ).trim();
     if (!output) return [];
     return parseLogWithStats(output);
@@ -661,7 +661,7 @@ export function gitLogFull(
     const range = direction === "ahead" ? "@{upstream}..HEAD" : "HEAD..@{upstream}";
     return execSync(
       `git -C '${projectPath}' log ${range} --stat --format='commit %H%nAuthor: %an <%ae>%nDate:   %ar%n%n    %s%n' -n ${count}`,
-      { timeout: 15_000, encoding: "utf-8", maxBuffer: 1024 * 1024 },
+      { timeout: 15_000, encoding: "utf-8", maxBuffer: 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] },
     );
   } catch {
     return "";

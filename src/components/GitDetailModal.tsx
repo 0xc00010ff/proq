@@ -283,7 +283,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                   )}
                 </div>
                 {pullError && (
-                  <div className="px-4 py-1.5 text-xs text-red-400 whitespace-pre-wrap break-words bg-surface-secondary border-b border-border-default/50">
+                  <div className="px-4 py-1.5 text-xs text-red-700 dark:text-red-400 whitespace-pre-wrap break-words bg-surface-secondary border-b border-border-default/50">
                     {pullError}
                   </div>
                 )}
@@ -322,7 +322,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
                   )}
                 </div>
                 {pushError && (
-                  <div className="px-4 py-1.5 text-xs text-red-400 whitespace-pre-wrap break-words bg-surface-secondary border-b border-border-default/50">
+                  <div className="px-4 py-1.5 text-xs text-red-700 dark:text-red-400 whitespace-pre-wrap break-words bg-surface-secondary border-b border-border-default/50">
                     {pushError}
                   </div>
                 )}
@@ -405,10 +405,10 @@ function FileStatSummary({ files }: { files: FileDiff[] }) {
   const counts = { added: 0, modified: 0, deleted: 0, renamed: 0 };
   for (const f of files) counts[f.status]++;
   const parts: { label: string; count: number; color: string }[] = [];
-  if (counts.added) parts.push({ label: counts.added === 1 ? 'new file' : 'new files', count: counts.added, color: 'text-green-400' });
+  if (counts.added) parts.push({ label: counts.added === 1 ? 'new file' : 'new files', count: counts.added, color: 'text-green-700 dark:text-green-400' });
   if (counts.modified) parts.push({ label: 'modified', count: counts.modified, color: 'text-text-secondary' });
-  if (counts.deleted) parts.push({ label: 'deleted', count: counts.deleted, color: 'text-red-400' });
-  if (counts.renamed) parts.push({ label: 'renamed', count: counts.renamed, color: 'text-blue-400' });
+  if (counts.deleted) parts.push({ label: 'deleted', count: counts.deleted, color: 'text-red-700 dark:text-red-400' });
+  if (counts.renamed) parts.push({ label: 'renamed', count: counts.renamed, color: 'text-blue-600 dark:text-blue-400' });
   return (
     <div className="flex items-center gap-2 text-[11px] text-text-tertiary">
       <FileIcon className="w-3 h-3 text-text-tertiary shrink-0" />
@@ -433,8 +433,8 @@ function CommitRow({ commit, onSelect }: { commit: CommitInfo; onSelect: (hash: 
         <span className="truncate">{commit.message}</span>
         {(commit.insertions != null || commit.deletions != null) && (
           <span className="flex items-center gap-1 font-mono text-[10px] shrink-0">
-            {commit.insertions != null && commit.insertions > 0 && <span className="text-green-400">+{commit.insertions}</span>}
-            {commit.deletions != null && commit.deletions > 0 && <span className="text-red-400">-{commit.deletions}</span>}
+            {commit.insertions != null && commit.insertions > 0 && <span className="text-green-700 dark:text-green-400">+{commit.insertions}</span>}
+            {commit.deletions != null && commit.deletions > 0 && <span className="text-red-700 dark:text-red-400">-{commit.deletions}</span>}
           </span>
         )}
       </span>

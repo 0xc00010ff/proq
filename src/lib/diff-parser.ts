@@ -79,15 +79,15 @@ export function parseCommitShow(raw: string): {
 
 /** Return a Tailwind color class for a diff line, or null for default */
 export function colorDiffLine(line: string): string | null {
-  if (line.startsWith("+") && !line.startsWith("+++")) return "text-green-400";
-  if (line.startsWith("-") && !line.startsWith("---")) return "text-red-400";
-  if (line.startsWith("@@")) return "text-blue-400";
+  if (line.startsWith("+") && !line.startsWith("+++")) return "text-green-700 dark:text-green-400";
+  if (line.startsWith("-") && !line.startsWith("---")) return "text-red-700 dark:text-red-400";
+  if (line.startsWith("@@")) return "text-blue-600 dark:text-blue-400";
   if (
     line.startsWith("diff ") ||
     line.startsWith("index ") ||
     line.startsWith("---") ||
     line.startsWith("+++")
   )
-    return "text-zinc-500";
+    return "text-text-tertiary";
   return null;
 }

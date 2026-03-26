@@ -361,10 +361,10 @@ function FileStatSummary({ files }: { files: FileDiff[] }) {
   const counts = { added: 0, modified: 0, deleted: 0, renamed: 0 };
   for (const f of files) counts[f.status]++;
   const parts: { label: string; count: number; color: string }[] = [];
-  if (counts.added) parts.push({ label: counts.added === 1 ? 'new file' : 'new files', count: counts.added, color: 'text-green-400' });
+  if (counts.added) parts.push({ label: counts.added === 1 ? 'new file' : 'new files', count: counts.added, color: 'text-green-700 dark:text-green-400' });
   if (counts.modified) parts.push({ label: 'modified', count: counts.modified, color: 'text-text-secondary' });
-  if (counts.deleted) parts.push({ label: 'deleted', count: counts.deleted, color: 'text-red-400' });
-  if (counts.renamed) parts.push({ label: 'renamed', count: counts.renamed, color: 'text-blue-400' });
+  if (counts.deleted) parts.push({ label: 'deleted', count: counts.deleted, color: 'text-red-700 dark:text-red-400' });
+  if (counts.renamed) parts.push({ label: 'renamed', count: counts.renamed, color: 'text-blue-600 dark:text-blue-400' });
   return (
     <div className="flex items-center gap-2 text-[11px] text-text-tertiary">
       <FileIcon className="w-3 h-3 text-text-tertiary shrink-0" />

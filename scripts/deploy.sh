@@ -51,6 +51,16 @@ for (const f of ['package.json', 'desktop/package.json']) {
 git add package.json desktop/package.json
 git commit -m "Bump to v$NEXT"
 
+# ── 1b. Build to catch errors before shipping ────────────
+echo ""
+echo "Building to verify..."
+if ! npm run build; then
+  echo ""
+  echo "Build failed. Fix the errors before deploying."
+  echo "The version bump commit is still on develop — amend or revert it."
+  exit 1
+fi
+
 echo ""
 echo "Pushing develop..."
 git push origin develop

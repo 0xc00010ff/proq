@@ -8,6 +8,7 @@ import { processQueue } from "@/lib/agent-dispatch";
 import { emitTaskCreated, emitTaskUpdate } from "@/lib/task-events";
 import { computeNextRun } from "@/lib/cron-scheduler";
 import { safeParseBody } from "@/lib/api-utils";
+import { resolveProjectPath } from "@/lib/utils";
 import { generateFiles, generateFirstTaskPrompt } from "@/lib/templates";
 import type { ScaffoldInput } from "@/lib/templates";
 
@@ -32,7 +33,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const projectDir = join(location, projectName);
+  const resolvedLocation = resolveProjectPath(location);
+  const projectDir = join(resolvedLocation, projectName);
 
   // Don't overwrite existing directories
   if (existsSync(projectDir)) {

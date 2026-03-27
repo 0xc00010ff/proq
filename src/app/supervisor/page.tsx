@@ -27,7 +27,7 @@ function formatSize(bytes: number): string {
 export default function SupervisorPage() {
   const { blocks, streamingText, sessionDone, hasHistory, sendMessage, stop, clear } = useSupervisorSession();
   const { projects } = useProjects();
-  const { addProject } = useShellActions();
+  const { addProject, openCreationModal, consumeSupervisorDraft } = useShellActions();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,6 +36,15 @@ export default function SupervisorPage() {
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
+
+  // Consume any pending draft from the creation modal
+  useEffect(() => {
+    const draft = consumeSupervisorDraft();
+    if (draft) {
+      setInputValue(draft);
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [consumeSupervisorDraft]);
 
   // Auto-scroll to bottom on new blocks or streaming text
   useEffect(() => {
@@ -243,6 +252,7 @@ export default function SupervisorPage() {
                 onAddProject={addProject}
                 onFocusChat={() => textareaRef.current?.focus()}
                 onSendMessage={(text) => sendMessage(text)}
+                onCreateNew={openCreationModal}
               />
             )}
 

@@ -1,16 +1,22 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { ProjectsProvider } from './ProjectsProvider';
 
 import { Sidebar } from './Sidebar';
 import { MissingPathModal } from './MissingPathModal';
+import { ProjectCreationModal } from './ProjectCreationModal';
 import { useProjects } from './ProjectsProvider';
 import type { Project } from '@/lib/types';
 
 interface ShellActions {
   addProject: () => Promise<void>;
+  openCreationModal: () => void;
+  /** Prefill the supervisor chat input and navigate to /supervisor */
+  prefillSupervisorChat: (text: string) => void;
+  /** Consume (read + clear) any pending draft for the supervisor chat */
+  consumeSupervisorDraft: () => string | null;
 }
 
 const ShellActionsContext = createContext<ShellActions | null>(null);
@@ -25,10 +31,13 @@ const STANDALONE_ROUTES = ['/design'];
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isStandalone = STANDALONE_ROUTES.includes(pathname);
   const { refreshProjects, isLoaded } = useProjects();
   const [missingProject, setMissingProject] = useState<Project | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [creationModalOpen, setCreationModalOpen] = useState(false);
+  const supervisorDraftRef = useRef<string | null>(null);
 
   const handleAddProject = useCallback(async () => {
     const res = await fetch('/api/folder-picker', { method: 'POST' });
@@ -76,11 +85,28 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const handleOpenCreationModal = useCallback(() => {
+    setCreationModalOpen(true);
+  }, []);
+
+  const handlePrefillSupervisorChat = useCallback((text: string) => {
+    supervisorDraftRef.current = text;
+    if (pathname !== '/supervisor') {
+      router.push('/supervisor');
+    }
+  }, [pathname, router]);
+
+  const handleConsumeSupervisorDraft = useCallback(() => {
+    const draft = supervisorDraftRef.current;
+    supervisorDraftRef.current = null;
+    return draft;
+  }, []);
+
   return (
-    <ShellActionsContext.Provider value={{ addProject: handleAddProject }}>
+    <ShellActionsContext.Provider value={{ addProject: handleAddProject, openCreationModal: handleOpenCreationModal, prefillSupervisorChat: handlePrefillSupervisorChat, consumeSupervisorDraft: handleConsumeSupervisorDraft }}>
       <div className="flex h-screen w-full bg-surface-base text-text-primary overflow-hidden font-sans">
         <Sidebar
-          onAddProject={handleAddProject}
+          onAddProject={handleOpenCreationModal}
           onMissingPath={setMissingProject}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
@@ -96,6 +122,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             onRemove={handleRemoveProject}
           />
         )}
+        <ProjectCreationModal
+          isOpen={creationModalOpen}
+          onClose={() => setCreationModalOpen(false)}
+          onCreated={() => refreshProjects()}
+          onOpenExisting={handleAddProject}
+          onSomethingElse={handlePrefillSupervisorChat}
+        />
       </div>
     </ShellActionsContext.Provider>
   );

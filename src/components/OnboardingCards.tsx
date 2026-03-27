@@ -7,6 +7,7 @@ interface OnboardingCardsProps {
   onAddProject: () => void;
   onFocusChat: () => void;
   onSendMessage: (text: string) => void;
+  onCreateNew?: () => void;
 }
 
 const quickStartCards = [
@@ -20,8 +21,7 @@ const quickStartCards = [
     icon: PlusIcon,
     title: "Create a project",
     description: "Scaffold a new project from scratch",
-    action: "send" as const,
-    message: "Help me scaffold and create a brand new project from scratch.",
+    action: "createNew" as const,
   },
   {
     icon: GitBranchIcon,
@@ -72,6 +72,7 @@ export function OnboardingCards({
   onAddProject,
   onFocusChat,
   onSendMessage,
+  onCreateNew,
 }: OnboardingCardsProps) {
   const [phase, setPhase] = useState<"draw" | "lift" | "reveal">("draw");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -101,6 +102,8 @@ export function OnboardingCards({
   const handleCardClick = (card: (typeof quickStartCards)[number]) => {
     if (card.action === "addProject") {
       onAddProject();
+    } else if (card.action === "createNew") {
+      onCreateNew?.();
     } else {
       onSendMessage(card.message!);
       onFocusChat();

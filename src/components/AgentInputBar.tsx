@@ -22,7 +22,7 @@ export interface AgentInputBarProps {
   maxHeight?: number;
 }
 
-export function AgentInputBar({
+export const AgentInputBar = React.memo(function AgentInputBar({
   isRunning,
   value,
   onChange,
@@ -374,4 +374,4 @@ export function AgentInputBar({
       )}
     </>
   );
-}
+});

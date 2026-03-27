@@ -31,7 +31,8 @@ const iconMap: Record<string, React.ElementType> = {
 interface ProjectCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  /** Called with the new project id after successful creation */
+  onCreated: (projectId: string) => void;
   /** Close modal and prefill supervisor chat */
   onSomethingElse?: (text: string) => void;
   /** Open folder picker for existing project */
@@ -168,12 +169,12 @@ export function ProjectCreationModal({
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Failed to create project');
       }
 
-      onCreated();
+      onCreated(data.id);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project');

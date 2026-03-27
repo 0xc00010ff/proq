@@ -69,22 +69,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     await refreshProjects();
   }, [refreshProjects]);
 
-  if (isStandalone) {
-    return (
-      <div className="h-screen w-full overflow-y-auto font-sans">
-        {children}
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="flex h-screen w-full bg-surface-base text-text-primary items-center justify-center">
-        <div className="text-text-tertiary text-sm">Loading...</div>
-      </div>
-    );
-  }
-
   const handleOpenCreationModal = useCallback(() => {
     setCreationModalOpen(true);
   }, []);
@@ -101,6 +85,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     supervisorDraftRef.current = null;
     return draft;
   }, []);
+
+  if (isStandalone) {
+    return (
+      <div className="h-screen w-full overflow-y-auto font-sans">
+        {children}
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="flex h-screen w-full bg-surface-base text-text-primary items-center justify-center">
+        <div className="text-text-tertiary text-sm">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <ShellActionsContext.Provider value={{ addProject: handleAddProject, openCreationModal: handleOpenCreationModal, prefillSupervisorChat: handlePrefillSupervisorChat, consumeSupervisorDraft: handleConsumeSupervisorDraft }}>
@@ -125,7 +125,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <ProjectCreationModal
           isOpen={creationModalOpen}
           onClose={() => setCreationModalOpen(false)}
-          onCreated={() => refreshProjects()}
+          onCreated={async (projectId) => {
+            await refreshProjects();
+            router.push(`/projects/${projectId}`);
+          }}
           onOpenExisting={handleAddProject}
           onSomethingElse={handlePrefillSupervisorChat}
         />

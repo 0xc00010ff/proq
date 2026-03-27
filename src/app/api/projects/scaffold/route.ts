@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 import { execSync } from "child_process";
 import { createProject, createTask, updateTask, createCronJob } from "@/lib/db";
 import { initForDispatch } from "@/lib/task-lifecycle";
 import { processQueue } from "@/lib/agent-dispatch";
 import { emitTaskCreated, emitTaskUpdate } from "@/lib/task-events";
-import { computeNextRun } from "@/lib/cron-scheduler";
+import { ensureCronSchedulerStarted } from "@/lib/cron-scheduler";
 import { safeParseBody } from "@/lib/api-utils";
 import { resolveProjectPath } from "@/lib/utils";
 import { generateFiles, generateFirstTaskPrompt } from "@/lib/templates";
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     const input: ScaffoldInput = {
       templateId,
       projectName,
-      location,
+      location: resolvedLocation,
       description,
       stackOverride,
       toggles,
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     for (const file of files) {
       const filePath = join(projectDir, file.path);
-      const dir = filePath.substring(0, filePath.lastIndexOf("/"));
+      const dir = dirname(filePath);
       if (dir !== projectDir) {
         mkdirSync(dir, { recursive: true });
       }
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     const task = await createTask(project.id, {
       title: "Initialize and set up this project",
       description: taskPrompt,
-      mode: templateId === "research-agent" ? "auto" : "auto",
+      mode: "auto",
     });
 
     emitTaskCreated(
@@ -105,6 +105,7 @@ export async function POST(request: Request) {
         mode: "auto",
         enabled: true,
       });
+      ensureCronSchedulerStarted();
     }
 
     // 7. Dispatch the first task (move to in-progress, then queue for agent)

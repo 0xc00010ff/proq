@@ -1,31 +1,36 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useImperativeHandle } from 'react';
 import { SquareIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, ChevronDownIcon } from 'lucide-react';
 import type { TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { formatSize } from '@/lib/agent-blocks';
 import { SmallModal } from '@/components/Modal';
 
+export interface AgentInputBarHandle {
+  setValue: (text: string) => void;
+  getValue: () => string;
+}
+
 export interface AgentInputBarProps {
   isRunning: boolean;
-  value: string;
-  onChange: (value: string) => void;
+  defaultValue?: string;
+  onDraftChange?: (text: string) => void;
   attachments: TaskAttachment[];
   onAttachmentsChange: (attachments: TaskAttachment[]) => void;
-  onSend: () => void;
+  onSend: (text: string, attachments: TaskAttachment[]) => void;
   onStop: () => void;
-  onInterrupt?: () => void;
+  onInterrupt?: (text: string, attachments: TaskAttachment[]) => void;
   mode?: TaskMode;
   onModeChange?: (mode: TaskMode) => void;
   readOnlyMessage?: React.ReactNode;
   maxHeight?: number;
 }
 
-export const AgentInputBar = React.memo(function AgentInputBar({
+export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, AgentInputBarProps>(function AgentInputBar({
   isRunning,
-  value,
-  onChange,
+  defaultValue,
+  onDraftChange,
   attachments,
   onAttachmentsChange,
   onSend,
@@ -35,18 +40,41 @@ export const AgentInputBar = React.memo(function AgentInputBar({
   onModeChange,
   readOnlyMessage,
   maxHeight = 160,
-}: AgentInputBarProps) {
+}, ref) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
+  const [hasText, setHasText] = useState(!!defaultValue?.trim());
 
   // Interrupt confirmation
   const [allowInterrupts, setAllowInterrupts] = useState(false);
   const [showInterruptModal, setShowInterruptModal] = useState(false);
   const [dontAskAgain, setDontAskAgain] = useState(false);
+
+  const getText = useCallback(() => textareaRef.current?.value ?? '', []);
+
+  const resizeTextarea = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = '0';
+    const sh = ta.scrollHeight;
+    const h = Math.max(36, Math.min(sh, maxHeight));
+    ta.style.height = h + 'px';
+    ta.style.overflowY = sh > maxHeight ? 'auto' : 'hidden';
+  }, [maxHeight]);
+
+  const setText = useCallback((text: string) => {
+    if (textareaRef.current) {
+      textareaRef.current.value = text;
+      setHasText(!!text.trim());
+      resizeTextarea();
+    }
+  }, [resizeTextarea]);
+
+  useImperativeHandle(ref, () => ({ setValue: setText, getValue: getText }), [setText, getText]);
 
   // Fetch interrupt setting on mount
   useEffect(() => {
@@ -68,19 +96,12 @@ export const AgentInputBar = React.memo(function AgentInputBar({
     return () => document.removeEventListener('mousedown', handler);
   }, [showModeMenu]);
 
-  const resizeTextarea = useCallback(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = '0';
-    const sh = ta.scrollHeight;
-    const h = Math.max(36, Math.min(sh, maxHeight));
-    ta.style.height = h + 'px';
-    ta.style.overflowY = sh > maxHeight ? 'auto' : 'hidden';
-  }, [maxHeight]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-  };
+  const handleInput = useCallback(() => {
+    resizeTextarea();
+    const text = getText();
+    setHasText(!!text.trim());
+    onDraftChange?.(text);
+  }, [resizeTextarea, getText, onDraftChange]);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const uploaded = await uploadFiles(files);
@@ -91,19 +112,35 @@ export const AgentInputBar = React.memo(function AgentInputBar({
     onAttachmentsChange(attachments.filter((a) => a.id !== id));
   }, [attachments, onAttachmentsChange]);
 
-  const hasContent = value.trim() || attachments.length > 0;
+  const hasContent = hasText || attachments.length > 0;
 
-  const handleInterruptAttempt = () => {
-    if (!hasContent) return;
+  const clearInput = useCallback(() => {
+    setText('');
+    onAttachmentsChange([]);
+  }, [setText, onAttachmentsChange]);
+
+  const handleSend = useCallback(() => {
+    const text = getText().trim();
+    if (!text && attachments.length === 0) return;
+    const atts = attachments.length > 0 ? [...attachments] : [];
+    clearInput();
+    onSend(text, atts);
+  }, [getText, attachments, clearInput, onSend]);
+
+  const handleInterruptAttempt = useCallback(() => {
+    const text = getText().trim();
+    if (!text && attachments.length === 0) return;
     if (!onInterrupt) return;
     if (allowInterrupts) {
-      onInterrupt();
+      const atts = attachments.length > 0 ? [...attachments] : [];
+      clearInput();
+      onInterrupt(text, atts);
     } else {
       setShowInterruptModal(true);
     }
-  };
+  }, [getText, attachments, onInterrupt, allowInterrupts, clearInput]);
 
-  const confirmInterrupt = () => {
+  const confirmInterrupt = useCallback(() => {
     if (dontAskAgain) {
       setAllowInterrupts(true);
       fetch('/api/settings', {
@@ -114,19 +151,22 @@ export const AgentInputBar = React.memo(function AgentInputBar({
     }
     setShowInterruptModal(false);
     setDontAskAgain(false);
-    onInterrupt?.();
-  };
+    const text = getText().trim();
+    const atts = attachments.length > 0 ? [...attachments] : [];
+    clearInput();
+    onInterrupt?.(text, atts);
+  }, [dontAskAgain, getText, attachments, clearInput, onInterrupt]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (isRunning) {
         handleInterruptAttempt();
         return;
       }
-      onSend();
+      handleSend();
     }
-  };
+  }, [isRunning, handleInterruptAttempt, handleSend]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -159,11 +199,6 @@ export const AgentInputBar = React.memo(function AgentInputBar({
       setIsDragOver(false);
     }
   }, []);
-
-  // Resize whenever value changes (handles send clearing, draft restore, etc.)
-  useEffect(() => {
-    resizeTextarea();
-  }, [value, resizeTextarea]);
 
   if (readOnlyMessage) {
     return (
@@ -239,11 +274,11 @@ export const AgentInputBar = React.memo(function AgentInputBar({
             </div>
           )}
 
-          {/* Textarea */}
+          {/* Textarea — uncontrolled for performance */}
           <textarea
             ref={textareaRef}
-            value={value}
-            onChange={handleInputChange}
+            defaultValue={defaultValue}
+            onInput={handleInput}
             onKeyDown={handleKeyDown}
             placeholder="Send a message..."
             rows={1}
@@ -321,7 +356,7 @@ export const AgentInputBar = React.memo(function AgentInputBar({
               </div>
             ) : (
               <button
-                onClick={onSend}
+                onClick={handleSend}
                 disabled={!hasContent}
                 className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${hasContent ? 'text-text-chrome bg-bronze-400/30 dark:bg-surface-hover' : 'text-text-tertiary disabled:opacity-30'}`}
                 title="Send message"
@@ -374,4 +409,4 @@ export const AgentInputBar = React.memo(function AgentInputBar({
       )}
     </>
   );
-});
+}));

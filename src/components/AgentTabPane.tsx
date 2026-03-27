@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GitBranchIcon, PlayIcon, FlaskConicalIcon, RocketIcon } from 'lucide-react';
 import type { TaskAttachment, TaskMode } from '@/lib/types';
 import { useAgentTabSession } from '@/hooks/useAgentTabSession';
 import { AgentBlockList } from './AgentBlockList';
-import { AgentInputBar } from './AgentInputBar';
+import { AgentInputBar, type AgentInputBarHandle } from './AgentInputBar';
 import { useFileDrop } from '@/hooks/useFileDrop';
 
 // Persist drafts across project switches (survives unmount/remount)
@@ -26,7 +26,7 @@ interface AgentTabPaneProps {
 export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
   const { blocks, streamingText, sessionDone, loaded, sendMessage, sendInterrupt, approvePlan, stop, clear } = useAgentTabSession(tabId, projectId);
 
-  const [inputValue, setInputValue] = useState(() => draftMap.get(tabId) || '');
+  const inputRef = useRef<AgentInputBarHandle>(null);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [mode, setMode] = useState<TaskMode>('auto');
 
@@ -45,7 +45,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     const handler = (e: Event) => {
       const { tabId: targetId, text } = (e as CustomEvent).detail;
       if (targetId === tabId) {
-        setInputValue(text);
+        inputRef.current?.setValue(text);
         draftMap.set(tabId, text);
       }
     };
@@ -53,32 +53,27 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     return () => window.removeEventListener('agent-draft', handler);
   }, [tabId]);
 
-  const handleInputChange = useCallback((val: string) => {
-    setInputValue(val);
-    draftMap.set(tabId, val);
+  const handleDraftChange = useCallback((text: string) => {
+    if (text) {
+      draftMap.set(tabId, text);
+    } else {
+      draftMap.delete(tabId);
+    }
   }, [tabId]);
 
   const handleAttachmentsChange = useCallback((atts: TaskAttachment[]) => {
     setAttachments(atts);
   }, []);
 
-  const handleSend = useCallback(() => {
-    const text = inputValue.trim();
-    if (!text && attachments.length === 0) return;
-    sendMessage(text, attachments.length > 0 ? attachments : undefined, mode !== 'auto' ? mode : undefined);
-    setInputValue('');
+  const handleSend = useCallback((text: string, atts: TaskAttachment[]) => {
+    sendMessage(text, atts.length > 0 ? atts : undefined, mode !== 'auto' ? mode : undefined);
     draftMap.delete(tabId);
-    setAttachments([]);
-  }, [inputValue, attachments, sendMessage, tabId, mode]);
+  }, [sendMessage, tabId, mode]);
 
-  const handleInterrupt = useCallback(() => {
-    const text = inputValue.trim();
-    if (!text && attachments.length === 0) return;
-    sendInterrupt(text, attachments.length > 0 ? attachments : undefined);
-    setInputValue('');
+  const handleInterrupt = useCallback((text: string, atts: TaskAttachment[]) => {
+    sendInterrupt(text, atts.length > 0 ? atts : undefined);
     draftMap.delete(tabId);
-    setAttachments([]);
-  }, [inputValue, attachments, sendInterrupt, tabId]);
+  }, [sendInterrupt, tabId]);
 
   const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange);
 
@@ -139,9 +134,10 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
       />
 
       <AgentInputBar
+        ref={inputRef}
         isRunning={isRunning}
-        value={inputValue}
-        onChange={handleInputChange}
+        defaultValue={draftMap.get(tabId) || ''}
+        onDraftChange={handleDraftChange}
         attachments={attachments}
         onAttachmentsChange={handleAttachmentsChange}
         onSend={handleSend}

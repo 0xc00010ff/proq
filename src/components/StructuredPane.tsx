@@ -6,7 +6,7 @@ import type { AgentBlock, TaskAttachment, TaskMode, FollowUpDraft } from '@/lib/
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { isSessionEnded, type RenderItem, type ToolResultBlock } from '@/lib/agent-blocks';
 import { AgentBlockList } from './AgentBlockList';
-import { AgentInputBar } from './AgentInputBar';
+import { AgentInputBar, type AgentInputBarHandle } from './AgentInputBar';
 import { TaskUpdateBlock } from './blocks/TaskUpdateBlock';
 import { useFileDrop } from '@/hooks/useFileDrop';
 
@@ -28,11 +28,10 @@ interface StructuredPaneProps {
 export function StructuredPane({ taskId, projectId, visible, taskStatus, agentStatus, agentBlocks, initialBlocks, taskMode, onModeChange, followUpDraft, onFollowUpDraftChange, onTaskStatusChange }: StructuredPaneProps) {
   const { blocks, streamingText, active, sendFollowUp, sendInterrupt, approvePlan, stop } = useAgentSession(taskId, projectId, agentBlocks, initialBlocks);
 
-  const [inputValue, setInputValue] = useState(followUpDraft?.text ?? '');
+  const inputRef = useRef<AgentInputBarHandle>(null);
   const [attachments, setAttachments] = useState<TaskAttachment[]>(followUpDraft?.attachments ?? []);
   const [showCosts, setShowCosts] = useState(false);
   const [localMode, setLocalMode] = useState<TaskMode>(taskMode || 'auto');
-  const localChangeRef = useRef(false);
 
   // Sync local mode when prop changes (e.g. server-side plan->auto on approval)
   useEffect(() => {
@@ -49,6 +48,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
 
   // Sync input when draft is set externally (e.g., conflict resolution prompt)
   const prevDraftRef = useRef(followUpDraft?.text);
+  const localChangeRef = useRef(false);
   useEffect(() => {
     if (localChangeRef.current) {
       localChangeRef.current = false;
@@ -56,13 +56,25 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
       return;
     }
     if (followUpDraft?.text && followUpDraft.text !== prevDraftRef.current) {
-      setInputValue(followUpDraft.text);
+      inputRef.current?.setValue(followUpDraft.text);
       setAttachments(followUpDraft.attachments ?? []);
     }
     prevDraftRef.current = followUpDraft?.text;
   }, [followUpDraft]);
 
-  const syncDraft = useCallback((text: string, atts: TaskAttachment[]) => {
+  const handleDraftChange = useCallback((text: string) => {
+    localChangeRef.current = true;
+    if (text || attachments.length > 0) {
+      onFollowUpDraftChange?.({ text, attachments });
+    } else {
+      onFollowUpDraftChange?.(null);
+    }
+  }, [attachments, onFollowUpDraftChange]);
+
+  const handleAttachmentsChange = useCallback((atts: TaskAttachment[]) => {
+    localChangeRef.current = true;
+    setAttachments(atts);
+    const text = inputRef.current?.getValue() ?? '';
     if (text || atts.length > 0) {
       onFollowUpDraftChange?.({ text, attachments: atts });
     } else {
@@ -70,35 +82,15 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     }
   }, [onFollowUpDraftChange]);
 
-  const handleInputChange = useCallback((val: string) => {
-    localChangeRef.current = true;
-    setInputValue(val);
-    syncDraft(val, attachments);
-  }, [attachments, syncDraft]);
-
-  const handleAttachmentsChange = useCallback((atts: TaskAttachment[]) => {
-    localChangeRef.current = true;
-    setAttachments(atts);
-    syncDraft(inputValue, atts);
-  }, [inputValue, syncDraft]);
-
-  const handleSend = useCallback(() => {
-    const text = inputValue.trim();
-    if (!text && attachments.length === 0) return;
-    sendFollowUp(text, attachments.length > 0 ? attachments : undefined, localMode);
-    setInputValue('');
-    setAttachments([]);
+  const handleSend = useCallback((text: string, atts: TaskAttachment[]) => {
+    sendFollowUp(text, atts.length > 0 ? atts : undefined, localMode);
     onFollowUpDraftChange?.(null);
-  }, [inputValue, attachments, sendFollowUp, onFollowUpDraftChange, localMode]);
+  }, [sendFollowUp, onFollowUpDraftChange, localMode]);
 
-  const handleInterrupt = useCallback(() => {
-    const text = inputValue.trim();
-    if (!text && attachments.length === 0) return;
-    sendInterrupt(text, attachments.length > 0 ? attachments : undefined);
-    setInputValue('');
-    setAttachments([]);
+  const handleInterrupt = useCallback((text: string, atts: TaskAttachment[]) => {
+    sendInterrupt(text, atts.length > 0 ? atts : undefined);
     onFollowUpDraftChange?.(null);
-  }, [inputValue, attachments, sendInterrupt, onFollowUpDraftChange]);
+  }, [sendInterrupt, onFollowUpDraftChange]);
 
   const handleModeChange = useCallback((m: TaskMode) => {
     setLocalMode(m);
@@ -179,9 +171,10 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
       />
 
       <AgentInputBar
+        ref={inputRef}
         isRunning={isRunning}
-        value={inputValue}
-        onChange={handleInputChange}
+        defaultValue={followUpDraft?.text ?? ''}
+        onDraftChange={handleDraftChange}
         attachments={attachments}
         onAttachmentsChange={handleAttachmentsChange}
         onSend={handleSend}

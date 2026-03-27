@@ -257,9 +257,9 @@ function TemplatePicker({
             <button
               key={template.id}
               onClick={() => onSelect(template)}
-              className="flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
+              className="group flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
             >
-              <Icon className="w-5 h-5 text-text-tertiary" />
+              <Icon className="w-5 h-5 text-text-tertiary group-hover:text-text-chrome-hover transition-colors" />
               <div className="space-y-0.5">
                 <span className="text-sm font-medium text-text-primary block">{template.name}</span>
                 <span className="text-xs text-text-tertiary leading-snug block">{template.subtitle}</span>
@@ -271,9 +271,9 @@ function TemplatePicker({
         {/* Something else */}
         <button
           onClick={onSomethingElse}
-          className="flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
+          className="group flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
         >
-          <SparklesIcon className="w-5 h-5 text-text-tertiary" />
+          <SparklesIcon className="w-5 h-5 text-text-tertiary group-hover:text-text-chrome-hover transition-colors" />
           <div className="space-y-0.5">
             <span className="text-sm font-medium text-text-primary block">Something else</span>
             <span className="text-xs text-text-tertiary leading-snug block">Describe what you want</span>

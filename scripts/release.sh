@@ -39,7 +39,16 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
   exit 0
 fi
 
-# ── 1. Bump version on develop ───────────────────────────
+# ── 1. Build web to catch errors before bumping ───────────
+echo ""
+echo "Building web to verify..."
+if ! npm run build; then
+  echo ""
+  echo "Build failed. Fix the errors before releasing."
+  exit 1
+fi
+
+# ── 2. Bump version on develop ────────────────────────────
 echo ""
 echo "Bumping version to v$NEXT..."
 node -e "
@@ -58,7 +67,7 @@ echo ""
 echo "Pushing develop..."
 git push origin develop
 
-# ── 2. Build on develop ──────────────────────────────────
+# ── 3. Build desktop app ─────────────────────────────────
 echo ""
 echo "Building desktop app..."
 cd desktop
@@ -78,14 +87,14 @@ if ! codesign --verify --deep --strict "$APP_PATH" 2>/dev/null; then
 fi
 echo "Build succeeded. Code signing verified."
 
-# ── 3. Merge develop → main ─────────────────────────────
+# ── 4. Merge develop → main ──────────────────────────────
 echo ""
 echo "Merging develop → main..."
 git checkout main
 git pull origin main
 git merge develop --no-edit
 
-# ── 4. Tag and push ─────────────────────────────────────
+# ── 5. Tag and push ──────────────────────────────────────
 echo ""
 echo "Tagging v$NEXT..."
 git tag "v$NEXT"
@@ -93,7 +102,7 @@ git tag "v$NEXT"
 echo "Pushing main + tags..."
 git push origin main --tags
 
-# ── 5. Publish to GitHub Releases ────────────────────────
+# ── 6. Publish to GitHub Releases ─────────────────────────
 echo ""
 echo "Publishing to GitHub Releases..."
 cd desktop
@@ -107,7 +116,7 @@ gh release edit "v$NEXT" --draft=false --notes "$(cat <<EOF
 EOF
 )"
 
-# ── 6. Return to develop ────────────────────────────────
+# ── 7. Return to develop ─────────────────────────────────
 echo ""
 echo "Returning to develop..."
 git checkout develop

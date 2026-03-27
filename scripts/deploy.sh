@@ -36,7 +36,16 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
   exit 0
 fi
 
-# ── 1. Bump version on develop ───────────────────────────
+# ── 1. Build to catch errors before shipping ──────────────
+echo ""
+echo "Building to verify..."
+if ! npm run build; then
+  echo ""
+  echo "Build failed. Fix the errors before deploying."
+  exit 1
+fi
+
+# ── 2. Bump version on develop ────────────────────────────
 echo ""
 echo "Bumping version to v$NEXT..."
 node -e "
@@ -51,28 +60,18 @@ for (const f of ['package.json', 'desktop/package.json']) {
 git add package.json desktop/package.json
 git commit -m "Bump to v$NEXT"
 
-# ── 1b. Build to catch errors before shipping ────────────
-echo ""
-echo "Building to verify..."
-if ! npm run build; then
-  echo ""
-  echo "Build failed. Fix the errors before deploying."
-  echo "The version bump commit is still on develop — amend or revert it."
-  exit 1
-fi
-
 echo ""
 echo "Pushing develop..."
 git push origin develop
 
-# ── 2. Merge develop → main ─────────────────────────────
+# ── 3. Merge develop → main ──────────────────────────────
 echo ""
 echo "Merging develop → main..."
 git checkout main
 git pull origin main
 git merge develop --no-edit
 
-# ── 3. Tag and push ─────────────────────────────────────
+# ── 4. Tag and push ──────────────────────────────────────
 echo ""
 echo "Tagging v$NEXT..."
 git tag "v$NEXT"
@@ -80,7 +79,7 @@ git tag "v$NEXT"
 echo "Pushing main + tags..."
 git push origin main --tags
 
-# ── 4. Return to develop ────────────────────────────────
+# ── 5. Return to develop ─────────────────────────────────
 echo ""
 echo "Returning to develop..."
 git checkout develop

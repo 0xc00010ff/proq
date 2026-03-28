@@ -136,6 +136,20 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
     const menuItems: Electron.MenuItemConstructorOptions[] = []
 
     if (params.isEditable) {
+      if (params.misspelledWord) {
+        for (const suggestion of params.dictionarySuggestions) {
+          menuItems.push({
+            label: suggestion,
+            click: () => win.webContents.replaceMisspelling(suggestion)
+          })
+        }
+        menuItems.push({
+          label: 'Add to dictionary',
+          click: () => win.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+        })
+        menuItems.push({ type: 'separator' })
+      }
+
       menuItems.push(
         { role: 'undo' },
         { role: 'redo' },

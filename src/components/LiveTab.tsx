@@ -95,7 +95,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
       wv.removeEventListener('did-navigate', onNav);
       wv.removeEventListener('did-navigate-in-page', onNav);
     };
-  }, [project.serverUrl, iframeKey]);
+  }, [project.serverUrl, iframeKey, persistLiveUrl]);
 
   const handleRefresh = () => {
     if (isElectron && webviewRef.current) {
@@ -126,6 +126,8 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   };
 
   const navigateTo = (url: string) => {
+    setBarValue(url);
+    persistLiveUrl(url);
     if (isElectron && webviewRef.current) {
       webviewRef.current.loadURL(url);
     } else if (iframeRef.current) {
@@ -198,7 +200,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     <webview
       ref={webviewRef as React.Ref<HTMLElement>}
       key={iframeKey}
-      src={project.serverUrl}
+      src={loadUrl || project.serverUrl}
       allowpopups={true}
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
       style={{ display: 'inline-flex' }}
@@ -207,7 +209,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     <iframe
       ref={iframeRef}
       key={iframeKey}
-      src={project.serverUrl}
+      src={loadUrl || project.serverUrl}
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
     />
   );

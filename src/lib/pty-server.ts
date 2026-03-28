@@ -84,6 +84,7 @@ export function spawnShellSession(tabId: string, cmd?: string, cwd?: string): bo
       cwd: resolvedCwd,
       detached: true,
       stdio: "ignore",
+      env: { ...process.env, PROQ_API: `http://localhost:${process.env.PORT || 1337}` },
     });
     child.unref();
     writeFileSync(pid, String(child.pid));

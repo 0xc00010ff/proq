@@ -223,9 +223,6 @@ export function KanbanBoard({
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeColumn = findTaskColumn(localColumns, activeId);
-    if (!activeColumn) return;
-
     // Determine target column
     const isOverColumn = COLUMNS.some((c) => c.id === overId);
     let targetStatus: TaskStatus;
@@ -240,30 +237,11 @@ export function KanbanBoard({
 
     setOverColumnId(targetStatus);
 
-    if (activeColumn !== targetStatus) {
-      // Moving to a different column
-      setLocalColumns((prev) => {
-        if (!prev) return prev;
-        const srcCol = [...prev[activeColumn]];
-        const srcIdx = srcCol.findIndex((t) => t.id === activeId);
-        if (srcIdx === -1) return prev;
-
-        const [task] = srcCol.splice(srcIdx, 1);
-        task.status = targetStatus;
-
-        const destCol = [...prev[targetStatus]];
-        // Insert at position of the over item, or end if dropping on column itself
-        if (!isOverColumn) {
-          const overIdx = destCol.findIndex((t) => t.id === overId);
-          destCol.splice(overIdx >= 0 ? overIdx : destCol.length, 0, task);
-        } else {
-          destCol.push(task);
-        }
-
-        return { ...prev, [activeColumn]: srcCol, [targetStatus]: destCol };
-      });
-    } else if (!isOverColumn) {
-      // Reordering within same column
+    // Only reorder within same column during drag.
+    // Cross-column moves happen once in handleDragEnd to avoid @dnd-kit
+    // collision-detection oscillation that causes infinite render loops.
+    const activeColumn = findTaskColumn(localColumns, activeId);
+    if (activeColumn && activeColumn === targetStatus && !isOverColumn) {
       setLocalColumns((prev) => {
         if (!prev) return prev;
         const colTasks = [...prev[targetStatus]];
@@ -277,7 +255,8 @@ export function KanbanBoard({
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active } = event;
+    const { active, over } = event;
+    const targetColumn = overColumnId; // save before clearing
     setActiveDragId(null);
     setOverColumnId(null);
     setDragWidth(null);
@@ -290,32 +269,54 @@ export function KanbanBoard({
     }
 
     const activeId = active.id as string;
-    const toColumn = findTaskColumn(localColumns, activeId);
-    if (!toColumn) {
+    const fromColumn = findTaskColumn(localColumns, activeId);
+    if (!fromColumn) {
       setLocalColumns(null);
       return;
     }
 
-    const toIndex = localColumns[toColumn].findIndex((t) => t.id === activeId);
-    const fromColumn = findTaskColumn(tasks, activeId);
+    // Determine target column and index
+    const toColumn: TaskStatus = (targetColumn && targetColumn !== fromColumn) ? targetColumn as TaskStatus : fromColumn;
+    let toIndex: number;
+
+    if (toColumn === fromColumn) {
+      // Same column — localColumns has the reordered position from handleDragOver
+      toIndex = localColumns[toColumn].findIndex((t) => t.id === activeId);
+    } else {
+      // Cross-column — determine insertion index from drop target
+      const overId = over?.id as string | undefined;
+      const isOverColumn = overId ? COLUMNS.some((c) => c.id === overId) : true;
+      if (!isOverColumn && overId) {
+        const destCol = localColumns[toColumn as TaskStatus];
+        const idx = destCol?.findIndex((t) => t.id === overId) ?? -1;
+        toIndex = idx >= 0 ? idx : 0;
+      } else {
+        toIndex = 0;
+      }
+    }
+
+    // Find the task for rerun check
+    const task = localColumns[fromColumn].find((t) => t.id === activeId);
 
     // Check if task is being rerun (verify/done → in-progress)
-    if (fromColumn && (fromColumn === 'verify' || fromColumn === 'done') && toColumn === 'in-progress') {
-      const task = localColumns[toColumn][toIndex];
+    if ((fromColumn === 'verify' || fromColumn === 'done') && toColumn === 'in-progress') {
       setLocalColumns(null);
-      setPendingRerun({ taskId: activeId, toColumn, toIndex, taskTitle: task.title || task.description.slice(0, 40) });
+      setPendingRerun({ taskId: activeId, toColumn, toIndex, taskTitle: task?.title || task?.description.slice(0, 40) || '' });
       return;
     }
 
-    // Set "Starting..." on the task before committing so it shows immediately
-    if (fromColumn !== toColumn && toColumn === 'in-progress') {
+    // Apply cross-column move to localColumns for instant visual feedback
+    if (toColumn !== fromColumn) {
       setLocalColumns((prev) => {
         if (!prev) return prev;
-        const col = [...prev[toColumn]];
-        const idx = col.findIndex((t) => t.id === activeId);
-        if (idx === -1) return prev;
-        col[idx] = { ...col[idx], agentStatus: 'starting' };
-        return { ...prev, [toColumn]: col };
+        const srcCol = [...prev[fromColumn]];
+        const srcIdx = srcCol.findIndex((t) => t.id === activeId);
+        if (srcIdx === -1) return prev;
+        const [removed] = srcCol.splice(srcIdx, 1);
+        const moved = { ...removed, status: toColumn, ...(toColumn === 'in-progress' ? { agentStatus: 'starting' as const } : {}) };
+        const destCol = [...prev[toColumn]];
+        destCol.splice(toIndex, 0, moved);
+        return { ...prev, [fromColumn]: srcCol, [toColumn]: destCol };
       });
     }
 

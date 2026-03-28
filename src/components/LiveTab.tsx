@@ -80,6 +80,9 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
 
+  // Clean up persist timer on unmount
+  useEffect(() => () => { if (persistTimer.current) clearTimeout(persistTimer.current); }, []);
+
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const webviewRef = useRef<WebviewElement>(null);
 

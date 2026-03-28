@@ -439,10 +439,11 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   if (collapsed) {
     return (
       <aside
-        className={`${isElectron ? 'w-[84px]' : 'w-10'} h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-surface-hover/40 relative ${isElectron ? 'electron-drag' : ''}`}
+        className={`${isElectron ? 'w-[84px]' : 'w-10'} h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-surface-hover/40 relative`}
         style={isElectron ? { paddingTop: 48 } : undefined}
         onClick={onToggleCollapsed}
       >
+        {isElectron && <div className="absolute top-0 left-0 right-0 h-[48px] electron-drag" />}
         <div className="h-[48px] flex items-center justify-center relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -461,7 +462,8 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   }
 
   return (
-    <aside className={`w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0 relative ${isElectron ? 'electron-drag' : ''}`} style={isElectron ? { paddingTop: 48 } : undefined}>
+    <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0 relative" style={isElectron ? { paddingTop: 48 } : undefined}>
+      {isElectron && <div className="absolute top-0 left-0 right-0 h-[48px] electron-drag" />}
       {/* Header — collapse toggle */}
       <div
         className="h-[48px] flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-surface-hover/40 relative cursor-pointer flex-shrink-0"

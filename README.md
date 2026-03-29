@@ -14,12 +14,15 @@
 
 <!-- TODO: Add screenshot/gif of the board in action -->
 
-#### Proq is an agentic development environment.
+#### Proq is an agentic development environment for serious vibe coding.
+
+<img width="1769" height="1069" alt="Screenshot 2026-03-28 at 6 00 24 PM" src="https://github.com/user-attachments/assets/246a0a86-b701-475f-aadc-cd951cebe62d" />
+
 A kanban-style task manager for local Claude Code instances.
 
-Create a task → proq spins up an agent, gives it an isolated worktree, tracks the agent's work, and lets you preview changes.
+Create a task → proq spins up an agent, gives it an isolated worktree, watch the agent work (or not), and preview changes.
 
-The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops without managing a grid of terminals.
+The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops. It's twice as effective as a screen full of terminals. 
 
 Free, no signup, and works with whatever agent config, MCPs, and tools you already use with Claude.
 

@@ -50,7 +50,12 @@ export async function checkForShellUpdate(): Promise<{ available: boolean; versi
 }
 
 export function installShellUpdate(): void {
-  autoUpdater.quitAndInstall()
+  // Defer so the IPC reply completes before the process exits —
+  // calling quitAndInstall synchronously inside ipcMain.handle deadlocks.
+  // isForceRunAfter=true ensures macOS relaunches after install.
+  setImmediate(() => {
+    autoUpdater.quitAndInstall(false, true)
+  })
 }
 
 let shellCheckTimer: ReturnType<typeof setInterval> | null = null

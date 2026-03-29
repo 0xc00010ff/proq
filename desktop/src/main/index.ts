@@ -333,13 +333,14 @@ function registerIpcHandlers(): void {
       const splashWindow = createWindow('splash')
       loadRendererPage(splashWindow, 'splash')
 
+      // Show splash immediately — don't wait for content to load.
+      // The #09090b background matches the app so it looks intentional.
       const previousWindow = mainWindow
-      splashWindow.webContents.once('did-finish-load', () => {
-        if (previousWindow && previousWindow !== splashWindow && !previousWindow.isDestroyed()) {
-          previousWindow.close()
-        }
-      })
       mainWindow = splashWindow
+      splashWindow.showInactive()
+      if (previousWindow && previousWindow !== splashWindow && !previousWindow.isDestroyed()) {
+        previousWindow.close()
+      }
 
       // Only forward friendly status lines to the splash — raw command
       // output (build warnings, npm noise) is silently dropped so it

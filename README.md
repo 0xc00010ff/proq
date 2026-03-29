@@ -24,7 +24,7 @@ Create a task → proq spins up an agent, gives it an isolated worktree, watch t
 
 The point is maintaining quality and clarity when vibe coding. Automatic history, fresh focused contexts, and parallel ops. It's twice as effective as a screen full of terminals. 
 
-Free, no signup, and works with whatever agent config, MCPs, and tools you already use with Claude.
+Free, no signup, local-only, and works with whatever agent config, MCPs, and tools you already use with Claude.
 
 # Download
 

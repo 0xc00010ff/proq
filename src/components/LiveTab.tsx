@@ -204,7 +204,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
       ref={webviewRef as React.Ref<HTMLElement>}
       key={iframeKey}
       src={loadUrl || project.serverUrl}
-      allowpopups={true}
+      allowpopups="true"
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
       style={{ display: 'inline-flex' }}
     />

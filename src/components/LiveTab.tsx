@@ -86,11 +86,13 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const webviewRef = useRef<WebviewElement>(null);
 
-  // Electron webview: listen for navigation events to update the URL bar.
+  // Electron webview: set allowpopups attribute and listen for navigation events.
   useEffect(() => {
     if (!isElectron || !project.serverUrl) return;
     const wv = webviewRef.current;
     if (!wv) return;
+    // Set as a string attribute to avoid React's boolean-to-DOM warning
+    (wv as unknown as HTMLElement).setAttribute('allowpopups', 'true');
     const onNav = (e: { url: string }) => { setBarValue(e.url); persistLiveUrl(e.url); };
     wv.addEventListener('did-navigate', onNav);
     wv.addEventListener('did-navigate-in-page', onNav);
@@ -204,7 +206,6 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
       ref={webviewRef as React.Ref<HTMLElement>}
       key={iframeKey}
       src={loadUrl || project.serverUrl}
-      allowpopups="true"
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
       style={{ display: 'inline-flex' }}
     />

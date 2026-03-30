@@ -33,7 +33,19 @@ interface WebviewElement {
 
 export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const [urlInput, setUrlInput] = useState(project.serverUrl || 'http://localhost:3000');
-  const [barValue, setBarValue] = useState(project.serverUrl ?? '');
+  // Use persisted liveUrl if it belongs to the current server, otherwise fall back to serverUrl
+  const initialUrl = (() => {
+    if (project.liveUrl && project.serverUrl) {
+      try {
+        const live = new URL(project.liveUrl);
+        const server = new URL(project.serverUrl);
+        if (live.origin === server.origin) return project.liveUrl;
+      } catch {}
+    }
+    return project.serverUrl ?? '';
+  })();
+  const [barValue, setBarValue] = useState(initialUrl);
+  const [loadUrl, setLoadUrl] = useState(initialUrl);
   const initialVp = project.liveViewport ?? 'desktop';
   const [viewport, setViewport] = useState<ViewportSize>(initialVp);
   const [size, setSize] = useState(initialVp !== 'desktop' ? PRESETS[initialVp] : { w: 768, h: 1024 });
@@ -41,12 +53,26 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { refreshProjects } = useProjects();
   const prevServerUrl = useRef(project.serverUrl);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced persist of the current live URL
+  const persistLiveUrl = useCallback((url: string) => {
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ liveUrl: url }),
+      });
+    }, 500);
+  }, [project.id]);
 
   // Auto-connect when serverUrl changes (e.g. agent sets it via API)
   useEffect(() => {
     if (project.serverUrl && project.serverUrl !== prevServerUrl.current) {
       setUrlInput(project.serverUrl);
       setBarValue(project.serverUrl);
+      setLoadUrl(project.serverUrl);
       setIframeKey(k => k + 1);
     } else if (!project.serverUrl && prevServerUrl.current) {
       setUrlInput('http://localhost:3000');
@@ -54,22 +80,27 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
 
+  // Clean up persist timer on unmount
+  useEffect(() => () => { if (persistTimer.current) clearTimeout(persistTimer.current); }, []);
+
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const webviewRef = useRef<WebviewElement>(null);
 
-  // Electron webview: listen for navigation events to update the URL bar.
+  // Electron webview: set allowpopups attribute and listen for navigation events.
   useEffect(() => {
     if (!isElectron || !project.serverUrl) return;
     const wv = webviewRef.current;
     if (!wv) return;
-    const onNav = (e: { url: string }) => setBarValue(e.url);
+    // Set as a string attribute to avoid React's boolean-to-DOM warning
+    (wv as unknown as HTMLElement).setAttribute('allowpopups', 'true');
+    const onNav = (e: { url: string }) => { setBarValue(e.url); persistLiveUrl(e.url); };
     wv.addEventListener('did-navigate', onNav);
     wv.addEventListener('did-navigate-in-page', onNav);
     return () => {
       wv.removeEventListener('did-navigate', onNav);
       wv.removeEventListener('did-navigate-in-page', onNav);
     };
-  }, [project.serverUrl, iframeKey]);
+  }, [project.serverUrl, iframeKey, persistLiveUrl]);
 
   const handleRefresh = () => {
     if (isElectron && webviewRef.current) {
@@ -100,6 +131,8 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   };
 
   const navigateTo = (url: string) => {
+    setBarValue(url);
+    persistLiveUrl(url);
     if (isElectron && webviewRef.current) {
       webviewRef.current.loadURL(url);
     } else if (iframeRef.current) {
@@ -172,8 +205,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     <webview
       ref={webviewRef as React.Ref<HTMLElement>}
       key={iframeKey}
-      src={project.serverUrl}
-      allowpopups={true}
+      src={loadUrl || project.serverUrl}
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
       style={{ display: 'inline-flex' }}
     />
@@ -181,7 +213,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     <iframe
       ref={iframeRef}
       key={iframeKey}
-      src={project.serverUrl}
+      src={loadUrl || project.serverUrl}
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
     />
   );

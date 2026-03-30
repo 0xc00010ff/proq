@@ -13,6 +13,7 @@ export interface Project {
   activeTab?: ProjectTab;
   viewType?: ViewType;
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
+  liveUrl?: string;
   defaultBranch?: string;
   systemPrompt?: string;
   createdAt: string;

@@ -7,6 +7,7 @@ import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useSupervisorSession } from '@/hooks/useSupervisorSession';
 import { useProjects } from '@/components/ProjectsProvider';
 import { useShellActions } from '@/components/ClientShell';
+import { isElectron } from '@/lib/utils';
 import { ScrambleText } from '@/components/ScrambleText';
 import { OnboardingCards } from '@/components/OnboardingCards';
 import { TextBlock } from '@/components/blocks/TextBlock';
@@ -209,7 +210,7 @@ export default function SupervisorPage() {
 
   return (
     <>
-      <header className="h-12 bg-surface-base flex items-center justify-between px-6 flex-shrink-0 border-b border-border-default">
+      <header className={`h-12 bg-surface-base flex items-center justify-between px-6 flex-shrink-0 border-b border-border-default ${isElectron ? 'electron-drag' : ''}`}>
         <div className="flex items-center gap-2.5">
           <SquareChevronUpIcon className="w-4 h-4 text-bronze-500" />
           <h1 className="text-sm font-semibold text-text-primary leading-tight">Supervisor</h1>

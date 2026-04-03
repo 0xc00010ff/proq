@@ -442,7 +442,7 @@ function TemplateConfigurator({
             <textarea
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-md border border-border-default bg-surface-inset text-text-primary placeholder:text-text-placeholder focus:outline-none focus:border-border-hover resize-none"
+              className="w-full px-3 py-2 text-sm rounded-md border border-border-default bg-surface-inset text-text-primary placeholder:text-text-placeholder focus:outline-none focus:border-border-hover resize-y"
               rows={3}
               placeholder={template.descriptionPlaceholder}
             />

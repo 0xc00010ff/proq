@@ -17,6 +17,9 @@
   .electron-drag {
     -webkit-app-region: drag;
   }
+  body.modal-open .electron-drag {
+    -webkit-app-region: no-drag;
+  }
   .electron-drag button,
   .electron-drag a,
   .electron-drag input,

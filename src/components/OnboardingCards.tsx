@@ -174,7 +174,7 @@ export function OnboardingCards({
               <button
                 key={card.title}
                 onClick={() => handleCardClick(card)}
-                className="flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
+                className="flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left"
               >
                 <card.icon className="w-5 h-5 text-text-tertiary" />
                 <div className="space-y-0.5">
@@ -193,7 +193,7 @@ export function OnboardingCards({
         {/* Learn more */}
         <button
           onClick={handleLearnMore}
-          className="mt-8 text-xs font-medium px-3 py-1.5 rounded-md text-text-chrome-hover hover:brightness-125 transition-all"
+          className="mt-8 text-xs font-medium px-3 py-1.5 rounded-md text-text-chrome-hover hover:brightness-125"
         >
           What else can proq do? →
         </button>

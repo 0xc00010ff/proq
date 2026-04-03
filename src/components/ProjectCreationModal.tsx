@@ -257,9 +257,9 @@ function TemplatePicker({
             <button
               key={template.id}
               onClick={() => onSelect(template)}
-              className="group flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
+              className="group flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left"
             >
-              <Icon className="w-5 h-5 text-text-tertiary group-hover:text-text-chrome-hover transition-colors" />
+              <Icon className="w-5 h-5 text-text-tertiary group-hover:text-text-chrome-hover" />
               <div className="space-y-0.5">
                 <span className="text-sm font-medium text-text-primary block">{template.name}</span>
                 <span className="text-xs text-text-tertiary leading-snug block">{template.subtitle}</span>
@@ -271,9 +271,9 @@ function TemplatePicker({
         {/* Something else */}
         <button
           onClick={onSomethingElse}
-          className="group flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left transition-colors"
+          className="group flex flex-col items-start gap-2 p-4 rounded-lg border border-border-default bg-surface-topbar hover:border-border-strong hover:bg-surface-hover text-left"
         >
-          <MessageSquarePlusIcon className="w-5 h-5 text-text-tertiary group-hover:text-text-chrome-hover transition-colors" />
+          <MessageSquarePlusIcon className="w-5 h-5 text-text-tertiary group-hover:text-text-chrome-hover" />
           <div className="space-y-0.5">
             <span className="text-sm font-medium text-text-primary block">Something else</span>
             <span className="text-xs text-text-tertiary leading-snug block">Describe what you want</span>
@@ -286,7 +286,7 @@ function TemplatePicker({
         <div className="mt-4 pt-4 border-t border-border-default">
           <button
             onClick={onOpenExisting}
-            className="flex items-center gap-2 text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+            className="flex items-center gap-2 text-xs text-text-tertiary hover:text-text-secondary"
           >
             <FolderOpenIcon className="w-3.5 h-3.5" />
             Open existing folder
@@ -354,7 +354,7 @@ function TemplateConfigurator({
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border-default">
         <button
           onClick={onBack}
-          className="p-1 -ml-1 rounded hover:bg-surface-hover transition-colors text-text-tertiary hover:text-text-primary"
+          className="p-1 -ml-1 rounded hover:bg-surface-hover text-text-tertiary hover:text-text-primary"
         >
           <ArrowLeftIcon className="w-4 h-4" />
         </button>
@@ -367,7 +367,7 @@ function TemplateConfigurator({
               {template.stackEditable && (
                 <button
                   onClick={() => onEditingStackChange(true)}
-                  className="text-[10px] text-text-chrome hover:text-text-chrome-hover transition-colors"
+                  className="text-[10px] text-text-chrome hover:text-text-chrome-hover"
                 >
                   (edit)
                 </button>

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/Modal';
-import type { Project, ViewType } from '@/lib/types';
-import { ChevronDownIcon } from 'lucide-react';
+import type { Project, ViewType, McpServerInfo, SkillInfo } from '@/lib/types';
+import { ChevronDownIcon, PlugIcon, FileTextIcon } from 'lucide-react';
 
 interface ProjectSettingsModalProps {
   isOpen: boolean;
@@ -19,6 +19,12 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
   const [defaultBranch, setDefaultBranch] = useState(project.defaultBranch || 'main');
   const [serverUrl, setServerUrl] = useState(project.serverUrl || '');
   const [systemPrompt, setSystemPrompt] = useState(project.systemPrompt || '');
+  const [mcpData, setMcpData] = useState<{
+    globalServers: McpServerInfo[];
+    projectServers: McpServerInfo[];
+    configuredServers: McpServerInfo[];
+    skills: SkillInfo[];
+  } | null>(null);
 
   useEffect(() => {
     setName(project.name);
@@ -27,6 +33,14 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
     setServerUrl(project.serverUrl || '');
     setSystemPrompt(project.systemPrompt || '');
   }, [project]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch(`/api/projects/${project.id}/mcp-and-skills`)
+      .then((res) => res.json())
+      .then(setMcpData)
+      .catch(console.error);
+  }, [isOpen, project.id]);
 
   const handleSave = () => {
     onSave({
@@ -42,8 +56,15 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
   // Filter out proq/* branches from the selector — they're task branches, not base branches
   const selectableBranches = branches?.filter(b => !b.startsWith('proq/')) || [];
 
+  const hasAnyMcpOrSkills = mcpData && (
+    mcpData.projectServers.length > 0 ||
+    mcpData.configuredServers.length > 0 ||
+    mcpData.globalServers.length > 0 ||
+    mcpData.skills.length > 0
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} className={`w-full ${hasAnyMcpOrSkills ? 'max-w-lg' : 'max-w-md'}`}>
       <div className="p-6">
         <h2 className="text-sm font-semibold text-text-primary mb-5">Project Settings</h2>
 
@@ -172,6 +193,43 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
               {project.path}
             </div>
           </div>
+
+          {/* MCP Servers */}
+          {mcpData && (mcpData.projectServers.length > 0 || mcpData.configuredServers.length > 0 || mcpData.globalServers.length > 0) && (
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                MCP Servers
+              </label>
+              <div className="rounded-md border border-border-default bg-surface-secondary/50 px-3 py-2 space-y-2">
+                {mcpData.projectServers.length > 0 && (
+                  <McpGroup label="Project" servers={mcpData.projectServers} />
+                )}
+                {mcpData.configuredServers.length > 0 && (
+                  <McpGroup label="Configured" servers={mcpData.configuredServers} />
+                )}
+                {mcpData.globalServers.length > 0 && (
+                  <McpGroup label="Global" servers={mcpData.globalServers} dimmed />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Skills */}
+          {mcpData && mcpData.skills.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                Skills
+              </label>
+              <div className="rounded-md border border-border-default bg-surface-secondary/50 px-3 py-2">
+                {mcpData.skills.map((skill) => (
+                  <div key={skill.filename} className="flex items-center gap-2 py-1">
+                    <FileTextIcon className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" />
+                    <span className="text-sm font-mono text-text-primary">{skill.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
@@ -180,5 +238,32 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
         </div>
       </div>
     </Modal>
+  );
+}
+
+function McpGroup({ label, servers, dimmed }: { label: string; servers: McpServerInfo[]; dimmed?: boolean }) {
+  return (
+    <div>
+      <p className={`text-[10px] uppercase tracking-wider font-medium mb-0.5 ${dimmed ? 'text-text-quaternary' : 'text-text-tertiary'}`}>
+        {label}
+      </p>
+      {servers.map((server) => {
+        const detail = server.url || [server.command, ...(server.args || [])].join(' ');
+        return (
+          <div key={server.name} className={`flex items-center gap-2 py-0.5 ${dimmed ? 'opacity-50' : ''}`}>
+            <PlugIcon className="w-3 h-3 text-text-tertiary flex-shrink-0" />
+            <span className="text-xs text-text-primary font-medium">{server.name}</span>
+            <span className="text-[10px] font-mono text-text-tertiary bg-surface-inset px-1 py-px rounded">
+              {server.type}
+            </span>
+            {detail && (
+              <span className="text-[10px] text-text-quaternary font-mono truncate ml-auto max-w-[200px]">
+                {detail}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

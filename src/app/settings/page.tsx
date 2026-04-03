@@ -13,15 +13,17 @@ import {
   SearchIcon,
   LoaderIcon,
   CheckIcon,
+  PlugIcon,
 } from "lucide-react";
 import { isElectron } from "@/lib/utils";
-import type { ProqSettings } from "@/lib/types";
+import type { ProqSettings, McpServerInfo } from "@/lib/types";
 import { Select } from "@/components/ui/select";
 
 type SettingsSection =
   | "about"
   | "appearance"
   | "agent"
+  | "mcp-servers"
   | "updates"
   | "notifications";
 
@@ -38,6 +40,11 @@ const BASE_SECTIONS: {
     icon: <PaletteIcon className="w-4 h-4" />,
   },
   { id: "agent", label: "Agent", icon: <BotIcon className="w-4 h-4" /> },
+  {
+    id: "mcp-servers",
+    label: "MCP Servers",
+    icon: <PlugIcon className="w-4 h-4" />,
+  },
   {
     id: "updates",
     label: "Updates",
@@ -63,6 +70,7 @@ export default function SettingsPage() {
   const [webUpdate, setWebUpdate] = useState<{ available: boolean; count: number } | null>(null);
   const [shellUpdateReady, setShellUpdateReady] = useState(false);
   const [shellUpdateVersion, setShellUpdateVersion] = useState<string | null>(null);
+  const [globalMcps, setGlobalMcps] = useState<McpServerInfo[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingTo = useRef(false);
@@ -71,6 +79,11 @@ export default function SettingsPage() {
     fetch("/api/settings")
       .then((res) => res.json())
       .then(setSettings)
+      .catch(console.error);
+
+    fetch("/api/settings/mcp-servers")
+      .then((res) => res.json())
+      .then((data) => setGlobalMcps(data.servers || []))
       .catch(console.error);
 
     // Listen for background shell update downloads
@@ -395,6 +408,39 @@ export default function SettingsPage() {
               </SectionCard>
             </section>
 
+            {/* MCP Servers */}
+            <section
+              ref={(el) => {
+                sectionRefs.current["mcp-servers"] = el;
+              }}
+              id="settings-mcp-servers"
+            >
+              <SectionHeading
+                icon={<PlugIcon className="w-4 h-4" />}
+                label="MCP Servers"
+              />
+              <SectionCard>
+                {globalMcps.length === 0 ? (
+                  <p className="text-xs text-text-tertiary">
+                    No global MCP servers configured.{" "}
+                    <span className="text-text-quaternary">
+                      Add servers via{" "}
+                      <code className="font-mono text-[11px] bg-surface-inset px-1 py-0.5 rounded">
+                        claude mcp add
+                      </code>{" "}
+                      in your terminal.
+                    </span>
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    {globalMcps.map((server) => (
+                      <McpServerRow key={server.name} server={server} />
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+            </section>
+
             {/* Updates — Electron only */}
             {isElectron && (
               <section
@@ -642,6 +688,32 @@ function Toggle({
         }`}
       />
     </button>
+  );
+}
+
+function McpServerRow({ server, dimmed }: { server: McpServerInfo; dimmed?: boolean }) {
+  const detail =
+    server.url ||
+    [server.command, ...(server.args || [])].join(" ");
+  return (
+    <div
+      className={`flex items-center gap-2.5 py-1.5 px-1 rounded ${
+        dimmed ? "opacity-50" : ""
+      }`}
+    >
+      <PlugIcon className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" />
+      <span className="text-sm text-text-primary font-medium truncate">
+        {server.name}
+      </span>
+      <span className="text-[10px] font-mono text-text-tertiary bg-surface-inset px-1.5 py-0.5 rounded flex-shrink-0">
+        {server.type}
+      </span>
+      {detail && (
+        <span className="text-xs text-text-quaternary font-mono truncate ml-auto">
+          {detail}
+        </span>
+      )}
+    </div>
   );
 }
 

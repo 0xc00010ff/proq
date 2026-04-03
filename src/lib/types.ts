@@ -163,6 +163,20 @@ export interface ProqSettings {
   version?: string;
 }
 
+// ── MCP & Skills (read-only display) ───────────────────
+export interface McpServerInfo {
+  name: string;
+  type: 'http' | 'stdio' | 'sse' | string;
+  url?: string;
+  command?: string;
+  args?: string[];
+}
+
+export interface SkillInfo {
+  name: string;
+  filename: string;
+}
+
 // ── Cron Jobs ───────────────────────────────────────────
 export interface CronJob {
   id: string;

@@ -114,7 +114,7 @@ export function ProjectCreationModal({
 
   const handleSomethingElse = useCallback(() => {
     onClose();
-    onSomethingElse?.('Create a new project: ');
+    onSomethingElse?.("I'm setting up a new project. I'd like your help designing it\n\n");
   }, [onClose, onSomethingElse]);
 
   const handleOpenExisting = useCallback(() => {

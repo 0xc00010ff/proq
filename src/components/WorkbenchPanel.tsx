@@ -108,8 +108,9 @@ function tabReducer(state: TabState, action: TabAction): TabState {
       const filtered = state.tabs.filter((t) => t.id !== action.tabId);
       let newActiveTabId = state.activeTabId;
       if (state.activeTabId === action.tabId) {
-        if (idx < state.tabs.length - 1) newActiveTabId = state.tabs[idx + 1].id;
-        else if (idx > 0) newActiveTabId = state.tabs[idx - 1].id;
+        // Select the tab at the same position in the filtered array, or the last one
+        if (idx < filtered.length) newActiveTabId = filtered[idx].id;
+        else if (filtered.length > 0) newActiveTabId = filtered[filtered.length - 1].id;
         else newActiveTabId = '';
       }
       return { tabs: filtered, activeTabId: newActiveTabId };
@@ -490,7 +491,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           : { flexBasis: `${workbench.percent}%` }),
       }}
     >
-      {/* Tab Bar — also serves as the resize drag handle */}
+      {/* Tab Bar */}
       <div className="relative shrink-0">
         {/* Edge resize strip — sits over the top border */}
         {!workbench.collapsed && (
@@ -502,15 +503,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           </div>
         )}
         <div
-          className={`h-12 flex items-stretch bg-surface-secondary overflow-visible border-t border-border-default ${
-            workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'
-          }`}
-          onMouseDown={(e) => {
-            // Don't start resize if clicking on interactive elements
-            const target = e.target as HTMLElement;
-            if (target.closest('button') || target.closest('[data-clickable]')) return;
-            workbench.onResizeStart(e);
-          }}
+          className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-t border-border-default"
         >
         <button
           onClick={toggleCollapsed}
@@ -583,8 +576,11 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Spacer — fills remaining space for grab target */}
-        <div className="flex-1" />
+        {/* Spacer — fills remaining space, doubles as resize grab target */}
+        <div
+          className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          onMouseDown={(e) => workbench.onResizeStart(e)}
+        />
         </div>
       </div>
 

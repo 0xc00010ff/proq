@@ -420,24 +420,22 @@ export default function SettingsPage() {
                 label="MCP Servers"
               />
               <SectionCard>
-                {globalMcps.length === 0 ? (
-                  <p className="text-xs text-text-tertiary">
-                    No global MCP servers configured.{" "}
-                    <span className="text-text-quaternary">
-                      Add servers via{" "}
-                      <code className="font-mono text-[11px] bg-surface-inset px-1 py-0.5 rounded">
-                        claude mcp add
-                      </code>{" "}
-                      in your terminal.
-                    </span>
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    {globalMcps.map((server) => (
-                      <McpServerRow key={server.name} server={server} />
-                    ))}
-                  </div>
-                )}
+                <Field
+                  label="Globally installed"
+                  hint="These MCP servers are installed globally in Claude Code and available to all projects and agents. Ask Claude to edit or add MCPs, or run claude mcp add in your terminal."
+                >
+                  {globalMcps.length === 0 ? (
+                    <p className="text-xs text-text-tertiary">
+                      No global MCP servers configured.
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      {globalMcps.map((server) => (
+                        <McpServerRow key={server.name} server={server} />
+                      ))}
+                    </div>
+                  )}
+                </Field>
               </SectionCard>
             </section>
 

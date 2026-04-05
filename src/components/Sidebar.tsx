@@ -464,11 +464,19 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={isChatActive ? "/proq-logo-vector.svg" : "/proq-logo-vector-gray.svg"}
+            src="/proq-logo-vector-gray.svg"
             alt="proq"
             width={13}
             height={13}
-            className="flex-shrink-0 translate-y-[3px]"
+            className={`flex-shrink-0 translate-y-[3px] ${isChatActive ? "hidden" : "group-hover:hidden"}`}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/proq-logo-vector.svg"
+            alt="proq"
+            width={13}
+            height={13}
+            className={`flex-shrink-0 translate-y-[3px] ${isChatActive ? "" : "hidden group-hover:block"}`}
           />
           <span
             className={`text-lg lowercase ${isChatActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"}`}

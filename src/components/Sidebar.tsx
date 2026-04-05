@@ -468,7 +468,7 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
             alt="proq"
             width={13}
             height={13}
-            className="flex-shrink-0 translate-y-[1px]"
+            className="flex-shrink-0 translate-y-[4px]"
           />
           <span
             className={`text-lg lowercase ${isChatActive ? "text-text-primary" : "text-text-tertiary group-hover:text-text-secondary"}`}

@@ -441,15 +441,16 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
 
   return (
     <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0 relative" style={isElectron ? { paddingTop: 48 } : undefined}>
-      {isElectron && <div className="absolute top-0 left-0 right-0 h-[48px] electron-drag" />}
-      {/* Collapse button — top right, vertically centered with traffic lights */}
-      <button
-        onClick={onToggleCollapsed}
-        className="absolute top-0 right-2 h-[48px] flex items-center z-10"
-        title="Collapse sidebar"
-      >
-        <PanelLeftCloseIcon className="w-4 h-4 text-text-tertiary hover:text-text-secondary" />
-      </button>
+      {/* Drag region + collapse button — button inside drag div gets automatic no-drag */}
+      <div className={`absolute top-0 left-0 right-0 h-[48px] z-10 flex items-center justify-end pr-2 ${isElectron ? 'electron-drag' : ''}`}>
+        <button
+          onClick={onToggleCollapsed}
+          className="p-1 rounded text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/40"
+          title="Collapse sidebar"
+        >
+          <PanelLeftCloseIcon className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* proq — main chat nav item */}
       <Link

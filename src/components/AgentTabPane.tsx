@@ -75,7 +75,7 @@ export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
     draftMap.delete(tabId);
   }, [sendInterrupt, tabId]);
 
-  const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange);
+  const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange, projectId);
 
   if (!visible) return null;
 

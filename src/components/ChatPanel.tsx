@@ -14,6 +14,7 @@ export interface StreamingMessage {
 }
 
 interface ChatPanelProps {
+  projectId?: string;
   messages: ChatLogEntry[];
   onSendMessage: (content: string, attachments?: TaskAttachment[]) => void;
   style?: React.CSSProperties;
@@ -124,7 +125,7 @@ function AttachmentPreview({ attachments }: { attachments: TaskAttachment[] }) {
   );
 }
 
-export function ChatPanel({ messages, onSendMessage, style, streamingMessage, isLoading, initialValue, onDraftChange }: ChatPanelProps) {
+export function ChatPanel({ projectId, messages, onSendMessage, style, streamingMessage, isLoading, initialValue, onDraftChange }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState(initialValue || '');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -149,9 +150,9 @@ export function ChatPanel({ messages, onSendMessage, style, streamingMessage, is
   }, [messages, streamingMessage]);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
-    const uploaded = await uploadFiles(files);
+    const uploaded = await uploadFiles(files, projectId);
     setAttachments((prev) => [...prev, ...uploaded]);
-  }, []);
+  }, [projectId]);
 
   const removeAttachment = useCallback((id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id));

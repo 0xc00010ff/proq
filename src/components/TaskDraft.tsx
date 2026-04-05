@@ -241,7 +241,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   };
 
   const addFiles = async (files: FileList | File[]) => {
-    const uploaded = await uploadFiles(files);
+    const uploaded = await uploadFiles(files, projectId);
     setAttachments((prev) => {
       const updated = [...prev, ...uploaded];
       autosave(title, description, updated, mode);

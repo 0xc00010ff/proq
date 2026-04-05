@@ -13,6 +13,7 @@ export interface AgentInputBarHandle {
 }
 
 export interface AgentInputBarProps {
+  projectId?: string;
   isRunning: boolean;
   defaultValue?: string;
   onDraftChange?: (text: string) => void;
@@ -28,6 +29,7 @@ export interface AgentInputBarProps {
 }
 
 export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, AgentInputBarProps>(function AgentInputBar({
+  projectId,
   isRunning,
   defaultValue,
   onDraftChange,
@@ -104,9 +106,9 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
   }, [resizeTextarea, getText, onDraftChange]);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
-    const uploaded = await uploadFiles(files);
+    const uploaded = await uploadFiles(files, projectId);
     onAttachmentsChange([...attachments, ...uploaded]);
-  }, [attachments, onAttachmentsChange]);
+  }, [projectId, attachments, onAttachmentsChange]);
 
   const removeAttachment = useCallback((id: string) => {
     onAttachmentsChange(attachments.filter((a) => a.id !== id));

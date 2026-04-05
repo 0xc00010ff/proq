@@ -9,6 +9,7 @@ import type { TaskAttachment } from '@/lib/types';
 export function useFileDrop(
   attachments: TaskAttachment[],
   onAttachmentsChange: (attachments: TaskAttachment[]) => void,
+  projectId?: string,
 ) {
   const dragCounterRef = useRef(0);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -19,11 +20,11 @@ export function useFileDrop(
     dragCounterRef.current = 0;
     setIsDragOver(false);
     if (e.dataTransfer.files.length > 0) {
-      uploadFiles(e.dataTransfer.files).then((uploaded) => {
+      uploadFiles(e.dataTransfer.files, projectId).then((uploaded) => {
         onAttachmentsChange([...attachments, ...uploaded]);
       });
     }
-  }, [attachments, onAttachmentsChange]);
+  }, [attachments, onAttachmentsChange, projectId]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();

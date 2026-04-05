@@ -622,7 +622,7 @@ export default function ProjectPage() {
     const newTask: Task = await res.json();
 
     // Upload files to disk and get attachment metadata
-    const attachments = await uploadFiles(files);
+    const attachments = await uploadFiles(files, projectId);
 
     // Patch the task with attachments
     await fetch(`/api/projects/${projectId}/tasks/${newTask.id}`, {

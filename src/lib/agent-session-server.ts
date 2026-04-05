@@ -1,6 +1,6 @@
 import type WebSocket from "ws";
 import { getSession, attachClient, addPendingClient, detachClient, stopSession, interruptSession, continueSession } from "./agent-session";
-import { getTask, getProject, updateTask, getTaskAgentBlocks } from "./db";
+import { getTask, getProject, updateTask, getTaskLogs } from "./db";
 import { resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
 import type { AgentWsClientMsg } from "./types";
@@ -20,7 +20,7 @@ export async function attachAgentWsWithProject(
     // No live session — load stored blocks from disk.
     // Determine active from task DB (agent may be queued/starting).
     const [blocks, task] = await Promise.all([
-      getTaskAgentBlocks(taskId),
+      getTaskLogs(projectId, taskId),
       getTask(projectId, taskId),
     ]);
     const active = task?.agentStatus === "queued" || task?.agentStatus === "starting" || task?.agentStatus === "running";

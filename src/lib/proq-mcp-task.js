@@ -27,8 +27,80 @@ const server = new McpServer({
 });
 
 server.tool(
+  "write_report",
+  "Write a report summarizing the work done on this task. Call after completing meaningful work — restates the problem, outlines the solution and results. Updated in place on follow-ups. Always call before complete_task.",
+  {
+    title: z.string().describe("Short descriptive title for the report"),
+    summary: z.string().describe("Concise summary: restate the problem, outline the solution and results"),
+    nextSteps: z.string().optional().describe("Suggested next steps: testing, refinements, or follow-up work"),
+  },
+  async ({ title, summary, nextSteps }) => {
+    try {
+      // Read current task to get commit hashes
+      const taskRes = await fetch(taskUrl);
+      const task = taskRes.ok ? await taskRes.json() : {};
+
+      const report = {
+        taskId,
+        title,
+        summary,
+        nextSteps: nextSteps || undefined,
+        commitHashes: task.commitHashes || [],
+        timestamp: task.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const res = await fetch(`${taskUrl}/report`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(report),
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to write report: ${res.status}` }], isError: true };
+      }
+
+      // Also update task summary/nextSteps for backward compat (UI still reads these)
+      await fetch(taskUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary, nextSteps: nextSteps || "" }),
+      });
+
+      return { content: [{ type: "text", text: "Report written." }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+server.tool(
+  "complete_task",
+  "Move the task to Verify for human review. Call this after write_report to signal that work is done.",
+  {},
+  async () => {
+    try {
+      const res = await fetch(taskUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "verify",
+          agentStatus: null,
+        }),
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to complete task: ${res.status}` }], isError: true };
+      }
+      return { content: [{ type: "text", text: "Task moved to Verify." }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// Legacy alias — kept for backward compat with older system prompts
+server.tool(
   "update_task",
-  "Update the task with a summary of work done and move it to Verify for human review. Call this on initial completion and again if follow-up work leads to material changes or new summary. Each call replaces the previous summary.",
+  "Update the task with a summary of work done and move it to Verify for human review.",
   {
     summary: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
     nextSteps: z.string().optional().describe("Suggested next steps such as testing, refinements, or follow-up work"),

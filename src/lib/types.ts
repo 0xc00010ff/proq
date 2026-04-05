@@ -2,13 +2,19 @@
 export type ProjectTab = 'project' | 'live' | 'code';
 export type ViewType = 'kanban' | 'grid';
 
-export interface Project {
+/** Slim stub stored in root data/workspace.json */
+export interface ProjectStub {
   id: string;
   name: string;
   path: string;
+  order?: number;
+  createdAt: string;
+}
+
+/** Full project object returned by the API (assembled from stub + settings + workspace) */
+export interface Project extends ProjectStub {
   status?: 'active' | 'review' | 'idle' | 'error';
   serverUrl?: string;
-  order?: number;
   pathValid?: boolean;
   activeTab?: ProjectTab;
   viewType?: ViewType;
@@ -16,11 +22,10 @@ export interface Project {
   liveUrl?: string;
   defaultBranch?: string;
   systemPrompt?: string;
-  createdAt: string;
 }
 
 export interface WorkspaceData {
-  projects: Project[];
+  projects: ProjectStub[];
 }
 
 // ── Render Mode ─────────────────────────────────────────
@@ -81,7 +86,9 @@ export interface Task {
   status: TaskStatus;
   priority?: 'low' | 'medium' | 'high';
   mode?: TaskMode;
+  /** @deprecated Will move to TaskReport in a future release */
   summary?: string;
+  /** @deprecated Will move to TaskReport in a future release */
   nextSteps?: string;
   needsAttention?: boolean;
   agentLog?: string;
@@ -98,7 +105,6 @@ export interface Task {
   startCommit?: string;
   commitHashes?: string[];
   renderMode?: AgentRenderMode;
-  agentBlocks?: AgentBlock[];
   sessionId?: string;
   attachments?: TaskAttachment[];
   cronJobId?: string;             // links task to source cron job
@@ -107,6 +113,7 @@ export interface Task {
 }
 
 export type TaskColumns = Record<TaskStatus, Task[]>;
+export type TaskColumnIds = Record<TaskStatus, string[]>;
 
 // ── Chat ─────────────────────────────────────────────────
 export interface ToolCall {
@@ -207,7 +214,49 @@ export interface WorkbenchSessionData {
   mode?: TaskMode;
 }
 
+/** Per-project settings.json — shareable, could be committed to git */
+export interface ProjectSettings {
+  version?: number;
+  executionMode?: ExecutionMode;
+  systemPrompt?: string;
+  defaultBranch?: string;
+  serverUrl?: string;
+  cronJobs?: CronJob[];
+}
 
+/** Per-project workspace.json — local/live state, per-user */
+export interface ProjectWorkspace {
+  tasks: TaskColumnIds;
+  chatLog: ChatLogEntry[];
+  recentlyDeleted?: DeletedTaskEntry[];
+  // UI state
+  status?: 'active' | 'review' | 'idle' | 'error';
+  activeTab?: ProjectTab;
+  viewType?: ViewType;
+  liveViewport?: 'desktop' | 'tablet' | 'mobile';
+  liveUrl?: string;
+  // Workbench
+  projectWorkbenchOpen?: boolean;
+  projectWorkbenchHeight?: number;
+  projectWorkbenchTabs?: WorkbenchTabInfo[];
+  projectWorkbenchActiveTabId?: string;
+  liveWorkbenchTabs?: WorkbenchTabInfo[];
+  liveWorkbenchActiveTabId?: string;
+  projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
+}
+
+/** Agent work report — stored in reports/{taskId}.json */
+export interface TaskReport {
+  taskId: string;
+  title: string;
+  summary: string;
+  nextSteps?: string;
+  commitHashes?: string[];
+  timestamp: string;
+  updatedAt: string;
+}
+
+/** @deprecated Use ProjectSettings + ProjectWorkspace instead. Kept for migration. */
 export interface ProjectState {
   tasks: TaskColumns;
   chatLog: ChatLogEntry[];

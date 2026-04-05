@@ -86,8 +86,9 @@ The mode describes the initial intent, but may change during the conversation. I
 You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.
 
 ### Task Tools
-- \`read_task\` — Read current task state and any existing summary
-- \`update_task\` — Update summary and move task to Verify for review
+- \`read_task\` — Read current task state and any existing report
+- \`write_report\` — Write a summary report of work done (problem, solution, results)
+- \`complete_task\` — Move task to Verify for human review (call after write_report)
 - \`commit_changes\` — Stage and commit all current changes with a message
 - \`create_task\` — Create a follow-up task for work outside your current scope`,
   ];
@@ -104,7 +105,7 @@ Start by creating a plan for the human to review. Do not make code changes until
   // Workflow applies to all modes (agent may transition into code changes)
   sections.push(`### Workflow
 - If you make code changes, use \`commit_changes\` to commit after each logical unit of work. Always commit before reporting — don't leave uncommitted work behind.
-- When the task is complete, use \`read_task\` to check existing summary, then \`update_task\` to report and move to Verify for human review. Write a cumulative summary incorporating any prior work.
+- When the task is complete, use \`write_report\` to document what was done (restate the problem, outline the solution and results), then \`complete_task\` to move to Verify for human review. On follow-ups, call \`write_report\` again to update the report with new work.
 
 **When to report:**
 - After committing code changes

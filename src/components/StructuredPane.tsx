@@ -128,7 +128,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     return null;
   }, []);
 
-  const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange);
+  const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange, projectId);
 
   if (!visible) return null;
 

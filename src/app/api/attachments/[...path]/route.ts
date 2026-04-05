@@ -3,7 +3,9 @@ import { readFileSync, existsSync } from "fs";
 import path from "path";
 
 const DATA_DIR = path.join(process.cwd(), "data");
-const ATTACHMENTS_DIR = path.join(DATA_DIR, "attachments");
+const SUPERVISOR_ATTACHMENTS_DIR = path.join(DATA_DIR, "supervisor", "attachments");
+const LEGACY_ATTACHMENTS_DIR = path.join(DATA_DIR, "attachments");
+const PROJECTS_DIR = path.join(DATA_DIR, "projects");
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -52,11 +54,27 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const segments = (await params).path;
-  const filePath = path.join(ATTACHMENTS_DIR, ...segments);
+
+  // Resolve file path: check if first segment is a project ID
+  // URL patterns:
+  //   /api/attachments/{projectId}/{attId}/{filename} → data/projects/{projectId}/attachments/{attId}/{filename}
+  //   /api/attachments/{attId}/{filename}             → data/supervisor/attachments/{attId}/{filename}
+  //                                                   → data/attachments/{attId}/{filename} (legacy fallback)
+  let filePath: string;
+  const projectAttDir = path.join(PROJECTS_DIR, segments[0], "attachments");
+  if (segments.length >= 3 && existsSync(projectAttDir)) {
+    filePath = path.join(projectAttDir, ...segments.slice(1));
+  } else {
+    // Try supervisor dir first, fall back to legacy data/attachments/
+    const supervisorPath = path.join(SUPERVISOR_ATTACHMENTS_DIR, ...segments);
+    const legacyPath = path.join(LEGACY_ATTACHMENTS_DIR, ...segments);
+    filePath = existsSync(path.resolve(supervisorPath)) ? supervisorPath : legacyPath;
+  }
 
   // Path traversal protection
   const resolved = path.resolve(filePath);
-  if (!resolved.startsWith(path.resolve(ATTACHMENTS_DIR))) {
+  const resolvedData = path.resolve(DATA_DIR);
+  if (!resolved.startsWith(resolvedData)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

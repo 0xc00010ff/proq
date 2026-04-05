@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTask, getTaskAgentBlocks } from "@/lib/db";
+import { getTask, getTaskLogs } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
@@ -9,6 +9,6 @@ export async function GET(_request: Request, { params }: Params) {
   if (!task) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
-  const blocks = await getTaskAgentBlocks(taskId);
+  const blocks = await getTaskLogs(id, taskId);
   return NextResponse.json({ blocks });
 }

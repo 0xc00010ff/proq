@@ -14,10 +14,12 @@ import {
   LoaderIcon,
   CheckIcon,
   PlugIcon,
+  PanelLeftOpenIcon,
 } from "lucide-react";
 import { isElectron } from "@/lib/utils";
 import type { ProqSettings, McpServerInfo } from "@/lib/types";
 import { Select } from "@/components/ui/select";
+import { useShellActions } from "@/components/ClientShell";
 
 type SettingsSection =
   | "about"
@@ -61,6 +63,7 @@ const BASE_SECTIONS: {
 const SECTIONS = BASE_SECTIONS.filter((s) => !s.electronOnly || isElectron);
 
 export default function SettingsPage() {
+  const { sidebarCollapsed, expandSidebar } = useShellActions();
   const [settings, setSettings] = useState<ProqSettings | null>(null);
   const [activeSection, setActiveSection] =
     useState<SettingsSection>("about");
@@ -172,7 +175,16 @@ export default function SettingsPage() {
   return (
     <>
       {/* Top bar */}
-      <header className="h-12 bg-surface-topbar border-b border-border-default flex items-center px-6 flex-shrink-0">
+      <header className={`h-12 bg-surface-topbar border-b border-border-default flex items-center px-6 flex-shrink-0 ${isElectron ? 'electron-drag' : ''}`}>
+        {sidebarCollapsed && (
+          <button
+            onClick={expandSidebar}
+            className={`mr-3 p-1 rounded text-text-tertiary hover:text-text-secondary hover:bg-surface-hover ${isElectron ? 'ml-[60px]' : ''}`}
+            title="Expand sidebar"
+          >
+            <PanelLeftOpenIcon className="w-4 h-4" />
+          </button>
+        )}
         <h1 className="text-sm font-semibold text-text-primary">Settings</h1>
       </header>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -45,9 +45,11 @@ interface TopBarProps {
   onOpenCronJobs?: () => void;
   onCommit?: () => void;
   onCreateBranch?: (name: string) => Promise<void>;
+  sidebarCollapsed?: boolean;
+  onExpandSidebar?: () => void;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, sidebarCollapsed, onExpandSidebar }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -239,6 +241,15 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   return (
     <header className={`h-[48px] bg-surface-secondary flex items-center px-4 flex-shrink-0 border-b border-border-default relative ${isElectron ? 'electron-drag' : ''}`}>
       <div className="flex-1 flex items-center min-w-0">
+        {sidebarCollapsed && onExpandSidebar && (
+          <button
+            onClick={onExpandSidebar}
+            className={`mr-3 p-1 rounded text-text-tertiary hover:text-text-secondary hover:bg-surface-hover ${isElectron ? 'ml-[60px]' : ''}`}
+            title="Expand sidebar"
+          >
+            <PanelLeftOpenIcon className="w-4 h-4" />
+          </button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-1.5 text-text-secondary dark:text-zinc-300 hover:text-bronze-600 dark:hover:text-bronze-500">

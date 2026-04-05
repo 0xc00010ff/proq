@@ -21,7 +21,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { isElectron } from "@/lib/utils";
 import {
   PlusIcon,
-  SquareChevronUpIcon,
   RefreshCwIcon,
   CheckCircle2Icon,
   MoreHorizontalIcon,
@@ -437,72 +436,44 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   }, []);
 
   if (collapsed) {
-    return (
-      <aside
-        className={`${isElectron ? 'w-[84px]' : 'w-10'} h-full bg-surface-secondary border-r border-border-default flex-shrink-0 cursor-pointer hover:bg-surface-hover/40 relative`}
-        style={isElectron ? { paddingTop: 48 } : undefined}
-        onClick={onToggleCollapsed}
-      >
-        {isElectron && <div className="absolute top-0 left-0 right-0 h-[48px] electron-drag" />}
-        <div className="h-[48px] flex items-center justify-center relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/proq-logo-vector.svg"
-            alt="proq"
-            width={13}
-            height={13}
-            className="translate-y-[4px]"
-          />
-          {isElectron && updateAvailable && (
-            <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-bronze-600" />
-          )}
-        </div>
-      </aside>
-    );
+    return null;
   }
 
   return (
     <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0 relative" style={isElectron ? { paddingTop: 48 } : undefined}>
       {isElectron && <div className="absolute top-0 left-0 right-0 h-[48px] electron-drag" />}
-      {/* Header — collapse toggle */}
-      <div
-        className="h-[48px] flex items-center gap-2.5 px-4 pl-[18px] group/logo hover:bg-surface-hover/40 relative cursor-pointer flex-shrink-0"
+      {/* Collapse button — top right, vertically centered with traffic lights */}
+      <button
         onClick={onToggleCollapsed}
+        className="absolute top-0 right-2 h-[48px] flex items-center z-10"
+        title="Collapse sidebar"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/proq-logo-vector.svg"
-          alt="proq"
-          width={13}
-          height={13}
-          className="flex-shrink-0 translate-y-[4px]"
-        />
-        <span
-          className="text-lg font-[var(--font-gemunu-libre)] text-text-primary lowercase flex-1"
-          style={{ fontFamily: "var(--font-gemunu-libre)" }}
-        >
-          proq
-        </span>
-        <PanelLeftCloseIcon className="w-4 h-4 text-text-tertiary hover:text-text-secondary opacity-0 group-hover/logo:opacity-100 transition-opacity" />
-      </div>
+        <PanelLeftCloseIcon className="w-4 h-4 text-text-tertiary hover:text-text-secondary" />
+      </button>
 
-      {/* Main Chat Item */}
+      {/* proq — main chat nav item */}
       <Link
         href="/supervisor"
-        className={`w-full text-left px-4 relative group block flex-shrink-0 h-[48px] flex items-center
+        className={`w-full text-left px-4 pl-[18px] relative group block flex-shrink-0 h-[48px] flex items-center
           ${isChatActive ? "bg-surface-selected" : "hover:bg-surface-hover/40"}`}
       >
         {isChatActive && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-bronze-700 dark:bg-bronze-600" />
         )}
         <div className="flex items-center gap-2.5">
-          <SquareChevronUpIcon
-            className={`w-4 h-4 ${isChatActive ? "text-text-chrome-active" : "text-text-tertiary group-hover:text-text-secondary"}`}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={isChatActive ? "/proq-logo-vector.svg" : "/proq-logo-vector-gray.svg"}
+            alt="proq"
+            width={13}
+            height={13}
+            className="flex-shrink-0 translate-y-[1px]"
           />
           <span
-            className={`text-sm font-medium ${isChatActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"}`}
+            className={`text-lg lowercase ${isChatActive ? "text-text-primary" : "text-text-tertiary group-hover:text-text-secondary"}`}
+            style={{ fontFamily: "var(--font-gemunu-libre)" }}
           >
-            Supervisor
+            proq
           </span>
         </div>
       </Link>

@@ -18,6 +18,10 @@ interface ShellActions {
   prefillSupervisorChat: (text: string) => void;
   /** Consume (read + clear) any pending draft for the supervisor chat */
   consumeSupervisorDraft: () => string | null;
+  /** Whether the sidebar is collapsed */
+  sidebarCollapsed: boolean;
+  /** Expand the sidebar */
+  expandSidebar: () => void;
 }
 
 const ShellActionsContext = createContext<ShellActions | null>(null);
@@ -104,7 +108,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ShellActionsContext.Provider value={{ addProject: handleAddProject, openCreationModal: handleOpenCreationModal, prefillSupervisorChat: handlePrefillSupervisorChat, consumeSupervisorDraft: handleConsumeSupervisorDraft }}>
+    <ShellActionsContext.Provider value={{ addProject: handleAddProject, openCreationModal: handleOpenCreationModal, prefillSupervisorChat: handlePrefillSupervisorChat, consumeSupervisorDraft: handleConsumeSupervisorDraft, sidebarCollapsed, expandSidebar: () => setSidebarCollapsed(false) }}>
       <div className="flex h-screen w-full bg-surface-base text-text-primary overflow-hidden font-sans">
         <Sidebar
           onAddProject={handleOpenCreationModal}

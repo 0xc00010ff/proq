@@ -18,6 +18,7 @@ import { CronJobsModal } from '@/components/CronJobsModal';
 import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyTasks } from '@/components/ProjectsProvider';
+import { useShellActions } from '@/components/ClientShell';
 import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
@@ -29,6 +30,7 @@ export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const { projects, tasksByProject, refreshTasks, setTasksByProject, setProjects } = useProjects();
+  const { sidebarCollapsed, expandSidebar } = useShellActions();
 
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
@@ -712,6 +714,8 @@ export default function ProjectPage() {
         onOpenCronJobs={() => setShowCronJobs(true)}
         onCommit={() => setShowCommitModal(true)}
         onCreateBranch={handleCreateBranch}
+        sidebarCollapsed={sidebarCollapsed}
+        onExpandSidebar={expandSidebar}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">

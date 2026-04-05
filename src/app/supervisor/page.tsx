@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { SquareChevronUpIcon, Trash2Icon, SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon } from 'lucide-react';
+import { Trash2Icon, SquareIcon, ArrowDownIcon, SendIcon, PaperclipIcon, XIcon, FileIcon, Loader2Icon, PanelLeftOpenIcon } from 'lucide-react';
 import type { AgentBlock, TaskAttachment } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useSupervisorSession } from '@/hooks/useSupervisorSession';
@@ -28,7 +28,7 @@ function formatSize(bytes: number): string {
 export default function SupervisorPage() {
   const { blocks, streamingText, sessionDone, hasHistory, sendMessage, stop, clear } = useSupervisorSession();
   const { projects } = useProjects();
-  const { addProject, openCreationModal, consumeSupervisorDraft } = useShellActions();
+  const { addProject, openCreationModal, consumeSupervisorDraft, sidebarCollapsed, expandSidebar } = useShellActions();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -212,8 +212,29 @@ export default function SupervisorPage() {
     <>
       <header className={`h-12 bg-surface-base flex items-center justify-between px-6 flex-shrink-0 border-b border-border-default ${isElectron ? 'electron-drag' : ''}`}>
         <div className="flex items-center gap-2.5">
-          <SquareChevronUpIcon className="w-4 h-4 text-bronze-500" />
-          <h1 className="text-sm font-semibold text-text-primary leading-tight">Supervisor</h1>
+          {sidebarCollapsed && (
+            <button
+              onClick={expandSidebar}
+              className={`mr-1 p-1 rounded text-text-tertiary hover:text-text-secondary hover:bg-surface-hover ${isElectron ? 'ml-[60px]' : ''}`}
+              title="Expand sidebar"
+            >
+              <PanelLeftOpenIcon className="w-4 h-4" />
+            </button>
+          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/proq-logo-vector.svg"
+            alt="proq"
+            width={13}
+            height={13}
+            className="flex-shrink-0 translate-y-[1px]"
+          />
+          <h1
+            className="text-lg text-text-primary leading-tight lowercase"
+            style={{ fontFamily: "var(--font-gemunu-libre)" }}
+          >
+            proq
+          </h1>
         </div>
         {hasHistory && (
           <button

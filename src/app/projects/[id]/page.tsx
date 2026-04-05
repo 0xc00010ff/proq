@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef, type DragEvent } from 'react'
 import { useParams } from 'next/navigation';
 import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import { ListView } from '@/components/ListView';
 import { GridView } from '@/components/GridView';
 import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
@@ -753,7 +752,7 @@ export default function ProjectPage() {
                   onSwitchBranch={handleSwitchBranch}
                   defaultBranch={project?.defaultBranch || 'main'}
                 />
-              ) : (project.viewType || 'kanban') === 'kanban' ? (
+              ) : (
                 <KanbanBoard
                   tasks={columns}
                   onMoveTask={moveTask}
@@ -768,41 +767,6 @@ export default function ProjectPage() {
                   onExecutionModeChange={handleExecutionModeChange}
                   onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
                   activeBranch={currentBranch}
-                />
-              ) : (
-                <ListView
-                  tasks={columns}
-                  projectId={projectId}
-                  onAddTask={handleAddTask}
-                  onDeleteTask={deleteTask}
-                  onClickTask={(task) => {
-                    routeOpenTask(task.id);
-                  }}
-                  onMoveTask={moveTask}
-                  onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
-                  executionMode={executionMode}
-                  onExecutionModeChange={handleExecutionModeChange}
-                  cleanupTimes={cleanupTimes}
-                  followUpDraftsRef={followUpDraftsRef}
-                  onFollowUpDraftChange={(taskId, draft) => {
-                    if (draft) followUpDraftsRef.current.set(taskId, draft);
-                    else followUpDraftsRef.current.delete(taskId);
-                  }}
-                  onComplete={async (taskId) => {
-                    followUpDraftsRef.current.delete(taskId);
-                    await updateTask(taskId, { status: 'done' });
-                    fetchBranchState();
-                  }}
-                  onResumeEditing={async (taskId) => {
-                    await updateTask(taskId, { status: 'verify' });
-                  }}
-                  onUpdateTitle={(taskId, title) => updateTask(taskId, { title })}
-                  onDismissAttention={dismissAttention}
-                  onSelectedTaskChange={(id) => { viewingTaskIdRef.current = id; }}
-                  parallelMode={executionMode === 'worktrees'}
-                  currentBranch={currentBranch}
-                  onSwitchBranch={handleSwitchBranch}
-                  defaultBranch={project?.defaultBranch || 'main'}
                 />
               )}
             </div>

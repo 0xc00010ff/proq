@@ -116,8 +116,10 @@ function tabReducer(state: TabState, action: TabAction): TabState {
       return { tabs: filtered, activeTabId: newActiveTabId };
     }
 
-    case 'activate':
+    case 'activate': {
+      if (!state.tabs.some((t) => t.id === action.tabId)) return state;
       return { ...state, activeTabId: action.tabId };
+    }
 
     case 'rename':
       return {

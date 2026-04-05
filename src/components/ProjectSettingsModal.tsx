@@ -99,16 +99,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, onClose, onSav
                 Board
               </button>
               <button
-                onClick={() => setViewType('list')}
-                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border ${
-                  viewType === 'list'
-                    ? 'border-border-strong bg-surface-hover text-text-primary'
-                    : 'border-border-default text-text-tertiary hover:border-border-strong'
-                }`}
-              >
-                List
-              </button>
-              <button
                 onClick={() => setViewType('grid')}
                 className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border ${
                   viewType === 'grid'

@@ -320,10 +320,10 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     fetch(`/api/projects/${projectId}/workbench-tabs`)
       .then((res) => res.json())
       .then((data) => {
-        const saved: Array<{ id: string; label: string; type?: WorkbenchTabType }> = data.tabs || [];
+        const saved: Array<{ id: string; label: string; type?: WorkbenchTabType; agentId?: string }> = data.tabs || [];
         let tabs: WorkbenchTab[];
         if (saved.length > 0) {
-          tabs = saved.map((t) => ({ id: t.id, label: t.label, type: t.type || 'shell' }));
+          tabs = saved.map((t) => ({ id: t.id, label: t.label, type: t.type || 'shell', agentId: t.agentId }));
         } else {
           tabs = defaultTabs(projectId);
         }
@@ -342,8 +342,8 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   useEffect(() => {
     if (!hydrated) return;
     const timer = setTimeout(() => {
-      const persistable = tabState.tabs.map(({ id, label, type }) => ({
-        id, label, ...(type !== 'shell' ? { type } : {}),
+      const persistable = tabState.tabs.map(({ id, label, type, agentId }) => ({
+        id, label, ...(type !== 'shell' ? { type } : {}), ...(agentId ? { agentId } : {}),
       }));
       fetch(`/api/projects/${projectId}/workbench-tabs`, {
         method: 'PUT',

@@ -92,7 +92,7 @@ export function useAgentTabSession(
       ws.close();
       wsRef.current = null;
     };
-  }, [tabId, projectId]);
+  }, [tabId, projectId, agentId]);
 
   const sendMessage = useCallback((text: string, attachments?: TaskAttachment[], mode?: string) => {
     const ws = wsRef.current;

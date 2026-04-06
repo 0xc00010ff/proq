@@ -23,6 +23,7 @@ interface AgentsCanvasProps {
 }
 
 const nodeTypes = { agent: AgentNode };
+const FIT_VIEW_OPTIONS = { padding: 0.5, maxZoom: 0.85 };
 
 export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNodeClick }: AgentsCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<AgentNodeData>>([]);
@@ -105,6 +106,7 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
         onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={FIT_VIEW_OPTIONS}
         proOptions={{ hideAttribution: true }}
         minZoom={0.3}
         maxZoom={2}
@@ -112,6 +114,7 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
         <Background gap={20} size={1} className="!bg-surface-primary" />
         <Controls
           showInteractive={false}
+          fitViewOptions={FIT_VIEW_OPTIONS}
           className="!bg-surface-secondary !border-border-default !shadow-sm [&_button]:!bg-surface-secondary [&_button]:!border-border-default [&_button]:!text-text-secondary [&_button:hover]:!bg-surface-hover"
         />
         <MiniMap

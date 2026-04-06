@@ -27,6 +27,7 @@ import type {
   ProqSettings,
   AgentBlock,
   CronJob,
+  Agent,
 } from "./types";
 import { slugify } from "./utils";
 
@@ -101,6 +102,7 @@ function ensureProjectDir(projectId: string): void {
   mkdirSync(path.join(dir, "reports"), { recursive: true });
   mkdirSync(path.join(dir, "logs"), { recursive: true });
   mkdirSync(path.join(dir, "attachments"), { recursive: true });
+  mkdirSync(path.join(dir, "agents"), { recursive: true });
 }
 
 export function projectAttachmentsDir(projectId: string): string {
@@ -391,7 +393,7 @@ export async function getTask(
 
 export async function createTask(
   projectId: string,
-  data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"]; mode?: Task["mode"] }
+  data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"]; mode?: Task["mode"]; agentId?: string }
 ): Promise<Task> {
   return withWriteLock(`workspace:${projectId}`, async () => {
     const now = new Date().toISOString();
@@ -402,6 +404,7 @@ export async function createTask(
       status: "todo",
       priority: data.priority,
       mode: data.mode,
+      agentId: data.agentId,
       createdAt: now,
       updatedAt: now,
     };
@@ -454,7 +457,7 @@ export async function moveTask(
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "sessionId" | "startCommit" | "commitHashes" | "cronJobId">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "summary" | "nextSteps" | "needsAttention" | "agentLog" | "agentStatus" | "attachments" | "mode" | "worktreePath" | "branch" | "baseBranch" | "mergeConflict" | "renderMode" | "sessionId" | "startCommit" | "commitHashes" | "cronJobId" | "agentId">>
 ): Promise<Task | null> {
   return withWriteLock(`task:${taskId}`, async () => {
     const task = readTaskFile(projectId, taskId);
@@ -841,6 +844,121 @@ export async function deleteCronJob(
     writeProjectSettings(projectId, settings);
     return true;
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENTS (per-file storage in agents/)
+// ═══════════════════════════════════════════════════════════
+
+function agentFilePath(projectId: string, agentId: string): string {
+  return path.join(projectDir(projectId), "agents", `${agentId}.json`);
+}
+
+function readAgentFile(projectId: string, agentId: string): Agent | null {
+  const fp = agentFilePath(projectId, agentId);
+  if (!fsExists(fp)) return null;
+  return readJSON<Agent | null>(fp, null);
+}
+
+function writeAgentFile(projectId: string, agent: Agent): void {
+  ensureProjectDir(projectId);
+  writeJSON(agentFilePath(projectId, agent.id), agent);
+}
+
+export async function getAllAgents(projectId: string): Promise<Agent[]> {
+  ensureProjectDir(projectId);
+  const dir = path.join(projectDir(projectId), "agents");
+  let files: string[];
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+  } catch {
+    return [];
+  }
+  const agents: Agent[] = [];
+  for (const f of files) {
+    const id = f.replace(/\.json$/, "");
+    const agent = readAgentFile(projectId, id);
+    if (agent) agents.push(agent);
+  }
+  agents.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return agents;
+}
+
+export async function getAgent(
+  projectId: string,
+  agentId: string
+): Promise<Agent | null> {
+  return readAgentFile(projectId, agentId);
+}
+
+/** Get or auto-create the Default agent for a project. */
+export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent> {
+  const agents = await getAllAgents(projectId);
+  if (agents.length > 0) return agents[0];
+
+  // Seed from project's current systemPrompt
+  const settings = getProjectSettings(projectId);
+  const now = new Date().toISOString();
+  const agent: Agent = {
+    id: uuidv7(),
+    name: "Default",
+    role: "General-purpose agent",
+    systemPrompt: settings.systemPrompt || "",
+    avatar: { color: "#3b82f6" }, // blue-500
+    position: { x: 250, y: 200 },
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeAgentFile(projectId, agent);
+  return agent;
+}
+
+export async function createAgent(
+  projectId: string,
+  data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "model" | "avatar" | "position">>
+): Promise<Agent> {
+  const now = new Date().toISOString();
+  const agent: Agent = {
+    id: uuidv7(),
+    name: data.name,
+    role: data.role,
+    systemPrompt: data.systemPrompt,
+    model: data.model,
+    avatar: data.avatar ?? { color: "#8b5cf6" }, // violet-500 default
+    position: data.position,
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeAgentFile(projectId, agent);
+  return agent;
+}
+
+export async function updateAgent(
+  projectId: string,
+  agentId: string,
+  data: Partial<Pick<Agent, "name" | "role" | "systemPrompt" | "model" | "avatar" | "position">>
+): Promise<Agent | null> {
+  return withWriteLock(`agent:${agentId}`, async () => {
+    const agent = readAgentFile(projectId, agentId);
+    if (!agent) return null;
+    Object.assign(agent, data, { updatedAt: new Date().toISOString() });
+    writeAgentFile(projectId, agent);
+    return agent;
+  });
+}
+
+export async function deleteAgent(
+  projectId: string,
+  agentId: string
+): Promise<boolean> {
+  const fp = agentFilePath(projectId, agentId);
+  try {
+    if (fsExists(fp)) {
+      unlinkSync(fp);
+      return true;
+    }
+  } catch { /* best effort */ }
+  return false;
 }
 
 // ═══════════════════════════════════════════════════════════

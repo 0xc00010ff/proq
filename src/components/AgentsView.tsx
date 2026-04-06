@@ -81,7 +81,7 @@ export function AgentsView({ projectId, tasks, onSpawnChat }: AgentsViewProps) {
   }, []);
 
   return (
-    <div className="flex-1 relative">
+    <div className="absolute inset-0">
       {/* Floating action button */}
       <div className="absolute top-4 right-4 z-10">
         <button

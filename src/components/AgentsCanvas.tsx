@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -39,23 +39,22 @@ function agentsToNodes(agents: Agent[], runningCounts: Record<string, number>): 
 }
 
 export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNodeClick }: AgentsCanvasProps) {
-  const initialNodes = useMemo(
-    () => agentsToNodes(agents, runningTaskCounts),
-    // Only rebuild when agent list identity changes, not on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agents.map((a) => a.id).join(',')],
-  );
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<AgentNodeData>>([]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  // Sync nodes with agents — add new, remove deleted, update data, preserve positions
+  useEffect(() => {
+    setNodes((prev) => {
+      const prevById = new Map(prev.map((n) => [n.id, n]));
+      const agentIds = new Set(agents.map((a) => a.id));
 
-  // Keep node data in sync with agent props (running counts etc.)
-  useMemo(() => {
-    setNodes((prev) =>
-      prev.map((n) => {
-        const agent = agents.find((a) => a.id === n.id);
-        if (!agent) return n;
+      // Build updated node list preserving drag positions for existing nodes
+      const updated = agents.map((agent, i) => {
+        const existing = prevById.get(agent.id);
         return {
-          ...n,
+          id: agent.id,
+          type: 'agent' as const,
+          // Preserve current position if node was already on canvas (user may have dragged it)
+          position: existing?.position ?? agent.position ?? { x: 100 + i * 220, y: 100 },
           data: {
             label: agent.name,
             role: agent.role,
@@ -63,10 +62,19 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
             runningCount: runningTaskCounts[agent.id] || 0,
           },
         };
-      }),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agents, runningTaskCounts]);
+      });
+
+      // Only return new array if something actually changed
+      if (updated.length === prev.length && updated.every((n, idx) => {
+        const p = prev[idx];
+        return p.id === n.id && p.data.label === n.data.label && p.data.runningCount === n.data.runningCount;
+      })) {
+        return prev;
+      }
+
+      return updated;
+    });
+  }, [agents, runningTaskCounts, setNodes]);
 
   // Debounced position save
   const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());

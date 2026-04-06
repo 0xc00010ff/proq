@@ -3,10 +3,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useShortcut } from '@/hooks/useShortcut';
-import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
+import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon, ChevronDownIcon, CheckIcon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useAgents } from '@/hooks/useAgents';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface TaskDraftProps {
   projectId: string;
@@ -347,18 +353,27 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
               ))}
             </div>
             {agents.length > 1 && (
-              <select
-                value={agentId || ''}
-                onChange={(e) => handleAgentChange(e.target.value || undefined)}
-                className="appearance-none bg-surface-hover/40 border border-border-default rounded-md px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-border-strong cursor-pointer"
-              >
-                <option value="">Default agent</option>
-                {agents.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1.5 bg-surface-hover/40 border border-border-default rounded-md px-2.5 py-1 text-xs font-medium text-text-chrome hover:text-text-chrome-active hover:border-border-hover cursor-pointer">
+                    {agents.find((a) => a.id === agentId)?.name || 'Default'}
+                    <ChevronDownIcon className="w-3 h-3 text-text-tertiary" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {agents.map((a) => (
+                    <DropdownMenuItem
+                      key={a.id}
+                      onClick={() => handleAgentChange(a.id)}
+                      className="text-xs gap-2"
+                    >
+                      {agentId === a.id && <CheckIcon className="w-3 h-3" />}
+                      {agentId !== a.id && <span className="w-3" />}
+                      {a.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 

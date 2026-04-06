@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 import {
   existsSync as fsExists,
   mkdirSync,
@@ -396,7 +396,7 @@ export async function createTask(
   return withWriteLock(`workspace:${projectId}`, async () => {
     const now = new Date().toISOString();
     const task: Task = {
-      id: uuidv4(),
+      id: uuidv7(),
       title: data.title || "",
       description: data.description,
       status: "todo",
@@ -797,7 +797,7 @@ export async function createCronJob(
     const settings = getProjectSettings(projectId);
     if (!settings.cronJobs) settings.cronJobs = [];
     const job: CronJob = {
-      id: uuidv4(),
+      id: uuidv7(),
       name: data.name,
       prompt: data.prompt,
       schedule: data.schedule,

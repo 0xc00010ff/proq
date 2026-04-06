@@ -23,7 +23,7 @@ interface AgentsCanvasProps {
 }
 
 const nodeTypes = { agent: AgentNode };
-const FIT_VIEW_OPTIONS = { padding: 0.4, maxZoom: 1.1 };
+const FIT_VIEW_OPTIONS = { padding: 0.35, maxZoom: 1.25 };
 
 export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNodeClick }: AgentsCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<AgentNodeData>>([]);

@@ -5,7 +5,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   type Node,
   type NodeChange,
@@ -116,11 +115,6 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
           showInteractive={false}
           fitViewOptions={FIT_VIEW_OPTIONS}
           className="!bg-surface-secondary !border-border-default !shadow-sm [&_button]:!bg-surface-secondary [&_button]:!border-border-default [&_button]:!text-text-secondary [&_button:hover]:!bg-surface-hover"
-        />
-        <MiniMap
-          className="!bg-surface-secondary !border-border-default"
-          nodeColor={() => 'rgb(178, 140, 82)'}
-          maskColor="rgba(0, 0, 0, 0.2)"
         />
       </ReactFlow>
     </div>

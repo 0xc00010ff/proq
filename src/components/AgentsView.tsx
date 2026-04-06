@@ -53,6 +53,7 @@ export function AgentsView({ projectId, tasks, onSpawnChat }: AgentsViewProps) {
     if (res.ok) {
       const updated = await res.json();
       setAgents((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      setEditingAgent(updated);
     }
   }, [projectId, editingAgent, setAgents]);
 

@@ -942,7 +942,11 @@ export async function updateAgent(
   return withWriteLock(`agent:${agentId}`, async () => {
     const agent = readAgentFile(projectId, agentId);
     if (!agent) return null;
-    Object.assign(agent, data, { updatedAt: new Date().toISOString() });
+    // Use explicit key iteration so undefined values clear fields (Object.assign skips them)
+    for (const key of Object.keys(data) as (keyof typeof data)[]) {
+      (agent as unknown as Record<string, unknown>)[key] = data[key];
+    }
+    agent.updatedAt = new Date().toISOString();
     writeAgentFile(projectId, agent);
     return agent;
   });

@@ -303,12 +303,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
 
       <div className="flex-1 flex justify-center min-w-0">
         <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default">
-          {tabs.map((tab) => {
+          {tabs.map((tab, i) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
+                title={`${tab.label} view \u2318${i + 1}`}
                 className={`relative px-3.5 py-1 text-xs font-medium rounded-md z-10 ${
                   isActive ? 'text-text-chrome-active' : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
                 }`}

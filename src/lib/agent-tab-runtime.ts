@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { mkdirSync, writeFileSync } from "fs";
 import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
-import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject } from "./db";
+import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject, getAgent } from "./db";
 import { getClaudeBin } from "./claude-bin";
 import { escapePrompt } from "./utils";
 import type WebSocket from "ws";
@@ -14,6 +14,7 @@ export interface AgentTabSession {
   projectId: string;
   sessionId?: string;
   mode?: TaskMode;
+  agentId?: string;
   queryHandle: ChildProcess | null;
   blocks: AgentBlock[];
   clients: Set<WebSocket>;
@@ -296,10 +297,11 @@ function writeWorkbenchMcpConfig(projectId: string, tabId: string): string {
 
 // ── Public API ──
 
-function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, settings?: { systemPromptAdditions?: string }, project?: { systemPrompt?: string } | null): string {
+function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, settings?: { systemPromptAdditions?: string }, project?: { systemPrompt?: string } | null, agentPrompt?: string): string {
   const systemParts: string[] = [];
   if (settings?.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
   if (project?.systemPrompt) systemParts.push(project.systemPrompt);
+  if (agentPrompt) systemParts.push(agentPrompt);
 
   let modeGuidance = "";
   if (mode === "plan") {
@@ -339,6 +341,7 @@ export async function startAgentTabSession(
   cwd: string,
   attachments?: TaskAttachment[],
   mode?: TaskMode,
+  agentId?: string,
 ): Promise<void> {
   const existing = sessions.get(tabId);
   if (existing?.status === "running") {
@@ -349,6 +352,7 @@ export async function startAgentTabSession(
     tabId,
     projectId,
     mode,
+    agentId,
     queryHandle: null,
     blocks: [],
     clients: new Set(),
@@ -360,7 +364,11 @@ export async function startAgentTabSession(
   const project = await getProject(projectId);
   const projectName = project?.name || "project";
 
-  appendBlock(session, { type: "status", subtype: "init", model: settings.defaultModel || undefined, timestamp: new Date().toISOString() });
+  // Look up agent for prompt/model overrides
+  const agentDef = agentId ? await getAgent(projectId, agentId) : null;
+  const effectiveModel = agentDef?.model || settings.defaultModel || "";
+
+  appendBlock(session, { type: "status", subtype: "init", model: effectiveModel || undefined, timestamp: new Date().toISOString() });
   appendBlock(session, { type: "user", text, attachments: attachments?.length ? attachments : undefined });
 
   // Append file attachment paths to prompt
@@ -397,11 +405,11 @@ export async function startAgentTabSession(
     args.push("--dangerously-skip-permissions");
   }
 
-  if (settings.defaultModel) {
-    args.push("--model", settings.defaultModel);
+  if (effectiveModel) {
+    args.push("--model", effectiveModel);
   }
 
-  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, mode, settings, project));
+  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, mode, settings, project, agentDef?.systemPrompt));
 
   const claudeBin = await getClaudeBin();
   const proc = spawn(claudeBin, args, {
@@ -503,11 +511,14 @@ export async function continueAgentTabSession(
     args.push("--dangerously-skip-permissions");
   }
 
-  if (settings.defaultModel) {
-    args.push("--model", settings.defaultModel);
+  // Look up agent for model/prompt overrides
+  const agentDef = session.agentId ? await getAgent(projectId, session.agentId) : null;
+  const effectiveModel = agentDef?.model || settings.defaultModel || "";
+  if (effectiveModel) {
+    args.push("--model", effectiveModel);
   }
 
-  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, session.mode, settings, project));
+  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, session.mode, settings, project, agentDef?.systemPrompt));
 
   const claudeBin = await getClaudeBin();
   const proc = spawn(claudeBin, args, {

@@ -198,6 +198,7 @@ async function fireCronJob(projectId: string, projectName: string, job: CronJob)
     title: `[cron] ${job.name}`,
     description: job.prompt,
     mode: job.mode ?? "auto",
+    agentId: job.agentId,
   });
 
   // Tag with cronJobId

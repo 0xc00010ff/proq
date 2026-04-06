@@ -262,11 +262,13 @@ export async function startSession(
 
   const settings = await getSettings();
 
+  const effectiveModel = options?.model || settings.defaultModel || undefined;
+
   // Emit init status
   appendBlock(session, {
     type: "status",
     subtype: "init",
-    model: settings.defaultModel || undefined,
+    model: effectiveModel,
     timestamp: new Date().toISOString(),
   });
 
@@ -297,8 +299,8 @@ export async function startSession(
     args.push("--dangerously-skip-permissions");
   }
 
-  if (settings.defaultModel) {
-    args.push("--model", settings.defaultModel);
+  if (effectiveModel) {
+    args.push("--model", effectiveModel);
   }
 
   // Append system prompt (caller provides combined global + project + proq prompt)

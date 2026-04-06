@@ -111,7 +111,7 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
         minZoom={0.3}
         maxZoom={2}
       >
-        <Background gap={16} size={1} className="!bg-surface-primary" />
+        <Background gap={16} size={1} className="!bg-surface-topbar" />
         <Controls
           showInteractive={false}
           fitViewOptions={FIT_VIEW_OPTIONS}

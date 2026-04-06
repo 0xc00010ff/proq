@@ -156,6 +156,9 @@ export interface ProqSettings {
   codingAgent: string;
   allowAgentInterrupts: boolean;
 
+  // Experimental
+  enableAgentDesigner: boolean;
+
   // Updates
   autoUpdate: boolean;
 

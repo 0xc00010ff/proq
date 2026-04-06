@@ -982,6 +982,9 @@ const DEFAULT_SETTINGS: ProqSettings = {
   codingAgent: "claude-code",
   allowAgentInterrupts: false,
 
+  // Experimental
+  enableAgentDesigner: false,
+
   // Updates
   autoUpdate: true,
 

@@ -47,9 +47,10 @@ interface TopBarProps {
   onCreateBranch?: (name: string) => Promise<void>;
   sidebarCollapsed?: boolean;
   onExpandSidebar?: () => void;
+  showAgentsTab?: boolean;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, sidebarCollapsed, onExpandSidebar }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, sidebarCollapsed, onExpandSidebar, showAgentsTab }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -192,7 +193,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   }, [branchPopoverOpen]);
 
   const tabs: { id: TabOption; label: string }[] = [
-    { id: 'agents', label: 'Agents' },
+    ...(showAgentsTab ? [{ id: 'agents' as TabOption, label: 'Agents' }] : []),
     { id: 'project', label: 'Project' },
     { id: 'live', label: 'Live' },
     { id: 'code', label: 'Code' },

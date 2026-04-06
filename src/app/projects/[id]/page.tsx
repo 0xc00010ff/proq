@@ -36,6 +36,7 @@ export default function ProjectPage() {
 
   const { agentMap } = useAgents(projectId);
 
+  const [enableAgentDesigner, setEnableAgentDesigner] = useState(false);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
@@ -144,6 +145,13 @@ export default function ProjectPage() {
     fetchBranchState();
     refreshDetachedHead();
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState, refreshDetachedHead]);
+
+  // Fetch settings flag once on mount
+  useEffect(() => {
+    fetch('/api/settings').then(r => r.json()).then(s => {
+      setEnableAgentDesigner(!!s.enableAgentDesigner);
+    }).catch(() => {});
+  }, []);
 
   // Fetch tasks, execution mode, and branch state on project load / switch
   useEffect(() => {
@@ -657,19 +665,21 @@ export default function ProjectPage() {
   }, [projectId, setProjects, setTab]);
 
   // Cmd+Option+Left/Right to cycle tabs, Cmd+1/2/3/4 to jump directly
-  const tabOrder: TabOption[] = ['agents', 'project', 'live', 'code'];
+  const tabOrder: TabOption[] = enableAgentDesigner
+    ? ['agents', 'project', 'live', 'code']
+    : ['project', 'live', 'code'];
   useShortcut('tab-prev', useCallback(() => {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]);
-  }, [activeTab, handleTabChange]));
+  }, [activeTab, handleTabChange, tabOrder]));
   useShortcut('tab-next', useCallback(() => {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
-  }, [activeTab, handleTabChange]));
-  useShortcut('tab-1', useCallback(() => handleTabChange('agents'), [handleTabChange]));
-  useShortcut('tab-2', useCallback(() => handleTabChange('project'), [handleTabChange]));
-  useShortcut('tab-3', useCallback(() => handleTabChange('live'), [handleTabChange]));
-  useShortcut('tab-4', useCallback(() => handleTabChange('code'), [handleTabChange]));
+  }, [activeTab, handleTabChange, tabOrder]));
+  useShortcut('tab-1', useCallback(() => handleTabChange(tabOrder[0]), [handleTabChange, tabOrder]));
+  useShortcut('tab-2', useCallback(() => handleTabChange(tabOrder[1]), [handleTabChange, tabOrder]));
+  useShortcut('tab-3', useCallback(() => { if (tabOrder[2]) handleTabChange(tabOrder[2]); }, [handleTabChange, tabOrder]));
+  useShortcut('tab-4', useCallback(() => { if (tabOrder[3]) handleTabChange(tabOrder[3]); }, [handleTabChange, tabOrder]));
   useShortcut('toggle-workbench', useCallback(() => {
     workbenchRef.current?.toggle();
   }, []));
@@ -724,6 +734,7 @@ export default function ProjectPage() {
         onCreateBranch={handleCreateBranch}
         sidebarCollapsed={sidebarCollapsed}
         onExpandSidebar={expandSidebar}
+        showAgentsTab={enableAgentDesigner}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">

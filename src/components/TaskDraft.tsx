@@ -355,7 +355,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
             {agents.length > 1 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 bg-surface-hover/40 border border-border-default rounded-md px-3 py-[7px] text-xs font-medium text-text-chrome hover:text-text-chrome-active hover:border-border-hover cursor-pointer">
+                  <button className="flex items-center gap-1.5 bg-surface-hover/40 border border-border-default rounded-md px-3 py-[5px] text-xs font-medium text-text-chrome hover:text-bronze-600 dark:hover:text-bronze-500 cursor-pointer [&:hover>svg]:text-bronze-600 dark:[&:hover>svg]:text-bronze-500">
                     {agents.find((a) => a.id === agentId)?.name || 'Default'}
                     <ChevronDownIcon className="w-3 h-3 text-text-tertiary" />
                   </button>

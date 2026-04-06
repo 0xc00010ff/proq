@@ -24,20 +24,6 @@ interface AgentsCanvasProps {
 
 const nodeTypes = { agent: AgentNode };
 
-function agentsToNodes(agents: Agent[], runningCounts: Record<string, number>): Node<AgentNodeData>[] {
-  return agents.map((agent, i) => ({
-    id: agent.id,
-    type: 'agent' as const,
-    position: agent.position ?? { x: 100 + i * 220, y: 100 },
-    data: {
-      label: agent.name,
-      role: agent.role,
-      color: agent.avatar?.color || '#8b5cf6',
-      runningCount: runningCounts[agent.id] || 0,
-    },
-  }));
-}
-
 export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNodeClick }: AgentsCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<AgentNodeData>>([]);
 
@@ -58,7 +44,6 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
           data: {
             label: agent.name,
             role: agent.role,
-            color: agent.avatar?.color || '#8b5cf6',
             runningCount: runningTaskCounts[agent.id] || 0,
           },
         };
@@ -131,10 +116,7 @@ export function AgentsCanvas({ agents, runningTaskCounts, onPositionChange, onNo
         />
         <MiniMap
           className="!bg-surface-secondary !border-border-default"
-          nodeColor={(n) => {
-            const data = n.data as AgentNodeData;
-            return data.color || '#8b5cf6';
-          }}
+          nodeColor={() => 'rgb(178, 140, 82)'}
           maskColor="rgba(0, 0, 0, 0.2)"
         />
       </ReactFlow>

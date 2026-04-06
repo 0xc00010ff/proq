@@ -106,6 +106,7 @@ export function AgentsView({ projectId, tasks, onSpawnChat }: AgentsViewProps) {
 
       <AgentEditModal
         isOpen={showModal}
+        projectId={projectId}
         agent={editingAgent}
         onClose={() => {
           setShowModal(false);

@@ -195,6 +195,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     { id: 'project', label: 'Project' },
     { id: 'live', label: 'Live' },
     { id: 'code', label: 'Code' },
+    { id: 'agents', label: 'Agents' },
   ];
 
   const isOnPreviewBranch = currentBranch?.startsWith('proq/') ?? false;

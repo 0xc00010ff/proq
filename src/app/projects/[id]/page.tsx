@@ -15,6 +15,7 @@ import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
 import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CronJobsModal } from '@/components/CronJobsModal';
+import { AgentsView } from '@/components/AgentsView';
 import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyTasks } from '@/components/ProjectsProvider';
@@ -791,6 +792,7 @@ export default function ProjectPage() {
             />
           )}
           {activeTab === 'code' && project && <CodeTab project={project} />}
+          {activeTab === 'agents' && project && <AgentsView projectId={projectId} />}
         </div>
 
         <WorkbenchPanel

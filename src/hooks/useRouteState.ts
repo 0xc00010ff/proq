@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { ProjectTab } from '@/lib/types';
 
-const VALID_TABS = new Set<ProjectTab>(['project', 'live', 'code']);
+const VALID_TABS = new Set<ProjectTab>(['project', 'live', 'code', 'agents']);
 
 /**
  * Syncs active tab and open task with URL search params.

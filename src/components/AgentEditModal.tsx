@@ -26,7 +26,6 @@ export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDe
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [model, setModel] = useState('');
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -38,13 +37,11 @@ export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDe
         setName(agent.name);
         setRole(agent.role || '');
         setSystemPrompt(agent.systemPrompt || '');
-        setModel(agent.model || '');
         setEditing(false);
       } else {
         setName('');
         setRole('');
         setSystemPrompt('');
-        setModel('');
         setEditing(true);
         setTimeout(() => nameRef.current?.focus(), 50);
       }
@@ -83,14 +80,13 @@ export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDe
       name: name.trim(),
       role: role.trim() || undefined,
       systemPrompt: systemPrompt.trim() || undefined,
-      model: model.trim() || undefined,
     });
     if (isNew) {
       onClose();
     } else {
       setEditing(false);
     }
-  }, [name, role, systemPrompt, model, isNew, onSave, onClose]);
+  }, [name, role, systemPrompt, isNew, onSave, onClose]);
 
   useEscapeKey(() => {
     if (editing && !isNew) {
@@ -196,17 +192,6 @@ export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDe
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Model override</label>
-                  <input
-                    type="text"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    placeholder="Leave empty for default"
-                    className="w-full bg-surface-secondary border border-border-default rounded-md px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-border-strong"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-xs font-medium text-text-secondary mb-1.5">System prompt</label>
                   <textarea
                     value={systemPrompt}
@@ -258,9 +243,6 @@ export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDe
                     <div className="text-sm font-semibold text-text-primary">{agent?.name}</div>
                     {agent?.role && (
                       <div className="text-xs text-text-tertiary mt-0.5">{agent.role}</div>
-                    )}
-                    {agent?.model && (
-                      <div className="text-[11px] font-mono text-text-tertiary mt-1">{agent.model}</div>
                     )}
                   </div>
                 </div>

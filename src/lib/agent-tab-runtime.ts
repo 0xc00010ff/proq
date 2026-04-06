@@ -366,7 +366,7 @@ export async function startAgentTabSession(
 
   // Look up agent for prompt/model overrides
   const agentDef = agentId ? await getAgent(projectId, agentId) : null;
-  const effectiveModel = agentDef?.model || settings.defaultModel || "";
+  const effectiveModel = settings.defaultModel || "";
 
   appendBlock(session, { type: "status", subtype: "init", model: effectiveModel || undefined, timestamp: new Date().toISOString() });
   appendBlock(session, { type: "user", text, attachments: attachments?.length ? attachments : undefined });
@@ -513,7 +513,7 @@ export async function continueAgentTabSession(
 
   // Look up agent for model/prompt overrides
   const agentDef = session.agentId ? await getAgent(projectId, session.agentId) : null;
-  const effectiveModel = agentDef?.model || settings.defaultModel || "";
+  const effectiveModel = settings.defaultModel || "";
   if (effectiveModel) {
     args.push("--model", effectiveModel);
   }

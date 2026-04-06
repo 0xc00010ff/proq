@@ -207,7 +207,6 @@ export interface Agent {
   name: string;         // "Default", "Chief Research Officer"
   role?: string;        // short purpose statement
   systemPrompt?: string;
-  model?: string;       // override default model
   avatar?: { color: string; icon?: string };
   position?: { x: number; y: number }; // React Flow canvas position
   createdAt: string;

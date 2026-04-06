@@ -31,11 +31,11 @@ export async function POST(request: Request, { params }: Params) {
   const body = await safeParseBody(request);
   if (body instanceof NextResponse) return body;
 
-  const { name, role, systemPrompt, model, avatar, position } = body;
+  const { name, role, systemPrompt, avatar, position } = body;
   if (!name) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
 
-  const agent = await createAgent(id, { name, role, systemPrompt, model, avatar, position });
+  const agent = await createAgent(id, { name, role, systemPrompt, avatar, position });
   return NextResponse.json(agent, { status: 201 });
 }

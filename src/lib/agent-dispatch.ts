@@ -353,7 +353,7 @@ export async function dispatchTask(
   const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, { isCronTask });
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
-  // Look up the assigned agent (if any) for prompt/model overrides
+  // Look up the assigned agent (if any) for prompt overrides
   const agentDef = currentTask?.agentId
     ? await getAgent(projectId, currentTask.agentId)
     : null;
@@ -366,9 +366,6 @@ export async function dispatchTask(
   if (agentDef?.systemPrompt) systemPromptParts.push(agentDef.systemPrompt);
   systemPromptParts.push(proqSystemPrompt);
   const combinedSystemPrompt = systemPromptParts.join("\n\n");
-
-  // Model fallback: agent.model → settings.defaultModel → CLI default
-  const effectiveModel = agentDef?.model || settings.defaultModel || "";
 
   // ── CLI mode: dispatch via bridge process ──
   if (renderMode === "cli") {
@@ -388,7 +385,7 @@ export async function dispatchTask(
     writeFileSync(promptFile, prompt, "utf-8");
     writeFileSync(systemPromptFile, combinedSystemPrompt, "utf-8");
     const claudeBin = await getClaudeBin();
-    const modelFlag = effectiveModel ? ` --model '${effectiveModel}'` : "";
+    const modelFlag = settings.defaultModel ? ` --model '${settings.defaultModel}'` : "";
     writeFileSync(
       launcherFile,
       `#!/bin/bash\nexec env -u CLAUDECODE -u PORT '${claudeBin}' ${cliPermFlag}${modelFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
@@ -440,7 +437,7 @@ export async function dispatchTask(
       proqSystemPrompt: combinedSystemPrompt,
       mcpConfig: mcpConfigPath,
       permissionMode,
-      model: effectiveModel || undefined,
+      model: settings.defaultModel || undefined,
     });
     console.log(
       `[agent-dispatch] launched agent session for task ${taskId}`,

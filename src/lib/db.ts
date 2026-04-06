@@ -916,7 +916,7 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
 
 export async function createAgent(
   projectId: string,
-  data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "model" | "avatar" | "position">>
+  data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent> {
   const now = new Date().toISOString();
   const agent: Agent = {
@@ -924,7 +924,6 @@ export async function createAgent(
     name: data.name,
     role: data.role,
     systemPrompt: data.systemPrompt,
-    model: data.model,
     avatar: data.avatar ?? { color: "#8b5cf6" }, // violet-500 default
     position: data.position,
     createdAt: now,
@@ -937,7 +936,7 @@ export async function createAgent(
 export async function updateAgent(
   projectId: string,
   agentId: string,
-  data: Partial<Pick<Agent, "name" | "role" | "systemPrompt" | "model" | "avatar" | "position">>
+  data: Partial<Pick<Agent, "name" | "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent | null> {
   return withWriteLock(`agent:${agentId}`, async () => {
     const agent = readAgentFile(projectId, agentId);

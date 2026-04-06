@@ -792,7 +792,7 @@ export default function ProjectPage() {
             />
           )}
           {activeTab === 'code' && project && <CodeTab project={project} />}
-          {activeTab === 'agents' && project && <AgentsView projectId={projectId} />}
+          {activeTab === 'agents' && project && <AgentsView projectId={projectId} tasks={columns} />}
         </div>
 
         <WorkbenchPanel

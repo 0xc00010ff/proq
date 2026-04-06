@@ -656,8 +656,8 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, [projectId, setProjects, setTab]);
 
-  // Cmd+Option+Left/Right to switch Project/Live/Code tabs (like Chrome)
-  const tabOrder: TabOption[] = ['project', 'live', 'code'];
+  // Cmd+Option+Left/Right to cycle tabs, Cmd+1/2/3/4 to jump directly
+  const tabOrder: TabOption[] = ['agents', 'project', 'live', 'code'];
   useShortcut('tab-prev', useCallback(() => {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]);
@@ -666,6 +666,10 @@ export default function ProjectPage() {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
   }, [activeTab, handleTabChange]));
+  useShortcut('tab-1', useCallback(() => handleTabChange('agents'), [handleTabChange]));
+  useShortcut('tab-2', useCallback(() => handleTabChange('project'), [handleTabChange]));
+  useShortcut('tab-3', useCallback(() => handleTabChange('live'), [handleTabChange]));
+  useShortcut('tab-4', useCallback(() => handleTabChange('code'), [handleTabChange]));
   useShortcut('toggle-workbench', useCallback(() => {
     workbenchRef.current?.toggle();
   }, []));

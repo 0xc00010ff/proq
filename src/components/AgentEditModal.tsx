@@ -10,6 +10,7 @@ interface AgentEditModalProps {
   onClose: () => void;
   onSave: (data: Partial<Agent> & { name: string }) => void;
   onDelete?: () => void;
+  onSpawnChat?: () => void;
 }
 
 const AVATAR_COLORS = [
@@ -23,7 +24,7 @@ const AVATAR_COLORS = [
   '#f97316', // orange-500
 ];
 
-export function AgentEditModal({ isOpen, agent, onClose, onSave, onDelete }: AgentEditModalProps) {
+export function AgentEditModal({ isOpen, agent, onClose, onSave, onDelete, onSpawnChat }: AgentEditModalProps) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -135,7 +136,7 @@ export function AgentEditModal({ isOpen, agent, onClose, onSave, onDelete }: Age
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-2">
-          <div>
+          <div className="flex items-center gap-3">
             {agent && onDelete && (
               <button
                 onClick={() => {
@@ -145,6 +146,17 @@ export function AgentEditModal({ isOpen, agent, onClose, onSave, onDelete }: Age
                 className="text-xs text-red-400 hover:text-red-300"
               >
                 Delete agent
+              </button>
+            )}
+            {agent && onSpawnChat && (
+              <button
+                onClick={() => {
+                  onSpawnChat();
+                  onClose();
+                }}
+                className="text-xs text-lazuli hover:text-blue-300"
+              >
+                Spawn Chat
               </button>
             )}
           </div>

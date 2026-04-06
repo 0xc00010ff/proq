@@ -20,11 +20,12 @@ export function setAgentDraft(tabId: string, text: string) {
 interface AgentTabPaneProps {
   tabId: string;
   projectId: string;
+  agentId?: string;
   visible: boolean;
 }
 
-export function AgentTabPane({ tabId, projectId, visible }: AgentTabPaneProps) {
-  const { blocks, streamingText, sessionDone, loaded, sendMessage, sendInterrupt, approvePlan, stop, clear } = useAgentTabSession(tabId, projectId);
+export function AgentTabPane({ tabId, projectId, agentId, visible }: AgentTabPaneProps) {
+  const { blocks, streamingText, sessionDone, loaded, sendMessage, sendInterrupt, approvePlan, stop, clear } = useAgentTabSession(tabId, projectId, agentId);
 
   const inputRef = useRef<AgentInputBarHandle>(null);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);

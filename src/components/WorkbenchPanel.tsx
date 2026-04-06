@@ -46,6 +46,7 @@ export interface WorkbenchTab {
   id: string;
   label: string;
   type: WorkbenchTabType;
+  agentId?: string;
 }
 
 interface AddTabOptions {
@@ -53,6 +54,8 @@ interface AddTabOptions {
   initialInput?: string;
   /** If true, activate an existing tab of this type instead of creating a new one (default: false) */
   reuse?: boolean;
+  /** Agent ID to associate with this agent tab */
+  agentId?: string;
 }
 
 export interface WorkbenchPanelHandle {
@@ -439,10 +442,10 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   }, [projectPath]);
 
   const addAgentTab = useCallback((opts?: AddTabOptions) => {
-    const { initialInput, reuse } = opts ?? {};
+    const { initialInput, reuse, agentId } = opts ?? {};
     const currentTabs = tabsRef.current;
 
-    if (reuse) {
+    if (reuse && !agentId) {
       const existing = currentTabs.find((t) => t.type === 'agent');
       if (existing) {
         if (initialInput) setAgentDraft(existing.id, initialInput);
@@ -454,7 +457,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = currentTabs.filter((t) => t.type === 'agent').length + 1;
     if (initialInput) setAgentDraft(id, initialInput);
-    dispatch({ type: 'open', tab: { id, label: `Agent ${agentCount}`, type: 'agent' } });
+    dispatch({ type: 'open', tab: { id, label: `Agent ${agentCount}`, type: 'agent', agentId } });
   }, []);
 
   useImperativeHandle(ref, () => ({ addShellTab, addAgentTab, expand: expandPanel, toggle: toggleCollapsed }), [addShellTab, addAgentTab, expandPanel, toggleCollapsed]);
@@ -596,7 +599,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           ) : (
             tabs.map((tab) =>
               tab.type === 'agent' ? (
-                <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} visible={activeTabId === tab.id} />
+                <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} agentId={tab.agentId} visible={activeTabId === tab.id} />
               ) : (
                 <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
               )

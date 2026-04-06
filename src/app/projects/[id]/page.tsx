@@ -792,7 +792,16 @@ export default function ProjectPage() {
             />
           )}
           {activeTab === 'code' && project && <CodeTab project={project} />}
-          {activeTab === 'agents' && project && <AgentsView projectId={projectId} tasks={columns} />}
+          {activeTab === 'agents' && project && (
+            <AgentsView
+              projectId={projectId}
+              tasks={columns}
+              onSpawnChat={(agentId) => {
+                workbenchRef.current?.addAgentTab({ agentId });
+                workbenchRef.current?.expand();
+              }}
+            />
+          )}
         </div>
 
         <WorkbenchPanel

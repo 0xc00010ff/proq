@@ -17,6 +17,7 @@ export async function attachAgentTabWs(
   tabId: string,
   projectId: string,
   ws: WebSocket,
+  agentId?: string,
 ): Promise<void> {
   const session = getAgentTabSession(tabId);
 
@@ -57,7 +58,7 @@ export async function attachAgentTabWs(
             if (stored?.sessionId) {
               await continueAgentTabSession(tabId, projectId, msg.text, cwd, ws, msg.attachments, { mode });
             } else {
-              await startAgentTabSession(tabId, projectId, msg.text, cwd, msg.attachments, mode as import("./types").TaskMode | undefined);
+              await startAgentTabSession(tabId, projectId, msg.text, cwd, msg.attachments, mode as import("./types").TaskMode | undefined, agentId);
               const newSession = getAgentTabSession(tabId);
               if (newSession) {
                 attachAgentTabClient(tabId, ws);

@@ -10,7 +10,7 @@ import {
   AlertTriangleIcon,
   TimerIcon,
 } from 'lucide-react';
-import type { Task } from '@/lib/types';
+import type { Task, Agent } from '@/lib/types';
 
 interface TaskCardProps {
   task: Task;
@@ -18,12 +18,13 @@ interface TaskCardProps {
   isQueued?: boolean;
   isPreviewActive?: boolean;
   columnStatus?: string;
+  agentMap?: Map<string, Agent>;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
   onUpdateTitle?: (taskId: string, title: string) => void;
 }
 
-export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, columnStatus, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
+export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, columnStatus, agentMap, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const isRunning = task.agentStatus === 'running';
   const isStarting = task.agentStatus === 'starting';
   const isActive = isRunning || isStarting;
@@ -193,6 +194,13 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
             <span />
           )}
           <span className="flex items-center gap-1.5 text-[10px] text-text-tertiary font-mono">
+            {task.agentId && agentMap?.get(task.agentId) && (
+              <span
+                className="inline-block w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: agentMap.get(task.agentId)!.avatar?.color || '#8b5cf6' }}
+                title={agentMap.get(task.agentId)!.name}
+              />
+            )}
             {isCron && <TimerIcon className="w-3 h-3 text-text-chrome" />}
             {task.id.slice(0, 8)}
           </span>

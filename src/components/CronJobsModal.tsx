@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from '@/components/Modal';
 import type { CronJob, TaskMode } from '@/lib/types';
+import { useAgents } from '@/hooks/useAgents';
 import {
   PlusIcon,
   PlayIcon,
@@ -165,9 +166,10 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null); // job id or 'new'
-  const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true });
+  const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true, agentId: undefined as string | undefined });
   const [schedState, setSchedState] = useState<ScheduleState>({ frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] });
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
+  const { agents } = useAgents(projectId);
   const modalRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -213,7 +215,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   }, [isOpen, projectId]);
 
   const resetForm = () => {
-    setForm({ name: '', prompt: '', schedule: '', mode: 'auto', enabled: true });
+    setForm({ name: '', prompt: '', schedule: '', mode: 'auto', enabled: true, agentId: undefined });
     setEditing(null);
     setModalSize(null);
   };
@@ -279,14 +281,14 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
 
   const startEdit = (job: CronJob) => {
     setEditing(job.id);
-    setForm({ name: job.name, prompt: job.prompt, schedule: job.schedule, mode: job.mode ?? 'auto', enabled: job.enabled });
+    setForm({ name: job.name, prompt: job.prompt, schedule: job.schedule, mode: job.mode ?? 'auto', enabled: job.enabled, agentId: job.agentId });
     setSchedState(parseScheduleState(job.schedule));
   };
 
   const startNew = () => {
     const defaultSched: ScheduleState = { frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] };
     setEditing('new');
-    setForm({ name: '', prompt: '', schedule: scheduleToString(defaultSched), mode: 'auto', enabled: true });
+    setForm({ name: '', prompt: '', schedule: scheduleToString(defaultSched), mode: 'auto', enabled: true, agentId: undefined });
     setSchedState(defaultSched);
     setTimeout(() => nameRef.current?.focus(), 50);
   };
@@ -436,27 +438,43 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
         {/* ── Edit / Create form ── */}
         {editing && (
           <div className="flex flex-col flex-1 min-h-0">
-            {/* Mode selector — pill style matching TaskDraft */}
-            <div className="bg-surface-secondary/60 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-4">
-              {MODES.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setForm((f) => ({ ...f, mode: value }))}
-                  className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
-                    form.mode === value
-                      ? 'text-text-chrome-active'
-                      : 'text-text-tertiary hover:text-text-secondary'
-                  }`}
+            {/* Mode selector + agent selector */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-surface-secondary/60 p-0.5 rounded-md flex items-center border border-border-default w-fit">
+                {MODES.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setForm((f) => ({ ...f, mode: value }))}
+                    className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
+                      form.mode === value
+                        ? 'text-text-chrome-active'
+                        : 'text-text-tertiary hover:text-text-secondary'
+                    }`}
+                  >
+                    {form.mode === value && (
+                      <div
+                        className="absolute inset-0 bg-surface-hover rounded border border-border-hover/50 shadow-sm"
+                        style={{ zIndex: -1 }}
+                      />
+                    )}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {agents.length > 1 && (
+                <select
+                  value={form.agentId || ''}
+                  onChange={(e) => setForm((f) => ({ ...f, agentId: e.target.value || undefined }))}
+                  className="appearance-none bg-surface-secondary border border-border-default rounded-md px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-border-strong cursor-pointer"
                 >
-                  {form.mode === value && (
-                    <div
-                      className="absolute inset-0 bg-surface-hover rounded border border-border-hover/50 shadow-sm"
-                      style={{ zIndex: -1 }}
-                    />
-                  )}
-                  {label}
-                </button>
-              ))}
+                  <option value="">Default agent</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Name */}

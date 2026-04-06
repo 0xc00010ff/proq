@@ -794,7 +794,7 @@ export async function getCronJobs(projectId: string): Promise<CronJob[]> {
 
 export async function createCronJob(
   projectId: string,
-  data: Pick<CronJob, "name" | "prompt" | "schedule"> & { mode?: CronJob["mode"]; enabled?: boolean }
+  data: Pick<CronJob, "name" | "prompt" | "schedule"> & { mode?: CronJob["mode"]; enabled?: boolean; agentId?: string }
 ): Promise<CronJob> {
   return withWriteLock(`settings:${projectId}`, async () => {
     const settings = getProjectSettings(projectId);
@@ -805,6 +805,7 @@ export async function createCronJob(
       prompt: data.prompt,
       schedule: data.schedule,
       mode: data.mode,
+      agentId: data.agentId,
       enabled: data.enabled ?? true,
       runCount: 0,
       createdAt: new Date().toISOString(),
@@ -818,7 +819,7 @@ export async function createCronJob(
 export async function updateCronJob(
   projectId: string,
   cronId: string,
-  data: Partial<Pick<CronJob, "name" | "prompt" | "schedule" | "mode" | "enabled" | "lastRunAt" | "lastTaskId" | "nextRunAt" | "runCount">>
+  data: Partial<Pick<CronJob, "name" | "prompt" | "schedule" | "mode" | "enabled" | "lastRunAt" | "lastTaskId" | "nextRunAt" | "runCount" | "agentId">>
 ): Promise<CronJob | null> {
   return withWriteLock(`settings:${projectId}`, async () => {
     const settings = getProjectSettings(projectId);

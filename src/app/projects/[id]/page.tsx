@@ -25,12 +25,15 @@ import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type Projec
 
 import { useRouteState } from '@/hooks/useRouteState';
 import { useShortcut } from '@/hooks/useShortcut';
+import { useAgents } from '@/hooks/useAgents';
 
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const { projects, tasksByProject, refreshTasks, setTasksByProject, setProjects } = useProjects();
   const { sidebarCollapsed, expandSidebar } = useShellActions();
+
+  const { agentMap } = useAgents(projectId);
 
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
@@ -771,6 +774,7 @@ export default function ProjectPage() {
                   onExecutionModeChange={handleExecutionModeChange}
                   onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
                   activeBranch={currentBranch}
+                  agentMap={agentMap}
                 />
               )}
             </div>

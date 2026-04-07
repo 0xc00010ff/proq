@@ -41,6 +41,7 @@ export interface FileTreeCallbacks {
 
 interface FileTreeProps {
   nodes: TreeNode[];
+  rootPath?: string;
   selectedPath: string | null;
   onSelectFile: (path: string) => void;
   onDoubleClickFile?: (path: string) => void;
@@ -397,7 +398,7 @@ function TreeNodeItem({
   );
 }
 
-export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile, callbacks }: FileTreeProps) {
+export function FileTree({ nodes, rootPath, selectedPath, onSelectFile, onDoubleClickFile, callbacks }: FileTreeProps) {
   // State for creating new items: which parent dir + type
   const [creating, setCreating] = useState<{ parentPath: string; type: 'file' | 'dir' } | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
@@ -420,8 +421,42 @@ export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile,
     setRenamingPath(null);
   }, []);
 
-  return (
+  const handleRootCreateConfirm = useCallback(
+    async (name: string) => {
+      if (!creating || !callbacks || !rootPath) {
+        setCreating(null);
+        return;
+      }
+      if (creating.type === 'file') {
+        await callbacks.onCreateFile(rootPath, name);
+      } else {
+        await callbacks.onCreateFolder(rootPath, name);
+      }
+      setCreating(null);
+    },
+    [creating, callbacks, rootPath]
+  );
+
+  const isCreatingAtRoot = creating?.parentPath === rootPath;
+
+  const treeContent = (
     <div className="py-1 overflow-y-auto h-full text-[12px] select-none">
+      {/* Inline input for creating at root level */}
+      {isCreatingAtRoot && creating && (
+        <InlineInput
+          defaultValue={creating.type === 'file' ? 'untitled' : 'new-folder'}
+          icon={
+            creating.type === 'file' ? (
+              <File className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+            ) : (
+              <Folder className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+            )
+          }
+          depth={0}
+          onConfirm={handleRootCreateConfirm}
+          onCancel={handleCancelCreate}
+        />
+      )}
       {nodes.map((node) => (
         <TreeNodeItem
           key={node.path}
@@ -441,4 +476,26 @@ export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile,
       ))}
     </div>
   );
+
+  if (callbacks && rootPath) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          {treeContent}
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onClick={() => handleStartCreate(rootPath, 'file')}>
+            <FilePlus className="w-4 h-4" />
+            New File
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => handleStartCreate(rootPath, 'dir')}>
+            <FolderPlus className="w-4 h-4" />
+            New Folder
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  return treeContent;
 }

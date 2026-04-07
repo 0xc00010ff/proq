@@ -1039,6 +1039,7 @@ export function CodeTab({ project }: CodeTabProps) {
               <div className="flex-1 overflow-y-auto">
                 <FileTree
                   nodes={tree}
+                  rootPath={project.path}
                   selectedPath={activeTabPath}
                   onSelectFile={loadFile}
                   onDoubleClickFile={loadFilePinned}

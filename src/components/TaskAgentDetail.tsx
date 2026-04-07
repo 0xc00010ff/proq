@@ -427,27 +427,27 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Fixed nav bar — status + task ID */}
         <div className="shrink-0 h-10 flex items-center gap-1.5 px-4 border-b border-border-default">
           {isQueued ? (
-            <span className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium uppercase tracking-wide truncate">
+            <span className={`flex items-center gap-1.5 text-xs text-zinc-400 font-medium tracking-wide truncate ${agentName ? '' : 'uppercase'}`}>
               <ClockIcon className="w-3 h-3 shrink-0" />
               {agentName || 'Queued'}
             </span>
           ) : isDispatched ? (
-            <span className="flex items-center gap-1.5 text-xs text-bronze-500 font-medium uppercase tracking-wide truncate">
+            <span className={`flex items-center gap-1.5 text-xs text-bronze-500 font-medium tracking-wide truncate ${agentName ? '' : 'uppercase'}`}>
               <Loader2Icon className="w-3 h-3 animate-spin shrink-0" />
               {agentName || 'Agent working'}
             </span>
           ) : task.status === 'verify' ? (
-            <span className="flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium uppercase tracking-wide truncate">
+            <span className={`flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium tracking-wide truncate ${agentName ? '' : 'uppercase'}`}>
               <ClockIcon className="w-3 h-3 shrink-0" />
               {agentName || 'Awaiting review'}
             </span>
           ) : task.status === 'done' ? (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-dark dark:text-emerald font-medium uppercase tracking-wide truncate">
+            <span className={`flex items-center gap-1.5 text-xs text-emerald-dark dark:text-emerald font-medium tracking-wide truncate ${agentName ? '' : 'uppercase'}`}>
               <CheckCircle2Icon className="w-3 h-3 shrink-0" />
               {agentName || 'Completed'}
             </span>
           ) : agentName ? (
-            <span className="text-xs text-text-chrome font-medium uppercase tracking-wide truncate">
+            <span className="text-xs text-text-chrome font-medium tracking-wide truncate">
               {agentName}
             </span>
           ) : (

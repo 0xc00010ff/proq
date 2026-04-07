@@ -16,6 +16,7 @@ import {
   updateTask,
   getSettings,
   getProjectDefaultBranch,
+  getAgent,
 } from "./db";
 import { stripAnsi, resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
@@ -352,11 +353,17 @@ export async function dispatchTask(
   const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, { isCronTask });
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
-  // Build combined system prompt: global additions + project prompt + proq prompt
+  // Look up the assigned agent (if any) for prompt overrides
+  const agentDef = currentTask?.agentId
+    ? await getAgent(projectId, currentTask.agentId)
+    : null;
+
+  // Build combined system prompt: global additions + project prompt + agent prompt + proq prompt
   const settings = await getSettings();
   const systemPromptParts: string[] = [];
   if (settings.systemPromptAdditions) systemPromptParts.push(settings.systemPromptAdditions);
   if (project.systemPrompt) systemPromptParts.push(project.systemPrompt);
+  if (agentDef?.systemPrompt) systemPromptParts.push(agentDef.systemPrompt);
   systemPromptParts.push(proqSystemPrompt);
   const combinedSystemPrompt = systemPromptParts.join("\n\n");
 
@@ -378,9 +385,10 @@ export async function dispatchTask(
     writeFileSync(promptFile, prompt, "utf-8");
     writeFileSync(systemPromptFile, combinedSystemPrompt, "utf-8");
     const claudeBin = await getClaudeBin();
+    const modelFlag = settings.defaultModel ? ` --model '${settings.defaultModel}'` : "";
     writeFileSync(
       launcherFile,
-      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT '${claudeBin}' ${cliPermFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT '${claudeBin}' ${cliPermFlag}${modelFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
       "utf-8",
     );
 
@@ -429,6 +437,7 @@ export async function dispatchTask(
       proqSystemPrompt: combinedSystemPrompt,
       mcpConfig: mcpConfigPath,
       permissionMode,
+      model: settings.defaultModel || undefined,
     });
     console.log(
       `[agent-dispatch] launched agent session for task ${taskId}`,

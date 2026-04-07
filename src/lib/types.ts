@@ -1,5 +1,5 @@
 // ── Project ──────────────────────────────────────────────
-export type ProjectTab = 'project' | 'live' | 'code';
+export type ProjectTab = 'project' | 'live' | 'code' | 'agents';
 export type ViewType = 'kanban' | 'grid';
 
 /** Slim stub stored in root data/workspace.json */
@@ -108,6 +108,7 @@ export interface Task {
   sessionId?: string;
   attachments?: TaskAttachment[];
   cronJobId?: string;             // links task to source cron job
+  agentId?: string;               // links task to assigned agent
   createdAt: string;
   updatedAt: string;
 }
@@ -155,6 +156,9 @@ export interface ProqSettings {
   codingAgent: string;
   allowAgentInterrupts: boolean;
 
+  // Experimental
+  enableAgentDesigner: boolean;
+
   // Updates
   autoUpdate: boolean;
 
@@ -195,8 +199,21 @@ export interface CronJob {
   lastRunAt?: string;
   lastTaskId?: string;
   nextRunAt?: string;
+  agentId?: string;               // links cron to assigned agent
   runCount: number;
   createdAt: string;
+}
+
+// ── Agent ───────────────────────────────────────────────
+export interface Agent {
+  id: string;           // uuidv7
+  name: string;         // "Default", "Chief Research Officer"
+  role?: string;        // short purpose statement
+  systemPrompt?: string;
+  avatar?: { color: string; icon?: string };
+  position?: { x: number; y: number }; // React Flow canvas position
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── Per-project state ────────────────────────────────────
@@ -206,6 +223,7 @@ export interface WorkbenchTabInfo {
   id: string;
   label: string;
   type?: 'shell' | 'agent'; // defaults to 'shell' for backward compat
+  agentId?: string;          // links workbench tab to assigned agent
 }
 
 export interface WorkbenchSessionData {

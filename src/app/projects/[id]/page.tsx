@@ -15,6 +15,7 @@ import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
 import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CronJobsModal } from '@/components/CronJobsModal';
+import { AgentsView } from '@/components/AgentsView';
 import { CommitModal } from '@/components/CommitModal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyTasks } from '@/components/ProjectsProvider';
@@ -25,6 +26,7 @@ import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type Projec
 
 import { useRouteState } from '@/hooks/useRouteState';
 import { useShortcut } from '@/hooks/useShortcut';
+import { useAgents } from '@/hooks/useAgents';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -32,6 +34,9 @@ export default function ProjectPage() {
   const { projects, tasksByProject, refreshTasks, setTasksByProject, setProjects } = useProjects();
   const { sidebarCollapsed, expandSidebar } = useShellActions();
 
+  const { agentMap } = useAgents(projectId);
+
+  const [enableAgentDesigner, setEnableAgentDesigner] = useState(false);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
@@ -140,6 +145,13 @@ export default function ProjectPage() {
     fetchBranchState();
     refreshDetachedHead();
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState, refreshDetachedHead]);
+
+  // Fetch settings flag once on mount
+  useEffect(() => {
+    fetch('/api/settings').then(r => r.json()).then(s => {
+      setEnableAgentDesigner(!!s.enableAgentDesigner);
+    }).catch(() => {});
+  }, []);
 
   // Fetch tasks, execution mode, and branch state on project load / switch
   useEffect(() => {
@@ -652,16 +664,22 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, [projectId, setProjects, setTab]);
 
-  // Cmd+Option+Left/Right to switch Project/Live/Code tabs (like Chrome)
-  const tabOrder: TabOption[] = ['project', 'live', 'code'];
+  // Cmd+Option+Left/Right to cycle tabs, Cmd+1/2/3/4 to jump directly
+  const tabOrder: TabOption[] = enableAgentDesigner
+    ? ['agents', 'project', 'live', 'code']
+    : ['project', 'live', 'code'];
   useShortcut('tab-prev', useCallback(() => {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]);
-  }, [activeTab, handleTabChange]));
+  }, [activeTab, handleTabChange, tabOrder]));
   useShortcut('tab-next', useCallback(() => {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
-  }, [activeTab, handleTabChange]));
+  }, [activeTab, handleTabChange, tabOrder]));
+  useShortcut('tab-1', useCallback(() => handleTabChange(tabOrder[0]), [handleTabChange, tabOrder]));
+  useShortcut('tab-2', useCallback(() => handleTabChange(tabOrder[1]), [handleTabChange, tabOrder]));
+  useShortcut('tab-3', useCallback(() => { if (tabOrder[2]) handleTabChange(tabOrder[2]); }, [handleTabChange, tabOrder]));
+  useShortcut('tab-4', useCallback(() => { if (tabOrder[3]) handleTabChange(tabOrder[3]); }, [handleTabChange, tabOrder]));
   useShortcut('toggle-workbench', useCallback(() => {
     workbenchRef.current?.toggle();
   }, []));
@@ -716,6 +734,7 @@ export default function ProjectPage() {
         onCreateBranch={handleCreateBranch}
         sidebarCollapsed={sidebarCollapsed}
         onExpandSidebar={expandSidebar}
+        showAgentsTab={enableAgentDesigner}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
@@ -771,6 +790,7 @@ export default function ProjectPage() {
                   onExecutionModeChange={handleExecutionModeChange}
                   onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
                   activeBranch={currentBranch}
+                  agentMap={agentMap}
                 />
               )}
             </div>
@@ -787,6 +807,16 @@ export default function ProjectPage() {
             />
           )}
           {activeTab === 'code' && project && <CodeTab project={project} />}
+          {activeTab === 'agents' && project && (
+            <AgentsView
+              projectId={projectId}
+              tasks={columns}
+              onSpawnChat={(agentId) => {
+                workbenchRef.current?.addAgentTab({ agentId });
+                workbenchRef.current?.expand();
+              }}
+            />
+          )}
         </div>
 
         <WorkbenchPanel

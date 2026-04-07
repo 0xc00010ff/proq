@@ -3,9 +3,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useShortcut } from '@/hooks/useShortcut';
-import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
+import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon, ChevronDownIcon, CheckIcon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
+import { useAgents } from '@/hooks/useAgents';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface TaskDraftProps {
   projectId: string;
@@ -29,6 +36,8 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
   const [mode, setMode] = useState<TaskMode>(task.mode || 'auto');
+  const [agentId, setAgentId] = useState<string | undefined>(task.agentId);
+  const { agents } = useAgents(projectId);
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -49,6 +58,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     setTitle(task.title || '');
     setDescription(task.description);
     setMode(task.mode || 'auto');
+    setAgentId(task.agentId);
     setAttachments(task.attachments || []);
   }, [task.id]);
 
@@ -68,7 +78,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   }, [isOpen, task.id]);
 
   const autosave = useCallback(
-    (newTitle: string, newDesc: string, newAttachments: TaskAttachment[], newMode?: TaskMode) => {
+    (newTitle: string, newDesc: string, newAttachments: TaskAttachment[], newMode?: TaskMode, newAgentId?: string) => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => {
         onSave(task.id, {
@@ -76,6 +86,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
           description: newDesc,
           attachments: newAttachments,
           mode: newMode,
+          agentId: newAgentId,
         });
       }, 400);
     },
@@ -101,7 +112,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
           if (generated) {
             setTitle((cur) => {
               if (!cur) {
-                autosave(generated, desc, attachments, mode);
+                autosave(generated, desc, attachments, mode, agentId);
                 return generated;
               }
               return cur;
@@ -146,10 +157,11 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
         description,
         attachments,
         mode,
+        agentId,
       });
     }
     onClose(isEmpty);
-  }, [title, description, attachments, mode, onSave, onClose, task.id, fireAutoTitle]);
+  }, [title, description, attachments, mode, agentId, onSave, onClose, task.id, fireAutoTitle]);
 
   useEscapeKey(handleClose, isOpen);
 
@@ -181,8 +193,8 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
       fireAutoTitle(description);
     }
     setDispatching(true);
-    onMoveToInProgress!(task.id, { title, description, attachments, mode });
-  }, [title, description, attachments, mode, dispatching, task.id, fireAutoTitle, onMoveToInProgress]),
+    onMoveToInProgress!(task.id, { title, description, attachments, mode, agentId });
+  }, [title, description, attachments, mode, agentId, dispatching, task.id, fireAutoTitle, onMoveToInProgress]),
   isOpen && !!onMoveToInProgress);
 
   // Compute modal height: grow with text content, clamp between 600px and 80vh
@@ -210,7 +222,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    autosave(val, description, attachments, mode);
+    autosave(val, description, attachments, mode, agentId);
     // User is typing a title manually — cancel any pending auto-title
     if (val && autoTitleTimeout.current) {
       clearTimeout(autoTitleTimeout.current);
@@ -221,7 +233,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
 
   const handleDescriptionChange = (val: string) => {
     setDescription(val);
-    autosave(title, val, attachments, mode);
+    autosave(title, val, attachments, mode, agentId);
     if (!title) triggerAutoTitle(val);
   };
 
@@ -229,13 +241,18 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
 
   const handleModeChange = (newMode: TaskMode) => {
     setMode(newMode);
-    autosave(title, description, attachments, newMode);
+    autosave(title, description, attachments, newMode, agentId);
+  };
+
+  const handleAgentChange = (newAgentId: string | undefined) => {
+    setAgentId(newAgentId);
+    autosave(title, description, attachments, mode, newAgentId);
   };
 
   const cycleMode = () => {
     setMode((cur) => {
       const next = MODES[(MODES.indexOf(cur) + 1) % MODES.length];
-      autosave(title, description, attachments, next);
+      autosave(title, description, attachments, next, agentId);
       return next;
     });
   };
@@ -244,7 +261,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     const uploaded = await uploadFiles(files, projectId);
     setAttachments((prev) => {
       const updated = [...prev, ...uploaded];
-      autosave(title, description, updated, mode);
+      autosave(title, description, updated, mode, agentId);
       return updated;
     });
   };
@@ -252,7 +269,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   const removeAttachment = (id: string) => {
     const updated = attachments.filter((a) => a.id !== id);
     setAttachments(updated);
-    autosave(title, description, updated);
+    autosave(title, description, updated, mode, agentId);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -305,34 +322,58 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
           <XIcon className="w-4 h-4" />
         </button>
 
-        {/* Header: mode selector + title */}
+        {/* Header: mode selector + agent selector + title */}
         <div ref={headerRef} className="p-6 pt-5 pb-0 shrink-0">
-          <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
-            {([
-              ['auto', 'Auto', 'Bypass permissions, generic prompt.'],
-              ['answer', 'Answer', 'Research only, no code changes.'],
-              ['plan', 'Plan', 'Agent proposes, you approve.'],
-              ['build', 'Build', 'Full autonomy. Bypass permissions.'],
-            ] as const).map(([value, label, tooltip]) => (
-              <button
-                key={value}
-                onClick={() => handleModeChange(value)}
-                title={tooltip}
-                className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
-                  mode === value
-                    ? 'text-text-chrome-active'
-                    : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
-                }`}
-              >
-                {mode === value && (
-                  <div
-                    className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
-                    style={{ zIndex: -1 }}
-                  />
-                )}
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default w-fit">
+              {([
+                ['auto', 'Auto', 'Bypass permissions, generic prompt.'],
+                ['answer', 'Answer', 'Research only, no code changes.'],
+                ['plan', 'Plan', 'Agent proposes, you approve.'],
+                ['build', 'Build', 'Full autonomy. Bypass permissions.'],
+              ] as const).map(([value, label, tooltip]) => (
+                <button
+                  key={value}
+                  onClick={() => handleModeChange(value)}
+                  title={tooltip}
+                  className={`relative px-3 py-1 text-xs font-medium rounded z-10 ${
+                    mode === value
+                      ? 'text-text-chrome-active'
+                      : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
+                  }`}
+                >
+                  {mode === value && (
+                    <div
+                      className="absolute inset-0 bg-surface-modal rounded border border-border-hover/50 shadow-sm"
+                      style={{ zIndex: -1 }}
+                    />
+                  )}
+                  {label}
+                </button>
+              ))}
+            </div>
+            {agents.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1.5 bg-surface-hover/40 border border-border-default rounded-md px-3 py-[5px] text-xs font-medium text-text-chrome hover:text-bronze-600 dark:hover:text-bronze-500 cursor-pointer [&:hover>svg]:text-bronze-600 dark:[&:hover>svg]:text-bronze-500">
+                    {agents.find((a) => a.id === agentId)?.name || 'Default'}
+                    <ChevronDownIcon className="w-3 h-3 text-text-tertiary" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {agents.map((a) => (
+                    <DropdownMenuItem
+                      key={a.id}
+                      onClick={() => handleAgentChange(a.id)}
+                      className="text-xs"
+                    >
+                      {a.name}
+                      {agentId === a.id && <CheckIcon className="w-3 h-3 ml-auto" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           <div className="relative mb-1">
@@ -488,7 +529,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                   fireAutoTitle(description);
                 }
                 setDispatching(true);
-                await onMoveToInProgress(task.id, { title, description, attachments, mode });
+                await onMoveToInProgress(task.id, { title, description, attachments, mode, agentId });
               }}
               disabled={!description.trim() || dispatching}
               className={`btn-primary flex items-center gap-1.5 ${dispatching ? 'pointer-events-none' : 'disabled:opacity-30 disabled:pointer-events-none'}`}

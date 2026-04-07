@@ -47,9 +47,10 @@ interface TopBarProps {
   onCreateBranch?: (name: string) => Promise<void>;
   sidebarCollapsed?: boolean;
   onExpandSidebar?: () => void;
+  showAgentsTab?: boolean;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, sidebarCollapsed, onExpandSidebar }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, sidebarCollapsed, onExpandSidebar, showAgentsTab }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -192,6 +193,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   }, [branchPopoverOpen]);
 
   const tabs: { id: TabOption; label: string }[] = [
+    ...(showAgentsTab ? [{ id: 'agents' as TabOption, label: 'Agents' }] : []),
     { id: 'project', label: 'Project' },
     { id: 'live', label: 'Live' },
     { id: 'code', label: 'Code' },
@@ -302,12 +304,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
 
       <div className="flex-1 flex justify-center min-w-0">
         <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default">
-          {tabs.map((tab) => {
+          {tabs.map((tab, i) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
+                title={`${tab.label} view \u2318${i + 1}`}
                 className={`relative px-3.5 py-1 text-xs font-medium rounded-md z-10 ${
                   isActive ? 'text-text-chrome-active' : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
                 }`}

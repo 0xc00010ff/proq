@@ -31,7 +31,7 @@ import {
   GitBranchIcon,
   ChevronDownIcon,
 } from 'lucide-react';
-import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode, Agent } from '@/lib/types';
 import { TaskCard } from './TaskCard';
 import {
   DropdownMenu,
@@ -51,6 +51,7 @@ interface KanbanBoardProps {
   onExecutionModeChange?: (mode: ExecutionMode) => void;
   onDragActiveChange?: (active: boolean) => void;
   activeBranch?: string;
+  agentMap?: Map<string, Agent>;
 }
 
 export const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
@@ -114,6 +115,7 @@ function SortableTaskCard({
   isQueued,
   isPreviewActive,
   columnStatus,
+  agentMap,
   onDelete,
   onClick,
 }: {
@@ -121,6 +123,7 @@ function SortableTaskCard({
   isQueued?: boolean;
   isPreviewActive?: boolean;
   columnStatus?: string;
+  agentMap?: Map<string, Agent>;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
 }) {
@@ -146,7 +149,7 @@ function SortableTaskCard({
       {...attributes}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
     >
-      <TaskCard task={task} isQueued={isQueued} isPreviewActive={isPreviewActive} columnStatus={columnStatus} onDelete={onDelete} onClick={onClick} />
+      <TaskCard task={task} isQueued={isQueued} isPreviewActive={isPreviewActive} columnStatus={columnStatus} agentMap={agentMap} onDelete={onDelete} onClick={onClick} />
     </div>
   );
 }
@@ -170,6 +173,7 @@ export function KanbanBoard({
   onExecutionModeChange,
   onDragActiveChange,
   activeBranch,
+  agentMap,
 }: KanbanBoardProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
@@ -426,6 +430,7 @@ export function KanbanBoard({
                           isQueued={isQueued}
                           isPreviewActive={isPreviewActive}
                           columnStatus={column.id}
+                          agentMap={agentMap}
                           onDelete={onDeleteTask}
                           onClick={onClickTask}
                         />
@@ -448,7 +453,7 @@ export function KanbanBoard({
         <DragOverlay>
           {activeDragTask ? (
             <div style={dragWidth ? { width: dragWidth } : undefined}>
-              <TaskCard task={activeDragTask} isDragOverlay />
+              <TaskCard task={activeDragTask} isDragOverlay agentMap={agentMap} />
             </div>
           ) : null}
         </DragOverlay>

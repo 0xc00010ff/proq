@@ -19,17 +19,18 @@ export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: Ag
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Count running tasks per agent
-  const runningTaskCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    if (!tasks) return counts;
+  // Collect running tasks per agent
+  const runningTasksByAgent = useMemo(() => {
+    const map: Record<string, { id: string; title: string }[]> = {};
+    if (!tasks) return map;
     const inProgress = tasks['in-progress'] || [];
     for (const task of inProgress) {
       if (task.agentId && task.agentStatus === 'running') {
-        counts[task.agentId] = (counts[task.agentId] || 0) + 1;
+        if (!map[task.agentId]) map[task.agentId] = [];
+        map[task.agentId].push({ id: task.id, title: task.title || 'Untitled' });
       }
     }
-    return counts;
+    return map;
   }, [tasks]);
 
   const handleCreate = useCallback(async (data: Partial<Agent> & { name: string }) => {
@@ -101,7 +102,7 @@ export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: Ag
       {/* Canvas */}
       <AgentsCanvas
         agents={agents}
-        runningTaskCounts={runningTaskCounts}
+        runningTasksByAgent={runningTasksByAgent}
         defaultAgentId={defaultAgentId}
         onPositionChange={handlePositionChange}
         onNodeClick={handleNodeClick}

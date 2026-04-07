@@ -7,14 +7,14 @@ import { BotIcon, Loader2Icon } from 'lucide-react';
 export type AgentNodeData = {
   label: string;
   role?: string;
-  runningCount: number;
+  runningTasks: { id: string; title: string }[];
   isDefault?: boolean;
 };
 
 export type AgentNodeType = Node<AgentNodeData, 'agent'>;
 
 export const AgentNode = memo(({ data, selected }: NodeProps<AgentNodeType>) => {
-  const isActive = data.runningCount > 0;
+  const isActive = data.runningTasks.length > 0;
 
   return (
     <div
@@ -40,12 +40,25 @@ export const AgentNode = memo(({ data, selected }: NodeProps<AgentNodeType>) => 
       {(isActive || data.isDefault) && (
         <div className="mt-2 pt-2 border-t border-border-subtle/60 flex items-center gap-1.5">
           {isActive ? (
-            <>
-              <Loader2Icon className="w-2.5 h-2.5 text-bronze-500 animate-spin" />
-              <span className="text-[10px] text-bronze-500 font-medium">
-                {data.runningCount} task{data.runningCount > 1 ? 's' : ''}
-              </span>
-            </>
+            <div className="flex items-start gap-1.5 min-w-0">
+              <Loader2Icon className="w-2.5 h-2.5 text-bronze-500 animate-spin shrink-0 mt-[1px]" />
+              <div className="min-w-0 flex-1">
+                {data.runningTasks.length === 1 ? (
+                  <span className="text-[10px] text-bronze-500 font-medium truncate block">
+                    {data.runningTasks[0].title}
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-[10px] text-bronze-500 font-medium truncate block">
+                      {data.runningTasks[0].title}
+                    </span>
+                    <span className="text-[10px] text-bronze-500/70">
+                      +{data.runningTasks.length - 1} more
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
           ) : (
             <span className="text-[7px] uppercase tracking-wider font-medium text-zinc-500">default</span>
           )}

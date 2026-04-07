@@ -16,7 +16,7 @@ import { AgentNode, type AgentNodeData } from './AgentNode';
 
 interface AgentsCanvasProps {
   agents: Agent[];
-  runningTaskCounts: Record<string, number>; // agentId → count
+  runningTasksByAgent: Record<string, { id: string; title: string }[]>; // agentId → tasks
   defaultAgentId?: string;
   onPositionChange: (agentId: string, position: { x: number; y: number }) => void;
   onNodeClick: (agent: Agent) => void;
@@ -25,7 +25,7 @@ interface AgentsCanvasProps {
 const nodeTypes = { agent: AgentNode };
 const FIT_VIEW_OPTIONS = { padding: 0.35, maxZoom: 1.25 };
 
-export function AgentsCanvas({ agents, runningTaskCounts, defaultAgentId, onPositionChange, onNodeClick }: AgentsCanvasProps) {
+export function AgentsCanvas({ agents, runningTasksByAgent, defaultAgentId, onPositionChange, onNodeClick }: AgentsCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<AgentNodeData>>([]);
 
   // Sync nodes with agents — add new, remove deleted, update data, preserve positions
@@ -45,7 +45,7 @@ export function AgentsCanvas({ agents, runningTaskCounts, defaultAgentId, onPosi
           data: {
             label: agent.name,
             role: agent.role,
-            runningCount: runningTaskCounts[agent.id] || 0,
+            runningTasks: runningTasksByAgent[agent.id] || [],
             isDefault: agent.id === defaultAgentId,
           },
         };
@@ -54,14 +54,14 @@ export function AgentsCanvas({ agents, runningTaskCounts, defaultAgentId, onPosi
       // Only return new array if something actually changed
       if (updated.length === prev.length && updated.every((n, idx) => {
         const p = prev[idx];
-        return p.id === n.id && p.data.label === n.data.label && p.data.runningCount === n.data.runningCount && p.data.isDefault === n.data.isDefault;
+        return p.id === n.id && p.data.label === n.data.label && p.data.runningTasks === n.data.runningTasks && p.data.isDefault === n.data.isDefault;
       })) {
         return prev;
       }
 
       return updated;
     });
-  }, [agents, runningTaskCounts, defaultAgentId, setNodes]);
+  }, [agents, runningTasksByAgent, defaultAgentId, setNodes]);
 
   // Debounced position save
   const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());

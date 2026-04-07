@@ -252,6 +252,8 @@ const TAB_BAR_HEIGHT = 48; // px — matches h-12
 const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const agentMapRef = useRef(agentMap);
+  agentMapRef.current = agentMap;
 
   // Discover parent container for resize calculations
   useEffect(() => {
@@ -458,7 +460,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = currentTabs.filter((t) => t.type === 'agent').length + 1;
-    const agentLabel = agentId && agentMap?.get(agentId)?.name || `Agent ${agentCount}`;
+    const agentLabel = agentId && agentMapRef.current?.get(agentId)?.name || `Agent ${agentCount}`;
     if (initialInput) setAgentDraft(id, initialInput);
     dispatch({ type: 'open', tab: { id, label: agentLabel, type: 'agent', agentId } });
   }, []);

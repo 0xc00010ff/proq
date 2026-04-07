@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ChevronRight,
   ChevronDown,
@@ -12,7 +12,18 @@ import {
   File,
   ImageIcon,
   SettingsIcon,
+  FilePlus,
+  FolderPlus,
+  PencilLine,
+  Trash2,
 } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from '@/components/ui/context-menu';
 
 export interface TreeNode {
   name: string;
@@ -21,11 +32,19 @@ export interface TreeNode {
   children?: TreeNode[];
 }
 
+export interface FileTreeCallbacks {
+  onRename: (oldPath: string, newName: string) => Promise<boolean>;
+  onDelete: (path: string, type: 'file' | 'dir') => Promise<boolean>;
+  onCreateFile: (parentDir: string, name: string) => Promise<boolean>;
+  onCreateFolder: (parentDir: string, name: string) => Promise<boolean>;
+}
+
 interface FileTreeProps {
   nodes: TreeNode[];
   selectedPath: string | null;
   onSelectFile: (path: string) => void;
   onDoubleClickFile?: (path: string) => void;
+  callbacks?: FileTreeCallbacks;
 }
 
 interface TreeNodeItemProps {
@@ -34,10 +53,18 @@ interface TreeNodeItemProps {
   selectedPath: string | null;
   onSelectFile: (path: string) => void;
   onDoubleClickFile?: (path: string) => void;
+  callbacks?: FileTreeCallbacks;
+  // For creating new items inside this node (only dirs)
+  creatingChild: { type: 'file' | 'dir' } | null;
+  onStartCreate: (parentPath: string, type: 'file' | 'dir') => void;
+  onCancelCreate: () => void;
+  // Rename state
+  renamingPath: string | null;
+  onStartRename: (path: string) => void;
+  onCancelRename: () => void;
 }
 
 function getFileIcon(name: string) {
-  // Dotfiles / config files
   const nameLower = name.toLowerCase();
   if (nameLower.startsWith('.env')) {
     return <SettingsIcon className="w-4 h-4 text-gold flex-shrink-0" />;
@@ -82,8 +109,83 @@ function getFileIcon(name: string) {
   }
 }
 
-function TreeNodeItem({ node, depth, selectedPath, onSelectFile, onDoubleClickFile }: TreeNodeItemProps) {
+/** Inline input for rename / new file / new folder */
+function InlineInput({
+  defaultValue,
+  icon,
+  depth,
+  onConfirm,
+  onCancel,
+}: {
+  defaultValue: string;
+  icon: React.ReactNode;
+  depth: number;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Focus + select name without extension
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    const dotIndex = defaultValue.lastIndexOf('.');
+    if (dotIndex > 0) {
+      input.setSelectionRange(0, dotIndex);
+    } else {
+      input.select();
+    }
+  }, [defaultValue]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      const val = inputRef.current?.value.trim();
+      if (val) onConfirm(val);
+      else onCancel();
+    } else if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center gap-1.5 py-[2px] pr-2"
+      style={{ paddingLeft: `${depth * 16 + 8 + 18}px` }}
+    >
+      {icon}
+      <input
+        ref={inputRef}
+        defaultValue={defaultValue}
+        onKeyDown={handleKeyDown}
+        onBlur={() => {
+          const val = inputRef.current?.value.trim();
+          if (val) onConfirm(val);
+          else onCancel();
+        }}
+        className="flex-1 min-w-0 bg-surface-inset border border-lazuli/50 rounded px-1.5 py-[1px] text-[12px] text-text-primary outline-none focus:border-lazuli"
+      />
+    </div>
+  );
+}
+
+function TreeNodeItem({
+  node,
+  depth,
+  selectedPath,
+  onSelectFile,
+  onDoubleClickFile,
+  callbacks,
+  creatingChild,
+  onStartCreate,
+  onCancelCreate,
+  renamingPath,
+  onStartRename,
+  onCancelRename,
+}: TreeNodeItemProps) {
   const [expanded, setExpanded] = useState(false);
+  const isRenaming = renamingPath === node.path;
+  const isCreatingHere = creatingChild !== null;
 
   const handleClick = useCallback(() => {
     if (node.type === 'dir') {
@@ -99,45 +201,180 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile, onDoubleClickFi
     }
   }, [node, onDoubleClickFile]);
 
+  // Auto-expand directory when creating a child inside it
+  useEffect(() => {
+    if (isCreatingHere && node.type === 'dir') {
+      setExpanded(true);
+    }
+  }, [isCreatingHere, node.type]);
+
+  const handleRenameConfirm = useCallback(
+    async (newName: string) => {
+      if (newName === node.name) {
+        onCancelRename();
+        return;
+      }
+      if (callbacks?.onRename) {
+        await callbacks.onRename(node.path, newName);
+      }
+      onCancelRename();
+    },
+    [node.path, node.name, callbacks, onCancelRename]
+  );
+
+  const handleCreateConfirm = useCallback(
+    async (name: string) => {
+      if (!creatingChild || !callbacks) {
+        onCancelCreate();
+        return;
+      }
+      if (creatingChild.type === 'file') {
+        await callbacks.onCreateFile(node.path, name);
+      } else {
+        await callbacks.onCreateFolder(node.path, name);
+      }
+      onCancelCreate();
+    },
+    [creatingChild, callbacks, node.path, onCancelCreate]
+  );
+
+  const parentDir = node.path.substring(0, node.path.lastIndexOf('/'));
   const isSelected = node.path === selectedPath;
+
+  const rowContent = isRenaming ? (
+    <InlineInput
+      defaultValue={node.name}
+      icon={
+        node.type === 'dir' ? (
+          <FolderOpen className="w-4 h-4 text-lazuli flex-shrink-0" />
+        ) : (
+          getFileIcon(node.name)
+        )
+      }
+      depth={depth}
+      onConfirm={handleRenameConfirm}
+      onCancel={onCancelRename}
+    />
+  ) : (
+    <button
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[12px] hover:bg-surface-hover/40 rounded-sm ${
+        isSelected
+          ? 'bg-lazuli/15 text-lazuli hover:bg-lazuli/20'
+          : 'text-text-secondary'
+      }`}
+      style={{ paddingLeft: `${depth * 16 + 8}px` }}
+    >
+      {node.type === 'dir' ? (
+        <>
+          {expanded ? (
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+          )}
+          {expanded ? (
+            <FolderOpen className="w-4 h-4 text-lazuli flex-shrink-0" />
+          ) : (
+            <Folder className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+          )}
+        </>
+      ) : (
+        <>
+          <span className="w-3.5 flex-shrink-0" />
+          {getFileIcon(node.name)}
+        </>
+      )}
+      <span className="truncate">{node.name}</span>
+    </button>
+  );
+
+  const menuContent = callbacks ? (
+    <ContextMenuContent>
+      {node.type === 'dir' && (
+        <>
+          <ContextMenuItem
+            onClick={() => {
+              setExpanded(true);
+              onStartCreate(node.path, 'file');
+            }}
+          >
+            <FilePlus className="w-4 h-4" />
+            New File
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => {
+              setExpanded(true);
+              onStartCreate(node.path, 'dir');
+            }}
+          >
+            <FolderPlus className="w-4 h-4" />
+            New Folder
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+        </>
+      )}
+      {node.type === 'file' && (
+        <>
+          <ContextMenuItem
+            onClick={() => onStartCreate(parentDir, 'file')}
+          >
+            <FilePlus className="w-4 h-4" />
+            New File
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => onStartCreate(parentDir, 'dir')}
+          >
+            <FolderPlus className="w-4 h-4" />
+            New Folder
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+        </>
+      )}
+      <ContextMenuItem onClick={() => onStartRename(node.path)}>
+        <PencilLine className="w-4 h-4" />
+        Rename
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => callbacks.onDelete(node.path, node.type)}
+        className="text-red-400 hover:text-red-300 focus:text-red-300"
+      >
+        <Trash2 className="w-4 h-4" />
+        Delete
+      </ContextMenuItem>
+    </ContextMenuContent>
+  ) : null;
 
   return (
     <div>
-      <button
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-        className={`w-full flex items-center gap-1.5 py-[3px] pr-2 text-left text-[12px] hover:bg-surface-hover/40 rounded-sm ${
-          isSelected
-            ? 'bg-lazuli/15 text-lazuli hover:bg-lazuli/20'
-            : 'text-text-secondary'
-        }`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-      >
-        {node.type === 'dir' ? (
-          <>
-            {expanded ? (
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-            )}
-            {expanded ? (
-              <FolderOpen className="w-4 h-4 text-lazuli flex-shrink-0" />
-            ) : (
-              <Folder className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-            )}
-          </>
-        ) : (
-          <>
-            <span className="w-3.5 flex-shrink-0" />
-            {getFileIcon(node.name)}
-          </>
-        )}
-        <span className="truncate">{node.name}</span>
-      </button>
+      {callbacks ? (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>{rowContent}</ContextMenuTrigger>
+          {menuContent}
+        </ContextMenu>
+      ) : (
+        rowContent
+      )}
 
-      {node.type === 'dir' && expanded && node.children && (
+      {node.type === 'dir' && expanded && (
         <div>
-          {node.children.map((child) => (
+          {/* Inline input for creating new child */}
+          {isCreatingHere && creatingChild && (
+            <InlineInput
+              defaultValue={creatingChild.type === 'file' ? 'untitled' : 'new-folder'}
+              icon={
+                creatingChild.type === 'file' ? (
+                  <File className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+                ) : (
+                  <Folder className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+                )
+              }
+              depth={depth + 1}
+              onConfirm={handleCreateConfirm}
+              onCancel={onCancelCreate}
+            />
+          )}
+          {node.children?.map((child) => (
             <TreeNodeItem
               key={child.path}
               node={child}
@@ -145,6 +382,13 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile, onDoubleClickFi
               selectedPath={selectedPath}
               onSelectFile={onSelectFile}
               onDoubleClickFile={onDoubleClickFile}
+              callbacks={callbacks}
+              creatingChild={null}
+              onStartCreate={onStartCreate}
+              onCancelCreate={onCancelCreate}
+              renamingPath={renamingPath}
+              onStartRename={onStartRename}
+              onCancelRename={onCancelRename}
             />
           ))}
         </div>
@@ -153,7 +397,29 @@ function TreeNodeItem({ node, depth, selectedPath, onSelectFile, onDoubleClickFi
   );
 }
 
-export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile }: FileTreeProps) {
+export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile, callbacks }: FileTreeProps) {
+  // State for creating new items: which parent dir + type
+  const [creating, setCreating] = useState<{ parentPath: string; type: 'file' | 'dir' } | null>(null);
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
+
+  const handleStartCreate = useCallback((parentPath: string, type: 'file' | 'dir') => {
+    setRenamingPath(null);
+    setCreating({ parentPath, type });
+  }, []);
+
+  const handleCancelCreate = useCallback(() => {
+    setCreating(null);
+  }, []);
+
+  const handleStartRename = useCallback((path: string) => {
+    setCreating(null);
+    setRenamingPath(path);
+  }, []);
+
+  const handleCancelRename = useCallback(() => {
+    setRenamingPath(null);
+  }, []);
+
   return (
     <div className="py-1 overflow-y-auto h-full text-[12px] select-none">
       {nodes.map((node) => (
@@ -164,6 +430,13 @@ export function FileTree({ nodes, selectedPath, onSelectFile, onDoubleClickFile 
           selectedPath={selectedPath}
           onSelectFile={onSelectFile}
           onDoubleClickFile={onDoubleClickFile}
+          callbacks={callbacks}
+          creatingChild={creating?.parentPath === node.path ? { type: creating.type } : null}
+          onStartCreate={handleStartCreate}
+          onCancelCreate={handleCancelCreate}
+          renamingPath={renamingPath}
+          onStartRename={handleStartRename}
+          onCancelRename={handleCancelRename}
         />
       ))}
     </div>

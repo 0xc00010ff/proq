@@ -20,7 +20,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { FileTree, type TreeNode } from './FileTree';
+import { FileTree, type TreeNode, type FileTreeCallbacks } from './FileTree';
 import { SearchPanel } from './SearchPanel';
 import type { Project } from '@/lib/types';
 
@@ -122,6 +122,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const paletteInputRef = useRef<HTMLInputElement>(null);
   const tabsRef = useRef<OpenTab[]>([]);
   const activeTabPathRef = useRef<string | null>(null);
+  const loadFilePinnedRef = useRef<(path: string) => Promise<void>>(null);
 
   // Keep refs in sync
   tabsRef.current = openTabs;
@@ -172,7 +173,7 @@ export function CodeTab({ project }: CodeTabProps) {
   }, [isDragging]);
 
   // Load file tree
-  useEffect(() => {
+  const refreshTree = useCallback(() => {
     if (!project.path) return;
     fetch(`/api/files/tree?path=${encodeURIComponent(project.path)}`)
       .then((r) => r.json())
@@ -181,6 +182,122 @@ export function CodeTab({ project }: CodeTabProps) {
       })
       .catch(console.error);
   }, [project.path]);
+
+  useEffect(() => {
+    refreshTree();
+  }, [refreshTree]);
+
+  // File tree operation callbacks (rename, delete, create file/folder)
+  const fileTreeCallbacks = useMemo<FileTreeCallbacks>(() => ({
+    onRename: async (oldPath, newName) => {
+      const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/'));
+      const newPath = `${parentDir}/${newName}`;
+      try {
+        const res = await fetch('/api/files/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldPath, newPath }),
+        });
+        if (!res.ok) return false;
+        // Update any open tabs that reference the old path
+        setOpenTabs((tabs) =>
+          tabs.map((t) => {
+            if (t.path === oldPath) {
+              return { ...t, path: newPath, name: newName };
+            }
+            // Handle files inside a renamed directory
+            if (t.path.startsWith(oldPath + '/')) {
+              const newTabPath = newPath + t.path.substring(oldPath.length);
+              return { ...t, path: newTabPath };
+            }
+            return t;
+          })
+        );
+        if (activeTabPath === oldPath) {
+          setActiveTabPath(newPath);
+        } else if (activeTabPath?.startsWith(oldPath + '/')) {
+          setActiveTabPath(newPath + activeTabPath.substring(oldPath.length));
+        }
+        refreshTree();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onDelete: async (path, type) => {
+      try {
+        const res = await fetch('/api/files/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+        if (!res.ok) return false;
+        // Close any open tabs for deleted file(s)
+        setOpenTabs((tabs) => {
+          const newTabs = tabs.filter((t) =>
+            t.path !== path && !t.path.startsWith(path + '/')
+          );
+          // If active tab was deleted, switch to another
+          if (activeTabPath === path || activeTabPath?.startsWith(path + '/')) {
+            if (newTabs.length > 0) {
+              const nextTab = newTabs[newTabs.length - 1];
+              setActiveTabPath(nextTab.path);
+              setFileLanguage(nextTab.language);
+              if (editorRef.current) {
+                isLoadingFileRef.current = true;
+                editorRef.current.setValue(nextTab.content);
+                setTimeout(() => {
+                  if (editorRef.current && nextTab.viewState) {
+                    editorRef.current.restoreViewState(nextTab.viewState);
+                  }
+                  isLoadingFileRef.current = false;
+                }, 0);
+              }
+            } else {
+              setActiveTabPath(null);
+            }
+          }
+          return newTabs;
+        });
+        refreshTree();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onCreateFile: async (parentDir, name) => {
+      const filePath = `${parentDir}/${name}`;
+      try {
+        const res = await fetch('/api/files/write', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: filePath, content: '' }),
+        });
+        if (!res.ok) return false;
+        refreshTree();
+        // Open the newly created file
+        setTimeout(() => loadFilePinnedRef.current?.(filePath), 200);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onCreateFolder: async (parentDir, name) => {
+      const dirPath = `${parentDir}/${name}`;
+      try {
+        const res = await fetch('/api/files/mkdir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: dirPath }),
+        });
+        if (!res.ok) return false;
+        refreshTree();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  }), [activeTabPath, refreshTree]);
 
   // Restore persisted tabs on mount
   const restoredRef = useRef(false);
@@ -477,6 +594,7 @@ export function CodeTab({ project }: CodeTabProps) {
     },
     [pinTab, switchToTab, saveCurrentViewState]
   );
+  loadFilePinnedRef.current = loadFilePinned;
 
   // Close a tab
   const closeTab = useCallback(
@@ -924,6 +1042,7 @@ export function CodeTab({ project }: CodeTabProps) {
                   selectedPath={activeTabPath}
                   onSelectFile={loadFile}
                   onDoubleClickFile={loadFilePinned}
+                  callbacks={fileTreeCallbacks}
                 />
               </div>
             </>

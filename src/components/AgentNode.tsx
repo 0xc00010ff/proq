@@ -2,12 +2,13 @@
 
 import React, { memo } from 'react';
 import { type NodeProps, type Node } from '@xyflow/react';
-import { BotIcon, Loader2Icon } from 'lucide-react';
+import { BotIcon, Loader2Icon, StarIcon } from 'lucide-react';
 
 export type AgentNodeData = {
   label: string;
   role?: string;
   runningCount: number;
+  isDefault?: boolean;
 };
 
 export type AgentNodeType = Node<AgentNodeData, 'agent'>;
@@ -30,7 +31,12 @@ export const AgentNode = memo(({ data, selected }: NodeProps<AgentNodeType>) => 
           <BotIcon className="w-3.5 h-3.5 text-text-chrome" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium text-text-primary truncate">{data.label}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium text-text-primary truncate">{data.label}</span>
+            {data.isDefault && (
+              <StarIcon className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+            )}
+          </div>
           {data.role && (
             <div className="text-[10px] text-text-tertiary truncate mt-0.5">{data.role}</div>
           )}

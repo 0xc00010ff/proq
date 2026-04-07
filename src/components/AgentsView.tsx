@@ -10,10 +10,11 @@ import { AgentsCanvas } from './AgentsCanvas';
 interface AgentsViewProps {
   projectId: string;
   tasks?: TaskColumns;
+  defaultAgentId?: string;
   onSpawnChat?: (agentId: string) => void;
 }
 
-export function AgentsView({ projectId, tasks, onSpawnChat }: AgentsViewProps) {
+export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: AgentsViewProps) {
   const { agents, setAgents } = useAgents(projectId);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -101,6 +102,7 @@ export function AgentsView({ projectId, tasks, onSpawnChat }: AgentsViewProps) {
       <AgentsCanvas
         agents={agents}
         runningTaskCounts={runningTaskCounts}
+        defaultAgentId={defaultAgentId}
         onPositionChange={handlePositionChange}
         onNodeClick={handleNodeClick}
       />

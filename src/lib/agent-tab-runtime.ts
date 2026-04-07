@@ -371,8 +371,9 @@ export async function startAgentTabSession(
   const project = await getProject(projectId);
   const projectName = project?.name || "project";
 
-  // Look up agent for prompt/model overrides
-  const agentDef = agentId ? await getAgent(projectId, agentId) : null;
+  // Look up agent for prompt/model overrides — fall back to project default
+  const effectiveAgentId = agentId || project?.defaultAgentId;
+  const agentDef = effectiveAgentId ? await getAgent(projectId, effectiveAgentId) : null;
   const effectiveModel = settings.defaultModel || "";
 
   appendBlock(session, { type: "status", subtype: "init", model: effectiveModel || undefined, timestamp: new Date().toISOString() });

@@ -811,6 +811,7 @@ export default function ProjectPage() {
             <AgentsView
               projectId={projectId}
               tasks={columns}
+              defaultAgentId={project.defaultAgentId}
               onSpawnChat={(agentId) => {
                 workbenchRef.current?.addAgentTab({ agentId });
                 workbenchRef.current?.expand();
@@ -824,6 +825,7 @@ export default function ProjectPage() {
           projectId={projectId}
           projectPath={project.path}
           agentMap={agentMap}
+          defaultAgentId={project?.defaultAgentId}
         />
       </main>
 
@@ -954,6 +956,7 @@ export default function ProjectPage() {
           isOpen={showProjectSettings}
           project={project}
           branches={branches}
+          agents={Array.from(agentMap.values())}
           onClose={() => setShowProjectSettings(false)}
           onSave={handleProjectSettingsSave}
         />

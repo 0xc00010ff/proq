@@ -73,6 +73,7 @@ interface WorkbenchPanelProps {
   projectId: string;
   projectPath?: string;
   agentMap?: Map<string, Agent>;
+  defaultAgentId?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -252,7 +253,7 @@ function SortableTab({
 
 const TAB_BAR_HEIGHT = 48; // px — matches h-12
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap }, ref) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap, defaultAgentId }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const agentMapRef = useRef(agentMap);
@@ -592,7 +593,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
               <DropdownMenuItem
                 onSelect={() => {
                   if (workbench.collapsed) expandPanel();
-                  addAgentTab();
+                  addAgentTab(defaultAgentId ? { agentId: defaultAgentId } : undefined);
                 }}
               >
                 <SquareChevronUpIcon className="w-3.5 h-3.5" />

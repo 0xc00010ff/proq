@@ -22,6 +22,7 @@ export interface Project extends ProjectStub {
   liveUrl?: string;
   defaultBranch?: string;
   systemPrompt?: string;
+  defaultAgentId?: string;
 }
 
 export interface WorkspaceData {
@@ -239,6 +240,7 @@ export interface ProjectSettings {
   systemPrompt?: string;
   defaultBranch?: string;
   serverUrl?: string;
+  defaultAgentId?: string;
   cronJobs?: CronJob[];
 }
 

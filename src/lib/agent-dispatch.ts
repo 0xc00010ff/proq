@@ -353,9 +353,10 @@ export async function dispatchTask(
   const proqSystemPrompt = buildProqSystemPrompt(projectId, taskId, mode, project.name, { isCronTask });
   const mcpConfigPath = writeMcpConfig(projectId, taskId);
 
-  // Look up the assigned agent (if any) for prompt overrides
-  const agentDef = currentTask?.agentId
-    ? await getAgent(projectId, currentTask.agentId)
+  // Look up the assigned agent (if any) for prompt overrides — fall back to project default
+  const effectiveAgentId = currentTask?.agentId || project.defaultAgentId;
+  const agentDef = effectiveAgentId
+    ? await getAgent(projectId, effectiveAgentId)
     : null;
 
   // Build combined system prompt: global additions + project prompt + agent prompt + proq prompt

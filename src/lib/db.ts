@@ -213,6 +213,7 @@ function assembleProject(stub: ProjectStub): Project {
     liveUrl: ws.liveUrl,
     defaultBranch: settings.defaultBranch,
     systemPrompt: settings.systemPrompt,
+    defaultAgentId: settings.defaultAgentId,
   };
 }
 
@@ -273,7 +274,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab" | "viewType" | "defaultBranch" | "systemPrompt">>
+  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab" | "viewType" | "defaultBranch" | "systemPrompt" | "defaultAgentId">>
 ): Promise<Project | null> {
   return withWriteLock('workspace', async () => {
     const ws = getWorkspaceData();
@@ -307,6 +308,7 @@ export async function updateProject(
     if (data.serverUrl !== undefined) settingsUpdates.serverUrl = data.serverUrl;
     if (data.defaultBranch !== undefined) settingsUpdates.defaultBranch = data.defaultBranch;
     if (data.systemPrompt !== undefined) settingsUpdates.systemPrompt = data.systemPrompt;
+    if (data.defaultAgentId !== undefined) settingsUpdates.defaultAgentId = data.defaultAgentId || undefined;
     if (Object.keys(settingsUpdates).length > 0) {
       const settings = getProjectSettings(effectiveId);
       Object.assign(settings, settingsUpdates);
@@ -959,6 +961,12 @@ export async function deleteAgent(
   try {
     if (fsExists(fp)) {
       unlinkSync(fp);
+      // Clear defaultAgentId if it pointed to the deleted agent
+      const settings = getProjectSettings(projectId);
+      if (settings.defaultAgentId === agentId) {
+        settings.defaultAgentId = undefined;
+        writeProjectSettings(projectId, settings);
+      }
       return true;
     }
   } catch { /* best effort */ }

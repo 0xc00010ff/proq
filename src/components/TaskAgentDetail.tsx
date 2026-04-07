@@ -434,7 +434,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           ) : isDispatched ? (
             <span className="flex items-center gap-1.5 text-xs text-bronze-500 font-medium uppercase tracking-wide">
               <Loader2Icon className="w-3 h-3 animate-spin" />
-              Agent working
+              Working
             </span>
           ) : task.status === 'verify' ? (
             <span className="flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium uppercase tracking-wide">
@@ -452,8 +452,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             </span>
           )}
           <span className="ml-auto flex items-center gap-2">
-            {agentName && <span className="text-[10px] text-text-chrome font-medium truncate max-w-[120px]" title={agentName}>{agentName}</span>}
-            <span className="text-[10px] text-text-placeholder font-mono">{shortId}</span>
+            {agentName && <span className={`text-[10px] font-medium truncate max-w-[120px] ${isDispatched ? 'text-bronze-500' : 'text-text-chrome'}`} title={agentName}>{agentName}</span>}
           </span>
         </div>
 

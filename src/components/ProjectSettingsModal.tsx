@@ -193,7 +193,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                   onChange={(e) => setDefaultAgentId(e.target.value)}
                   className="w-full px-3 py-2 text-sm bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
                 >
-                  <option value="">None (Claude)</option>
                   {agents.map((a) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}

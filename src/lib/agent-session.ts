@@ -323,6 +323,12 @@ export async function startSession(
   if (options?.permissionMode === "plan") {
     allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
   }
+  // Chrome browser integration
+  if (settings.useChrome) {
+    args.push("--chrome");
+    allowedTools.push("mcp__claude-in-chrome__*");
+  }
+
   if (allowedTools.length > 0) {
     args.push("--allowedTools", allowedTools.join(","));
   }
@@ -655,6 +661,13 @@ export async function continueSession(
   if (keepPlanMode) {
     allowedTools.push("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent");
   }
+
+  // Chrome browser integration
+  if (settings.useChrome) {
+    args.push("--chrome");
+    allowedTools.push("mcp__claude-in-chrome__*");
+  }
+
   if (allowedTools.length > 0) {
     args.push("--allowedTools", allowedTools.join(","));
   }

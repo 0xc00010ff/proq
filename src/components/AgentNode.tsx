@@ -47,7 +47,7 @@ export const AgentNode = memo(({ data, selected }: NodeProps<AgentNodeType>) => 
               </span>
             </>
           ) : (
-            <span className="text-[9px] uppercase tracking-wider font-medium text-text-quaternary">default</span>
+            <span className="text-[8px] uppercase tracking-wider font-medium text-text-quaternary/60">default</span>
           )}
         </div>
       )}

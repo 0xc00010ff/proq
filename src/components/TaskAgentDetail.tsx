@@ -134,10 +134,11 @@ interface TaskAgentDetailProps {
   currentBranch?: string;
   onSwitchBranch?: (branch: string) => void;
   defaultBranch?: string;
+  agentName?: string;
   className?: string;
 }
 
-export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch = 'main', className }: TaskAgentDetailProps) {
+export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch = 'main', agentName, className }: TaskAgentDetailProps) {
   const shortId = task.id.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.nextSteps);
@@ -450,7 +451,10 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               {task.status}
             </span>
           )}
-          <span className="ml-auto text-[10px] text-text-placeholder font-mono">{shortId}</span>
+          <span className="ml-auto flex items-center gap-2">
+            {agentName && <span className="text-[10px] text-text-chrome font-medium truncate max-w-[120px]" title={agentName}>{agentName}</span>}
+            <span className="text-[10px] text-text-placeholder font-mono">{shortId}</span>
+          </span>
         </div>
 
         {/* Scrollable accordion area */}

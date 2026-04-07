@@ -297,11 +297,18 @@ function writeWorkbenchMcpConfig(projectId: string, tabId: string): string {
 
 // ── Public API ──
 
-function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, settings?: { systemPromptAdditions?: string }, project?: { systemPrompt?: string } | null, agentPrompt?: string): string {
+function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, settings?: { systemPromptAdditions?: string }, project?: { systemPrompt?: string } | null, agentPrompt?: string, agentIdentity?: { name: string; role?: string }): string {
   const systemParts: string[] = [];
   if (settings?.systemPromptAdditions) systemParts.push(settings.systemPromptAdditions);
   if (project?.systemPrompt) systemParts.push(project.systemPrompt);
-  if (agentPrompt) systemParts.push(agentPrompt);
+  if (agentIdentity) {
+    const identity = `You are **${agentIdentity.name}**.${agentIdentity.role ? ` ${agentIdentity.role}.` : ''}`;
+    const parts = [identity];
+    if (agentPrompt) parts.push(agentPrompt);
+    systemParts.push(parts.join('\n\n'));
+  } else if (agentPrompt) {
+    systemParts.push(agentPrompt);
+  }
 
   let modeGuidance = "";
   if (mode === "plan") {
@@ -409,7 +416,7 @@ export async function startAgentTabSession(
     args.push("--model", effectiveModel);
   }
 
-  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, mode, settings, project, agentDef?.systemPrompt));
+  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, mode, settings, project, agentDef?.systemPrompt, agentDef ? { name: agentDef.name, role: agentDef.role } : undefined));
 
   const claudeBin = await getClaudeBin();
   const proc = spawn(claudeBin, args, {
@@ -518,7 +525,7 @@ export async function continueAgentTabSession(
     args.push("--model", effectiveModel);
   }
 
-  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, session.mode, settings, project, agentDef?.systemPrompt));
+  args.push("--append-system-prompt", buildSystemPrompt(projectName, cwd, session.mode, settings, project, agentDef?.systemPrompt, agentDef ? { name: agentDef.name, role: agentDef.role } : undefined));
 
   const claudeBin = await getClaudeBin();
   const proc = spawn(claudeBin, args, {

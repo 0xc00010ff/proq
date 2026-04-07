@@ -27,9 +27,10 @@ interface TaskAgentModalProps {
   currentBranch?: string;
   onSwitchBranch?: (branch: string) => void;
   defaultBranch?: string;
+  agentName?: string;
 }
 
-export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch }: TaskAgentModalProps) {
+export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, followUpDraft, onFollowUpDraftChange, onClose, onComplete, onResumeEditing, onUpdateTitle, parallelMode, currentBranch, onSwitchBranch, defaultBranch, agentName }: TaskAgentModalProps) {
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
   const [expanded, setExpanded] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -112,6 +113,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, fo
             currentBranch={currentBranch}
             onSwitchBranch={onSwitchBranch}
             defaultBranch={defaultBranch}
+            agentName={agentName}
             className="flex-1 min-h-0"
           />
 

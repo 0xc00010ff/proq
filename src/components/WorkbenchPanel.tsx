@@ -35,6 +35,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
+import type { Agent } from '@/lib/types';
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
@@ -68,6 +69,7 @@ export interface WorkbenchPanelHandle {
 interface WorkbenchPanelProps {
   projectId: string;
   projectPath?: string;
+  agentMap?: Map<string, Agent>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -247,7 +249,7 @@ function SortableTab({
 
 const TAB_BAR_HEIGHT = 48; // px — matches h-12
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath }, ref) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -456,8 +458,9 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
     const id = `agent-${uuidv4().slice(0, 8)}`;
     const agentCount = currentTabs.filter((t) => t.type === 'agent').length + 1;
+    const agentLabel = agentId && agentMap?.get(agentId)?.name || `Agent ${agentCount}`;
     if (initialInput) setAgentDraft(id, initialInput);
-    dispatch({ type: 'open', tab: { id, label: `Agent ${agentCount}`, type: 'agent', agentId } });
+    dispatch({ type: 'open', tab: { id, label: agentLabel, type: 'agent', agentId } });
   }, []);
 
   useImperativeHandle(ref, () => ({ addShellTab, addAgentTab, expand: expandPanel, toggle: toggleCollapsed }), [addShellTab, addAgentTab, expandPanel, toggleCollapsed]);

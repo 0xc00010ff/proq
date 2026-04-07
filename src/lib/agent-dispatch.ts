@@ -363,7 +363,12 @@ export async function dispatchTask(
   const systemPromptParts: string[] = [];
   if (settings.systemPromptAdditions) systemPromptParts.push(settings.systemPromptAdditions);
   if (project.systemPrompt) systemPromptParts.push(project.systemPrompt);
-  if (agentDef?.systemPrompt) systemPromptParts.push(agentDef.systemPrompt);
+  if (agentDef) {
+    const identity = `You are **${agentDef.name}**.${agentDef.role ? ` ${agentDef.role}.` : ''}`;
+    const agentParts = [identity];
+    if (agentDef.systemPrompt) agentParts.push(agentDef.systemPrompt);
+    systemPromptParts.push(agentParts.join('\n\n'));
+  }
   systemPromptParts.push(proqSystemPrompt);
   const combinedSystemPrompt = systemPromptParts.join("\n\n");
 

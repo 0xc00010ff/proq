@@ -823,6 +823,7 @@ export default function ProjectPage() {
           ref={workbenchRef}
           projectId={projectId}
           projectPath={project.path}
+          agentMap={agentMap}
         />
       </main>
 
@@ -833,6 +834,7 @@ export default function ProjectPage() {
           projectId={projectId}
           isQueued={agentModalTask.agentStatus === 'queued'}
           cleanupExpiresAt={cleanupTimes[agentModalTask.id]}
+          agentName={agentModalTask.agentId ? agentMap.get(agentModalTask.agentId)?.name : undefined}
           followUpDraft={followUpDraftsRef.current.get(agentModalTask.id)}
           onFollowUpDraftChange={(draft) => {
             if (draft) followUpDraftsRef.current.set(agentModalTask.id, draft);

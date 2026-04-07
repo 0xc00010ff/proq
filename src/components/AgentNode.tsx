@@ -44,12 +44,12 @@ export const AgentNode = memo(({ data, selected }: NodeProps<AgentNodeType>) => 
               <Loader2Icon className="w-2.5 h-2.5 text-bronze-500 animate-spin shrink-0" />
               <div className="min-w-0 flex-1">
                 {data.runningTasks.length === 1 ? (
-                  <span className="text-[10px] text-text-secondary truncate block">
+                  <span className="text-[10px] text-text-primary truncate block">
                     {data.runningTasks[0].title}
                   </span>
                 ) : (
                   <>
-                    <span className="text-[10px] text-text-secondary truncate block">
+                    <span className="text-[10px] text-text-primary truncate block">
                       {data.runningTasks[0].title}
                     </span>
                     <span className="text-[10px] text-text-tertiary">

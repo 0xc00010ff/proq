@@ -167,6 +167,17 @@ export function ChatPanel({ projectId, messages, onSendMessage, style, streaming
     onDraftChange?.('');
   };
 
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const imageFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      addFiles(imageFiles);
+    }
+  }, [addFiles]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
@@ -330,6 +341,7 @@ export function ChatPanel({ projectId, messages, onSendMessage, style, streaming
               setInputValue(e.target.value);
               onDraftChange?.(e.target.value);
             }}
+            onPaste={handlePaste}
             placeholder={isLoading ? "waiting for response..." : "message..."}
             disabled={isLoading}
             className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-placeholder focus:outline-none caret-bronze-600 disabled:opacity-50"

@@ -170,6 +170,17 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
     }
   }, [isRunning, handleInterruptAttempt, handleSend]);
 
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const imageFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      addFiles(imageFiles);
+    }
+  }, [addFiles]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -282,6 +293,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
             defaultValue={defaultValue}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder="Send a message..."
             rows={1}
             style={{ height: '36px', maxHeight: `${maxHeight}px` }}

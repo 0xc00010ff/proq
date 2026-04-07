@@ -902,7 +902,7 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
   const now = new Date().toISOString();
   const agent: Agent = {
     id: uuidv7(),
-    name: "Default",
+    name: "Claude",
     role: "General-purpose agent",
     systemPrompt: settings.systemPrompt || "",
     avatar: { color: "#3b82f6" }, // blue-500

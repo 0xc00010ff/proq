@@ -165,6 +165,28 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
       )
     }
 
+    if (params.hasImageContents) {
+      if (menuItems.length > 0) menuItems.push({ type: 'separator' })
+      menuItems.push(
+        {
+          label: 'Copy Image',
+          click: () => win.webContents.copyImageAt(params.x, params.y)
+        },
+        {
+          label: 'Save Image As\u2026',
+          click: () => {
+            win.webContents.downloadURL(params.srcURL)
+          }
+        }
+      )
+      if (params.srcURL) {
+        menuItems.push({
+          label: 'Open Image in Browser',
+          click: () => shell.openExternal(params.srcURL)
+        })
+      }
+    }
+
     if (params.linkURL) {
       if (menuItems.length > 0) menuItems.push({ type: 'separator' })
       menuItems.push({

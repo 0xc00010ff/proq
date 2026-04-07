@@ -31,9 +31,11 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  // Set needsAttention when summary is updated and task is (moving to) verify
+  // Set needsAttention when task arrives in or is updated while in verify
   const effectiveStatus = body.status || prevStatus;
-  const shouldSetAttention = body.summary !== undefined && effectiveStatus === "verify";
+  const movingToVerify = body.status === "verify" && prevStatus !== "verify";
+  const updatedWhileInVerify = body.summary !== undefined && effectiveStatus === "verify";
+  const shouldSetAttention = movingToVerify || updatedWhileInVerify;
   if (shouldSetAttention) {
     await updateTask(id, taskId, { needsAttention: true });
     updated.needsAttention = true;

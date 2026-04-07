@@ -6,7 +6,6 @@ import {
   Loader2Icon,
   ClockIcon,
   EyeIcon,
-  BellDotIcon,
   AlertTriangleIcon,
   TimerIcon,
 } from 'lucide-react';
@@ -102,7 +101,10 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
       )}
 
       <div className="p-3 min-h-[80px]">
-        <div className="flex items-start justify-between pr-6">
+        <div className="flex items-start gap-2 pr-6">
+          {task.needsAttention && (
+            <span className="w-1.5 h-1.5 rounded-full bg-lazuli shrink-0 mt-[7px]" />
+          )}
           {editing ? (
             <input
               ref={inputRef}
@@ -156,7 +158,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
           </div>
         )}
 
-        {(isActive || isQueued || isPreviewActive || task.needsAttention || agentName || isCron) && (
+        {(isActive || isQueued || isPreviewActive || agentName || isCron) && (
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle/60">
             {isPreviewActive && !isActive && !isQueued ? (
               <div className="flex items-center gap-1.5">
@@ -184,13 +186,6 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
                 <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
                 <span className={`text-[10px] text-text-secondary font-medium tracking-wide truncate max-w-[160px] ${agentName ? '' : 'uppercase'}`}>
                   {agentName || 'Starting...'}
-                </span>
-              </div>
-            ) : task.needsAttention ? (
-              <div className="flex items-center gap-1.5">
-                <BellDotIcon className="w-3 h-3 text-lazuli" />
-                <span className="text-[10px] text-lazuli font-medium uppercase tracking-wide">
-                  Task updated
                 </span>
               </div>
             ) : agentName ? (

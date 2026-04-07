@@ -403,6 +403,15 @@ export default function SettingsPage() {
                     />
                   </Field>
                 )}
+                <Field
+                  label="Allow Chrome access"
+                  hint="Give agents access to Chrome. Requires Chrome integration to be set up in Claude CLI first with `claude --chrome`."
+                >
+                  <Toggle
+                    checked={settings.useChrome}
+                    onChange={(v) => update("useChrome", v)}
+                  />
+                </Field>
               </SectionCard>
               <SectionCard>
                 <Field

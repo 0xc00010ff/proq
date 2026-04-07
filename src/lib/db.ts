@@ -989,6 +989,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   showCosts: false,
   codingAgent: "claude-code",
   allowAgentInterrupts: false,
+  useChrome: false,
 
   // Experimental
   enableAgentDesigner: false,

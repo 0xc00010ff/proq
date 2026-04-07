@@ -156,6 +156,7 @@ export interface ProqSettings {
   showCosts: boolean;
   codingAgent: string;
   allowAgentInterrupts: boolean;
+  useChrome: boolean;
 
   // Experimental
   enableAgentDesigner: boolean;

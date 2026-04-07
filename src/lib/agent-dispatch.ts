@@ -392,9 +392,10 @@ export async function dispatchTask(
     writeFileSync(systemPromptFile, combinedSystemPrompt, "utf-8");
     const claudeBin = await getClaudeBin();
     const modelFlag = settings.defaultModel ? ` --model '${settings.defaultModel}'` : "";
+    const chromeFlag = settings.useChrome ? " --chrome" : "";
     writeFileSync(
       launcherFile,
-      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT '${claudeBin}' ${cliPermFlag}${modelFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
+      `#!/bin/bash\nexec env -u CLAUDECODE -u PORT '${claudeBin}' ${cliPermFlag}${modelFlag}${chromeFlag} --allowedTools 'mcp__proq__*' --mcp-config '${mcpConfigPath}' --append-system-prompt "$(cat '${systemPromptFile}')" "$(cat '${promptFile}')"\n`,
       "utf-8",
     );
 

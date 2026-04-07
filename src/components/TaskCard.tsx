@@ -30,6 +30,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
   const isActive = isRunning || isStarting;
   const isCron = !!task.cronJobId;
   const isCronError = isCron && task.status === 'verify' && task.summary?.startsWith('Error:');
+  const agentName = task.agentId && agentMap?.get(task.agentId)?.name;
   const canEditTitle = !!onUpdateTitle;
 
   // Track summary changes to trigger flash animation
@@ -165,22 +166,22 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
           ) : isQueued ? (
             <div className="flex items-center gap-1.5">
               <ClockIcon className="w-3 h-3 text-text-secondary" />
-              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">
-                Queued
+              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide truncate max-w-[160px]">
+                {agentName || 'Queued'}
               </span>
             </div>
           ) : isRunning ? (
             <div className="flex items-center gap-1.5">
               <Loader2Icon className="w-3 h-3 text-bronze-500 animate-spin" />
-              <span className="text-[10px] text-bronze-500 font-medium uppercase tracking-wide">
-                {task.agentId && agentMap?.get(task.agentId) ? 'Working' : 'Agent working'}
+              <span className="text-[10px] text-bronze-500 font-medium uppercase tracking-wide truncate max-w-[160px]">
+                {agentName || 'Agent working'}
               </span>
             </div>
           ) : isStarting ? (
             <div className="flex items-center gap-1.5">
               <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
-              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide">
-                Starting...
+              <span className="text-[10px] text-text-secondary font-medium uppercase tracking-wide truncate max-w-[160px]">
+                {agentName || 'Starting...'}
               </span>
             </div>
           ) : task.needsAttention ? (
@@ -190,20 +191,18 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
                 Task updated
               </span>
             </div>
+          ) : agentName ? (
+            <span className="text-[10px] text-text-chrome font-medium uppercase tracking-wide truncate max-w-[160px]" title={agentName}>
+              {agentName}
+            </span>
           ) : (
             <span />
           )}
-          <span className="flex items-center gap-1.5 text-[10px] text-text-tertiary font-mono">
-            {task.agentId && agentMap?.get(task.agentId) && (
-              <span
-                className={`text-[10px] font-medium truncate max-w-[120px] ${isRunning ? 'text-bronze-500' : 'text-text-chrome'}`}
-                title={agentMap.get(task.agentId)!.name}
-              >
-                {agentMap.get(task.agentId)!.name}
-              </span>
-            )}
-            {isCron && <TimerIcon className="w-3 h-3 text-text-chrome" />}
-          </span>
+          {isCron && (
+            <span className="flex items-center">
+              <TimerIcon className="w-3 h-3 text-text-chrome" />
+            </span>
+          )}
         </div>
       </div>
     </div>

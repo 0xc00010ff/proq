@@ -427,33 +427,34 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
         {/* Fixed nav bar — status + task ID */}
         <div className="shrink-0 h-10 flex items-center gap-1.5 px-4 border-b border-border-default">
           {isQueued ? (
-            <span className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">
-              <ClockIcon className="w-3 h-3" />
-              Queued
+            <span className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium uppercase tracking-wide truncate">
+              <ClockIcon className="w-3 h-3 shrink-0" />
+              {agentName || 'Queued'}
             </span>
           ) : isDispatched ? (
-            <span className="flex items-center gap-1.5 text-xs text-bronze-500 font-medium uppercase tracking-wide">
-              <Loader2Icon className="w-3 h-3 animate-spin" />
-              {agentName ? 'Working' : 'Agent working'}
+            <span className="flex items-center gap-1.5 text-xs text-bronze-500 font-medium uppercase tracking-wide truncate">
+              <Loader2Icon className="w-3 h-3 animate-spin shrink-0" />
+              {agentName || 'Agent working'}
             </span>
           ) : task.status === 'verify' ? (
-            <span className="flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium uppercase tracking-wide">
-              <ClockIcon className="w-3 h-3" />
-              Awaiting review
+            <span className="flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium uppercase tracking-wide truncate">
+              <ClockIcon className="w-3 h-3 shrink-0" />
+              {agentName || 'Awaiting review'}
             </span>
           ) : task.status === 'done' ? (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-dark dark:text-emerald font-medium uppercase tracking-wide">
-              <CheckCircle2Icon className="w-3 h-3" />
-              Completed
+            <span className="flex items-center gap-1.5 text-xs text-emerald-dark dark:text-emerald font-medium uppercase tracking-wide truncate">
+              <CheckCircle2Icon className="w-3 h-3 shrink-0" />
+              {agentName || 'Completed'}
+            </span>
+          ) : agentName ? (
+            <span className="text-xs text-text-chrome font-medium uppercase tracking-wide truncate">
+              {agentName}
             </span>
           ) : (
             <span className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
               {task.status}
             </span>
           )}
-          <span className="ml-auto flex items-center gap-2">
-            {agentName && <span className={`text-[10px] font-medium truncate max-w-[120px] ${isDispatched ? 'text-bronze-500' : 'text-text-chrome'}`} title={agentName}>{agentName}</span>}
-          </span>
         </div>
 
         {/* Scrollable accordion area */}

@@ -355,6 +355,11 @@ export async function dispatchTask(
 
   // Look up the assigned agent (if any) for prompt overrides — fall back to project default
   const effectiveAgentId = currentTask?.agentId || project.defaultAgentId;
+  if (effectiveAgentId && currentTask && !currentTask.agentId) {
+    await updateTask(projectId, taskId, { agentId: effectiveAgentId });
+    emitTaskUpdate(projectId, taskId, { agentId: effectiveAgentId });
+    currentTask.agentId = effectiveAgentId;
+  }
   const agentDef = effectiveAgentId
     ? await getAgent(projectId, effectiveAgentId)
     : null;

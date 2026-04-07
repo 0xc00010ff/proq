@@ -575,14 +575,6 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
                   Agent
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-44">
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      if (workbench.collapsed) expandPanel();
-                      addAgentTab();
-                    }}
-                  >
-                    Default
-                  </DropdownMenuItem>
                   {Array.from(agentMap.values()).map((agent) => (
                     <DropdownMenuItem
                       key={agent.id}

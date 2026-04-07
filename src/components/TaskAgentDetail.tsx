@@ -434,7 +434,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           ) : isDispatched ? (
             <span className="flex items-center gap-1.5 text-xs text-bronze-500 font-medium uppercase tracking-wide">
               <Loader2Icon className="w-3 h-3 animate-spin" />
-              Working
+              {agentName ? 'Working' : 'Agent working'}
             </span>
           ) : task.status === 'verify' ? (
             <span className="flex items-center gap-1.5 text-xs text-lazuli-dark dark:text-lazuli font-medium uppercase tracking-wide">

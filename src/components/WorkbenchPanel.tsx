@@ -33,6 +33,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
 import type { Agent } from '@/lib/types';
@@ -565,15 +568,45 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom" className="w-40">
-            <DropdownMenuItem
-              onSelect={() => {
-                if (workbench.collapsed) expandPanel();
-                addAgentTab();
-              }}
-            >
-              <SquareChevronUpIcon className="w-3.5 h-3.5" />
-              Agent
-            </DropdownMenuItem>
+            {agentMap && agentMap.size > 1 ? (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <SquareChevronUpIcon className="w-3.5 h-3.5" />
+                  Agent
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-44">
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      if (workbench.collapsed) expandPanel();
+                      addAgentTab();
+                    }}
+                  >
+                    Default
+                  </DropdownMenuItem>
+                  {Array.from(agentMap.values()).map((agent) => (
+                    <DropdownMenuItem
+                      key={agent.id}
+                      onSelect={() => {
+                        if (workbench.collapsed) expandPanel();
+                        addAgentTab({ agentId: agent.id });
+                      }}
+                    >
+                      {agent.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ) : (
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (workbench.collapsed) expandPanel();
+                  addAgentTab();
+                }}
+              >
+                <SquareChevronUpIcon className="w-3.5 h-3.5" />
+                Agent
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onSelect={() => {
                 if (workbench.collapsed) expandPanel();

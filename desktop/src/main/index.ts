@@ -200,6 +200,60 @@ function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
     }
   })
 
+  // Enable context menu for embedded <webview> tags (e.g. LiveTab preview)
+  win.webContents.on('did-attach-webview', (_e, guestContents) => {
+    guestContents.on('context-menu', (_ev, params) => {
+      const menuItems: Electron.MenuItemConstructorOptions[] = []
+
+      if (params.isEditable) {
+        if (params.misspelledWord) {
+          for (const suggestion of params.dictionarySuggestions) {
+            menuItems.push({
+              label: suggestion,
+              click: () => guestContents.replaceMisspelling(suggestion)
+            })
+          }
+          menuItems.push({
+            label: 'Add to dictionary',
+            click: () => guestContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+          })
+          menuItems.push({ type: 'separator' })
+        }
+
+        menuItems.push(
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' }
+        )
+      } else if (params.selectionText) {
+        menuItems.push({ role: 'copy' })
+      }
+
+      if (params.linkURL) {
+        if (menuItems.length > 0) menuItems.push({ type: 'separator' })
+        menuItems.push({
+          label: 'Open Link in Browser',
+          click: () => shell.openExternal(params.linkURL)
+        })
+      }
+
+      // Always show Inspect Element for webviews
+      if (menuItems.length > 0) menuItems.push({ type: 'separator' })
+      menuItems.push({
+        label: 'Inspect Element',
+        click: () => guestContents.inspectElement(params.x, params.y)
+      })
+
+      if (menuItems.length > 0) {
+        Menu.buildFromTemplate(menuItems).popup({ window: win })
+      }
+    })
+  })
+
   win.once('ready-to-show', () => win.show())
 
   // Forward find-in-page results to the find bar child window

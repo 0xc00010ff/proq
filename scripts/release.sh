@@ -60,7 +60,8 @@ for (const f of ['package.json', 'desktop/package.json']) {
   console.log('  Updated ' + f);
 }
 "
-git add package.json desktop/package.json
+npm install --package-lock-only --ignore-scripts
+git add package.json desktop/package.json package-lock.json
 git commit -m "Bump to v$NEXT"
 
 echo ""

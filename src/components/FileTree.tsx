@@ -16,6 +16,7 @@ import {
   FolderPlus,
   PencilLine,
   Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import {
   ContextMenu,
@@ -37,6 +38,7 @@ export interface FileTreeCallbacks {
   onDelete: (path: string, type: 'file' | 'dir') => Promise<boolean>;
   onCreateFile: (parentDir: string, name: string) => Promise<boolean>;
   onCreateFolder: (parentDir: string, name: string) => Promise<boolean>;
+  onReveal?: (path: string) => void;
 }
 
 interface FileTreeProps {
@@ -343,6 +345,15 @@ function TreeNodeItem({
         <Trash2 className="w-4 h-4" />
         Delete
       </ContextMenuItem>
+      {callbacks.onReveal && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={() => callbacks.onReveal!(node.path)}>
+            <ExternalLink className="w-4 h-4" />
+            Show in Finder
+          </ContextMenuItem>
+        </>
+      )}
     </ContextMenuContent>
   ) : null;
 

@@ -297,6 +297,13 @@ export function CodeTab({ project }: CodeTabProps) {
         return false;
       }
     },
+    onReveal: (path) => {
+      fetch('/api/files/reveal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+    },
   }), [activeTabPath, refreshTree]);
 
   // Restore persisted tabs on mount

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from '@/components/Modal';
 import { Select } from '@/components/ui/select';
 import type { Agent, Project, McpServerInfo, SkillInfo } from '@/lib/types';
@@ -31,6 +31,9 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
     skills: SkillInfo[];
   } | null>(null);
 
+  // Track whether we've already saved on close to avoid double-saves
+  const didSaveRef = useRef(false);
+
   useEffect(() => {
     setName(project.name);
     setDefaultBranch(project.defaultBranch || 'main');
@@ -38,26 +41,32 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
     setSystemPrompt(project.systemPrompt || '');
     setDefaultAgentId(project.defaultAgentId || '');
     setWorkspaceInProject(project.workspaceInProject || false);
+    didSaveRef.current = false;
   }, [project]);
 
   useEffect(() => {
     if (!isOpen) return;
+    didSaveRef.current = false;
     fetch(`/api/projects/${project.id}/mcp-and-skills`)
       .then((res) => res.json())
       .then(setMcpData)
       .catch(console.error);
   }, [isOpen, project.id]);
 
-  const handleSave = () => {
-    onSave({
-      name,
-      defaultBranch,
-      serverUrl: serverUrl || undefined,
-      systemPrompt: systemPrompt || undefined,
-      defaultAgentId: defaultAgentId || undefined,
-    });
+  // Save on close — flush current field values to parent
+  const handleClose = useCallback(() => {
+    if (!didSaveRef.current) {
+      didSaveRef.current = true;
+      onSave({
+        name,
+        defaultBranch,
+        serverUrl: serverUrl || undefined,
+        systemPrompt: systemPrompt || undefined,
+        defaultAgentId: defaultAgentId || undefined,
+      });
+    }
     onClose();
-  };
+  }, [name, defaultBranch, serverUrl, systemPrompt, defaultAgentId, onSave, onClose]);
 
   const handleMoveToProject = async () => {
     setMovingWorkspace(true);
@@ -67,7 +76,10 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspaceInProject: true }),
       });
-      if (res.ok) setWorkspaceInProject(true);
+      if (res.ok) {
+        setWorkspaceInProject(true);
+        onSave({ workspaceInProject: true } as Partial<Project>);
+      }
     } catch { /* best effort */ }
     setMovingWorkspace(false);
   };
@@ -92,7 +104,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const agentOptions = (agents || []).map(a => ({ value: a.id, label: a.name }));
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} preventAutoFocus className={`w-full ${hasAnyMcpOrSkills ? 'max-w-xl' : 'max-w-lg'} max-h-[80vh] overflow-y-auto`}>
+    <Modal isOpen={isOpen} onClose={handleClose} preventAutoFocus className={`w-full ${hasAnyMcpOrSkills ? 'max-w-xl' : 'max-w-lg'} max-h-[80vh] overflow-y-auto`}>
       <div className="p-6">
         <h2 className="text-sm font-semibold text-text-primary mb-5">Project Settings</h2>
 
@@ -243,10 +255,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
           </section>
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="btn-secondary">Cancel</button>
-          <button onClick={handleSave} className="btn-primary">Save</button>
-        </div>
       </div>
 
       {/* Workspace confirmation modal */}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon, LinkIcon, ExternalLinkIcon } from 'lucide-react';
 import type { Project, ProjectTab, ViewType } from '@/lib/types';
 import {
   DropdownMenu,
@@ -45,12 +45,13 @@ interface TopBarProps {
   onOpenCronJobs?: () => void;
   onCommit?: () => void;
   onCreateBranch?: (name: string) => Promise<void>;
+  onSetUpstream?: (url: string) => Promise<void>;
   sidebarCollapsed?: boolean;
   onExpandSidebar?: () => void;
   showAgentsTab?: boolean;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, sidebarCollapsed, onExpandSidebar, showAgentsTab }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, onSetUpstream, sidebarCollapsed, onExpandSidebar, showAgentsTab }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -68,6 +69,13 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   const [pushing, setPushing] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Set upstream modal
+  const [upstreamModalOpen, setUpstreamModalOpen] = useState(false);
+  const [upstreamUrl, setUpstreamUrl] = useState('');
+  const [upstreamSaving, setUpstreamSaving] = useState(false);
+  const [upstreamError, setUpstreamError] = useState<string | null>(null);
+  const upstreamInputRef = useRef<HTMLInputElement>(null);
 
   // Detail modal state
   const [detailModal, setDetailModal] = useState<

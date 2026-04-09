@@ -108,21 +108,24 @@ export async function POST(request: Request) {
       ensureCronSchedulerStarted();
     }
 
-    // 7. Dispatch the first task (move to in-progress, then queue for agent)
-    await updateTask(project.id, task.id, { status: "in-progress" });
-    const changes = await initForDispatch(
-      project.id,
-      task.id,
-      { ...task, status: "in-progress" },
-      "todo",
-    );
-    if (changes.agentStatus) {
-      emitTaskUpdate(project.id, task.id, {
-        status: "in-progress",
-        ...changes,
-      });
+    // 7. For non-blank templates, auto-dispatch the first task.
+    //    Blank projects leave the task in todo so the user can edit it first.
+    if (templateId !== "blank") {
+      await updateTask(project.id, task.id, { status: "in-progress" });
+      const changes = await initForDispatch(
+        project.id,
+        task.id,
+        { ...task, status: "in-progress" },
+        "todo",
+      );
+      if (changes.agentStatus) {
+        emitTaskUpdate(project.id, task.id, {
+          status: "in-progress",
+          ...changes,
+        });
+      }
+      await processQueue(project.id);
     }
-    await processQueue(project.id);
 
     return NextResponse.json(
       { ...project, pathValid: true },

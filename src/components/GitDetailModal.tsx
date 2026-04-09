@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftIcon, Loader2Icon, XIcon, FileIcon, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
+import { ArrowLeftIcon, Loader2Icon, XIcon, FileIcon, ArrowUpIcon, ArrowDownIcon, LinkIcon, ExternalLinkIcon } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { FileDiffAccordion } from '@/components/FileDiffAccordion';
 import { parseDiffIntoFiles, parseCommitShow, colorDiffLine } from '@/lib/diff-parser';
@@ -22,7 +22,7 @@ type GitDetailModalProps = {
   title: string;
 } & (
   | { type: 'diff'; content: string; commits?: never; behindCommits?: never; projectId?: never; currentBranch?: never; onPush?: never; onPull?: never }
-  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; content?: never }
+  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; onSetUpstream?: (url: string) => Promise<void>; content?: never }
 );
 
 export function GitDetailModal(props: GitDetailModalProps) {
@@ -35,6 +35,12 @@ export function GitDetailModal(props: GitDetailModalProps) {
   const [pullingInline, setPullingInline] = useState(false);
   const [pullError, setPullError] = useState<string | null>(null);
   const [pushError, setPushError] = useState<string | null>(null);
+
+  // Set upstream modal
+  const [upstreamModalOpen, setUpstreamModalOpen] = useState(false);
+  const [upstreamUrl, setUpstreamUrl] = useState('');
+  const [upstreamSaving, setUpstreamSaving] = useState(false);
+  const [upstreamError, setUpstreamError] = useState<string | null>(null);
 
   // Paginated history (commits below origin)
   const [historyCommits, setHistoryCommits] = useState<CommitInfo[]>([]);
@@ -151,6 +157,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
     }
   }, [allExpanded, currentFiles]);
 
+  const hasRemote = type === 'log' ? (props.hasRemote ?? true) : true;
   const branchLabel = type === 'log' && props.currentBranch
     ? `origin/${props.currentBranch}`
     : 'origin';
@@ -160,6 +167,17 @@ export function GitDetailModal(props: GitDetailModalProps) {
   const aheadCount = type === 'log' ? props.commits.length : 0;
   const headerSummary = (() => {
     if (type !== 'log') return null;
+    if (!hasRemote) {
+      return (
+        <button
+          onClick={(e) => { e.stopPropagation(); setUpstreamModalOpen(true); setUpstreamUrl(''); setUpstreamError(null); }}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded border border-border-default text-text-chrome hover:bg-surface-hover hover:text-text-chrome-hover"
+        >
+          <LinkIcon className="w-2.5 h-2.5" />
+          Set upstream
+        </button>
+      );
+    }
     const styledBranch = <span className="text-bronze-600">{branchLabel}</span>;
     const parts: React.ReactNode[] = [];
     if (aheadCount > 0) parts.push(<React.Fragment key="ahead">{aheadCount} {aheadCount === 1 ? 'commit' : 'commits'} ahead of {styledBranch}</React.Fragment>);
@@ -334,12 +352,14 @@ export function GitDetailModal(props: GitDetailModalProps) {
               </div>
             )}
 
-            {/* Origin separator — always shown */}
-            <div className="flex items-center gap-3 px-4 py-2 text-[10px] text-text-chrome font-mono">
-              <div className="flex-1 border-t border-bronze-600/30" />
-              <span>{branchLabel}</span>
-              <div className="flex-1 border-t border-bronze-600/30" />
-            </div>
+            {/* Origin separator — only shown when remote exists */}
+            {hasRemote && (
+              <div className="flex items-center gap-3 px-4 py-2 text-[10px] text-text-chrome font-mono">
+                <div className="flex-1 border-t border-bronze-600/30" />
+                <span>{branchLabel}</span>
+                <div className="flex-1 border-t border-bronze-600/30" />
+              </div>
+            )}
 
             {/* Paginated history */}
             {historyCommits.length > 0 && (
@@ -396,6 +416,83 @@ export function GitDetailModal(props: GitDetailModalProps) {
           )
         )}
       </div>
+
+      {/* Set upstream modal */}
+      {upstreamModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setUpstreamModalOpen(false)} />
+          <div className="relative bg-surface-modal border border-border-default rounded-xl shadow-xl w-[420px] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-text-primary">Set upstream remote</h3>
+              <button onClick={() => setUpstreamModalOpen(false)} className="text-text-tertiary hover:text-text-secondary">
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-text-tertiary mb-3">
+              Add a remote URL to push and pull from. This sets the <code className="px-1 py-0.5 rounded bg-surface-hover text-text-chrome font-mono text-[11px]">origin</code> remote for this repository.
+            </p>
+            <input
+              type="text"
+              value={upstreamUrl}
+              onChange={(e) => { setUpstreamUrl(e.target.value); setUpstreamError(null); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && upstreamUrl.trim() && !upstreamSaving && type === 'log' && props.onSetUpstream) {
+                  e.preventDefault();
+                  const url = upstreamUrl.trim();
+                  setUpstreamSaving(true);
+                  setUpstreamError(null);
+                  props.onSetUpstream(url)
+                    .then(() => { setUpstreamModalOpen(false); })
+                    .catch((err) => { setUpstreamError(err instanceof Error ? err.message : 'Failed to set remote'); })
+                    .finally(() => { setUpstreamSaving(false); });
+                }
+              }}
+              placeholder="https://github.com/user/repo.git"
+              className="w-full px-3 py-2 text-sm bg-surface-primary border border-border-default rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-lazuli/60 font-mono"
+              autoFocus
+            />
+            {upstreamError && (
+              <p className="text-xs text-crimson mt-2">{upstreamError}</p>
+            )}
+            <div className="flex items-center justify-between mt-4">
+              <a
+                href="https://github.com/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-chrome"
+              >
+                <ExternalLinkIcon className="w-3 h-3" />
+                Create a GitHub repo
+              </a>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setUpstreamModalOpen(false)}
+                  className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const url = upstreamUrl.trim();
+                    if (!url || upstreamSaving || type !== 'log' || !props.onSetUpstream) return;
+                    setUpstreamSaving(true);
+                    setUpstreamError(null);
+                    props.onSetUpstream(url)
+                      .then(() => { setUpstreamModalOpen(false); })
+                      .catch((err) => { setUpstreamError(err instanceof Error ? err.message : 'Failed to set remote'); })
+                      .finally(() => { setUpstreamSaving(false); });
+                  }}
+                  disabled={!upstreamUrl.trim() || upstreamSaving}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-lazuli text-white hover:bg-lazuli-light disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  {upstreamSaving && <Loader2Icon className="w-3 h-3 animate-spin" />}
+                  Add remote
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

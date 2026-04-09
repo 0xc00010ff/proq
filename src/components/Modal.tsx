@@ -23,6 +23,8 @@ interface ModalProps {
   zIndex?: string;
   /** Ref for the content card element */
   cardRef?: React.RefObject<HTMLDivElement | null>;
+  /** Prevent auto-focus on open */
+  preventAutoFocus?: boolean;
 }
 
 /**
@@ -38,6 +40,7 @@ export function Modal({
   showClose = true,
   zIndex = 'z-50',
   cardRef,
+  preventAutoFocus,
 }: ModalProps) {
   // Use the custom shortcut system for escape; prevent Radix's built-in escape handling
   useEscapeKey(onClose, isOpen);
@@ -51,6 +54,7 @@ export function Modal({
         overlayClassName={zIndex !== 'z-50' ? zIndex : undefined}
         style={style}
         onEscapeKeyDown={(e) => e.preventDefault()}
+        onOpenAutoFocus={preventAutoFocus ? (e) => e.preventDefault() : undefined}
       >
         {children}
       </DialogContent>

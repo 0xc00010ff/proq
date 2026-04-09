@@ -3,6 +3,7 @@ import { getSession, attachClient, addPendingClient, detachClient, stopSession, 
 import { getTask, getProject, updateTask, getTaskSession } from "./db";
 import { resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
+import { processQueue } from "./agent-dispatch";
 import type { AgentWsClientMsg } from "./types";
 
 export async function attachAgentWsWithProject(
@@ -37,6 +38,13 @@ export async function attachAgentWsWithProject(
       const msg: AgentWsClientMsg = JSON.parse(raw.toString());
       if (msg.type === "stop") {
         stopSession(taskId);
+        // Move task to verify and unblock the queue for sequential mode
+        const task = await getTask(projectId, taskId);
+        if (task?.status === "in-progress") {
+          await updateTask(projectId, taskId, { status: "verify", agentStatus: null });
+          emitTaskUpdate(projectId, taskId, { status: "verify", agentStatus: null });
+          processQueue(projectId);
+        }
       } else if (msg.type === "interrupt") {
         try {
           console.log(`[agent-ws] interrupt requested for task ${taskId.slice(0, 8)}`);

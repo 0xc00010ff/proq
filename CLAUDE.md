@@ -174,17 +174,21 @@ In worktrees mode, each task gets its own git worktree + branch (`proq/{shortId}
 
 ### Cron Jobs
 
-Tasks can be created on a schedule via cron jobs. Each project can have cron jobs that automatically create and dispatch tasks.
+Tasks can be created on a schedule via cron jobs. Cron definitions live in shared `project.json`; activation state is per-user in `workspace.json`. Crons are **off by default** — each user opts in to run them on their machine.
 
-- **CronJob**: `{ id, name, prompt, schedule, mode, enabled, lastRunAt, lastTaskId, nextRunAt, runCount, createdAt }`
+- **CronJobDefinition** (project.json): `{ id, name, prompt, defaultSchedule, mode, agentId, createdAt }`
+- **ActiveCronState** (workspace.json `activeCrons` map): `{ schedule?, lastRunAt?, lastTaskId?, nextRunAt?, runCount? }`
+- **CronJob** (composed): merges definition + activation. `enabled` = presence in `activeCrons`. `schedule` = user override or `defaultSchedule`.
 - Tasks created by crons have a `cronJobId` linking back to the source cron
 - The cron scheduler runs in-process (`cron-scheduler.ts`)
 
 ### Data Layer
 
-- **`data/workspace.json`** — Project registry
-- **`data/projects/{id}.json`** — Per-project state (tasks array + chatLog array)
+- **`data/workspace.json`** — Project registry (stubs with id, name, path)
 - **`data/settings.json`** — Global settings (claude binary path, model, theme, etc.)
+- **`data/projects/{id}/project.json`** — Shared project config (systemPrompt, defaultBranch, cron definitions). Git-trackable in `.proq/` mode.
+- **`data/projects/{id}/workspace.json`** — Per-user state (tasks, chat, UI, executionMode, serverUrl, defaultAgentId, cron activations)
+- **`data/projects/{id}/agents/`** — Agent definitions (individual JSON files)
 - **`data/` is gitignored** — Each user has their own local state, auto-created on first run
 - Database: Custom JSON file storage (readFileSync/writeFileSync with per-resource write locks)
 
@@ -192,7 +196,9 @@ Tasks can be created on a schedule via cron jobs. Each project can have cron job
 
 - **Project**: `{ id, name, path, status, serverUrl, order, pathValid, activeTab, viewType, liveViewport, defaultBranch, systemPrompt, createdAt }`
 - **Task**: `{ id, title, description, status, priority, mode, summary, nextSteps, needsAttention, agentLog, agentStatus, worktreePath, branch, baseBranch, mergeConflict, startCommit, commitHashes, renderMode, agentBlocks, sessionId, attachments, cronJobId, createdAt, updatedAt }`
-- **CronJob**: `{ id, name, prompt, schedule, mode, enabled, lastRunAt, lastTaskId, nextRunAt, runCount, createdAt }`
+- **ProjectConfig**: `{ systemPrompt, defaultBranch, cronJobs[] }` — shared project config in `project.json`
+- **CronJobDefinition**: `{ id, name, prompt, defaultSchedule, mode, agentId, createdAt }` — shared cron definition
+- **CronJob**: `{ ...CronJobDefinition, schedule, enabled, lastRunAt, lastTaskId, nextRunAt, runCount }` — composed from definition + user activation
 - **ProqSettings**: `{ claudeBin, defaultModel, systemPromptAdditions, executionMode, agentRenderMode, showCosts, codingAgent, autoUpdate, theme, soundNotifications, localNotifications, webhooks }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Task modes: `auto` | `build` | `plan` | `answer`

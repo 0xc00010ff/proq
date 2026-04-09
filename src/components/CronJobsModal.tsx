@@ -166,7 +166,7 @@ export function CronJobsModal({ isOpen, projectId, onClose }: CronJobsModalProps
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null); // job id or 'new'
-  const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: true, agentId: undefined as string | undefined });
+  const [form, setForm] = useState({ name: '', prompt: '', schedule: '', mode: 'auto' as TaskMode, enabled: false, agentId: undefined as string | undefined });
   const [schedState, setSchedState] = useState<ScheduleState>({ frequency: 'daily', intervalAmount: 6, intervalUnit: 'hours', hour: 9, days: [1] });
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
   const { agents } = useAgents(projectId);

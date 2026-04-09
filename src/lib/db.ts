@@ -15,6 +15,7 @@ import type {
   WorkspaceData,
   ProjectStub,
   Project,
+  ProjectConfig,
   ProjectSettings,
   ProjectWorkspace,
   Task,
@@ -28,6 +29,8 @@ import type {
   ProqSettings,
   AgentBlock,
   CronJob,
+  CronJobDefinition,
+  ActiveCronState,
   Agent,
 } from "./types";
 import { slugify } from "./utils";
@@ -128,20 +131,37 @@ function writeWorkspace(ws: WorkspaceData): void {
   writeJSON(filePath, ws);
 }
 
-// ── Per-project settings (shareable) ─────────────────────
+// ── Per-project config (shared, git-trackable) ──────────
+
+function projectConfigPath(projectId: string): string {
+  return path.join(projectDir(projectId), "project.json");
+}
+
+export function getProjectConfig(projectId: string): ProjectConfig {
+  ensureProjectDir(projectId);
+  const configPath = projectConfigPath(projectId);
+  // Auto-migrate from old settings.json if needed
+  if (!fsExists(configPath) && fsExists(projectSettingsPath(projectId))) {
+    migrateSettingsToProjectConfig(projectId);
+  }
+  return readJSON<ProjectConfig>(configPath, {});
+}
+
+export function writeProjectConfig(projectId: string, config: ProjectConfig): void {
+  ensureProjectDir(projectId);
+  writeJSON(projectConfigPath(projectId), config);
+}
+
+// ── Per-project settings (DEPRECATED — kept for migration) ──
 
 function projectSettingsPath(projectId: string): string {
   return path.join(projectDir(projectId), "settings.json");
 }
 
-export function getProjectSettings(projectId: string): ProjectSettings {
+/** @deprecated Use getProjectConfig() instead. Only used for migration. */
+function getProjectSettings(projectId: string): ProjectSettings {
   ensureProjectDir(projectId);
   return readJSON<ProjectSettings>(projectSettingsPath(projectId), {});
-}
-
-export function writeProjectSettings(projectId: string, settings: ProjectSettings): void {
-  ensureProjectDir(projectId);
-  writeJSON(projectSettingsPath(projectId), settings);
 }
 
 // ── Per-project workspace (local/live) ───────────────────
@@ -206,21 +226,21 @@ function findTaskColumn(ws: ProjectWorkspace, taskId: string): [TaskStatus, numb
 // PROJECTS
 // ═══════════════════════════════════════════════════════════
 
-/** Assemble a full Project from stub + settings + workspace UI fields */
+/** Assemble a full Project from stub + config + workspace fields */
 function assembleProject(stub: ProjectStub): Project {
-  const settings = getProjectSettings(stub.id);
+  const config = getProjectConfig(stub.id);
   const ws = getProjectWorkspace(stub.id);
   return {
     ...stub,
     status: ws.status,
-    serverUrl: settings.serverUrl,
+    serverUrl: ws.serverUrl,
     activeTab: ws.activeTab,
     viewType: ws.viewType,
     liveViewport: ws.liveViewport,
     liveUrl: ws.liveUrl,
-    defaultBranch: settings.defaultBranch,
-    systemPrompt: settings.systemPrompt,
-    defaultAgentId: settings.defaultAgentId,
+    defaultBranch: config.defaultBranch,
+    systemPrompt: config.systemPrompt,
+    defaultAgentId: ws.defaultAgentId,
   };
 }
 
@@ -238,8 +258,8 @@ export async function getProject(id: string): Promise<Project | undefined> {
 }
 
 export async function getProjectDefaultBranch(projectId: string): Promise<string> {
-  const settings = getProjectSettings(projectId);
-  return settings.defaultBranch || "main";
+  const config = getProjectConfig(projectId);
+  return config.defaultBranch || "main";
 }
 
 function uniqueSlug(base: string, existing: string[]): string {
@@ -276,9 +296,11 @@ export async function createProject(
     // Create project directory structure
     ensureProjectDir(id);
 
-    // Write initial settings
+    // Write initial workspace with serverUrl if provided
     if (data.serverUrl) {
-      writeProjectSettings(id, { serverUrl: data.serverUrl });
+      const projWs = getProjectWorkspace(id);
+      projWs.serverUrl = data.serverUrl;
+      writeProjectWorkspace(id, projWs);
     }
 
     return assembleProject(stub);
@@ -319,23 +341,23 @@ export async function updateProject(
     if (data.name) stub.name = data.name;
     if (data.path !== undefined) stub.path = data.path;
 
-    // Update settings fields
-    const settingsUpdates: Partial<ProjectSettings> = {};
-    if (data.serverUrl !== undefined) settingsUpdates.serverUrl = data.serverUrl;
-    if (data.defaultBranch !== undefined) settingsUpdates.defaultBranch = data.defaultBranch;
-    if (data.systemPrompt !== undefined) settingsUpdates.systemPrompt = data.systemPrompt;
-    if (data.defaultAgentId !== undefined) settingsUpdates.defaultAgentId = data.defaultAgentId || undefined;
-    if (Object.keys(settingsUpdates).length > 0) {
-      const settings = getProjectSettings(effectiveId);
-      Object.assign(settings, settingsUpdates);
-      writeProjectSettings(effectiveId, settings);
+    // Update shared project config fields
+    const configUpdates: Partial<ProjectConfig> = {};
+    if (data.defaultBranch !== undefined) configUpdates.defaultBranch = data.defaultBranch;
+    if (data.systemPrompt !== undefined) configUpdates.systemPrompt = data.systemPrompt;
+    if (Object.keys(configUpdates).length > 0) {
+      const config = getProjectConfig(effectiveId);
+      Object.assign(config, configUpdates);
+      writeProjectConfig(effectiveId, config);
     }
 
-    // Update workspace UI fields
+    // Update workspace fields (UI state + per-user overrides)
     const wsUpdates: Partial<ProjectWorkspace> = {};
     if (data.status !== undefined) wsUpdates.status = data.status;
     if (data.activeTab !== undefined) wsUpdates.activeTab = data.activeTab;
     if (data.viewType !== undefined) wsUpdates.viewType = data.viewType;
+    if (data.serverUrl !== undefined) wsUpdates.serverUrl = data.serverUrl;
+    if (data.defaultAgentId !== undefined) wsUpdates.defaultAgentId = data.defaultAgentId || undefined;
     if (Object.keys(wsUpdates).length > 0) {
       const projWs = getProjectWorkspace(effectiveId);
       Object.assign(projWs, wsUpdates);
@@ -623,19 +645,19 @@ export async function restoreDeletedTask(
 }
 
 // ═══════════════════════════════════════════════════════════
-// EXECUTION MODE (from project settings)
+// EXECUTION MODE (per-user workspace)
 // ═══════════════════════════════════════════════════════════
 
 export async function getExecutionMode(projectId: string): Promise<ExecutionMode> {
-  const settings = getProjectSettings(projectId);
-  return settings.executionMode ?? 'sequential';
+  const ws = getProjectWorkspace(projectId);
+  return ws.executionMode ?? 'sequential';
 }
 
 export async function setExecutionMode(projectId: string, mode: ExecutionMode): Promise<void> {
-  return withWriteLock(`settings:${projectId}`, async () => {
-    const settings = getProjectSettings(projectId);
-    settings.executionMode = mode;
-    writeProjectSettings(projectId, settings);
+  return withWriteLock(`workspace:${projectId}`, async () => {
+    const ws = getProjectWorkspace(projectId);
+    ws.executionMode = mode;
+    writeProjectWorkspace(projectId, ws);
   });
 }
 
@@ -832,51 +854,122 @@ export async function clearSupervisorSession(): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CRON JOBS (from project settings)
+// CRON JOBS (definitions in project.json, activation in workspace.json)
 // ═══════════════════════════════════════════════════════════
 
+/** Compose a CronJob from definition + activation state */
+function composeCronJob(def: CronJobDefinition, state?: ActiveCronState): CronJob {
+  return {
+    id: def.id,
+    name: def.name,
+    prompt: def.prompt,
+    defaultSchedule: def.defaultSchedule,
+    schedule: state?.schedule ?? def.defaultSchedule,
+    mode: def.mode,
+    agentId: def.agentId,
+    enabled: !!state,
+    lastRunAt: state?.lastRunAt,
+    lastTaskId: state?.lastTaskId,
+    nextRunAt: state?.nextRunAt,
+    runCount: state?.runCount ?? 0,
+    createdAt: def.createdAt,
+  };
+}
+
 export async function getCronJobs(projectId: string): Promise<CronJob[]> {
-  const settings = getProjectSettings(projectId);
-  return settings.cronJobs ?? [];
+  const config = getProjectConfig(projectId);
+  const ws = getProjectWorkspace(projectId);
+  const defs = config.cronJobs ?? [];
+  const active = ws.activeCrons ?? {};
+  return defs.map(def => composeCronJob(def, active[def.id]));
 }
 
 export async function createCronJob(
   projectId: string,
-  data: Pick<CronJob, "name" | "prompt" | "schedule"> & { mode?: CronJob["mode"]; enabled?: boolean; agentId?: string }
+  data: Pick<CronJobDefinition, "name" | "prompt"> & { schedule: string; mode?: CronJobDefinition["mode"]; enabled?: boolean; agentId?: string }
 ): Promise<CronJob> {
-  return withWriteLock(`settings:${projectId}`, async () => {
-    const settings = getProjectSettings(projectId);
-    if (!settings.cronJobs) settings.cronJobs = [];
-    const job: CronJob = {
-      id: uuidv7(),
-      name: data.name,
-      prompt: data.prompt,
-      schedule: data.schedule,
-      mode: data.mode,
-      agentId: data.agentId,
-      enabled: data.enabled ?? true,
-      runCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    settings.cronJobs.push(job);
-    writeProjectSettings(projectId, settings);
-    return job;
+  return withWriteLock(`config:${projectId}`, async () => {
+    return withWriteLock(`workspace:${projectId}`, async () => {
+      const config = getProjectConfig(projectId);
+      if (!config.cronJobs) config.cronJobs = [];
+
+      const id = uuidv7();
+      const def: CronJobDefinition = {
+        id,
+        name: data.name,
+        prompt: data.prompt,
+        defaultSchedule: data.schedule,
+        mode: data.mode,
+        agentId: data.agentId,
+        createdAt: new Date().toISOString(),
+      };
+      config.cronJobs.push(def);
+      writeProjectConfig(projectId, config);
+
+      // Crons are off by default; only activate if explicitly enabled
+      const enabled = data.enabled ?? false;
+      let state: ActiveCronState | undefined;
+      if (enabled) {
+        state = { runCount: 0 };
+        const ws = getProjectWorkspace(projectId);
+        if (!ws.activeCrons) ws.activeCrons = {};
+        ws.activeCrons[id] = state;
+        writeProjectWorkspace(projectId, ws);
+      }
+
+      return composeCronJob(def, state);
+    });
   });
 }
 
 export async function updateCronJob(
   projectId: string,
   cronId: string,
-  data: Partial<Pick<CronJob, "name" | "prompt" | "schedule" | "mode" | "enabled" | "lastRunAt" | "lastTaskId" | "nextRunAt" | "runCount" | "agentId">>
+  data: Partial<Pick<CronJob, "name" | "prompt" | "schedule" | "defaultSchedule" | "mode" | "enabled" | "lastRunAt" | "lastTaskId" | "nextRunAt" | "runCount" | "agentId">>
 ): Promise<CronJob | null> {
-  return withWriteLock(`settings:${projectId}`, async () => {
-    const settings = getProjectSettings(projectId);
-    if (!settings.cronJobs) return null;
-    const job = settings.cronJobs.find((j) => j.id === cronId);
-    if (!job) return null;
-    Object.assign(job, data);
-    writeProjectSettings(projectId, settings);
-    return job;
+  return withWriteLock(`config:${projectId}`, async () => {
+    return withWriteLock(`workspace:${projectId}`, async () => {
+      const config = getProjectConfig(projectId);
+      if (!config.cronJobs) return null;
+      const def = config.cronJobs.find((j) => j.id === cronId);
+      if (!def) return null;
+
+      // Update definition fields in project.json
+      // "schedule" from callers updates the shared defaultSchedule (backward compat)
+      const newDefaultSchedule = data.defaultSchedule ?? data.schedule;
+      let configDirty = false;
+      if (data.name !== undefined) { def.name = data.name; configDirty = true; }
+      if (data.prompt !== undefined) { def.prompt = data.prompt; configDirty = true; }
+      if (newDefaultSchedule !== undefined) { def.defaultSchedule = newDefaultSchedule; configDirty = true; }
+      if (data.mode !== undefined) { def.mode = data.mode; configDirty = true; }
+      if (data.agentId !== undefined) { def.agentId = data.agentId; configDirty = true; }
+      if (configDirty) writeProjectConfig(projectId, config);
+
+      // Update activation / runtime state in workspace.json
+      const ws = getProjectWorkspace(projectId);
+      if (!ws.activeCrons) ws.activeCrons = {};
+      let wsDirty = false;
+
+      if (data.enabled === true && !ws.activeCrons[cronId]) {
+        ws.activeCrons[cronId] = { runCount: 0 };
+        wsDirty = true;
+      } else if (data.enabled === false && ws.activeCrons[cronId]) {
+        delete ws.activeCrons[cronId];
+        wsDirty = true;
+      }
+
+      const state = ws.activeCrons[cronId];
+      if (state) {
+        if (data.lastRunAt !== undefined) { state.lastRunAt = data.lastRunAt; wsDirty = true; }
+        if (data.lastTaskId !== undefined) { state.lastTaskId = data.lastTaskId; wsDirty = true; }
+        if (data.nextRunAt !== undefined) { state.nextRunAt = data.nextRunAt; wsDirty = true; }
+        if (data.runCount !== undefined) { state.runCount = data.runCount; wsDirty = true; }
+      }
+
+      if (wsDirty) writeProjectWorkspace(projectId, ws);
+
+      return composeCronJob(def, ws.activeCrons[cronId]);
+    });
   });
 }
 
@@ -884,14 +977,24 @@ export async function deleteCronJob(
   projectId: string,
   cronId: string
 ): Promise<boolean> {
-  return withWriteLock(`settings:${projectId}`, async () => {
-    const settings = getProjectSettings(projectId);
-    if (!settings.cronJobs) return false;
-    const idx = settings.cronJobs.findIndex((j) => j.id === cronId);
-    if (idx === -1) return false;
-    settings.cronJobs.splice(idx, 1);
-    writeProjectSettings(projectId, settings);
-    return true;
+  return withWriteLock(`config:${projectId}`, async () => {
+    return withWriteLock(`workspace:${projectId}`, async () => {
+      const config = getProjectConfig(projectId);
+      if (!config.cronJobs) return false;
+      const idx = config.cronJobs.findIndex((j) => j.id === cronId);
+      if (idx === -1) return false;
+      config.cronJobs.splice(idx, 1);
+      writeProjectConfig(projectId, config);
+
+      // Remove activation state if present
+      const ws = getProjectWorkspace(projectId);
+      if (ws.activeCrons?.[cronId]) {
+        delete ws.activeCrons[cronId];
+        writeProjectWorkspace(projectId, ws);
+      }
+
+      return true;
+    });
   });
 }
 
@@ -946,13 +1049,13 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
   if (agents.length > 0) return agents[0];
 
   // Seed from project's current systemPrompt
-  const settings = getProjectSettings(projectId);
+  const config = getProjectConfig(projectId);
   const now = new Date().toISOString();
   const agent: Agent = {
     id: uuidv7(),
     name: "Claude",
     role: "General-purpose agent",
-    systemPrompt: settings.systemPrompt || "",
+    systemPrompt: config.systemPrompt || "",
     avatar: { color: "#3b82f6" }, // blue-500
     position: { x: 250, y: 200 },
     createdAt: now,
@@ -1008,10 +1111,10 @@ export async function deleteAgent(
     if (fsExists(fp)) {
       unlinkSync(fp);
       // Clear defaultAgentId if it pointed to the deleted agent
-      const settings = getProjectSettings(projectId);
-      if (settings.defaultAgentId === agentId) {
-        settings.defaultAgentId = undefined;
-        writeProjectSettings(projectId, settings);
+      const ws = getProjectWorkspace(projectId);
+      if (ws.defaultAgentId === agentId) {
+        ws.defaultAgentId = undefined;
+        writeProjectWorkspace(projectId, ws);
       }
       return true;
     }
@@ -1124,5 +1227,75 @@ function migrateLogsToSessions(): void {
   }
 }
 
+// Migrate settings.json → project.json + workspace.json
+function migrateSettingsToProjectConfig(projectId: string): void {
+  const settingsPath = projectSettingsPath(projectId);
+  if (!fsExists(settingsPath)) return;
+  const configPath = projectConfigPath(projectId);
+  if (fsExists(configPath)) return; // already migrated
+
+  try {
+    const old = getProjectSettings(projectId);
+
+    // Build project.json from shared fields
+    const config: ProjectConfig = {};
+    if (old.systemPrompt) config.systemPrompt = old.systemPrompt;
+    if (old.defaultBranch) config.defaultBranch = old.defaultBranch;
+    if (old.cronJobs?.length) {
+      config.cronJobs = old.cronJobs.map((j) => ({
+        id: j.id,
+        name: j.name,
+        prompt: j.prompt,
+        defaultSchedule: j.schedule ?? j.defaultSchedule ?? "0 9 * * *",
+        mode: j.mode,
+        agentId: j.agentId,
+        createdAt: j.createdAt,
+      }));
+    }
+    writeProjectConfig(projectId, config);
+
+    // Merge per-user fields into workspace.json
+    const ws = getProjectWorkspace(projectId);
+    if (old.executionMode) ws.executionMode = old.executionMode;
+    if (old.serverUrl) ws.serverUrl = old.serverUrl;
+    if (old.defaultAgentId) ws.defaultAgentId = old.defaultAgentId;
+
+    // Migrate enabled crons → activeCrons
+    if (old.cronJobs?.length) {
+      if (!ws.activeCrons) ws.activeCrons = {};
+      for (const j of old.cronJobs) {
+        if (j.enabled) {
+          ws.activeCrons[j.id] = {
+            schedule: j.schedule ?? j.defaultSchedule,
+            lastRunAt: j.lastRunAt,
+            lastTaskId: j.lastTaskId,
+            nextRunAt: j.nextRunAt,
+            runCount: j.runCount ?? 0,
+          };
+        }
+      }
+    }
+    writeProjectWorkspace(projectId, ws);
+
+    // Remove old settings.json
+    try { unlinkSync(settingsPath); } catch { /* best effort */ }
+    console.log(`[migration] ${projectId}: settings.json → project.json + workspace.json`);
+  } catch (err) {
+    console.error(`[migration] ${projectId}: failed to migrate settings.json:`, err);
+  }
+}
+
+function migrateAllSettingsToProjectConfig(): void {
+  const ws = getWorkspaceData();
+  for (const stub of ws.projects) {
+    const settingsPath = projectSettingsPath(stub.id);
+    const configPath = projectConfigPath(stub.id);
+    if (fsExists(settingsPath) && !fsExists(configPath)) {
+      migrateSettingsToProjectConfig(stub.id);
+    }
+  }
+}
+
 // Run migrations on module load
 migrateLogsToSessions();
+migrateAllSettingsToProjectConfig();

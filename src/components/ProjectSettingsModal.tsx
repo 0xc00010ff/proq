@@ -271,7 +271,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 {project.path}/.proq/
               </p>
               <p className="text-xs text-text-tertiary mt-1.5 leading-relaxed">
-                The folder will be committed to git, making task history visible to anyone with access to the repo. This cannot be undone from the UI.
+                Shared config (agents, cron definitions) will be in <span className="font-mono">project.json</span>. Add <span className="font-mono">workspace.json</span>, <span className="font-mono">tasks/</span>, and <span className="font-mono">sessions/</span> to <span className="font-mono">.gitignore</span> so each collaborator has their own cron activations, task history, and agent sessions. This cannot be undone from the UI.
               </p>
             </div>
           </div>

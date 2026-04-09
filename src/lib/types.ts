@@ -192,17 +192,40 @@ export interface SkillInfo {
 }
 
 // ── Cron Jobs ───────────────────────────────────────────
+
+/** Shared cron job definition — lives in project.json */
+export interface CronJobDefinition {
+  id: string;
+  name: string;
+  prompt: string;
+  defaultSchedule: string;    // cron expression: "0 9 * * *" or "every 6h"
+  mode?: TaskMode;
+  agentId?: string;
+  createdAt: string;
+}
+
+/** Per-user cron activation state — lives in workspace.json activeCrons map */
+export interface ActiveCronState {
+  schedule?: string;          // override; omit to use defaultSchedule
+  lastRunAt?: string;
+  lastTaskId?: string;
+  nextRunAt?: string;
+  runCount?: number;
+}
+
+/** Composed cron job — merged from definition + activation for API/scheduler use */
 export interface CronJob {
   id: string;
   name: string;
   prompt: string;
-  schedule: string;           // cron expression: "0 9 * * *" or "every 6h"
-  mode?: TaskMode;            // default: auto
-  enabled: boolean;
+  defaultSchedule: string;
+  schedule: string;           // resolved: user override or defaultSchedule
+  mode?: TaskMode;
+  agentId?: string;
+  enabled: boolean;           // derived: presence in activeCrons
   lastRunAt?: string;
   lastTaskId?: string;
   nextRunAt?: string;
-  agentId?: string;               // links cron to assigned agent
   runCount: number;
   createdAt: string;
 }
@@ -235,7 +258,14 @@ export interface WorkbenchSessionData {
   mode?: TaskMode;
 }
 
-/** Per-project settings.json — shareable, could be committed to git */
+/** Per-project project.json — shared config, can be committed to git */
+export interface ProjectConfig {
+  systemPrompt?: string;
+  defaultBranch?: string;
+  cronJobs?: CronJobDefinition[];
+}
+
+/** @deprecated Use ProjectConfig + ProjectWorkspace instead. Kept for migration. */
 export interface ProjectSettings {
   version?: number;
   executionMode?: ExecutionMode;
@@ -243,7 +273,12 @@ export interface ProjectSettings {
   defaultBranch?: string;
   serverUrl?: string;
   defaultAgentId?: string;
-  cronJobs?: CronJob[];
+  cronJobs?: Array<{
+    id: string; name: string; prompt: string; createdAt: string;
+    schedule?: string; defaultSchedule?: string;
+    mode?: TaskMode; agentId?: string; enabled?: boolean;
+    lastRunAt?: string; lastTaskId?: string; nextRunAt?: string; runCount?: number;
+  }>;
 }
 
 /** Per-project workspace.json — local/live state, per-user */
@@ -265,6 +300,12 @@ export interface ProjectWorkspace {
   liveWorkbenchTabs?: WorkbenchTabInfo[];
   liveWorkbenchActiveTabId?: string;
   projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
+  // Per-user overrides (moved from ProjectSettings)
+  executionMode?: ExecutionMode;
+  defaultAgentId?: string;
+  serverUrl?: string;
+  // Cron activation — keyed by cron job id; presence = enabled
+  activeCrons?: Record<string, ActiveCronState>;
 }
 
 /** Agent work report — stored in reports/{taskId}.json */
@@ -278,7 +319,7 @@ export interface TaskReport {
   updatedAt: string;
 }
 
-/** @deprecated Use ProjectSettings + ProjectWorkspace instead. Kept for migration. */
+/** @deprecated Use ProjectConfig + ProjectWorkspace instead. Kept for migration. */
 export interface ProjectState {
   tasks: TaskColumns;
   chatLog: ChatLogEntry[];

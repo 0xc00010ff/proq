@@ -405,15 +405,20 @@ function registerIpcHandlers(): void {
       stopHealthMonitor()
       await stopServer()
 
-      // Create splash window and close the app window
+      // Create splash window, wait for it to load, then swap
       const splashWindow = createWindow('splash')
       loadRendererPage(splashWindow, 'splash')
 
-      // Show splash immediately — don't wait for content to load.
-      // The #09090b background matches the app so it looks intentional.
       const previousWindow = mainWindow
       mainWindow = splashWindow
-      splashWindow.showInactive()
+
+      // Wait for splash content to load so status messages are visible
+      await new Promise<void>((resolve) => {
+        splashWindow.webContents.once('did-finish-load', () => resolve())
+      })
+
+      splashWindow.show()
+      splashWindow.focus()
       if (previousWindow && previousWindow !== splashWindow && !previousWindow.isDestroyed()) {
         previousWindow.close()
       }

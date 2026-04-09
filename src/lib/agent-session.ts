@@ -3,7 +3,7 @@ import { join } from "path";
 import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
 import { resolveProjectPath, escapePrompt } from "./utils";
-import { updateTask, getTask, getProject, getSettings, setTaskLogs, readTaskLogsFile } from "./db";
+import { updateTask, getTask, getProject, getSettings, setTaskSession, readTaskSessionFile } from "./db";
 import {
   notify,
   buildProqSystemPrompt,
@@ -100,7 +100,7 @@ function wireProcess(
     }
 
     if (session.status === "aborted" || session.status === "interrupted") {
-      await setTaskLogs(projectId, taskId, session.blocks);
+      await setTaskSession(projectId, taskId, session.blocks);
       return;
     }
 
@@ -175,7 +175,7 @@ function wireProcess(
     }
 
     // Persist agent logs to separate file
-    await setTaskLogs(projectId, taskId, session.blocks, session.sessionId);
+    await setTaskSession(projectId, taskId, session.blocks, session.sessionId);
 
     if (stillInProgress) {
       // Safety net: move to verify and clear agentStatus
@@ -213,7 +213,7 @@ function wireProcess(
       error: errorMsg,
       durationMs: Date.now() - startTime,
     });
-    await setTaskLogs(projectId, taskId, session.blocks, session.sessionId);
+    await setTaskSession(projectId, taskId, session.blocks, session.sessionId);
     const task = await getTask(projectId, taskId);
     if (task?.status === "in-progress") {
       await updateTask(projectId, taskId, {
@@ -515,7 +515,7 @@ export async function continueSession(
   if (!session) {
     const task = await getTask(projectId, taskId);
     taskMode = task?.mode;
-    const stored = readTaskLogsFile(projectId, taskId);
+    const stored = readTaskSessionFile(projectId, taskId);
     session = {
       taskId,
       projectId,

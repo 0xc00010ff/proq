@@ -8,6 +8,7 @@ import {
   renameSync,
   rmSync,
   readdirSync,
+  cpSync,
 } from "fs";
 import path from "path";
 import type {
@@ -93,6 +94,12 @@ function writeJSON(filePath: string, data: unknown): void {
 // ── Project directory helpers ────────────────────────────
 
 function projectDir(projectId: string): string {
+  const ws = getWorkspaceData();
+  const stub = ws.projects.find(p => p.id === projectId);
+  if (stub?.workspaceInProject && stub.path) {
+    const resolved = stub.path.replace(/^~/, process.env.HOME || '~');
+    return path.join(resolved, '.proq');
+  }
   return path.join(DATA_DIR, "projects", projectId);
 }
 
@@ -100,7 +107,7 @@ function ensureProjectDir(projectId: string): void {
   const dir = projectDir(projectId);
   mkdirSync(path.join(dir, "tasks"), { recursive: true });
   mkdirSync(path.join(dir, "reports"), { recursive: true });
-  mkdirSync(path.join(dir, "logs"), { recursive: true });
+  mkdirSync(path.join(dir, "sessions"), { recursive: true });
   mkdirSync(path.join(dir, "attachments"), { recursive: true });
   mkdirSync(path.join(dir, "agents"), { recursive: true });
 }
@@ -250,12 +257,21 @@ export async function createProject(
     const existingIds = ws.projects.map((p) => p.id);
     const id = uniqueSlug(slugify(data.name), existingIds);
 
+    // Auto-detect existing .proq/ in the project directory
+    const resolved = data.path?.replace(/^~/, process.env.HOME || '~');
+    const hasProqDir = resolved && fsExists(path.join(resolved, '.proq'));
+
     const stub: ProjectStub = {
       id,
       name: data.name,
       path: data.path,
+      ...(hasProqDir ? { workspaceInProject: true } : {}),
       createdAt: new Date().toISOString(),
     };
+
+    // Write stub first so projectDir() can resolve the path
+    ws.projects.push(stub);
+    writeWorkspace(ws);
 
     // Create project directory structure
     ensureProjectDir(id);
@@ -264,9 +280,6 @@ export async function createProject(
     if (data.serverUrl) {
       writeProjectSettings(id, { serverUrl: data.serverUrl });
     }
-
-    ws.projects.push(stub);
-    writeWorkspace(ws);
 
     return assembleProject(stub);
   });
@@ -289,10 +302,13 @@ export async function updateProject(
       const existingIds = ws.projects.filter((p) => p.id !== id).map((p) => p.id);
       const newId = uniqueSlug(newSlug, existingIds);
 
-      const oldDir = projectDir(id);
-      const newDir = projectDir(newId);
-      if (fsExists(oldDir)) {
-        renameSync(oldDir, newDir);
+      // Only rename data dir when workspace lives in data/ (not in project .proq/)
+      if (!stub.workspaceInProject) {
+        const oldDir = projectDir(id);
+        const newDir = path.join(DATA_DIR, "projects", newId);
+        if (fsExists(oldDir)) {
+          renameSync(oldDir, newDir);
+        }
       }
 
       stub.id = newId;
@@ -339,13 +355,49 @@ export async function deleteProject(id: string): Promise<boolean> {
     ws.projects.splice(idx, 1);
     writeWorkspace(ws);
 
-    // Remove project directory
-    const dir = projectDir(id);
-    try {
-      if (fsExists(dir)) rmSync(dir, { recursive: true, force: true });
-    } catch { /* best effort */ }
+    // Data stays on disk — just unlink from workspace
 
     return true;
+  });
+}
+
+export async function moveWorkspaceToProject(projectId: string): Promise<void> {
+  return withWriteLock('workspace', async () => {
+    const ws = getWorkspaceData();
+    const stub = ws.projects.find(p => p.id === projectId);
+    if (!stub?.path) throw new Error("Project has no path");
+    if (stub.workspaceInProject) return; // already moved
+
+    const resolved = stub.path.replace(/^~/, process.env.HOME || '~');
+    const destDir = path.join(resolved, '.proq');
+    const srcDir = path.join(DATA_DIR, "projects", projectId);
+
+    if (fsExists(destDir)) {
+      // .proq/ already exists — just flip the flag
+      stub.workspaceInProject = true;
+      writeWorkspace(ws);
+      return;
+    }
+
+    // Copy source to destination
+    if (fsExists(srcDir)) {
+      mkdirSync(destDir, { recursive: true });
+      const entries = readdirSync(srcDir);
+      for (const entry of entries) {
+        const srcPath = path.join(srcDir, entry);
+        // Rename logs → sessions during copy
+        const destName = entry === "logs" ? "sessions" : entry;
+        const destPath = path.join(destDir, destName);
+        cpSync(srcPath, destPath, { recursive: true });
+      }
+      // Remove old data dir
+      try { rmSync(srcDir, { recursive: true, force: true }); } catch { /* best effort */ }
+    }
+
+    // Ensure directory structure exists at new location
+    stub.workspaceInProject = true;
+    writeWorkspace(ws);
+    ensureProjectDir(projectId);
   });
 }
 
@@ -638,27 +690,27 @@ export async function setWorkbenchSession(projectId: string, tabId: string, sess
 }
 
 // ═══════════════════════════════════════════════════════════
-// TASK LOGS (renamed from agent-blocks, per-project)
+// TASK SESSIONS (agent conversation blocks per task)
 // ═══════════════════════════════════════════════════════════
 
-function taskLogsPath(projectId: string, taskId: string): string {
-  return path.join(projectDir(projectId), "logs", `${taskId}.json`);
+function taskSessionPath(projectId: string, taskId: string): string {
+  return path.join(projectDir(projectId), "sessions", `${taskId}.json`);
 }
 
-export async function getTaskLogs(projectId: string, taskId: string): Promise<AgentBlock[]> {
-  return readTaskLogsFile(projectId, taskId).blocks;
+export async function getTaskSession(projectId: string, taskId: string): Promise<AgentBlock[]> {
+  return readTaskSessionFile(projectId, taskId).blocks;
 }
 
-export async function setTaskLogs(projectId: string, taskId: string, blocks: AgentBlock[], sessionId?: string): Promise<void> {
-  return withWriteLock(`logs:${taskId}`, async () => {
+export async function setTaskSession(projectId: string, taskId: string, blocks: AgentBlock[], sessionId?: string): Promise<void> {
+  return withWriteLock(`session:${taskId}`, async () => {
     ensureProjectDir(projectId);
-    const filePath = taskLogsPath(projectId, taskId);
+    const filePath = taskSessionPath(projectId, taskId);
     writeJSON(filePath, { blocks, sessionId });
   });
 }
 
-export async function deleteTaskLogs(projectId: string, taskId: string): Promise<void> {
-  const filePath = taskLogsPath(projectId, taskId);
+export async function deleteTaskSession(projectId: string, taskId: string): Promise<void> {
+  const filePath = taskSessionPath(projectId, taskId);
   try {
     if (fsExists(filePath)) unlinkSync(filePath);
   } catch {
@@ -666,19 +718,13 @@ export async function deleteTaskLogs(projectId: string, taskId: string): Promise
   }
 }
 
-export function readTaskLogsFile(projectId: string, taskId: string): { blocks: AgentBlock[]; sessionId?: string } {
-  const filePath = taskLogsPath(projectId, taskId);
+export function readTaskSessionFile(projectId: string, taskId: string): { blocks: AgentBlock[]; sessionId?: string } {
+  const filePath = taskSessionPath(projectId, taskId);
   const data = readJSON<{ blocks?: AgentBlock[]; sessionId?: string }>(filePath, {});
   // Handle legacy format (plain array) vs new format ({ blocks, sessionId })
   if (Array.isArray(data)) return { blocks: data };
   return { blocks: data.blocks || [], sessionId: data.sessionId };
 }
-
-// Backward-compat aliases (old names → new names)
-export const getTaskAgentBlocks = getTaskLogs;
-export const setTaskAgentBlocks = setTaskLogs;
-export const deleteTaskAgentBlocks = deleteTaskLogs;
-export const readAgentBlocksFile = readTaskLogsFile;
 
 // ═══════════════════════════════════════════════════════════
 // TASK REPORTS
@@ -1189,7 +1235,7 @@ function migrateToProjectDirs(): void {
     try { unlinkSync(oldPath); } catch { /* best effort */ }
   }
 
-  // Migrate agent-blocks → logs
+  // Migrate agent-blocks → sessions
   const oldBlocksDir = path.join(DATA_DIR, "agent-blocks");
   if (fsExists(oldBlocksDir)) {
     try {
@@ -1199,13 +1245,24 @@ function migrateToProjectDirs(): void {
         const pid = taskToProject.get(taskId);
         if (pid) {
           const src = path.join(oldBlocksDir, file);
-          const dst = taskLogsPath(pid, taskId);
+          const dst = taskSessionPath(pid, taskId);
           try { renameSync(src, dst); } catch { /* best effort */ }
         }
       }
       // Clean up empty directory
       try { rmSync(oldBlocksDir, { recursive: true, force: true }); } catch { /* best effort */ }
     } catch { /* best effort */ }
+  }
+
+  // Migrate logs/ → sessions/ (per-project)
+  const currentWs = getWorkspaceData();
+  for (const stub of currentWs.projects) {
+    const dir = projectDir(stub.id);
+    const oldLogsDir = path.join(dir, "logs");
+    const newSessionsDir = path.join(dir, "sessions");
+    if (fsExists(oldLogsDir) && !fsExists(newSessionsDir)) {
+      try { renameSync(oldLogsDir, newSessionsDir); } catch { /* best effort */ }
+    }
   }
 
   // Note: legacy data/attachments/ migration is handled by migrateLegacyAttachments()

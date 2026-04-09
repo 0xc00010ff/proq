@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/Modal';
 import type { Agent, Project, ViewType, McpServerInfo, SkillInfo } from '@/lib/types';
-import { ChevronDownIcon, PlugIcon, FileTextIcon } from 'lucide-react';
+import { ChevronDownIcon, PlugIcon, FileTextIcon, CheckIcon, FolderSyncIcon } from 'lucide-react';
 
 interface ProjectSettingsModalProps {
   isOpen: boolean;
@@ -21,6 +21,8 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const [serverUrl, setServerUrl] = useState(project.serverUrl || '');
   const [systemPrompt, setSystemPrompt] = useState(project.systemPrompt || '');
   const [defaultAgentId, setDefaultAgentId] = useState(project.defaultAgentId || '');
+  const [workspaceInProject, setWorkspaceInProject] = useState(project.workspaceInProject || false);
+  const [movingWorkspace, setMovingWorkspace] = useState(false);
   const [mcpData, setMcpData] = useState<{
     globalServers: McpServerInfo[];
     projectServers: McpServerInfo[];
@@ -35,6 +37,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
     setServerUrl(project.serverUrl || '');
     setSystemPrompt(project.systemPrompt || '');
     setDefaultAgentId(project.defaultAgentId || '');
+    setWorkspaceInProject(project.workspaceInProject || false);
   }, [project]);
 
   useEffect(() => {
@@ -57,6 +60,19 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
     onClose();
   };
 
+  const handleMoveToProject = async () => {
+    setMovingWorkspace(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceInProject: true }),
+      });
+      if (res.ok) setWorkspaceInProject(true);
+    } catch { /* best effort */ }
+    setMovingWorkspace(false);
+  };
+
   // Filter out proq/* branches from the selector — they're task branches, not base branches
   const selectableBranches = branches?.filter(b => !b.startsWith('proq/')) || [];
 
@@ -68,7 +84,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className={`w-full ${hasAnyMcpOrSkills ? 'max-w-lg' : 'max-w-md'}`}>
+    <Modal isOpen={isOpen} onClose={onClose} className={`w-full ${hasAnyMcpOrSkills ? 'max-w-xl' : 'max-w-lg'} max-h-[80vh] overflow-y-auto`}>
       <div className="p-6">
         <h2 className="text-sm font-semibold text-text-primary mb-5">Project Settings</h2>
 
@@ -210,6 +226,36 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
             <div className="px-3 py-2 text-sm font-mono text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md truncate">
               {project.path}
             </div>
+          </div>
+
+          {/* Save workspace to project */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              Workspace
+            </label>
+            {workspaceInProject ? (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md">
+                <CheckIcon className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                <span className="font-mono truncate">{project.path}/.proq/</span>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border-default bg-surface-secondary/50 px-3 py-3">
+                <p className="text-[11px] text-text-tertiary mb-1">
+                  Save the proq workspace to git. Task data will be stored in a <span className="font-mono">.proq/</span> folder in this project.
+                </p>
+                <p className="text-[11px] text-text-quaternary mb-2.5">
+                  Handy for personal projects or sharing task history with your team.
+                </p>
+                <button
+                  onClick={handleMoveToProject}
+                  disabled={movingWorkspace}
+                  className="btn-secondary text-xs flex items-center gap-1.5"
+                >
+                  <FolderSyncIcon className="w-3.5 h-3.5" />
+                  {movingWorkspace ? 'Saving...' : 'Save to Project'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* MCP Servers */}

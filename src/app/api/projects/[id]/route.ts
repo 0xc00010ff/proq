@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProject, updateProject, deleteProject } from "@/lib/db";
+import { getProject, updateProject, deleteProject, moveWorkspaceToProject } from "@/lib/db";
 import { emitProjectUpdate } from "@/lib/task-events";
 import { safeParseBody } from "@/lib/api-utils";
 
@@ -19,7 +19,18 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = await safeParseBody(request);
   if (body instanceof NextResponse) return body;
   // Strip internal _source flag before persisting
-  const { _source, ...fields } = body;
+  const { _source, workspaceInProject, ...fields } = body;
+
+  // Handle workspace-to-project move
+  if (workspaceInProject === true) {
+    try {
+      await moveWorkspaceToProject(id);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to move workspace";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   const updated = await updateProject(id, fields);
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

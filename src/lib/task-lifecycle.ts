@@ -5,7 +5,7 @@
  * helpers so that merge, cleanup, and reset logic lives in one place.
  */
 import type { Task } from "./types";
-import { updateTask, getProject, getProjectDefaultBranch, deleteTaskLogs, getSettings, getTask } from "./db";
+import { updateTask, getProject, getProjectDefaultBranch, deleteTaskSession, getSettings, getTask } from "./db";
 import { abortTask, getInitialAgentStatus, scheduleCleanup, cancelCleanup } from "./agent-dispatch";
 import { clearSession } from "./agent-session";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "./worktree";
@@ -72,7 +72,7 @@ export async function resetToTodo(
   }
 
   await updateTask(projectId, taskId, TODO_RESET_FIELDS);
-  await deleteTaskLogs(projectId, taskId);
+  await deleteTaskSession(projectId, taskId);
 
   if (prevTask.status === "in-progress") {
     await abortTask(projectId, taskId);
@@ -103,7 +103,7 @@ export async function cleanupDeletedTask(
     clearSession(task.id);
   }
 
-  await deleteTaskLogs(projectId, task.id);
+  await deleteTaskSession(projectId, task.id);
 
   if (task.status === "in-progress") {
     await abortTask(projectId, task.id);

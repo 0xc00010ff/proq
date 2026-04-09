@@ -8,6 +8,7 @@ export interface ProjectStub {
   name: string;
   path: string;
   order?: number;
+  workspaceInProject?: boolean;
   createdAt: string;
 }
 

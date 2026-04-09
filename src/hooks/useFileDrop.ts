@@ -55,5 +55,10 @@ export function useFileDrop(
     onDragLeave: handleDragLeave,
   };
 
-  return { isDragOver, dropProps };
+  const dismiss = useCallback(() => {
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+  }, []);
+
+  return { isDragOver, dropProps, dismiss };
 }

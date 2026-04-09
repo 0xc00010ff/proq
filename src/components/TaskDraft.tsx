@@ -498,8 +498,8 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
 
         {/* Drag overlay hint */}
         {isDragOver && (
-          <div className="absolute inset-0 bg-bronze-500/5 rounded-lg flex items-center justify-center pointer-events-none z-20">
-            <div className="text-sm text-bronze-500 font-medium">
+          <div className="absolute inset-0 bg-bronze-500/5 rounded-lg flex items-center justify-center z-20 cursor-pointer" onClick={() => setIsDragOver(false)}>
+            <div className="text-sm text-bronze-500 font-medium pointer-events-none">
               Drop files here
             </div>
           </div>

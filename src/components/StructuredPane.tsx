@@ -128,7 +128,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
     return null;
   }, []);
 
-  const { isDragOver, dropProps } = useFileDrop(attachments, handleAttachmentsChange, projectId);
+  const { isDragOver, dropProps, dismiss: dismissDrag } = useFileDrop(attachments, handleAttachmentsChange, projectId);
 
   if (!visible) return null;
 
@@ -152,8 +152,8 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-surface-deep relative" {...dropProps}>
       {isDragOver && (
-        <div className="absolute inset-0 bg-bronze-600/20 dark:bg-bronze-600/15 border-2 border-bronze-600/50 flex items-center justify-center pointer-events-none z-20 rounded-md">
-          <div className="text-sm text-text-secondary font-medium bg-bronze-400 dark:bg-bronze-800 border border-bronze-500 dark:border-bronze-700 px-4 py-2 rounded-md shadow-sm">Drop files here</div>
+        <div className="absolute inset-0 bg-bronze-600/20 dark:bg-bronze-600/15 border-2 border-bronze-600/50 flex items-center justify-center z-20 rounded-md cursor-pointer" onClick={dismissDrag}>
+          <div className="text-sm text-text-secondary font-medium bg-bronze-400 dark:bg-bronze-800 border border-bronze-500 dark:border-bronze-700 px-4 py-2 rounded-md shadow-sm pointer-events-none">Drop files here</div>
         </div>
       )}
       <AgentBlockList

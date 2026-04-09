@@ -8,6 +8,7 @@ import {
   notify,
   buildProqSystemPrompt,
   writeMcpConfig,
+  processQueue,
 } from "./agent-dispatch";
 import { emitTaskUpdate } from "./task-events";
 import { autoCommitIfDirty } from "./worktree";

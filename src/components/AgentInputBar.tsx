@@ -232,8 +232,8 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
       >
         {/* Drop overlay */}
         {isDragOver && (
-          <div className="absolute inset-0 bg-bronze-600/20 dark:bg-bronze-600/15 border-2 border-bronze-600/50 flex items-center justify-center pointer-events-none z-20 rounded-md m-1">
-            <div className="text-sm text-text-secondary font-medium bg-bronze-400 dark:bg-bronze-800 border border-bronze-500 dark:border-bronze-700 px-4 py-2 rounded-md shadow-sm">Drop files here</div>
+          <div className="absolute inset-0 bg-bronze-600/20 dark:bg-bronze-600/15 border-2 border-bronze-600/50 flex items-center justify-center z-20 rounded-md m-1 cursor-pointer" onClick={() => setIsDragOver(false)}>
+            <div className="text-sm text-text-secondary font-medium bg-bronze-400 dark:bg-bronze-800 border border-bronze-500 dark:border-bronze-700 px-4 py-2 rounded-md shadow-sm pointer-events-none">Drop files here</div>
           </div>
         )}
 

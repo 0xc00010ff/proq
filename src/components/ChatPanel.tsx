@@ -214,8 +214,8 @@ export function ChatPanel({ projectId, messages, onSendMessage, style, streaming
     >
       {/* Drop overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 bg-bronze-500/5 flex items-center justify-center pointer-events-none z-20 rounded">
-          <div className="text-sm text-text-chrome font-medium">Drop files here</div>
+        <div className="absolute inset-0 bg-bronze-500/5 flex items-center justify-center z-20 rounded cursor-pointer" onClick={() => setIsDragOver(false)}>
+          <div className="text-sm text-text-chrome font-medium pointer-events-none">Drop files here</div>
         </div>
       )}
 

@@ -762,9 +762,12 @@ export default function ProjectPage() {
               onDrop={handleBoardDrop}
             >
               {boardDragOver && (
-                <div className="absolute inset-0 z-40 bg-lazuli/10 border-2 border-dashed border-lazuli/40 rounded-lg flex items-center justify-center pointer-events-none">
-                  <div className="bg-zinc-900/90 border border-lazuli/30 rounded-lg px-6 py-4 shadow-xl">
-                    <p className="text-sm font-medium text-lazuli">Drop to create new task</p>
+                <div
+                  className="absolute inset-0 z-40 bg-bronze-500/10 border-2 border-dashed border-bronze-500/40 rounded-lg flex items-center justify-center cursor-pointer"
+                  onClick={() => { boardDragCounter.current = 0; setBoardDragOver(false); }}
+                >
+                  <div className="bg-zinc-900/90 border border-bronze-500/30 rounded-lg px-6 py-4 shadow-xl pointer-events-none">
+                    <p className="text-sm font-medium text-bronze-500">Drop to create new task</p>
                   </div>
                 </div>
               )}

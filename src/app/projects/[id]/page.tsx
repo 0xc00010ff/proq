@@ -12,7 +12,6 @@ import { TaskDraft } from '@/components/TaskDraft';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { UndoModal } from '@/components/UndoModal';
 import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
-import { AlertModal } from '@/components/Modal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CronJobsModal } from '@/components/CronJobsModal';
 import { AgentsView } from '@/components/AgentsView';
@@ -41,7 +40,6 @@ export default function ProjectPage() {
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
   const [pendingModeSwitch, setPendingModeSwitch] = useState<'parallel' | 'worktrees' | null>(null);
-  const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showCronJobs, setShowCronJobs] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
@@ -554,15 +552,8 @@ export default function ProjectPage() {
     }
   }, [projectId, fetchBranchState]);
 
-  const hasTasksInFlight = columns['in-progress'].length > 0 || columns['verify'].length > 0;
-
   const handleExecutionModeChange = async (mode: ExecutionMode) => {
-    // Block mode switch if tasks are in-progress or verify
-    if (hasTasksInFlight) {
-      setShowModeBlockedModal(true);
-      return;
-    }
-    // Show info modal when switching to parallel or worktrees
+    // Show info modal when switching to parallel or worktrees for the first time
     if ((mode === 'parallel' || mode === 'worktrees') && executionMode !== mode) {
       setPendingModeSwitch(mode);
       return;
@@ -992,13 +983,6 @@ export default function ProjectPage() {
         onCommitted={fetchBranchState}
       />
 
-      <AlertModal
-        isOpen={showModeBlockedModal}
-        onClose={() => setShowModeBlockedModal(false)}
-        title="Can't switch execution mode"
-      >
-        Complete or move all in-progress and verify tasks back to Todo before switching modes.
-      </AlertModal>
     </>
   );
 }

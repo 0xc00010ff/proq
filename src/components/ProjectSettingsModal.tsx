@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/Modal';
 import type { Agent, Project, McpServerInfo, SkillInfo } from '@/lib/types';
-import { ChevronDownIcon, PlugIcon, FileTextIcon, CheckIcon, FolderSyncIcon } from 'lucide-react';
+import { ChevronDownIcon, PlugIcon, FileTextIcon, CheckIcon, FolderSyncIcon, AlertTriangleIcon } from 'lucide-react';
 
 interface ProjectSettingsModalProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const [defaultAgentId, setDefaultAgentId] = useState(project.defaultAgentId || '');
   const [workspaceInProject, setWorkspaceInProject] = useState(project.workspaceInProject || false);
   const [movingWorkspace, setMovingWorkspace] = useState(false);
+  const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
   const [mcpData, setMcpData] = useState<{
     globalServers: McpServerInfo[];
     projectServers: McpServerInfo[];
@@ -196,36 +197,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
             </div>
           </div>
 
-          {/* Save workspace to project */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1.5">
-              Workspace
-            </label>
-            {workspaceInProject ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-sm text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md">
-                <CheckIcon className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                <span className="font-mono truncate">{project.path}/.proq/</span>
-              </div>
-            ) : (
-              <div className="rounded-md border border-border-default bg-surface-secondary/50 px-3 py-3">
-                <p className="text-[11px] text-text-tertiary mb-1">
-                  Save the proq workspace to git. Task data will be stored in a <span className="font-mono">.proq/</span> folder in this project.
-                </p>
-                <p className="text-[11px] text-text-quaternary mb-2.5">
-                  Handy for personal projects or sharing task history with your team.
-                </p>
-                <button
-                  onClick={handleMoveToProject}
-                  disabled={movingWorkspace}
-                  className="btn-secondary text-xs flex items-center gap-1.5"
-                >
-                  <FolderSyncIcon className="w-3.5 h-3.5" />
-                  {movingWorkspace ? 'Saving...' : 'Save to Project'}
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* MCP Servers */}
           {mcpData && (mcpData.projectServers.length > 0 || mcpData.configuredServers.length > 0 || mcpData.globalServers.length > 0) && (
             <div>
@@ -262,6 +233,33 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
               </div>
             </div>
           )}
+
+          {/* Save workspace to project */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              Workspace
+            </label>
+            {workspaceInProject ? (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md">
+                <CheckIcon className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                <span className="font-mono truncate">{project.path}/.proq/</span>
+              </div>
+            ) : (
+              <div>
+                <p className="text-[11px] text-text-tertiary mb-2">
+                  Save the proq workspace to git. Task data will be stored in a <span className="font-mono">.proq/</span> folder in this project. Handy for personal projects or sharing task history with your team.
+                </p>
+                <button
+                  onClick={() => setShowWorkspaceConfirm(true)}
+                  disabled={movingWorkspace}
+                  className="btn-secondary text-xs pl-0 flex items-center gap-1.5"
+                >
+                  <FolderSyncIcon className="w-3.5 h-3.5" />
+                  {movingWorkspace ? 'Saving...' : 'Save to Project'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
@@ -269,6 +267,39 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
           <button onClick={handleSave} className="btn-primary">Save</button>
         </div>
       </div>
+
+      {/* Workspace confirmation modal */}
+      <Modal isOpen={showWorkspaceConfirm} onClose={() => setShowWorkspaceConfirm(false)} className="w-full max-w-sm">
+        <div className="p-5">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-semibold text-text-primary mb-1.5">Save workspace to project?</h3>
+              <p className="text-xs text-text-tertiary leading-relaxed">
+                This will move all task data for this project into a <span className="font-mono">.proq/</span> folder at:
+              </p>
+              <p className="text-xs font-mono text-text-secondary mt-1.5 break-all">
+                {project.path}/.proq/
+              </p>
+              <p className="text-xs text-text-tertiary mt-1.5 leading-relaxed">
+                The folder will be committed to git, making task history visible to anyone with access to the repo. This cannot be undone from the UI.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowWorkspaceConfirm(false)} className="btn-secondary text-xs">Cancel</button>
+            <button
+              onClick={() => {
+                setShowWorkspaceConfirm(false);
+                handleMoveToProject();
+              }}
+              className="btn-primary text-xs"
+            >
+              Save to Project
+            </button>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   );
 }

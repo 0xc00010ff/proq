@@ -446,7 +446,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
         <div ref={attachmentsRef} className={attachments.length > 0 ? 'px-6 py-3 flex flex-wrap gap-2 shrink-0' : 'hidden'}>
           {attachments.map((att) => {
             const isImage = att.type?.startsWith('image/') || false;
-            const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+            const url = att.url || (att.filePath ? attachmentUrl(att.filePath) : undefined);
             return isImage && url ? (
               <div
                 key={att.id}

@@ -22,16 +22,16 @@ export async function uploadFiles(files: FileList | File[], projectId?: string):
  * Handles both project-scoped and global attachment paths.
  */
 export function attachmentUrl(filePath: string): string {
-  // Project-scoped: /Users/.../data/projects/{projectId}/attachments/{id}/{name}
+  // Project-scoped: /Users/.../data/projects/{projectId}/workspace/attachments/{id}/{name}
+  // Also handles legacy flat layout: /Users/.../data/projects/{projectId}/attachments/{id}/{name}
   const projectMarker = "data/projects/";
   const projectIdx = filePath.indexOf(projectMarker);
   if (projectIdx !== -1) {
     const rest = filePath.slice(projectIdx + projectMarker.length);
-    // rest is "{projectId}/attachments/{id}/{name}"
     const attMarker = "/attachments/";
     const attIdx = rest.indexOf(attMarker);
     if (attIdx !== -1) {
-      const projectId = rest.slice(0, attIdx);
+      const projectId = rest.split("/")[0];
       const attPath = rest.slice(attIdx + attMarker.length);
       return `/api/attachments/${projectId}/${attPath}`;
     }

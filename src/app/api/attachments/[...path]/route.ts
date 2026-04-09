@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
+import { projectAttachmentsDir } from "@/lib/db";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const SUPERVISOR_ATTACHMENTS_DIR = path.join(DATA_DIR, "supervisor", "attachments");
 const LEGACY_ATTACHMENTS_DIR = path.join(DATA_DIR, "attachments");
-const PROJECTS_DIR = path.join(DATA_DIR, "projects");
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -57,11 +57,11 @@ export async function GET(
 
   // Resolve file path: check if first segment is a project ID
   // URL patterns:
-  //   /api/attachments/{projectId}/{attId}/{filename} → data/projects/{projectId}/attachments/{attId}/{filename}
+  //   /api/attachments/{projectId}/{attId}/{filename} → project attachments dir (data/ or .proq/workspace/)
   //   /api/attachments/{attId}/{filename}             → data/supervisor/attachments/{attId}/{filename}
   //                                                   → data/attachments/{attId}/{filename} (legacy fallback)
   let filePath: string;
-  const projectAttDir = path.join(PROJECTS_DIR, segments[0], "attachments");
+  const projectAttDir = projectAttachmentsDir(segments[0]);
   if (segments.length >= 3 && existsSync(projectAttDir)) {
     filePath = path.join(projectAttDir, ...segments.slice(1));
   } else {
@@ -71,10 +71,12 @@ export async function GET(
     filePath = existsSync(path.resolve(supervisorPath)) ? supervisorPath : legacyPath;
   }
 
-  // Path traversal protection
+  // Path traversal protection — allow paths under data/ or under .proq/workspace/attachments/
   const resolved = path.resolve(filePath);
   const resolvedData = path.resolve(DATA_DIR);
-  if (!resolved.startsWith(resolvedData)) {
+  const inDataDir = resolved.startsWith(resolvedData);
+  const inProqDir = resolved.includes(`${path.sep}.proq${path.sep}`) && resolved.includes(`${path.sep}attachments${path.sep}`);
+  if (!inDataDir && !inProqDir) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

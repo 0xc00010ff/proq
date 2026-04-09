@@ -396,7 +396,7 @@ export default function SupervisorPage() {
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 px-3 pt-3">
                 {attachments.map((att) => {
-                  const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+                  const url = att.url || (att.filePath ? attachmentUrl(att.filePath) : undefined);
                   const isImage = att.type?.startsWith('image/') && url;
                   return isImage ? (
                     <div

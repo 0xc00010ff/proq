@@ -108,7 +108,7 @@ function AttachmentPreview({ attachments }: { attachments: TaskAttachment[] }) {
   return (
     <div className="flex flex-wrap gap-1.5 mt-2">
       {attachments.map((att) => {
-        const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+        const url = att.url || (att.filePath ? attachmentUrl(att.filePath) : undefined);
         const isImage = att.type?.startsWith('image/') && url;
         return isImage ? (
           <div key={att.id} className="rounded overflow-hidden border border-zinc-700/50 bg-zinc-800/60">
@@ -286,7 +286,7 @@ export function ChatPanel({ projectId, messages, onSendMessage, style, streaming
       {attachments.length > 0 && (
         <div className="px-6 pb-2 flex flex-wrap gap-2 shrink-0">
           {attachments.map((att) => {
-            const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+            const url = att.url || (att.filePath ? attachmentUrl(att.filePath) : undefined);
             const isImage = att.type?.startsWith('image/') && url;
             return isImage ? (
               <div

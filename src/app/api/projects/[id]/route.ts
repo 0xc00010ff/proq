@@ -19,12 +19,12 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = await safeParseBody(request);
   if (body instanceof NextResponse) return body;
   // Strip internal _source flag before persisting
-  const { _source, workspaceInProject, ...fields } = body;
+  const { _source, workspaceInProject, gitignoreWorkspace, ...fields } = body;
 
   // Handle workspace-to-project move
   if (workspaceInProject === true) {
     try {
-      await moveWorkspaceToProject(id);
+      await moveWorkspaceToProject(id, gitignoreWorkspace === true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to move workspace";
       return NextResponse.json({ error: message }, { status: 500 });

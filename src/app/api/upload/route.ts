@@ -27,12 +27,15 @@ export async function POST(req: Request) {
       const filePath = path.join(dir, file.name);
       const buffer = Buffer.from(await file.arrayBuffer());
       writeFileSync(filePath, buffer);
+      // Build the API URL for serving this attachment
+      const urlPrefix = projectId ? `/api/attachments/${projectId}` : `/api/attachments`;
       return {
         id,
         name: file.name,
         size: file.size,
         type: file.type,
         filePath,
+        url: `${urlPrefix}/${id}/${file.name}`,
       };
     })
   );

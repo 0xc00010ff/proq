@@ -72,6 +72,7 @@ export interface TaskAttachment {
   size: number;
   type: string;
   filePath?: string;
+  url?: string;
 }
 
 export type TaskMode = 'auto' | 'answer' | 'plan' | 'build';

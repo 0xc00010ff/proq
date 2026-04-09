@@ -106,17 +106,43 @@ function projectDir(projectId: string): string {
   return path.join(DATA_DIR, "projects", projectId);
 }
 
+function workspaceDir(projectId: string): string {
+  return path.join(projectDir(projectId), "workspace");
+}
+
+/** Migrate old flat layout (tasks/, sessions/ etc at root) into workspace/ subdir. */
+function migrateToWorkspaceSubdir(projectId: string): void {
+  const dir = projectDir(projectId);
+  const wsDir = path.join(dir, "workspace");
+  // Already migrated or fresh project
+  if (fsExists(wsDir)) return;
+  // Check if old flat layout exists
+  const oldTasks = path.join(dir, "tasks");
+  if (!fsExists(oldTasks)) return;
+
+  mkdirSync(wsDir, { recursive: true });
+  const toMove = ["workspace.json", "tasks", "sessions", "reports", "attachments"];
+  for (const entry of toMove) {
+    const src = path.join(dir, entry);
+    if (fsExists(src)) {
+      renameSync(src, path.join(wsDir, entry));
+    }
+  }
+}
+
 function ensureProjectDir(projectId: string): void {
   const dir = projectDir(projectId);
-  mkdirSync(path.join(dir, "tasks"), { recursive: true });
-  mkdirSync(path.join(dir, "reports"), { recursive: true });
-  mkdirSync(path.join(dir, "sessions"), { recursive: true });
-  mkdirSync(path.join(dir, "attachments"), { recursive: true });
+  migrateToWorkspaceSubdir(projectId);
   mkdirSync(path.join(dir, "agents"), { recursive: true });
+  const ws = workspaceDir(projectId);
+  mkdirSync(path.join(ws, "tasks"), { recursive: true });
+  mkdirSync(path.join(ws, "reports"), { recursive: true });
+  mkdirSync(path.join(ws, "sessions"), { recursive: true });
+  mkdirSync(path.join(ws, "attachments"), { recursive: true });
 }
 
 export function projectAttachmentsDir(projectId: string): string {
-  return path.join(projectDir(projectId), "attachments");
+  return path.join(workspaceDir(projectId), "attachments");
 }
 
 // ── Root Workspace DB (project stubs) ────────────────────
@@ -167,7 +193,7 @@ function getProjectSettings(projectId: string): ProjectSettings {
 // ── Per-project workspace (local/live) ───────────────────
 
 function projectWorkspacePath(projectId: string): string {
-  return path.join(projectDir(projectId), "workspace.json");
+  return path.join(workspaceDir(projectId), "workspace.json");
 }
 
 export function getProjectWorkspace(projectId: string): ProjectWorkspace {
@@ -191,7 +217,7 @@ function writeProjectWorkspace(projectId: string, ws: ProjectWorkspace): void {
 // ── Task file I/O ────────────────────────────────────────
 
 function taskFilePath(projectId: string, taskId: string): string {
-  return path.join(projectDir(projectId), "tasks", `${taskId}.json`);
+  return path.join(workspaceDir(projectId), "tasks", `${taskId}.json`);
 }
 
 function readTaskFile(projectId: string, taskId: string): Task | null {
@@ -383,7 +409,7 @@ export async function deleteProject(id: string): Promise<boolean> {
   });
 }
 
-export async function moveWorkspaceToProject(projectId: string): Promise<void> {
+export async function moveWorkspaceToProject(projectId: string, gitignoreWorkspace?: boolean): Promise<void> {
   return withWriteLock('workspace', async () => {
     const ws = getWorkspaceData();
     const stub = ws.projects.find(p => p.id === projectId);
@@ -401,16 +427,37 @@ export async function moveWorkspaceToProject(projectId: string): Promise<void> {
       return;
     }
 
-    // Copy source to destination
+    // Copy source to destination.
+    // If src already has the new workspace/ layout, copy as-is.
+    // Otherwise, separate shared (project.json, agents/) from personal data.
     if (fsExists(srcDir)) {
-      mkdirSync(destDir, { recursive: true });
-      const entries = readdirSync(srcDir);
-      for (const entry of entries) {
-        const srcPath = path.join(srcDir, entry);
-        // Rename logs → sessions during copy
-        const destName = entry === "logs" ? "sessions" : entry;
-        const destPath = path.join(destDir, destName);
-        cpSync(srcPath, destPath, { recursive: true });
+      const alreadyMigrated = fsExists(path.join(srcDir, "workspace"));
+      if (alreadyMigrated) {
+        // Already has workspace/ subdir — copy entire tree directly
+        mkdirSync(destDir, { recursive: true });
+        const entries = readdirSync(srcDir);
+        for (const entry of entries) {
+          cpSync(path.join(srcDir, entry), path.join(destDir, entry), { recursive: true });
+        }
+      } else {
+        // Old flat layout — separate shared from personal
+        const wsDestDir = path.join(destDir, "workspace");
+        mkdirSync(wsDestDir, { recursive: true });
+        mkdirSync(path.join(destDir, "agents"), { recursive: true });
+
+        const sharedEntries = new Set(["project.json", "agents"]);
+        const personalRenames: Record<string, string> = { "logs": "sessions" };
+
+        const entries = readdirSync(srcDir);
+        for (const entry of entries) {
+          const srcPath = path.join(srcDir, entry);
+          if (sharedEntries.has(entry)) {
+            cpSync(srcPath, path.join(destDir, entry), { recursive: true });
+          } else {
+            const destName = personalRenames[entry] || entry;
+            cpSync(srcPath, path.join(wsDestDir, destName), { recursive: true });
+          }
+        }
       }
       // Remove old data dir
       try { rmSync(srcDir, { recursive: true, force: true }); } catch { /* best effort */ }
@@ -420,6 +467,19 @@ export async function moveWorkspaceToProject(projectId: string): Promise<void> {
     stub.workspaceInProject = true;
     writeWorkspace(ws);
     ensureProjectDir(projectId);
+
+    // Add .proq/workspace/ to .gitignore for team projects
+    if (gitignoreWorkspace) {
+      const gitignorePath = path.join(resolved, '.gitignore');
+      let content = '';
+      try { content = readFileSync(gitignorePath, 'utf-8'); } catch { /* file may not exist */ }
+
+      const entry = '.proq/workspace/';
+      if (!content.includes(entry)) {
+        const section = `\n# proq\n${entry}\n`;
+        writeFileSync(gitignorePath, content.trimEnd() + '\n' + section);
+      }
+    }
   });
 }
 
@@ -698,7 +758,7 @@ export async function setWorkbenchTabs(projectId: string, tabs: import("./types"
 // ═══════════════════════════════════════════════════════════
 
 function workbenchSessionPath(projectId: string, tabId: string): string {
-  return path.join(projectDir(projectId), "sessions", `${tabId}.json`);
+  return path.join(workspaceDir(projectId), "sessions", `${tabId}.json`);
 }
 
 export async function getWorkbenchSession(projectId: string, tabId: string): Promise<import("./types").WorkbenchSessionData | null> {
@@ -733,7 +793,7 @@ export async function deleteWorkbenchSession(projectId: string, tabId: string): 
 // ═══════════════════════════════════════════════════════════
 
 function taskSessionPath(projectId: string, taskId: string): string {
-  return path.join(projectDir(projectId), "sessions", `${taskId}.json`);
+  return path.join(workspaceDir(projectId), "sessions", `${taskId}.json`);
 }
 
 export async function getTaskSession(projectId: string, taskId: string): Promise<AgentBlock[]> {
@@ -770,7 +830,7 @@ export function readTaskSessionFile(projectId: string, taskId: string): { blocks
 // ═══════════════════════════════════════════════════════════
 
 function taskReportPath(projectId: string, taskId: string): string {
-  return path.join(projectDir(projectId), "reports", `${taskId}.json`);
+  return path.join(workspaceDir(projectId), "reports", `${taskId}.json`);
 }
 
 export async function getTaskReport(projectId: string, taskId: string): Promise<TaskReport | null> {

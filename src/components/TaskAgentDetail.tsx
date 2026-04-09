@@ -492,7 +492,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
             {task.attachments && task.attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {task.attachments.map((att) => {
-                  const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+                  const url = att.url || (att.filePath ? attachmentUrl(att.filePath) : undefined);
                   const isImage = att.type?.startsWith('image/') || false;
                   return isImage && url ? (
                     <div

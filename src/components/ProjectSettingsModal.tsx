@@ -24,6 +24,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const [workspaceInProject, setWorkspaceInProject] = useState(project.workspaceInProject || false);
   const [movingWorkspace, setMovingWorkspace] = useState(false);
   const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
+  const [gitignoreWorkspace, setGitignoreWorkspace] = useState(false);
   const [mcpData, setMcpData] = useState<{
     globalServers: McpServerInfo[];
     projectServers: McpServerInfo[];
@@ -74,7 +75,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
       const res = await fetch(`/api/projects/${project.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceInProject: true }),
+        body: JSON.stringify({ workspaceInProject: true, gitignoreWorkspace }),
       });
       if (res.ok) {
         setWorkspaceInProject(true);
@@ -260,21 +261,41 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
       {/* Workspace confirmation modal */}
       <Modal isOpen={showWorkspaceConfirm} onClose={() => setShowWorkspaceConfirm(false)} className="w-full max-w-sm">
         <div className="p-5">
-          <div className="flex items-start gap-3 mb-4">
+          <div className="flex items-start gap-3 mb-3">
             <AlertTriangleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm font-semibold text-text-primary mb-1.5">Save workspace to project?</h3>
+              <h3 className="text-sm font-semibold text-text-primary mb-1">Save workspace to project?</h3>
               <p className="text-xs text-text-tertiary leading-relaxed">
-                This will move all task data for this project into a <span className="font-mono">.proq/</span> folder at:
-              </p>
-              <p className="text-xs font-mono text-text-secondary mt-1.5 break-all">
-                {project.path}/.proq/
-              </p>
-              <p className="text-xs text-text-tertiary mt-1.5 leading-relaxed">
-                Shared config (agents, cron definitions) will be in <span className="font-mono">project.json</span>. Add <span className="font-mono">workspace.json</span>, <span className="font-mono">tasks/</span>, and <span className="font-mono">sessions/</span> to <span className="font-mono">.gitignore</span> so each collaborator has their own cron activations, task history, and agent sessions. This cannot be undone from the UI.
+                Moves task data into <span className="font-mono">.proq/</span> in your project directory.
               </p>
             </div>
           </div>
+
+          <div className="bg-surface-inset rounded-lg p-3 mb-4">
+            <div className="text-[11px] text-text-tertiary leading-relaxed space-y-1 mb-3">
+              <p><span className="font-mono text-text-secondary">agents/</span> and <span className="font-mono text-text-secondary">project.json</span> are shared config, tracked in git.</p>
+              <p><span className="font-mono text-text-secondary">workspace/</span> contains tasks, sessions, and reports — personal to each collaborator.</p>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <div
+                onClick={() => setGitignoreWorkspace(v => !v)}
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
+                  gitignoreWorkspace
+                    ? 'bg-blue-500 border-blue-500'
+                    : 'border-border-strong'
+                }`}
+              >
+                {gitignoreWorkspace && (
+                  <CheckIcon className="w-2.5 h-2.5 text-white" />
+                )}
+              </div>
+              <div>
+                <span className="text-xs text-text-secondary">Add <span className="font-mono">.proq/workspace</span> to .gitignore</span>
+                <p className="text-[11px] text-text-quaternary">Recommended for team projects</p>
+              </div>
+            </label>
+          </div>
+
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowWorkspaceConfirm(false)} className="btn-secondary text-xs">Cancel</button>
             <button

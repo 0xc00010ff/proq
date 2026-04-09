@@ -18,7 +18,7 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
         {attachments && attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5 ml-4">
             {attachments.map((att) => {
-              const url = att.filePath ? attachmentUrl(att.filePath) : undefined;
+              const url = att.url || (att.filePath ? attachmentUrl(att.filePath) : undefined);
               const isImage = att.type?.startsWith('image/') && url;
               return isImage ? (
                 <button

@@ -425,6 +425,68 @@ export function CodeTab({ project }: CodeTabProps) {
     setSaveStatus('idle');
   }, [activeTab]);
 
+  // Refresh a single tab's content from disk (skips dirty tabs)
+  const refreshTabFromDisk = useCallback(async (filePath: string) => {
+    try {
+      const res = await fetch(`/api/files/read?path=${encodeURIComponent(filePath)}`);
+      const data = await res.json();
+      if (data.error) return;
+
+      setOpenTabs((tabs) =>
+        tabs.map((t) => {
+          if (t.path !== filePath || t.dirty) return t;
+          if (t.savedContent === data.content) return t; // unchanged
+          const updated = { ...t, content: data.content, savedContent: data.content };
+          // If this is the active tab, update the editor too
+          if (t.path === activeTabPathRef.current && editorRef.current) {
+            const viewState = editorRef.current.saveViewState();
+            isLoadingFileRef.current = true;
+            editorRef.current.setValue(data.content);
+            if (viewState) editorRef.current.restoreViewState(viewState);
+            isLoadingFileRef.current = false;
+          }
+          return updated;
+        })
+      );
+    } catch {
+      // ignore fetch errors
+    }
+  }, []);
+
+  // Poll active tab for external changes (e.g. agent edits) every 3s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const activePath = activeTabPathRef.current;
+      if (!activePath) return;
+      const tab = tabsRef.current.find((t) => t.path === activePath);
+      if (tab && !tab.dirty) {
+        refreshTabFromDisk(activePath);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [refreshTabFromDisk]);
+
+  // Refresh active tab on window/tab focus
+  useEffect(() => {
+    const handleFocus = () => {
+      const activePath = activeTabPathRef.current;
+      if (!activePath) return;
+      const tab = tabsRef.current.find((t) => t.path === activePath);
+      if (tab && !tab.dirty) {
+        refreshTabFromDisk(activePath);
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') handleFocus();
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [refreshTabFromDisk]);
+
   // Save/restore view state when switching tabs
   const saveCurrentViewState = useCallback(() => {
     if (!editorRef.current || !activeTabPath) return;
@@ -445,8 +507,8 @@ export function CodeTab({ project }: CodeTabProps) {
       const tab = tabsRef.current.find((t) => t.path === path);
       if (tab) {
         setFileLanguage(tab.language);
-        setSaveStatus(tab.dirty ? 'idle' : 'idle');
-        // Set editor content imperatively
+        setSaveStatus('idle');
+        // Set editor content imperatively (show cached content immediately)
         if (editorRef.current) {
           isLoadingFileRef.current = true;
           editorRef.current.setValue(tab.content);
@@ -458,9 +520,13 @@ export function CodeTab({ project }: CodeTabProps) {
             isLoadingFileRef.current = false;
           }, 0);
         }
+        // Re-fetch from disk for non-dirty tabs to pick up external changes
+        if (!tab.dirty) {
+          refreshTabFromDisk(path);
+        }
       }
     },
-    [activeTabPath, saveCurrentViewState]
+    [activeTabPath, saveCurrentViewState, refreshTabFromDisk]
   );
 
   // Pin a preview tab (make it permanent) — called on edit or double-click

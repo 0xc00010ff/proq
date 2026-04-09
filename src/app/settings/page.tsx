@@ -37,6 +37,12 @@ const BASE_SECTIONS: {
 }[] = [
   { id: "about", label: "About", icon: <InfoIcon className="w-4 h-4" /> },
   {
+    id: "updates",
+    label: "Updates",
+    icon: <DownloadIcon className="w-4 h-4" />,
+    electronOnly: true,
+  },
+  {
     id: "appearance",
     label: "Appearance",
     icon: <PaletteIcon className="w-4 h-4" />,
@@ -46,12 +52,6 @@ const BASE_SECTIONS: {
     id: "mcp-servers",
     label: "MCP Servers",
     icon: <PlugIcon className="w-4 h-4" />,
-  },
-  {
-    id: "updates",
-    label: "Updates",
-    icon: <DownloadIcon className="w-4 h-4" />,
-    electronOnly: true,
   },
   {
     id: "notifications",

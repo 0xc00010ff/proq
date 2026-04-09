@@ -297,9 +297,7 @@ export interface ProjectWorkspace {
   projectWorkbenchHeight?: number;
   projectWorkbenchTabs?: WorkbenchTabInfo[];
   projectWorkbenchActiveTabId?: string;
-  liveWorkbenchTabs?: WorkbenchTabInfo[];
-  liveWorkbenchActiveTabId?: string;
-  /** @deprecated Workbench sessions now stored in sessions/wb-{tabId}.json files. Kept for migration. */
+  /** @deprecated Workbench sessions now stored in sessions/{tabId}.json files. Kept for migration. */
   projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   // Per-user overrides (moved from ProjectSettings)
   executionMode?: ExecutionMode;
@@ -330,8 +328,6 @@ export interface ProjectState {
   projectWorkbenchHeight?: number;
   projectWorkbenchTabs?: WorkbenchTabInfo[];
   projectWorkbenchActiveTabId?: string;
-  liveWorkbenchTabs?: WorkbenchTabInfo[];
-  liveWorkbenchActiveTabId?: string;
   projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   recentlyDeleted?: DeletedTaskEntry[];
   cronJobs?: CronJob[];

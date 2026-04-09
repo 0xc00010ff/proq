@@ -85,9 +85,6 @@ interface ProjectState {
   projectWorkbenchHeight?: number;
   projectWorkbenchTabs?: WorkbenchTabInfo[];
   projectWorkbenchActiveTabId?: string;
-  liveWorkbenchTabs?: WorkbenchTabInfo[];
-  liveWorkbenchActiveTabId?: string;
-  projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   recentlyDeleted?: DeletedTaskEntry[];
 }
 ```

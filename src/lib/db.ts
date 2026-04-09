@@ -697,18 +697,35 @@ export async function setWorkbenchTabs(projectId: string, tabs: import("./types"
 // WORKBENCH SESSIONS
 // ═══════════════════════════════════════════════════════════
 
+function workbenchSessionPath(projectId: string, tabId: string): string {
+  return path.join(projectDir(projectId), "sessions", `${tabId}.json`);
+}
+
 export async function getWorkbenchSession(projectId: string, tabId: string): Promise<import("./types").WorkbenchSessionData | null> {
+  // Try file-based session first
+  const filePath = workbenchSessionPath(projectId, tabId);
+  if (fsExists(filePath)) {
+    return readJSON<import("./types").WorkbenchSessionData | null>(filePath, null);
+  }
+  // Fall back to legacy inline data in workspace.json (pre-migration)
   const ws = getProjectWorkspace(projectId);
   return ws.projectWorkbenchSessions?.[tabId] ?? null;
 }
 
 export async function setWorkbenchSession(projectId: string, tabId: string, sessionData: import("./types").WorkbenchSessionData): Promise<void> {
-  return withWriteLock(`workspace:${projectId}`, async () => {
-    const ws = getProjectWorkspace(projectId);
-    if (!ws.projectWorkbenchSessions) ws.projectWorkbenchSessions = {};
-    ws.projectWorkbenchSessions[tabId] = sessionData;
-    writeProjectWorkspace(projectId, ws);
+  return withWriteLock(`wbsession:${tabId}`, async () => {
+    ensureProjectDir(projectId);
+    writeJSON(workbenchSessionPath(projectId, tabId), sessionData);
   });
+}
+
+export async function deleteWorkbenchSession(projectId: string, tabId: string): Promise<void> {
+  const filePath = workbenchSessionPath(projectId, tabId);
+  try {
+    if (fsExists(filePath)) unlinkSync(filePath);
+  } catch {
+    // best effort
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1296,6 +1313,27 @@ function migrateAllSettingsToProjectConfig(): void {
   }
 }
 
+// Migrate inline workbench sessions from workspace.json → sessions/{tabId}.json
+function migrateInlineWorkbenchSessions(): void {
+  const ws = getWorkspaceData();
+  for (const stub of ws.projects) {
+    const workspace = getProjectWorkspace(stub.id);
+    if (!workspace.projectWorkbenchSessions) continue;
+    const entries = Object.entries(workspace.projectWorkbenchSessions);
+    if (entries.length === 0) continue;
+    ensureProjectDir(stub.id);
+    for (const [tabId, sessionData] of entries) {
+      const filePath = workbenchSessionPath(stub.id, tabId);
+      if (!fsExists(filePath) && sessionData?.agentBlocks?.length) {
+        writeJSON(filePath, sessionData);
+      }
+    }
+    delete workspace.projectWorkbenchSessions;
+    writeProjectWorkspace(stub.id, workspace);
+  }
+}
+
 // Run migrations on module load
 migrateLogsToSessions();
 migrateAllSettingsToProjectConfig();
+migrateInlineWorkbenchSessions();

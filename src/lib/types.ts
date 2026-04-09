@@ -299,6 +299,7 @@ export interface ProjectWorkspace {
   projectWorkbenchActiveTabId?: string;
   liveWorkbenchTabs?: WorkbenchTabInfo[];
   liveWorkbenchActiveTabId?: string;
+  /** @deprecated Workbench sessions now stored in sessions/wb-{tabId}.json files. Kept for migration. */
   projectWorkbenchSessions?: Record<string, WorkbenchSessionData>;
   // Per-user overrides (moved from ProjectSettings)
   executionMode?: ExecutionMode;

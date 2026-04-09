@@ -596,18 +596,8 @@ export async function clearAgentTabSession(tabId: string, projectId?: string): P
       session.status = "aborted";
       session.queryHandle.kill("SIGTERM");
     }
-    // Clear persisted data
-    await setWorkbenchSession(session.projectId, tabId, {
-      agentBlocks: [],
-      sessionId: undefined,
-    });
+    // Leave session file on disk as a record — just clear in-memory state
     session.clients.clear();
     sessions.delete(tabId);
-  } else if (projectId) {
-    // No in-memory session but clear persisted data
-    await setWorkbenchSession(projectId, tabId, {
-      agentBlocks: [],
-      sessionId: undefined,
-    });
   }
 }

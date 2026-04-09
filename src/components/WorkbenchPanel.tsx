@@ -10,7 +10,7 @@ import React, {
   forwardRef,
 } from 'react';
 import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon, EraserIcon } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import {
   DndContext,
   closestCenter,
@@ -93,10 +93,10 @@ type TabAction =
   | { type: 'rename'; tabId: string; label: string }
   | { type: 'reorder'; tabs: WorkbenchTab[] };
 
-function defaultTabs(projectId: string): WorkbenchTab[] {
+function defaultTabs(): WorkbenchTab[] {
   return [
-    { id: `default-agent-${projectId}`, label: 'Agent', type: 'agent' },
-    { id: `default-shell-${projectId}`, label: 'Terminal', type: 'shell' },
+    { id: uuidv7(), label: 'Agent', type: 'agent' },
+    { id: uuidv7(), label: 'Terminal', type: 'shell' },
   ];
 }
 
@@ -308,7 +308,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   }, [workbench, patchWorkbenchState]);
 
   // --- Tab state (internalized from WorkbenchTabsProvider) ---
-  const initialTabs = defaultTabs(projectId);
+  const initialTabs = defaultTabs();
   const [tabState, dispatch] = useReducer(tabReducer, { tabs: initialTabs, activeTabId: initialTabs[0].id });
   const [hydrated, setHydrated] = useState(false);
   const prevProjectIdRef = useRef(projectId);
@@ -317,7 +317,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   useEffect(() => {
     if (prevProjectIdRef.current !== projectId) {
       prevProjectIdRef.current = projectId;
-      const dts = defaultTabs(projectId);
+      const dts = defaultTabs();
       dispatch({ type: 'hydrate', tabs: dts, activeTabId: dts[0].id });
       setHydrated(false);
     }
@@ -333,7 +333,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         if (saved.length > 0) {
           tabs = saved.map((t) => ({ id: t.id, label: t.label, type: t.type || 'shell', agentId: t.agentId }));
         } else {
-          tabs = defaultTabs(projectId);
+          tabs = defaultTabs();
         }
         const savedActiveTabId: string | undefined = data.activeTabId;
         const activeTabId =
@@ -435,7 +435,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       }
     }
 
-    const id = `shell-${uuidv4().slice(0, 8)}`;
+    const id = uuidv7();
     const shellCount = currentTabs.filter((t) => t.type === 'shell').length + 1;
 
     if (initialInput) setTerminalDraft(id, initialInput);
@@ -462,7 +462,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       }
     }
 
-    const id = `agent-${uuidv4().slice(0, 8)}`;
+    const id = uuidv7();
     const agentCount = currentTabs.filter((t) => t.type === 'agent').length + 1;
     const agentLabel = agentId && agentMapRef.current?.get(agentId)?.name || `Agent ${agentCount}`;
     if (initialInput) setAgentDraft(id, initialInput);

@@ -203,6 +203,9 @@ function wireProcess(
         sessionId: session.sessionId,
       });
     }
+
+    // Dispatch next queued task (critical for sequential mode)
+    processQueue(projectId);
   });
 
   proc.on("error", async (err) => {
@@ -227,6 +230,8 @@ function wireProcess(
         agentStatus: null,
       });
     }
+    // Dispatch next queued task (critical for sequential mode)
+    processQueue(projectId);
   });
 }
 

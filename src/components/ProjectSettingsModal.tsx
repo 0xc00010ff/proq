@@ -109,7 +109,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 <select
                   value={defaultBranch}
                   onChange={(e) => setDefaultBranch(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
                 >
                   {selectableBranches.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -126,7 +126,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 value={defaultBranch}
                 onChange={(e) => setDefaultBranch(e.target.value)}
                 placeholder="main"
-                className="w-full px-3 py-2 text-xs font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+                className="w-full px-3 py-2 text-xs bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
               />
             )}
           </div>
@@ -141,7 +141,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3000"
-              className="w-full px-3 py-2 text-xs font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+              className="w-full px-3 py-2 text-xs bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 
@@ -191,7 +191,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
             <label className="block text-xs font-medium text-text-secondary mb-1.5">
               Path
             </label>
-            <div className="px-3 py-2 text-xs font-mono text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md truncate">
+            <div className="px-3 py-2 text-xs text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md truncate">
               {project.path}
             </div>
           </div>
@@ -256,7 +256,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 {mcpData.skills.map((skill) => (
                   <div key={skill.filename} className="flex items-center gap-2 py-1">
                     <FileTextIcon className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" />
-                    <span className="text-xs font-mono text-text-primary">{skill.name}</span>
+                    <span className="text-xs text-text-primary">{skill.name}</span>
                   </div>
                 ))}
               </div>
@@ -285,11 +285,11 @@ function McpGroup({ label, servers, dimmed }: { label: string; servers: McpServe
           <div key={server.name} className={`flex items-center gap-2 py-0.5 ${dimmed ? 'opacity-50' : ''}`}>
             <PlugIcon className="w-3 h-3 text-text-tertiary flex-shrink-0" />
             <span className="text-xs text-text-primary font-medium">{server.name}</span>
-            <span className="text-[10px] font-mono text-text-tertiary bg-surface-inset px-1 py-px rounded">
+            <span className="text-[10px] text-text-tertiary bg-surface-inset px-1 py-px rounded">
               {server.type}
             </span>
             {detail && (
-              <span className="text-[10px] text-text-quaternary font-mono truncate ml-auto max-w-[200px]">
+              <span className="text-[10px] text-text-quaternary truncate ml-auto max-w-[200px]">
                 {detail}
               </span>
             )}

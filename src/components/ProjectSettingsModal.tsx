@@ -109,7 +109,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 <select
                   value={defaultBranch}
                   onChange={(e) => setDefaultBranch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
+                  className="w-full px-3 py-2 text-xs font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong appearance-none cursor-pointer"
                 >
                   {selectableBranches.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -126,7 +126,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 value={defaultBranch}
                 onChange={(e) => setDefaultBranch(e.target.value)}
                 placeholder="main"
-                className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+                className="w-full px-3 py-2 text-xs font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
               />
             )}
           </div>
@@ -141,7 +141,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3000"
-              className="w-full px-3 py-2 text-sm font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
+              className="w-full px-3 py-2 text-xs font-mono bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
           </div>
 
@@ -191,7 +191,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
             <label className="block text-xs font-medium text-text-secondary mb-1.5">
               Path
             </label>
-            <div className="px-3 py-2 text-sm font-mono text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md truncate">
+            <div className="px-3 py-2 text-xs font-mono text-text-tertiary bg-surface-secondary/50 border border-border-default rounded-md truncate">
               {project.path}
             </div>
           </div>
@@ -256,7 +256,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 {mcpData.skills.map((skill) => (
                   <div key={skill.filename} className="flex items-center gap-2 py-1">
                     <FileTextIcon className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" />
-                    <span className="text-sm font-mono text-text-primary">{skill.name}</span>
+                    <span className="text-xs font-mono text-text-primary">{skill.name}</span>
                   </div>
                 ))}
               </div>

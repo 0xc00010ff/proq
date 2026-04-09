@@ -226,6 +226,43 @@ ${diff.slice(0, 12000)}`;
       }
     }
 
+    if (body.action === "add-remote") {
+      const url = body.url;
+      if (!url || typeof url !== "string") {
+        return NextResponse.json({ error: "url is required" }, { status: 400 });
+      }
+      try {
+        const { execSync } = await import("child_process");
+        // Check if origin already exists
+        try {
+          execSync(`git -C '${projectPath}' remote get-url origin`, { timeout: 5_000, encoding: "utf-8" });
+          // Origin exists — update it
+          execSync(`git -C '${projectPath}' remote set-url origin '${url.replace(/'/g, "'\\''")}'`, { timeout: 5_000 });
+        } catch {
+          // Origin doesn't exist — add it
+          execSync(`git -C '${projectPath}' remote add origin '${url.replace(/'/g, "'\\''")}'`, { timeout: 5_000 });
+        }
+        // Try to fetch from the new remote
+        try {
+          execSync(`git -C '${projectPath}' fetch origin`, { timeout: 30_000, encoding: "utf-8" });
+        } catch {
+          // Fetch may fail for empty repos — that's ok
+        }
+        // Set upstream tracking for current branch
+        try {
+          const branch = getCurrentBranch(projectPath).branch;
+          execSync(`git -C '${projectPath}' branch --set-upstream-to=origin/${branch} ${branch}`, { timeout: 5_000 });
+        } catch {
+          // May fail if remote branch doesn't exist yet — that's ok
+        }
+        const syncStatus = getGitSyncStatus(projectPath);
+        return NextResponse.json({ success: true, ...syncStatus });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to add remote";
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+    }
+
     if (body.action === "create-branch") {
       const name = body.name;
       if (!name || typeof name !== "string") {

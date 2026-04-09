@@ -353,6 +353,19 @@ export default function ProjectPage() {
     } catch { /* best effort */ }
   }, [projectId, fetchBranchState]);
 
+  const handleSetUpstream = useCallback(async (url: string) => {
+    const res = await fetch(`/api/projects/${projectId}/git`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add-remote', url }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: 'Failed to set remote' }));
+      throw new Error(data.error || 'Failed to set remote');
+    }
+    fetchBranchState();
+  }, [projectId, fetchBranchState]);
+
   // Cmd+Z to undo last delete — peeks without restoring
   useShortcut('undo-delete', useCallback(async () => {
     try {
@@ -732,6 +745,7 @@ export default function ProjectPage() {
         onOpenCronJobs={() => setShowCronJobs(true)}
         onCommit={() => setShowCommitModal(true)}
         onCreateBranch={handleCreateBranch}
+        onSetUpstream={handleSetUpstream}
         sidebarCollapsed={sidebarCollapsed}
         onExpandSidebar={expandSidebar}
         showAgentsTab={enableAgentDesigner}

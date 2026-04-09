@@ -410,16 +410,25 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
               </span>
             )}
 
-            {/* Unified history dropdown (or direct modal when up to date) */}
+            {/* No remote: show Set upstream button + History */}
             {!isOnPreviewBranch && !gitStatus?.hasRemote && (
-              <button
-                onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
-                className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover overflow-hidden"
-              >
-                <span className="flex items-center gap-1.5 px-2.5 py-1.5">
-                  History
-                </span>
-              </button>
+              <>
+                <button
+                  onClick={() => { setUpstreamModalOpen(true); setUpstreamUrl(''); setUpstreamError(null); }}
+                  className="flex items-center gap-1.5 text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover px-2.5 py-1.5"
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  Set upstream
+                </button>
+                <button
+                  onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
+                  className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover overflow-hidden"
+                >
+                  <span className="flex items-center gap-1.5 px-2.5 py-1.5">
+                    History
+                  </span>
+                </button>
+              </>
             )}
             {!isOnPreviewBranch && gitStatus?.hasRemote && isUpToDate && (
               <button
@@ -553,6 +562,84 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onSyncDone={refreshModalAfterSync}
                 type="log"
               />
+            )}
+
+            {/* Set upstream modal */}
+            {upstreamModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-black/50" onClick={() => setUpstreamModalOpen(false)} />
+                <div className="relative bg-surface-modal border border-border-default rounded-xl shadow-xl w-[420px] p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-text-primary">Set upstream remote</h3>
+                    <button onClick={() => setUpstreamModalOpen(false)} className="text-text-tertiary hover:text-text-secondary">
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-text-tertiary mb-3">
+                    Add a remote URL to push and pull from. This sets the <code className="px-1 py-0.5 rounded bg-surface-hover text-text-chrome font-mono text-[11px]">origin</code> remote for this repository.
+                  </p>
+                  <input
+                    ref={upstreamInputRef}
+                    type="text"
+                    value={upstreamUrl}
+                    onChange={(e) => { setUpstreamUrl(e.target.value); setUpstreamError(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && upstreamUrl.trim() && !upstreamSaving) {
+                        e.preventDefault();
+                        const url = upstreamUrl.trim();
+                        setUpstreamSaving(true);
+                        setUpstreamError(null);
+                        onSetUpstream?.(url)
+                          .then(() => { setUpstreamModalOpen(false); })
+                          .catch((err) => { setUpstreamError(err instanceof Error ? err.message : 'Failed to set remote'); })
+                          .finally(() => { setUpstreamSaving(false); });
+                      }
+                    }}
+                    placeholder="https://github.com/user/repo.git"
+                    className="w-full px-3 py-2 text-sm bg-surface-primary border border-border-default rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-lazuli/60 font-mono"
+                    autoFocus
+                  />
+                  {upstreamError && (
+                    <p className="text-xs text-crimson mt-2">{upstreamError}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-4">
+                    <a
+                      href="https://github.com/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-chrome"
+                    >
+                      <ExternalLinkIcon className="w-3 h-3" />
+                      Create a GitHub repo
+                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setUpstreamModalOpen(false)}
+                        className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = upstreamUrl.trim();
+                          if (!url || upstreamSaving) return;
+                          setUpstreamSaving(true);
+                          setUpstreamError(null);
+                          onSetUpstream?.(url)
+                            .then(() => { setUpstreamModalOpen(false); })
+                            .catch((err) => { setUpstreamError(err instanceof Error ? err.message : 'Failed to set remote'); })
+                            .finally(() => { setUpstreamSaving(false); });
+                        }}
+                        disabled={!upstreamUrl.trim() || upstreamSaving}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-lazuli text-white hover:bg-lazuli-light disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        {upstreamSaving && <Loader2Icon className="w-3 h-3 animate-spin" />}
+                        Add remote
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Branch selector */}

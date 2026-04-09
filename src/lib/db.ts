@@ -1254,17 +1254,6 @@ function migrateToProjectDirs(): void {
     } catch { /* best effort */ }
   }
 
-  // Migrate logs/ → sessions/ (per-project)
-  const currentWs = getWorkspaceData();
-  for (const stub of currentWs.projects) {
-    const dir = projectDir(stub.id);
-    const oldLogsDir = path.join(dir, "logs");
-    const newSessionsDir = path.join(dir, "sessions");
-    if (fsExists(oldLogsDir) && !fsExists(newSessionsDir)) {
-      try { renameSync(oldLogsDir, newSessionsDir); } catch { /* best effort */ }
-    }
-  }
-
   // Note: legacy data/attachments/ migration is handled by migrateLegacyAttachments()
   // which runs independently after this function.
 
@@ -1352,6 +1341,35 @@ function migrateLegacyAttachments(): void {
   } catch { /* best effort */ }
 }
 
+// Migrate logs/ → sessions/ (runs independently of the old .json migration)
+function migrateLogsToSessions(): void {
+  const ws = getWorkspaceData();
+  for (const stub of ws.projects) {
+    const dir = projectDir(stub.id);
+    const oldLogsDir = path.join(dir, "logs");
+    const newSessionsDir = path.join(dir, "sessions");
+    if (!fsExists(oldLogsDir)) continue;
+    if (fsExists(newSessionsDir)) {
+      // sessions/ may have been created empty by ensureProjectDir — move files from logs/ into it
+      try {
+        const files = readdirSync(oldLogsDir);
+        for (const file of files) {
+          const dst = path.join(newSessionsDir, file);
+          if (!fsExists(dst)) {
+            try { renameSync(path.join(oldLogsDir, file), dst); } catch { /* best effort */ }
+          }
+        }
+        // Remove logs/ if now empty
+        const remaining = readdirSync(oldLogsDir);
+        if (remaining.length === 0) rmSync(oldLogsDir, { recursive: true, force: true });
+      } catch { /* best effort */ }
+    } else {
+      try { renameSync(oldLogsDir, newSessionsDir); } catch { /* best effort */ }
+    }
+  }
+}
+
 // Run migrations on module load
 migrateToProjectDirs();
+migrateLogsToSessions();
 migrateLegacyAttachments();

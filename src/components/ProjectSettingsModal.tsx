@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/Modal';
-import type { Agent, Project, ViewType, McpServerInfo, SkillInfo } from '@/lib/types';
+import type { Agent, Project, McpServerInfo, SkillInfo } from '@/lib/types';
 import { ChevronDownIcon, PlugIcon, FileTextIcon, CheckIcon, FolderSyncIcon } from 'lucide-react';
 
 interface ProjectSettingsModalProps {
@@ -16,7 +16,6 @@ interface ProjectSettingsModalProps {
 
 export function ProjectSettingsModal({ isOpen, project, branches, agents, onClose, onSave }: ProjectSettingsModalProps) {
   const [name, setName] = useState(project.name);
-  const [viewType, setViewType] = useState<ViewType>(project.viewType || 'kanban');
   const [defaultBranch, setDefaultBranch] = useState(project.defaultBranch || 'main');
   const [serverUrl, setServerUrl] = useState(project.serverUrl || '');
   const [systemPrompt, setSystemPrompt] = useState(project.systemPrompt || '');
@@ -32,7 +31,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
 
   useEffect(() => {
     setName(project.name);
-    setViewType(project.viewType || 'kanban');
     setDefaultBranch(project.defaultBranch || 'main');
     setServerUrl(project.serverUrl || '');
     setSystemPrompt(project.systemPrompt || '');
@@ -51,7 +49,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const handleSave = () => {
     onSave({
       name,
-      viewType,
       defaultBranch,
       serverUrl: serverUrl || undefined,
       systemPrompt: systemPrompt || undefined,
@@ -100,35 +97,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-surface-secondary border border-border-default rounded-md text-text-primary focus:outline-none focus:border-border-strong"
             />
-          </div>
-
-          {/* View Type */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1.5">
-              Default View
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewType('kanban')}
-                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border ${
-                  viewType === 'kanban'
-                    ? 'border-border-strong bg-surface-hover text-text-primary'
-                    : 'border-border-default text-text-tertiary hover:border-border-strong'
-                }`}
-              >
-                Board
-              </button>
-              <button
-                onClick={() => setViewType('grid')}
-                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border ${
-                  viewType === 'grid'
-                    ? 'border-border-strong bg-surface-hover text-text-primary'
-                    : 'border-border-default text-text-tertiary hover:border-border-strong'
-                }`}
-              >
-                Grid
-              </button>
-            </div>
           </div>
 
           {/* Default Branch */}

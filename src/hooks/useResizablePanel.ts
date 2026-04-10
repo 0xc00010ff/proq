@@ -47,7 +47,7 @@ export function useResizablePanel(
       if (!prev) return prev;
       return false;
     });
-    setPercent((prev) => Math.max(prev, 25));
+    setPercent((prev) => Math.max(prev, 40));
   }, []);
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {

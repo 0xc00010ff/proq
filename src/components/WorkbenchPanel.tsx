@@ -304,7 +304,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       patchWorkbenchState({ open: true });
       return false;
     });
-    workbench.setPercent((prev: number) => Math.max(prev, 25));
+    workbench.setPercent((prev: number) => Math.max(prev, 40));
   }, [workbench, patchWorkbenchState]);
 
   // --- Tab state (internalized from WorkbenchTabsProvider) ---

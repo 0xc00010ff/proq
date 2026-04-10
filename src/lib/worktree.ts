@@ -513,7 +513,14 @@ export function getGitSyncStatus(
       result.ahead = ahead || 0;
       result.behind = behind || 0;
     } catch {
-      // No tracking branch or no upstream — leave hasUpstream false
+      // No tracking branch or no upstream — count all local commits as ahead
+      try {
+        const count = execSync(
+          `git -C '${projectPath}' rev-list --count HEAD`,
+          { timeout: 5_000, encoding: "utf-8", stdio: ['pipe', 'pipe', 'pipe'] },
+        ).trim();
+        result.ahead = parseInt(count, 10) || 0;
+      } catch { /* empty repo, no commits at all */ }
     }
   }
 
@@ -699,10 +706,30 @@ export function gitPush(
   }
 
   try {
-    execSync(`git -C '${projectPath}' push`, {
-      timeout: 30_000,
-      encoding: "utf-8",
-    });
+    // Check if current branch has an upstream tracking branch
+    let hasUpstream = false;
+    try {
+      execSync(`git -C '${projectPath}' rev-parse --abbrev-ref '@{upstream}'`, {
+        timeout: 5_000, encoding: "utf-8", stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      hasUpstream = true;
+    } catch { /* no upstream */ }
+
+    if (hasUpstream) {
+      execSync(`git -C '${projectPath}' push`, {
+        timeout: 30_000,
+        encoding: "utf-8",
+      });
+    } else {
+      // Initial push — set upstream tracking
+      const branch = execSync(`git -C '${projectPath}' rev-parse --abbrev-ref HEAD`, {
+        timeout: 5_000, encoding: "utf-8",
+      }).trim();
+      execSync(`git -C '${projectPath}' push -u origin ${branch}`, {
+        timeout: 30_000,
+        encoding: "utf-8",
+      });
+    }
     console.log(`[git] pushed to upstream from ${projectPath}`);
     return { success: true };
   } catch (err) {

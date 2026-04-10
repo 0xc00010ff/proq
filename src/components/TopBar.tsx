@@ -159,9 +159,16 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     const branchName = currentBranch ? `origin/${currentBranch}` : 'origin';
     const a = gitStatus?.ahead ?? 0;
     const b = gitStatus?.behind ?? 0;
+    const _hasRemote = gitStatus?.hasRemote ?? false;
+    const _hasUpstream = gitStatus?.hasUpstream ?? false;
+    const _notPushed = _hasRemote && !_hasUpstream;
     const parts: string[] = [];
-    if (a > 0) parts.push(`${a} ahead`);
-    if (b > 0) parts.push(`${b} behind`);
+    if (_notPushed && a > 0) {
+      parts.push(`${a} ${a === 1 ? 'commit' : 'commits'}`);
+    } else {
+      if (a > 0) parts.push(`${a} ahead`);
+      if (b > 0) parts.push(`${b} behind`);
+    }
     const title = parts.length > 0 ? parts.join(', ') + ` · ${branchName}` : `Up to date · ${branchName}`;
     setDetailModal({
       type: 'log',
@@ -230,16 +237,16 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   const notPushed = hasRemote && !hasUpstream;
   const isUpToDate = !notPushed && ahead === 0 && behind === 0;
   const historyLabel = (() => {
-    if (notPushed) return 'Not pushed';
+    if (notPushed && ahead > 0) return `${ahead} ${ahead === 1 ? 'commit' : 'commits'}`;
     const parts: string[] = [];
     if (ahead > 0) parts.push(`${ahead} ahead`);
     if (behind > 0) parts.push(`${behind} behind`);
     if (parts.length > 0) return parts.join(', ');
     return 'Up to date';
   })();
-  // Text color: emerald/crimson for ahead/behind, amber for not pushed, chrome for up to date or mixed
+  // Text color: blue for not pushed, emerald/crimson for ahead/behind, chrome for up to date or mixed
   const historyTextColor = notPushed
-    ? 'text-amber-400'
+    ? 'text-blue-400'
     : isUpToDate
       ? 'text-text-chrome'
       : behind > 0 && ahead === 0
@@ -552,7 +559,6 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onPull={onPull}
                 onSyncDone={refreshModalAfterSync}
                 hasRemote={gitStatus?.hasRemote}
-                hasUpstream={gitStatus?.hasUpstream}
                 onSetUpstream={onSetUpstream}
                 type="log"
               />

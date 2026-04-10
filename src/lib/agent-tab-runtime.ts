@@ -403,7 +403,7 @@ export async function startAgentTabSession(
     "--verbose",
     "--max-turns", "200",
     "--mcp-config", mcpConfigPath,
-    "--allowedTools", "mcp__proq__*",
+    "--allowedTools", "mcp__proq__*,Write(.claude/skills/**),Edit(.claude/skills/**),Write(.claude/commands/**),Edit(.claude/commands/**),Write(.claude/agents/**),Edit(.claude/agents/**)",
   ];
 
   // Plan mode uses restricted permissions; all other modes skip permissions
@@ -509,7 +509,7 @@ export async function continueAgentTabSession(
     "--verbose",
     "--max-turns", "200",
     "--mcp-config", mcpConfigPath,
-    "--allowedTools", "mcp__proq__*",
+    "--allowedTools", "mcp__proq__*,Write(.claude/skills/**),Edit(.claude/skills/**),Write(.claude/commands/**),Edit(.claude/commands/**),Write(.claude/agents/**),Edit(.claude/agents/**)",
   ];
 
   // After plan approval or non-plan modes: skip permissions. In plan mode: restricted.

@@ -322,7 +322,13 @@ export async function startSession(
   // Pre-allow tools to avoid race conditions where permission resolution
   // happens before tool registration completes. For plan mode, also allow
   // read-only tools that plan permission mode should permit.
-  const allowedTools: string[] = [];
+  // Always allow writes to .claude/skills, .claude/commands, .claude/agents
+  // since the .claude/ directory protection blocks them even in bypass mode.
+  const allowedTools: string[] = [
+    "Write(.claude/skills/**)", "Edit(.claude/skills/**)",
+    "Write(.claude/commands/**)", "Edit(.claude/commands/**)",
+    "Write(.claude/agents/**)", "Edit(.claude/agents/**)",
+  ];
   if (options?.mcpConfig) {
     allowedTools.push("mcp__proq__*");
   }
@@ -335,9 +341,7 @@ export async function startSession(
     allowedTools.push("mcp__claude-in-chrome__*");
   }
 
-  if (allowedTools.length > 0) {
-    args.push("--allowedTools", allowedTools.join(","));
-  }
+  args.push("--allowedTools", allowedTools.join(","));
 
   // Spawn the CLI child process
   const claudeBin = await getClaudeBin();
@@ -660,7 +664,12 @@ export async function continueSession(
   args.push("--mcp-config", session.mcpConfig);
 
   // Pre-allow tools to avoid race conditions with permission resolution.
-  const allowedTools: string[] = [];
+  // Always allow writes to .claude/skills, .claude/commands, .claude/agents.
+  const allowedTools: string[] = [
+    "Write(.claude/skills/**)", "Edit(.claude/skills/**)",
+    "Write(.claude/commands/**)", "Edit(.claude/commands/**)",
+    "Write(.claude/agents/**)", "Edit(.claude/agents/**)",
+  ];
   if (session.mcpConfig) {
     allowedTools.push("mcp__proq__*");
   }
@@ -674,9 +683,7 @@ export async function continueSession(
     allowedTools.push("mcp__claude-in-chrome__*");
   }
 
-  if (allowedTools.length > 0) {
-    args.push("--allowedTools", allowedTools.join(","));
-  }
+  args.push("--allowedTools", allowedTools.join(","));
 
   // Emit init block for the new session turn (only when starting fresh)
   if (!session.sessionId) {

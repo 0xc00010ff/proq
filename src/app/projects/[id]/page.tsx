@@ -46,7 +46,7 @@ export default function ProjectPage() {
   const [currentBranch, setCurrentBranch] = useState<string>('main');
   const [branches, setBranches] = useState<string[]>([]);
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
-  const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, ahead: 0, behind: 0, dirty: 0 });
+  const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, hasUpstream: false, ahead: 0, behind: 0, dirty: 0 });
   const workbenchRef = useRef<WorkbenchPanelHandle>(null);
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
@@ -114,6 +114,7 @@ export default function ProjectPage() {
         const newStatus: GitStatus = {
           hasGit: data.hasGit !== false,
           hasRemote: data.hasRemote || false,
+          hasUpstream: data.hasUpstream || false,
           ahead: data.ahead || 0,
           behind: data.behind || 0,
           dirty: data.dirty || 0,

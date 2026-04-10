@@ -477,8 +477,8 @@ export function detectDefaultBranch(projectPath: string): string | null {
 /** Get sync status for a git repository (ahead/behind upstream, dirty file count) */
 export function getGitSyncStatus(
   projectPath: string,
-): { hasRemote: boolean; ahead: number; behind: number; dirty: number; aheadOfMain?: number } {
-  const result: { hasRemote: boolean; ahead: number; behind: number; dirty: number; aheadOfMain?: number } = { hasRemote: false, ahead: 0, behind: 0, dirty: 0 };
+): { hasRemote: boolean; hasUpstream: boolean; ahead: number; behind: number; dirty: number; aheadOfMain?: number } {
+  const result: { hasRemote: boolean; hasUpstream: boolean; ahead: number; behind: number; dirty: number; aheadOfMain?: number } = { hasRemote: false, hasUpstream: false, ahead: 0, behind: 0, dirty: 0 };
 
   try {
     const remotes = execSync(
@@ -508,11 +508,12 @@ export function getGitSyncStatus(
         `git -C '${projectPath}' rev-list --count --left-right '@{upstream}...HEAD'`,
         { timeout: 10_000, encoding: "utf-8", stdio: ['pipe', 'pipe', 'pipe'] },
       ).trim();
+      result.hasUpstream = true;
       const [behind, ahead] = output.split(/\s+/).map(Number);
       result.ahead = ahead || 0;
       result.behind = behind || 0;
     } catch {
-      // No tracking branch or no upstream — leave at 0
+      // No tracking branch or no upstream — leave hasUpstream false
     }
   }
 

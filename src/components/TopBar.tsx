@@ -19,6 +19,7 @@ export type TabOption = ProjectTab;
 export interface GitStatus {
   hasGit: boolean;
   hasRemote: boolean;
+  hasUpstream: boolean;
   ahead: number;
   behind: number;
   dirty: number;
@@ -224,22 +225,28 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   // History button label + color
   const ahead = gitStatus?.ahead ?? 0;
   const behind = gitStatus?.behind ?? 0;
-  const isUpToDate = ahead === 0 && behind === 0;
+  const hasRemote = gitStatus?.hasRemote ?? false;
+  const hasUpstream = gitStatus?.hasUpstream ?? false;
+  const notPushed = hasRemote && !hasUpstream;
+  const isUpToDate = !notPushed && ahead === 0 && behind === 0;
   const historyLabel = (() => {
+    if (notPushed) return 'Not pushed';
     const parts: string[] = [];
     if (ahead > 0) parts.push(`${ahead} ahead`);
     if (behind > 0) parts.push(`${behind} behind`);
     if (parts.length > 0) return parts.join(', ');
     return 'Up to date';
   })();
-  // Text color: emerald/crimson for ahead/behind, chrome for up to date or mixed
-  const historyTextColor = isUpToDate
-    ? 'text-text-chrome'
-    : behind > 0 && ahead === 0
-      ? 'text-crimson'
-      : ahead > 0 && behind === 0
-        ? 'text-emerald'
-        : 'text-text-chrome';
+  // Text color: emerald/crimson for ahead/behind, amber for not pushed, chrome for up to date or mixed
+  const historyTextColor = notPushed
+    ? 'text-amber-400'
+    : isUpToDate
+      ? 'text-text-chrome'
+      : behind > 0 && ahead === 0
+        ? 'text-crimson'
+        : ahead > 0 && behind === 0
+          ? 'text-emerald'
+          : 'text-text-chrome';
 
   return (
     <header className={`h-[48px] bg-surface-secondary flex items-center px-4 flex-shrink-0 border-b border-border-default relative ${isElectron ? 'electron-drag' : ''}`}>
@@ -545,6 +552,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onPull={onPull}
                 onSyncDone={refreshModalAfterSync}
                 hasRemote={gitStatus?.hasRemote}
+                hasUpstream={gitStatus?.hasUpstream}
                 onSetUpstream={onSetUpstream}
                 type="log"
               />

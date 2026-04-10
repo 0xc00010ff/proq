@@ -22,7 +22,7 @@ type GitDetailModalProps = {
   title: string;
 } & (
   | { type: 'diff'; content: string; commits?: never; behindCommits?: never; projectId?: never; currentBranch?: never; onPush?: never; onPull?: never }
-  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; onSetUpstream?: (url: string) => Promise<void>; content?: never }
+  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; hasUpstream?: boolean; onSetUpstream?: (url: string) => Promise<void>; content?: never }
 );
 
 export function GitDetailModal(props: GitDetailModalProps) {
@@ -158,6 +158,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
   }, [allExpanded, currentFiles]);
 
   const hasRemote = type === 'log' ? (props.hasRemote ?? true) : true;
+  const hasUpstream = type === 'log' ? (props.hasUpstream ?? true) : true;
   const branchLabel = type === 'log' && props.currentBranch
     ? `origin/${props.currentBranch}`
     : 'origin';
@@ -177,6 +178,10 @@ export function GitDetailModal(props: GitDetailModalProps) {
           Set upstream
         </button>
       );
+    }
+    if (hasRemote && !hasUpstream) {
+      const styledBranch = <span className="text-bronze-600">{branchLabel}</span>;
+      return <>not pushed to {styledBranch}</>;
     }
     const styledBranch = <span className="text-bronze-600">{branchLabel}</span>;
     const parts: React.ReactNode[] = [];

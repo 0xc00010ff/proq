@@ -93,12 +93,15 @@ export default function SupervisorPage() {
   const handleSend = () => {
     const text = inputValue.trim();
     if (!text && attachments.length === 0) return;
-    sendMessage(text, attachments.length > 0 ? attachments : undefined);
-    setInputValue('');
-    setAttachments([]);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+    const sent = sendMessage(text, attachments.length > 0 ? attachments : undefined);
+    if (sent) {
+      setInputValue('');
+      setAttachments([]);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
+    // If not sent, input is preserved — WS will reconnect
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

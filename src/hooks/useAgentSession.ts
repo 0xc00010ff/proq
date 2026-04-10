@@ -15,9 +15,9 @@ interface UseAgentSessionResult {
   streamingText: string;
   connected: boolean;
   active: boolean;
-  sendFollowUp: (text: string, attachments?: TaskAttachment[], mode?: TaskMode) => void;
-  sendInterrupt: (text: string, attachments?: TaskAttachment[]) => void;
-  approvePlan: (text: string) => void;
+  sendFollowUp: (text: string, attachments?: TaskAttachment[], mode?: TaskMode) => boolean;
+  sendInterrupt: (text: string, attachments?: TaskAttachment[]) => boolean;
+  approvePlan: (text: string) => boolean;
   stop: () => void;
 }
 
@@ -31,6 +31,7 @@ export function useAgentSession(
   const [connected, setConnected] = useState(false);
   const [active, setActive] = useState(!(staticLog || initialBlocks));
   const wsRef = useRef<WebSocket | null>(null);
+  const connectRef = useRef<(() => void) | null>(null);
   const { streamingText, appendDelta, clearBuffer } = useStreamingBuffer();
 
   // Seed blocks from initialBlocks when they arrive (HTTP fetch completes after mount).
@@ -58,6 +59,12 @@ export function useAgentSession(
     function connect() {
       if (cancelled) return;
 
+      // Close stale socket before reconnecting
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch {}
+        wsRef.current = null;
+      }
+
       const wsHost = window.location.hostname;
       const url = `ws://${wsHost}:${getWsPort()}/ws/agent?taskId=${taskId}&projectId=${projectId}`;
       const ws = new WebSocket(url);
@@ -65,6 +72,7 @@ export function useAgentSession(
 
       ws.onopen = () => {
         setConnected(true);
+        retryCount = 0;
       };
 
       ws.onmessage = (event) => {
@@ -129,11 +137,12 @@ export function useAgentSession(
 
       ws.onclose = () => {
         setConnected(false);
-        // If we never got a successful message (connection refused / WS server down), retry
-        if (!gotMessage && retryCount < MAX_RETRIES && !cancelled) {
+        if (cancelled) return;
+        // Retry on any drop (initial or post-connection) with backoff
+        if (retryCount < MAX_RETRIES) {
           retryCount++;
           retryTimer = setTimeout(connect, RETRY_DELAY_MS);
-        } else if (!gotMessage && !cancelled) {
+        } else if (!gotMessage) {
           // Exhausted retries without ever connecting — mark not active so UI doesn't hang
           setActive(false);
         }
@@ -144,41 +153,67 @@ export function useAgentSession(
       };
     }
 
+    connectRef.current = connect;
     connect();
+
+    // Reconnect when tab becomes visible after sleep/background
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && !cancelled) {
+        const ws = wsRef.current;
+        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+          if (retryTimer) clearTimeout(retryTimer);
+          retryCount = 0;
+          connect();
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelled = true;
+      connectRef.current = null;
       if (retryTimer) clearTimeout(retryTimer);
       if (wsRef.current) wsRef.current.close();
       wsRef.current = null;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [taskId, projectId, staticLog]);
 
-  const sendFollowUp = useCallback((text: string, attachments?: TaskAttachment[], mode?: TaskMode) => {
+  const sendFollowUp = useCallback((text: string, attachments?: TaskAttachment[], mode?: TaskMode): boolean => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'followup', text, attachments, mode }));
       // Optimistically show the user message and thinking/stop immediately
       setBlocks((prev) => [...prev, { type: 'user' as const, text, attachments }]);
       setActive(true);
+      return true;
     }
+    // Connection dead — trigger reconnect
+    connectRef.current?.();
+    return false;
   }, []);
 
-  const sendInterrupt = useCallback((text: string, attachments?: TaskAttachment[]) => {
+  const sendInterrupt = useCallback((text: string, attachments?: TaskAttachment[]): boolean => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'interrupt', text, attachments }));
       // Optimistically show that the session will continue
       setActive(true);
+      return true;
     }
+    connectRef.current?.();
+    return false;
   }, []);
 
-  const approvePlan = useCallback((text: string) => {
+  const approvePlan = useCallback((text: string): boolean => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'plan-approve', text }));
       setActive(true);
+      return true;
     }
+    connectRef.current?.();
+    return false;
   }, []);
 
   const stop = useCallback(() => {

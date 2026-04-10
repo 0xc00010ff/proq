@@ -67,13 +67,22 @@ export function AgentTabPane({ tabId, projectId, agentId, visible }: AgentTabPan
   }, []);
 
   const handleSend = useCallback((text: string, atts: TaskAttachment[]) => {
-    sendMessage(text, atts.length > 0 ? atts : undefined, mode !== 'auto' ? mode : undefined);
-    draftMap.delete(tabId);
+    const sent = sendMessage(text, atts.length > 0 ? atts : undefined, mode !== 'auto' ? mode : undefined);
+    if (sent) {
+      draftMap.delete(tabId);
+    } else {
+      // Keep text in input — WS is reconnecting
+      inputRef.current?.setValue(text);
+    }
   }, [sendMessage, tabId, mode]);
 
   const handleInterrupt = useCallback((text: string, atts: TaskAttachment[]) => {
-    sendInterrupt(text, atts.length > 0 ? atts : undefined);
-    draftMap.delete(tabId);
+    const sent = sendInterrupt(text, atts.length > 0 ? atts : undefined);
+    if (sent) {
+      draftMap.delete(tabId);
+    } else {
+      inputRef.current?.setValue(text);
+    }
   }, [sendInterrupt, tabId]);
 
   const { isDragOver, dropProps, dismiss: dismissDrag } = useFileDrop(attachments, handleAttachmentsChange, projectId);

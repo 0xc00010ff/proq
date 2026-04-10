@@ -83,13 +83,22 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   }, [onFollowUpDraftChange]);
 
   const handleSend = useCallback((text: string, atts: TaskAttachment[]) => {
-    sendFollowUp(text, atts.length > 0 ? atts : undefined, localMode);
-    onFollowUpDraftChange?.(null);
+    const sent = sendFollowUp(text, atts.length > 0 ? atts : undefined, localMode);
+    if (sent) {
+      onFollowUpDraftChange?.(null);
+    } else {
+      // Keep text in input — WS is reconnecting
+      inputRef.current?.setValue(text);
+    }
   }, [sendFollowUp, onFollowUpDraftChange, localMode]);
 
   const handleInterrupt = useCallback((text: string, atts: TaskAttachment[]) => {
-    sendInterrupt(text, atts.length > 0 ? atts : undefined);
-    onFollowUpDraftChange?.(null);
+    const sent = sendInterrupt(text, atts.length > 0 ? atts : undefined);
+    if (sent) {
+      onFollowUpDraftChange?.(null);
+    } else {
+      inputRef.current?.setValue(text);
+    }
   }, [sendInterrupt, onFollowUpDraftChange]);
 
   const handleModeChange = useCallback((m: TaskMode) => {

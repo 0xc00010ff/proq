@@ -24,7 +24,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const [workspaceInProject, setWorkspaceInProject] = useState(project.workspaceInProject || false);
   const [movingWorkspace, setMovingWorkspace] = useState(false);
   const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
-  const [gitignoreWorkspace, setGitignoreWorkspace] = useState(false);
+  const [gitignoreWorkspace, setGitignoreWorkspace] = useState(true);
   const [remoteUrl, setRemoteUrl] = useState('');
   const [remoteUrlOriginal, setRemoteUrlOriginal] = useState('');
   const [remoteUrlSaving, setRemoteUrlSaving] = useState(false);

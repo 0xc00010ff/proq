@@ -396,12 +396,13 @@ function registerIpcHandlers(): void {
 
   // Updates
   ipcMain.handle('updates:check', () => checkForUpdates())
-  ipcMain.handle('updates:apply', () =>
-    applyUpdate((line) => safeSend('setup:log', line))
-  )
-  ipcMain.handle('updates:apply-and-restart', async () => {
-    // Relaunch the app — the normal startup flow (showSplashAndStartServer)
-    // handles updates, splash screen, and server restart reliably.
+
+  // Shell updates
+  ipcMain.handle('shell-update:check', () => checkForShellUpdate())
+  ipcMain.handle('shell-update:install', () => installShellUpdate())
+
+  // Restart — stop everything and relaunch; splash handles updates on next boot
+  ipcMain.handle('app:restart', async () => {
     const config = getConfig()
     await stopServer()
     killProcessOnPort(config.port)
@@ -409,10 +410,6 @@ function registerIpcHandlers(): void {
     app.relaunch()
     app.quit()
   })
-
-  // Shell updates
-  ipcMain.handle('shell-update:check', () => checkForShellUpdate())
-  ipcMain.handle('shell-update:install', () => installShellUpdate())
 
   // App info
   ipcMain.handle('app:version', () => app.getVersion())

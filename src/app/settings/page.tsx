@@ -299,15 +299,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-3">
                         {(webUpdate?.available || shellUpdateReady) ? (
                           <button
-                            onClick={() => {
-                              if (shellUpdateReady) {
-                                // Desktop app update replaces the whole binary —
-                                // web updates get picked up on next launch via splash
-                                window.proqDesktop?.installShellUpdate();
-                              } else if (webUpdate?.available) {
-                                window.proqDesktop?.applyAndRestart();
-                              }
-                            }}
+                            onClick={() => window.proqDesktop?.restart()}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
                           >
                             <DownloadIcon className="w-3.5 h-3.5" />

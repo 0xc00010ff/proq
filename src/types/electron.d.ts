@@ -6,7 +6,7 @@ interface UpdateCheckResult {
 
 interface ProqDesktopAPI {
   checkUpdates: () => Promise<UpdateCheckResult>
-  applyAndRestart: () => Promise<{ ok: boolean; error?: string }>
+  restart: () => Promise<void>
   onUpdateAvailable: (cb: (e: unknown, result: UpdateCheckResult) => void) => () => void
   checkShellUpdate: () => Promise<{ available: boolean; version?: string; error?: string }>
   installShellUpdate: () => Promise<void>

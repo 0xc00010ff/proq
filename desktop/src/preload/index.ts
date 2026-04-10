@@ -56,8 +56,7 @@ const proqDesktopAPI = {
 
   // Updates
   checkUpdates: (): Promise<unknown> => ipcRenderer.invoke('updates:check'),
-  applyUpdate: (): Promise<unknown> => ipcRenderer.invoke('updates:apply'),
-  applyAndRestart: (): Promise<unknown> => ipcRenderer.invoke('updates:apply-and-restart'),
+  restart: (): Promise<unknown> => ipcRenderer.invoke('app:restart'),
   onUpdateAvailable: (cb: (_e: unknown, result: unknown) => void): (() => void) => {
     ipcRenderer.on('updates:available', cb as (...args: unknown[]) => void)
     return (): void => {

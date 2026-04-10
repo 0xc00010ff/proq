@@ -64,12 +64,22 @@ export async function GET(_request: Request, { params }: Params) {
     currentName = sourceProqBranch(current.branch);
   }
 
+  // Get remote URL if one exists
+  let remoteUrl: string | undefined;
+  if (syncStatus.hasRemote) {
+    try {
+      const { execSync } = await import("child_process");
+      remoteUrl = execSync(`git -C '${projectPath}' remote get-url origin`, { timeout: 5_000, encoding: "utf-8" }).trim();
+    } catch { /* no origin remote */ }
+  }
+
   return NextResponse.json({
     current: currentName,
     detached: current.detached,
     branches,
     defaultBranch: detectDefaultBranch(projectPath) || undefined,
     hasGit: true,
+    remoteUrl,
     ...syncStatus,
   });
 }

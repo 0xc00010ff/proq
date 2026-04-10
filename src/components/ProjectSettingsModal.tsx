@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from '@/components/Modal';
 import { Select } from '@/components/ui/select';
 import type { Agent, Project, McpServerInfo, SkillInfo } from '@/lib/types';
-import { SettingsIcon, BotIcon, PlugIcon, FileTextIcon, CheckIcon, FolderSyncIcon, AlertTriangleIcon } from 'lucide-react';
+import { SettingsIcon, BotIcon, PlugIcon, FileTextIcon, CheckIcon, FolderSyncIcon, AlertTriangleIcon, Loader2Icon } from 'lucide-react';
 
 interface ProjectSettingsModalProps {
   isOpen: boolean;
@@ -25,6 +25,10 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const [movingWorkspace, setMovingWorkspace] = useState(false);
   const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
   const [gitignoreWorkspace, setGitignoreWorkspace] = useState(false);
+  const [remoteUrl, setRemoteUrl] = useState('');
+  const [remoteUrlOriginal, setRemoteUrlOriginal] = useState('');
+  const [remoteUrlSaving, setRemoteUrlSaving] = useState(false);
+  const [remoteUrlError, setRemoteUrlError] = useState('');
   const [mcpData, setMcpData] = useState<{
     globalServers: McpServerInfo[];
     projectServers: McpServerInfo[];
@@ -52,7 +56,38 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
       .then((res) => res.json())
       .then(setMcpData)
       .catch(console.error);
+    fetch(`/api/projects/${project.id}/git`)
+      .then((res) => res.json())
+      .then((data) => {
+        const url = data.remoteUrl || '';
+        setRemoteUrl(url);
+        setRemoteUrlOriginal(url);
+        setRemoteUrlError('');
+      })
+      .catch(() => {});
   }, [isOpen, project.id]);
+
+  const saveRemoteUrl = useCallback(async (url: string) => {
+    if (url === remoteUrlOriginal) return;
+    setRemoteUrlSaving(true);
+    setRemoteUrlError('');
+    try {
+      const res = await fetch(`/api/projects/${project.id}/git`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add-remote', url }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setRemoteUrlError(data.error || 'Failed to update remote');
+      } else {
+        setRemoteUrlOriginal(url);
+      }
+    } catch {
+      setRemoteUrlError('Failed to update remote');
+    }
+    setRemoteUrlSaving(false);
+  }, [project.id, remoteUrlOriginal]);
 
   // Save on close — flush current field values to parent
   const handleClose = useCallback(() => {
@@ -65,9 +100,13 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
         systemPrompt: systemPrompt || undefined,
         defaultAgentId: defaultAgentId || undefined,
       });
+      // Save remote URL if changed
+      if (remoteUrl.trim() && remoteUrl !== remoteUrlOriginal) {
+        saveRemoteUrl(remoteUrl.trim());
+      }
     }
     onClose();
-  }, [name, defaultBranch, serverUrl, systemPrompt, defaultAgentId, onSave, onClose]);
+  }, [name, defaultBranch, serverUrl, systemPrompt, defaultAgentId, remoteUrl, remoteUrlOriginal, saveRemoteUrl, onSave, onClose]);
 
   const handleMoveToProject = async () => {
     setMovingWorkspace(true);
@@ -124,6 +163,29 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Path</label>
+                <div className={`${inputClass} text-text-tertiary truncate`}>
+                  {project.path}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Git Remote URL</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={remoteUrl}
+                    onChange={(e) => { setRemoteUrl(e.target.value); setRemoteUrlError(''); }}
+                    onBlur={() => { if (remoteUrl.trim() && remoteUrl !== remoteUrlOriginal) saveRemoteUrl(remoteUrl.trim()); }}
+                    placeholder="https://github.com/user/repo.git"
+                    className={`${inputClass} ${remoteUrlError ? 'border-red-400' : ''}`}
+                  />
+                  {remoteUrlSaving && <Loader2Icon className="w-4 h-4 text-text-tertiary animate-spin flex-shrink-0" />}
+                </div>
+                {remoteUrlError && (
+                  <p className="text-xs text-red-400 mt-1">{remoteUrlError}</p>
+                )}
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">Default Branch</label>
                 {selectableBranches.length > 0 ? (
                   <Select
@@ -150,12 +212,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                   placeholder="http://localhost:3000"
                   className={inputClass}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">Path</label>
-                <div className={`${inputClass} text-text-tertiary truncate`}>
-                  {project.path}
-                </div>
               </div>
             </div>
           </section>

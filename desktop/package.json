@@ -1,6 +1,6 @@
 {
   "name": "proq-desktop",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "proq — agentic coding IDE",
   "main": "./out/main/index.js",
   "author": "proq",

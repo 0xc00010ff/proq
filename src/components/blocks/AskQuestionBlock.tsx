@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { MessageCircleQuestionIcon } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { MessageCircleQuestionIcon, SendIcon } from 'lucide-react';
 
 interface QuestionOption {
   label: string;
@@ -28,6 +28,39 @@ interface AskQuestionBlockProps {
 
 export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAnswer }: AskQuestionBlockProps) {
   const answered = isOld && hasResult;
+  const hasMultipleQuestions = questions.length > 1;
+
+  // Track selected option index per question (for multi-question mode)
+  const [selections, setSelections] = useState<Record<number, number>>({});
+
+  const toggleSelection = useCallback((questionIndex: number, optionIndex: number) => {
+    setSelections(prev => {
+      // Toggle off if already selected
+      if (prev[questionIndex] === optionIndex) {
+        const next = { ...prev };
+        delete next[questionIndex];
+        return next;
+      }
+      return { ...prev, [questionIndex]: optionIndex };
+    });
+  }, []);
+
+  const handleSubmitAll = useCallback(() => {
+    const parts: string[] = [];
+    for (let qi = 0; qi < questions.length; qi++) {
+      const q = questions[qi];
+      const selectedIdx = selections[qi];
+      if (selectedIdx !== undefined) {
+        const header = q.header || q.question;
+        parts.push(`${header}: ${q.options[selectedIdx].label}`);
+      }
+    }
+    if (parts.length > 0) {
+      onAnswer(parts.join('\n'));
+    }
+  }, [questions, selections, onAnswer]);
+
+  const selectionCount = Object.keys(selections).length;
 
   // Answered questions render as muted/gray; unanswered ones are gold/active
   if (answered) {
@@ -72,7 +105,9 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
             Agent Question
           </span>
           <span className="ml-auto text-[10px] text-text-tertiary italic">
-            Select an option or provide your own answer
+            {hasMultipleQuestions
+              ? 'Select options across questions, then submit'
+              : 'Select an option or provide your own answer'}
           </span>
         </div>
 
@@ -89,26 +124,69 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
                 {q.question}
               </p>
               <div className="flex flex-wrap gap-2">
-                {q.options.map((opt, oi) => (
-                  <button
-                    key={oi}
-                    onClick={() => onAnswer(opt.label)}
-                    className="group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover text-left"
-                  >
-                    <span className="text-xs font-medium text-text-primary">
-                      {opt.label}
-                    </span>
-                    {opt.description && (
-                      <span className="text-[11px] text-text-tertiary leading-snug">
-                        {opt.description}
+                {q.options.map((opt, oi) => {
+                  const isSelected = selections[qi] === oi;
+
+                  // Single question: click immediately submits
+                  if (!hasMultipleQuestions) {
+                    return (
+                      <button
+                        key={oi}
+                        onClick={() => onAnswer(opt.label)}
+                        className="group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover text-left"
+                      >
+                        <span className="text-xs font-medium text-text-primary">
+                          {opt.label}
+                        </span>
+                        {opt.description && (
+                          <span className="text-[11px] text-text-tertiary leading-snug">
+                            {opt.description}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }
+
+                  // Multiple questions: click toggles selection
+                  return (
+                    <button
+                      key={oi}
+                      onClick={() => toggleSelection(qi, oi)}
+                      className={`group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border text-left transition-colors ${
+                        isSelected
+                          ? 'border-lazuli bg-lazuli/10'
+                          : 'border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover'
+                      }`}
+                    >
+                      <span className={`text-xs font-medium ${isSelected ? 'text-lazuli' : 'text-text-primary'}`}>
+                        {opt.label}
                       </span>
-                    )}
-                  </button>
-                ))}
+                      {opt.description && (
+                        <span className={`text-[11px] leading-snug ${isSelected ? 'text-lazuli/70' : 'text-text-tertiary'}`}>
+                          {opt.description}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
+
+        {/* Submit button for multi-question mode */}
+        {hasMultipleQuestions && (
+          <div className="px-3 pb-3 flex justify-end">
+            <button
+              onClick={handleSubmitAll}
+              disabled={selectionCount === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-lazuli/90 hover:bg-lazuli text-white"
+            >
+              <SendIcon className="w-3 h-3" />
+              Submit {selectionCount > 0 ? `(${selectionCount}/${questions.length})` : ''}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

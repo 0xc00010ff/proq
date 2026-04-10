@@ -119,6 +119,7 @@ export default function ProjectPage() {
           behind: data.behind || 0,
           dirty: data.dirty || 0,
           aheadOfMain: data.aheadOfMain,
+          remoteUrl: data.remoteUrl,
         };
         setCurrentBranch(prev => prev === newBranch ? prev : newBranch);
         setBranches(prev => JSON.stringify(prev) === JSON.stringify(newBranches) ? prev : newBranches);

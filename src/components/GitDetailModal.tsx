@@ -22,8 +22,19 @@ type GitDetailModalProps = {
   title: string;
 } & (
   | { type: 'diff'; content: string; commits?: never; behindCommits?: never; projectId?: never; currentBranch?: never; onPush?: never; onPull?: never }
-  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; onSetUpstream?: (url: string) => Promise<void>; content?: never }
+  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; remoteUrl?: string; onSetUpstream?: (url: string) => Promise<void>; content?: never }
 );
+
+/** Convert a git remote URL (SSH or HTTPS) to a browser-friendly GitHub/GitLab URL */
+function remoteUrlToWeb(url: string): string | null {
+  // SSH: git@github.com:user/repo.git
+  const sshMatch = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}`;
+  // HTTPS: https://github.com/user/repo.git
+  const httpsMatch = url.match(/^https?:\/\/(.+?)(?:\.git)?$/);
+  if (httpsMatch) return `https://${httpsMatch[1]}`;
+  return null;
+}
 
 export function GitDetailModal(props: GitDetailModalProps) {
   const { isOpen, onClose, title, type } = props;
@@ -178,7 +189,12 @@ export function GitDetailModal(props: GitDetailModalProps) {
         </button>
       );
     }
-    const styledBranch = <span className="text-bronze-600">{branchLabel}</span>;
+    const webUrl = props.remoteUrl ? remoteUrlToWeb(props.remoteUrl) : null;
+    const styledBranch = webUrl ? (
+      <a href={webUrl} target="_blank" rel="noopener noreferrer" className="text-bronze-600 hover:underline">{branchLabel}</a>
+    ) : (
+      <span className="text-bronze-600">{branchLabel}</span>
+    );
     const parts: React.ReactNode[] = [];
     if (aheadCount > 0) parts.push(<React.Fragment key="ahead">{aheadCount} {aheadCount === 1 ? 'commit' : 'commits'} ahead of {styledBranch}</React.Fragment>);
     if (behindCount > 0) parts.push(<React.Fragment key="behind">{behindCount} {behindCount === 1 ? 'commit' : 'commits'} behind {styledBranch}</React.Fragment>);
@@ -353,13 +369,20 @@ export function GitDetailModal(props: GitDetailModalProps) {
             )}
 
             {/* Origin separator — only shown when remote exists */}
-            {hasRemote && (
-              <div className="flex items-center gap-3 px-4 py-2 text-[10px] text-text-chrome font-mono">
-                <div className="flex-1 border-t border-bronze-600/30" />
-                <span>{branchLabel}</span>
-                <div className="flex-1 border-t border-bronze-600/30" />
-              </div>
-            )}
+            {hasRemote && (() => {
+              const webUrl = type === 'log' && props.remoteUrl ? remoteUrlToWeb(props.remoteUrl) : null;
+              return (
+                <div className="flex items-center gap-3 px-4 py-2 text-[10px] text-text-chrome font-mono">
+                  <div className="flex-1 border-t border-bronze-600/30" />
+                  {webUrl ? (
+                    <a href={webUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{branchLabel}</a>
+                  ) : (
+                    <span>{branchLabel}</span>
+                  )}
+                  <div className="flex-1 border-t border-bronze-600/30" />
+                </div>
+              );
+            })()}
 
             {/* Paginated history */}
             {historyCommits.length > 0 && (

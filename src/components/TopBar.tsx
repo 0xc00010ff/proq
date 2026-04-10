@@ -24,6 +24,7 @@ export interface GitStatus {
   behind: number;
   dirty: number;
   aheadOfMain?: number;
+  remoteUrl?: string;
 }
 
 interface TopBarProps {
@@ -559,6 +560,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 onPull={onPull}
                 onSyncDone={refreshModalAfterSync}
                 hasRemote={gitStatus?.hasRemote}
+                remoteUrl={gitStatus?.remoteUrl}
                 onSetUpstream={onSetUpstream}
                 type="log"
               />

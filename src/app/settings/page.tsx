@@ -489,6 +489,17 @@ export default function SettingsPage() {
                     />
                   </Field>
                 )}
+                {settings.agentRenderMode === "structured" && (
+                  <Field
+                    label="Return key inserts newline"
+                    hint="When enabled, pressing Return inserts a new line and ⌘+Return sends the message. When off, Return sends and Shift+Return inserts a new line."
+                  >
+                    <Toggle
+                      checked={settings.returnKeyNewline}
+                      onChange={(v) => update("returnKeyNewline", v)}
+                    />
+                  </Field>
+                )}
                 <Field
                   label="Allow Chrome access"
                   hint="Give agents access to Chrome. Requires Chrome integration to be set up in Claude CLI first with `claude --chrome`."

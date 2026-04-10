@@ -1215,6 +1215,7 @@ const DEFAULT_SETTINGS: ProqSettings = {
   showCosts: false,
   codingAgent: "claude-code",
   allowAgentInterrupts: false,
+  returnKeyNewline: false,
   useChrome: false,
 
   // Experimental

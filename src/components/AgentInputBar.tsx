@@ -53,6 +53,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
 
   // Interrupt confirmation
   const [allowInterrupts, setAllowInterrupts] = useState(false);
+  const [returnKeyNewline, setReturnKeyNewline] = useState(false);
   const [showInterruptModal, setShowInterruptModal] = useState(false);
   const [dontAskAgain, setDontAskAgain] = useState(false);
 
@@ -82,7 +83,10 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
-      .then((s) => { setAllowInterrupts(!!s.allowAgentInterrupts); })
+      .then((s) => {
+        setAllowInterrupts(!!s.allowAgentInterrupts);
+        setReturnKeyNewline(!!s.returnKeyNewline);
+      })
       .catch(() => {});
   }, []);
 
@@ -160,7 +164,14 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
   }, [dontAskAgain, getText, attachments, clearInput, onInterrupt]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key !== 'Enter') return;
+
+    // Determine if this keypress should send
+    const shouldSend = returnKeyNewline
+      ? e.metaKey  // ⌘+Return sends when return-key-newline is on
+      : !e.shiftKey;  // Return sends (Shift+Return for newline) by default
+
+    if (shouldSend) {
       e.preventDefault();
       if (isRunning) {
         handleInterruptAttempt();
@@ -168,7 +179,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
       }
       handleSend();
     }
-  }, [isRunning, handleInterruptAttempt, handleSend]);
+  }, [isRunning, returnKeyNewline, handleInterruptAttempt, handleSend]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const imageFiles = Array.from(e.clipboardData.items)

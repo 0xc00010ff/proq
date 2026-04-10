@@ -272,6 +272,100 @@ export default function SettingsPage() {
               </SectionCard>
             </section>
 
+            {/* Updates — Electron only */}
+            {isElectron && (
+              <section
+                ref={(el) => {
+                  sectionRefs.current.updates = el;
+                }}
+                id="settings-updates"
+              >
+                <SectionHeading
+                  icon={<DownloadIcon className="w-4 h-4" />}
+                  label="Updates"
+                />
+                <SectionCard>
+                  <Field
+                    label="Auto-update"
+                    hint="Automatically check for updates in the background."
+                  >
+                    <Toggle
+                      checked={settings.autoUpdate}
+                      onChange={(v) => update("autoUpdate", v)}
+                    />
+                  </Field>
+                  <Field label="Check for updates">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        {(webUpdate?.available || shellUpdateReady) ? (
+                          <button
+                            onClick={() => {
+                              if (shellUpdateReady) {
+                                // Desktop app update replaces the whole binary —
+                                // web updates get picked up on next launch via splash
+                                window.proqDesktop?.installShellUpdate();
+                              } else if (webUpdate?.available) {
+                                window.proqDesktop?.applyAndRestart();
+                              }
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
+                          >
+                            <DownloadIcon className="w-3.5 h-3.5" />
+                            Restart to update
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              setCheckingUpdates(true);
+                              setWebUpdate(null);
+                              try {
+                                const [webResult] = await Promise.all([
+                                  window.proqDesktop!.checkUpdates(),
+                                  window.proqDesktop!.checkShellUpdate(),
+                                ]);
+                                setWebUpdate({
+                                  available: webResult.available,
+                                  count: webResult.commits?.length || 0,
+                                });
+                              } catch {
+                                setWebUpdate(null);
+                              } finally {
+                                setCheckingUpdates(false);
+                              }
+                            }}
+                            disabled={checkingUpdates}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
+                          >
+                            {checkingUpdates ? (
+                              <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <SearchIcon className="w-3.5 h-3.5" />
+                            )}
+                            Check for Updates
+                          </button>
+                        )}
+                        {webUpdate && !webUpdate.available && !shellUpdateReady && (
+                          <span className="flex items-center gap-1 text-xs text-green-500">
+                            <CheckIcon className="w-3.5 h-3.5" />
+                            You&apos;re up to date
+                          </span>
+                        )}
+                      </div>
+                      {(webUpdate?.available || shellUpdateReady) && (
+                        <p className="text-xs text-text-secondary">
+                          {[
+                            webUpdate?.available && `${webUpdate.count} app update${webUpdate.count !== 1 ? "s" : ""}`,
+                            shellUpdateReady && `desktop update${shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}`,
+                          ].filter(Boolean).join(" and ")}{" "}
+                          available
+                        </p>
+                      )}
+                    </div>
+                  </Field>
+                </SectionCard>
+              </section>
+            )}
+
             {/* Appearance */}
             <section
               ref={(el) => {
@@ -471,100 +565,6 @@ export default function SettingsPage() {
                 </Field>
               </SectionCard>
             </section>
-
-            {/* Updates — Electron only */}
-            {isElectron && (
-              <section
-                ref={(el) => {
-                  sectionRefs.current.updates = el;
-                }}
-                id="settings-updates"
-              >
-                <SectionHeading
-                  icon={<DownloadIcon className="w-4 h-4" />}
-                  label="Updates"
-                />
-                <SectionCard>
-                  <Field
-                    label="Auto-update"
-                    hint="Automatically check for updates in the background."
-                  >
-                    <Toggle
-                      checked={settings.autoUpdate}
-                      onChange={(v) => update("autoUpdate", v)}
-                    />
-                  </Field>
-                  <Field label="Check for updates">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        {(webUpdate?.available || shellUpdateReady) ? (
-                          <button
-                            onClick={() => {
-                              if (shellUpdateReady) {
-                                // Desktop app update replaces the whole binary —
-                                // web updates get picked up on next launch via splash
-                                window.proqDesktop?.installShellUpdate();
-                              } else if (webUpdate?.available) {
-                                window.proqDesktop?.applyAndRestart();
-                              }
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-bronze-600 text-zinc-950 hover:bg-bronze-500 font-medium"
-                          >
-                            <DownloadIcon className="w-3.5 h-3.5" />
-                            Restart to update
-                          </button>
-                        ) : (
-                          <button
-                            onClick={async () => {
-                              setCheckingUpdates(true);
-                              setWebUpdate(null);
-                              try {
-                                const [webResult] = await Promise.all([
-                                  window.proqDesktop!.checkUpdates(),
-                                  window.proqDesktop!.checkShellUpdate(),
-                                ]);
-                                setWebUpdate({
-                                  available: webResult.available,
-                                  count: webResult.commits?.length || 0,
-                                });
-                              } catch {
-                                setWebUpdate(null);
-                              } finally {
-                                setCheckingUpdates(false);
-                              }
-                            }}
-                            disabled={checkingUpdates}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs bg-surface-modal border border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-50"
-                          >
-                            {checkingUpdates ? (
-                              <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <SearchIcon className="w-3.5 h-3.5" />
-                            )}
-                            Check for Updates
-                          </button>
-                        )}
-                        {webUpdate && !webUpdate.available && !shellUpdateReady && (
-                          <span className="flex items-center gap-1 text-xs text-green-500">
-                            <CheckIcon className="w-3.5 h-3.5" />
-                            You&apos;re up to date
-                          </span>
-                        )}
-                      </div>
-                      {(webUpdate?.available || shellUpdateReady) && (
-                        <p className="text-xs text-text-secondary">
-                          {[
-                            webUpdate?.available && `${webUpdate.count} app update${webUpdate.count !== 1 ? "s" : ""}`,
-                            shellUpdateReady && `desktop update${shellUpdateVersion ? ` (${shellUpdateVersion})` : ""}`,
-                          ].filter(Boolean).join(" and ")}{" "}
-                          available
-                        </p>
-                      )}
-                    </div>
-                  </Field>
-                </SectionCard>
-              </section>
-            )}
 
             {/* Notifications */}
             <section

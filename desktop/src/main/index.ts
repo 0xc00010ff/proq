@@ -651,29 +651,11 @@ async function showSplashAndStartServer(): Promise<void> {
         safeSend('server:log', 'Pulling updates...')
         const sendUpdateLog = (line: string): void => {
           const t = line.trim()
-          if (t === 'Installing dependencies...' || t === 'Building...' || t === 'Pulling updates...' || t === 'Stashing local changes...') {
+          if (t === 'Installing dependencies...' || t === 'Building...' || t === 'Pulling updates...') {
             safeSend('server:log', t)
           }
         }
-        let updateResult = await applyUpdate(sendUpdateLog)
-        if (!updateResult.ok && updateResult.dirty) {
-          log('showSplash: dirty working tree, prompting user')
-          const { response } = await dialog.showMessageBox({
-            type: 'question',
-            icon: getIcon(),
-            buttons: ['Stash & Update', 'Skip Update'],
-            defaultId: 0,
-            title: 'Local Changes Detected',
-            message: 'You have local changes to proq that need to be stashed before updating.',
-            detail: 'Your changes will be saved in the git stash and can be recovered later with "git stash pop".'
-          })
-          if (response === 0) {
-            updateResult = await applyUpdate(sendUpdateLog, { stashFirst: true })
-          } else {
-            log('showSplash: user skipped update')
-            updateResult = { ok: true }
-          }
-        }
+        const updateResult = await applyUpdate(sendUpdateLog)
         if (!updateResult.ok) {
           log(`showSplash: update failed: ${updateResult.error}`)
           safeSend('server:error', JSON.stringify({

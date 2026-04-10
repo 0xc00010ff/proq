@@ -323,6 +323,13 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 >
                   <ChevronRightIcon className="w-3.5 h-3.5" />
                 </button>
+                <button
+                  onClick={handleRefresh}
+                  title="Refresh"
+                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+                >
+                  <RotateCwIcon className="w-3.5 h-3.5" />
+                </button>
                 <div className="bg-surface-deep border border-border-default rounded px-3 py-1 text-xs text-text-secondary flex items-center space-x-2 min-w-[300px]">
                   <GlobeIcon className="w-3 h-3 shrink-0" />
                   <input
@@ -360,20 +367,13 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                     className="flex-1 bg-transparent text-xs text-text-secondary focus:text-text-primary outline-none"
                   />
                   <button
-                    onClick={handleRefresh}
-                    title="Refresh"
+                    onClick={handleOpenInBrowser}
+                    title="Open in browser"
                     className="p-0.5 rounded text-text-placeholder hover:text-text-secondary shrink-0"
                   >
-                    <RotateCwIcon className="w-3 h-3" />
+                    <ExternalLinkIcon className="w-3 h-3" />
                   </button>
                 </div>
-                <button
-                  onClick={handleOpenInBrowser}
-                  title="Open in browser"
-                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
-                >
-                  <ExternalLinkIcon className="w-3.5 h-3.5" />
-                </button>
               </div>
               <div className="flex items-center space-x-1">
                 {([

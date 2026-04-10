@@ -19,7 +19,7 @@ import {
   runNpmBuild,
   persistClaudePath
 } from './setup'
-import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit, getServerLogPath } from './server'
+import { startServer, stopServer, killProcessOnPort, tryConnectToExisting, restartServer, healthCheck, onServerExit, getServerLogPath } from './server'
 import { parseErrorSummary } from './error-diagnostics'
 import { checkForUpdates, applyUpdate } from './updater'
 import { startUpdateScheduler, stopUpdateScheduler } from './update-scheduler'
@@ -400,96 +400,14 @@ function registerIpcHandlers(): void {
     applyUpdate((line) => safeSend('setup:log', line))
   )
   ipcMain.handle('updates:apply-and-restart', async () => {
-    try {
-      stopUpdateScheduler()
-      stopHealthMonitor()
-      await stopServer()
-
-      // Create splash window, wait for it to load, then swap
-      const splashWindow = createWindow('splash')
-      loadRendererPage(splashWindow, 'splash')
-
-      const previousWindow = mainWindow
-      mainWindow = splashWindow
-
-      // Wait for splash content to load so status messages are visible
-      await new Promise<void>((resolve) => {
-        splashWindow.webContents.once('did-finish-load', () => resolve())
-      })
-
-      splashWindow.show()
-      splashWindow.focus()
-      if (previousWindow && previousWindow !== splashWindow && !previousWindow.isDestroyed()) {
-        previousWindow.close()
-      }
-
-      // Only forward friendly status lines to the splash — raw command
-      // output (build warnings, npm noise) is silently dropped so it
-      // doesn't flood the small splash window.
-      const sendStatus = (line: string): void => {
-        safeSend('server:log', line)
-      }
-
-      sendStatus('Pulling updates...')
-      const sendUpdateLog = (line: string): void => {
-        const t = line.trim()
-        if (t === 'Installing dependencies...' || t === 'Building...' || t === 'Pulling updates...' || t === 'Stashing local changes...') {
-          sendStatus(t)
-        }
-      }
-      let result = await applyUpdate(sendUpdateLog)
-      if (!result.ok && result.dirty) {
-        const { response } = await dialog.showMessageBox({
-          type: 'question',
-          icon: getIcon(),
-          buttons: ['Stash & Update', 'Skip Update'],
-          defaultId: 0,
-          title: 'Local Changes Detected',
-          message: 'You have local changes to proq that need to be stashed before updating.',
-          detail: 'Your changes will be saved in the git stash and can be recovered later with "git stash pop".'
-        })
-        if (response === 0) {
-          result = await applyUpdate(sendUpdateLog, { stashFirst: true })
-        } else {
-          result = { ok: true }
-        }
-      }
-
-      if (!result.ok) {
-        safeSend('server:error', JSON.stringify({
-          message: parseErrorSummary(result.error || '', 'build'),
-          phase: 'build',
-          logPath: getServerLogPath()
-        }))
-        return { ok: false, error: result.error }
-      }
-
-      // Restart server — startServer streams its own status via onLog
-      const serverResult = await startServer((line) => {
-        safeSend('server:log', line)
-      })
-
-      if (serverResult.ok) {
-        await new Promise((r) => setTimeout(r, 1500))
-        transitionToApp()
-      } else {
-        safeSend('server:error', JSON.stringify({
-          message: parseErrorSummary(serverResult.error || '', 'server'),
-          phase: 'server',
-          logPath: getServerLogPath()
-        }))
-      }
-
-      return { ok: true }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e)
-      safeSend('server:error', JSON.stringify({
-        message: 'Update failed. Click Retry to try again.',
-        phase: 'build',
-        logPath: getServerLogPath()
-      }))
-      return { ok: false, error: message }
-    }
+    // Relaunch the app — the normal startup flow (showSplashAndStartServer)
+    // handles updates, splash screen, and server restart reliably.
+    const config = getConfig()
+    await stopServer()
+    killProcessOnPort(config.port)
+    killProcessOnPort(config.wsPort)
+    app.relaunch()
+    app.quit()
   })
 
   // Shell updates

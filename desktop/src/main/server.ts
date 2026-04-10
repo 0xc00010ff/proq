@@ -14,7 +14,7 @@ let serverProcess: ChildProcess | null = null
 let intentionalStop = false
 let exitCallback: (() => void) | null = null
 
-function killProcessOnPort(port: number): void {
+export function killProcessOnPort(port: number): void {
   try {
     const pids = execSync(`lsof -ti:${port}`, { encoding: 'utf-8' }).trim()
     if (pids) {

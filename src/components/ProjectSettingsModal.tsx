@@ -271,29 +271,29 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
             </div>
           </div>
 
-          <div className="bg-surface-inset rounded-lg p-3 mb-4">
-            <div className="text-[11px] text-text-tertiary leading-relaxed space-y-1 mb-3">
-              <p><span className="font-mono text-text-secondary">agents/</span> and <span className="font-mono text-text-secondary">project.json</span> are shared config, tracked in git.</p>
-              <p><span className="font-mono text-text-secondary">workspace/</span> contains tasks, sessions, and reports — personal to each collaborator.</p>
+          <label className="flex items-center gap-2 cursor-pointer mb-3">
+            <div
+              onClick={() => setGitignoreWorkspace(v => !v)}
+              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
+                gitignoreWorkspace
+                  ? 'bg-blue-500 border-blue-500'
+                  : 'border-border-strong'
+              }`}
+            >
+              {gitignoreWorkspace && (
+                <CheckIcon className="w-2.5 h-2.5 text-white" />
+              )}
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div
-                onClick={() => setGitignoreWorkspace(v => !v)}
-                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
-                  gitignoreWorkspace
-                    ? 'bg-blue-500 border-blue-500'
-                    : 'border-border-strong'
-                }`}
-              >
-                {gitignoreWorkspace && (
-                  <CheckIcon className="w-2.5 h-2.5 text-white" />
-                )}
-              </div>
-              <div>
-                <span className="text-xs text-text-secondary">Add <span className="font-mono">.proq/workspace</span> to .gitignore</span>
-                <p className="text-[11px] text-text-quaternary">Recommended for team projects</p>
-              </div>
-            </label>
+            <div>
+              <span className="text-xs text-text-primary">Add <span className="font-mono">.proq/workspace</span> to .gitignore</span>
+              <p className="text-[11px] text-text-tertiary">Recommended for team projects</p>
+            </div>
+          </label>
+
+          <div className="bg-surface-inset rounded-lg p-3 mb-4">
+            <p className="text-[11px] text-text-secondary leading-relaxed">
+              The <span className="font-mono">workspace/</span> directory contains your task history. Useful to track for small projects, but commonly gitignored for team projects.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2">

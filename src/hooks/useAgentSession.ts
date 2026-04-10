@@ -58,10 +58,16 @@ export function useAgentSession(
 
     function connect() {
       if (cancelled) return;
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
 
-      // Close stale socket before reconnecting
+      // Close stale socket before reconnecting — detach handlers first
+      // so the old onclose doesn't schedule a competing retry
       if (wsRef.current) {
-        try { wsRef.current.close(); } catch {}
+        const old = wsRef.current;
+        old.onclose = null;
+        old.onerror = null;
+        old.onmessage = null;
+        try { old.close(); } catch {}
         wsRef.current = null;
       }
 

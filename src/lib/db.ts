@@ -437,7 +437,7 @@ export async function moveWorkspaceToProject(projectId: string, gitignoreWorkspa
         mkdirSync(destDir, { recursive: true });
         const entries = readdirSync(srcDir);
         for (const entry of entries) {
-          cpSync(path.join(srcDir, entry), path.join(destDir, entry), { recursive: true });
+          cpSync(`${srcDir}/${entry}`, `${destDir}/${entry}`, { recursive: true });
         }
       } else {
         // Old flat layout — separate shared from personal
@@ -450,12 +450,12 @@ export async function moveWorkspaceToProject(projectId: string, gitignoreWorkspa
 
         const entries = readdirSync(srcDir);
         for (const entry of entries) {
-          const srcPath = path.join(srcDir, entry);
+          const srcPath = `${srcDir}/${entry}`;
           if (sharedEntries.has(entry)) {
-            cpSync(srcPath, path.join(destDir, entry), { recursive: true });
+            cpSync(srcPath, `${destDir}/${entry}`, { recursive: true });
           } else {
             const destName = personalRenames[entry] || entry;
-            cpSync(srcPath, path.join(wsDestDir, destName), { recursive: true });
+            cpSync(srcPath, `${wsDestDir}/${destName}`, { recursive: true });
           }
         }
       }

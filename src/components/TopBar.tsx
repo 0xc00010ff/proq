@@ -246,7 +246,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   })();
   // Text color: blue for not pushed, emerald/crimson for ahead/behind, chrome for up to date or mixed
   const historyTextColor = notPushed
-    ? 'text-blue-400'
+    ? 'text-emerald'
     : isUpToDate
       ? 'text-text-chrome'
       : behind > 0 && ahead === 0

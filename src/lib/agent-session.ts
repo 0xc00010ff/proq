@@ -164,7 +164,22 @@ function wireProcess(
     const task = await getTask(projectId, taskId);
     const stillInProgress = task?.status === "in-progress";
 
-    // Safety net: auto-commit any leftover uncommitted changes
+    // Emit SSE immediately so the UI updates without waiting for disk I/O
+    if (stillInProgress) {
+      emitTaskUpdate(projectId, taskId, {
+        status: "verify",
+        agentStatus: null,
+        ...questionFields,
+      });
+      notify(
+        `✅ *${(task?.title || task?.description || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
+      );
+    }
+
+    // Dispatch next queued task early (critical for sequential mode)
+    processQueue(projectId);
+
+    // Auto-commit any leftover uncommitted changes (synchronous/execSync)
     if (task && !endedOnQuestion && !endedOnPlanExit) {
       const effectivePath = task.worktreePath || await (async () => {
         const proj = await getProject(projectId);
@@ -175,11 +190,12 @@ function wireProcess(
       }
     }
 
-    // Persist agent logs to separate file
-    await setTaskSession(projectId, taskId, session.blocks, session.sessionId);
+    // Persist session and update task in parallel
+    const ioTasks: Promise<void>[] = [];
+
+    ioTasks.push(setTaskSession(projectId, taskId, session.blocks, session.sessionId));
 
     if (stillInProgress) {
-      // Safety net: move to verify and clear agentStatus
       const closeUpdate: Record<string, unknown> = {
         status: "verify",
         agentStatus: null,
@@ -189,23 +205,14 @@ function wireProcess(
       if (session.status === "error") {
         closeUpdate.summary = `Error: ${stderrOutput.trim() || `CLI exited with code ${code}`}`;
       }
-      await updateTask(projectId, taskId, closeUpdate as Parameters<typeof updateTask>[2]);
-      notify(
-        `✅ *${(task?.title || task?.description || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
-      );
-      emitTaskUpdate(projectId, taskId, {
-        status: "verify",
-        agentStatus: null,
-      });
+      ioTasks.push(updateTask(projectId, taskId, closeUpdate as Parameters<typeof updateTask>[2]).then(() => {}));
     } else {
-      // Agent already handled status via update_task — just persist sessionId
-      await updateTask(projectId, taskId, {
+      ioTasks.push(updateTask(projectId, taskId, {
         sessionId: session.sessionId,
-      });
+      }).then(() => {}));
     }
 
-    // Dispatch next queued task (critical for sequential mode)
-    processQueue(projectId);
+    await Promise.all(ioTasks);
   });
 
   proc.on("error", async (err) => {

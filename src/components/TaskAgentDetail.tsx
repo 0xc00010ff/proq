@@ -690,9 +690,9 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               View Details
             </button>
           </div>
-        ) : task.status === 'verify' && onComplete ? (
+        ) : (task.status === 'verify' || task.status === 'in-progress') && onComplete ? (
           <div className="shrink-0 group/complete">
-            <div className={`h-px ${merging ? 'bg-emerald/30' : 'bg-border-default group-hover/complete:bg-emerald/40'}`} />
+            <div className={`h-px ${merging ? 'bg-emerald/30' : task.status === 'in-progress' ? 'bg-border-default' : 'bg-border-default group-hover/complete:bg-emerald/40'}`} />
             <button
               onClick={async () => {
                 setMerging(true);
@@ -702,7 +702,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                   setMerging(false);
                 }
               }}
-              disabled={merging}
+              disabled={merging || task.status === 'in-progress'}
               className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-emerald/80 hover:text-emerald hover:bg-emerald/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {merging ? (

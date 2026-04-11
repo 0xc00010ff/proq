@@ -4,12 +4,14 @@ import { useState, useCallback, useEffect, type RefObject, type Dispatch, type S
 
 interface UseResizablePanelOptions {
   defaultPercent?: number;
-  /** Pixel height below which the panel snaps closed on mouseUp. */
+  /** Pixel size below which the panel snaps closed on mouseUp. */
   snapCloseThreshold?: number;
   /** Percent to reset to when snapping closed. */
   closedPercent?: number;
-  /** Called on mouseUp with the final height percent (not called on snap-close). */
+  /** Called on mouseUp with the final percent (not called on snap-close). */
   onPersist?: (height: number) => void;
+  /** Resize axis: 'vertical' (bottom panel) or 'horizontal' (right panel). Default 'vertical'. */
+  axis?: 'vertical' | 'horizontal';
 }
 
 interface UseResizablePanelReturn {
@@ -32,6 +34,7 @@ export function useResizablePanel(
     snapCloseThreshold = 200,
     closedPercent = defaultPercent,
     onPersist,
+    axis = 'vertical',
   } = options;
 
   const [percent, setPercent] = useState(defaultPercent);
@@ -61,8 +64,14 @@ export function useResizablePanel(
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const pct = ((rect.height - y) / rect.height) * 100;
+      let pct: number;
+      if (axis === 'horizontal') {
+        const x = e.clientX - rect.left;
+        pct = ((rect.width - x) / rect.width) * 100;
+      } else {
+        const y = e.clientY - rect.top;
+        pct = ((rect.height - y) / rect.height) * 100;
+      }
       if (collapsed && pct > 5) {
         setCollapsed(false);
       }
@@ -72,14 +81,22 @@ export function useResizablePanel(
     const handleMouseUp = (e: MouseEvent) => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const pixelHeight = rect.height - y;
-        if (pixelHeight < snapCloseThreshold) {
+        let pixelSize: number;
+        let pct: number;
+        if (axis === 'horizontal') {
+          const x = e.clientX - rect.left;
+          pixelSize = rect.width - x;
+          pct = (pixelSize / rect.width) * 100;
+        } else {
+          const y = e.clientY - rect.top;
+          pixelSize = rect.height - y;
+          pct = (pixelSize / rect.height) * 100;
+        }
+        if (pixelSize < snapCloseThreshold) {
           setCollapsed(true);
           setPercent(closedPercent);
         } else if (onPersist) {
-          const finalPercent = Math.min(100, Math.max(3, ((rect.height - y) / rect.height) * 100));
-          onPersist(finalPercent);
+          onPersist(Math.min(100, Math.max(3, pct)));
         }
       }
       setIsDragging(false);
@@ -91,7 +108,7 @@ export function useResizablePanel(
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, collapsed, containerRef, snapCloseThreshold, closedPercent, onPersist]);
+  }, [isDragging, collapsed, containerRef, snapCloseThreshold, closedPercent, onPersist, axis]);
 
   return { percent, setPercent, collapsed, setCollapsed, isDragging, onResizeStart, toggleCollapsed, expand };
 }

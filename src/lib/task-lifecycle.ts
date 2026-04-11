@@ -8,6 +8,7 @@ import type { Task } from "./types";
 import { updateTask, getProject, getProjectDefaultBranch, deleteTaskSession, getSettings, getTask } from "./db";
 import { abortTask, getInitialAgentStatus, scheduleCleanup, cancelCleanup } from "./agent-dispatch";
 import { clearSession } from "./agent-session";
+import { emitTaskUpdate } from "./task-events";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "./worktree";
 import { resolveProjectPath } from "./utils";
 
@@ -45,6 +46,7 @@ export async function initForDispatch(
     const agentStatus = await getInitialAgentStatus(projectId, taskId);
     const renderMode = task.renderMode || settings.agentRenderMode || "structured";
     await updateTask(projectId, taskId, { agentStatus, renderMode });
+    emitTaskUpdate(projectId, taskId, { agentStatus });
     return { agentStatus, renderMode };
   }
   return {};

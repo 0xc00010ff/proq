@@ -16,6 +16,7 @@ import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CronJobsModal } from '@/components/CronJobsModal';
 import { AgentsView } from '@/components/AgentsView';
 import { CommitModal } from '@/components/CommitModal';
+import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyTasks } from '@/components/ProjectsProvider';
 import { useShellActions } from '@/components/ClientShell';
@@ -40,6 +41,7 @@ export default function ProjectPage() {
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
   const [pendingModeSwitch, setPendingModeSwitch] = useState<'parallel' | 'worktrees' | null>(null);
+  const [showModeBlockedModal, setShowModeBlockedModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showCronJobs, setShowCronJobs] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
@@ -554,7 +556,14 @@ export default function ProjectPage() {
     }
   }, [projectId, fetchBranchState]);
 
+  const hasTasksInFlight = columns['in-progress'].length > 0 || columns['verify'].length > 0;
+
   const handleExecutionModeChange = async (mode: ExecutionMode) => {
+    // Block switching to/from worktrees while tasks are active (worktrees involve git state)
+    if (hasTasksInFlight && (mode === 'worktrees' || executionMode === 'worktrees')) {
+      setShowModeBlockedModal(true);
+      return;
+    }
     // Show info modal when switching to parallel or worktrees for the first time
     if ((mode === 'parallel' || mode === 'worktrees') && executionMode !== mode) {
       setPendingModeSwitch(mode);
@@ -984,6 +993,14 @@ export default function ProjectPage() {
         onClose={() => setShowCommitModal(false)}
         onCommitted={fetchBranchState}
       />
+
+      <AlertModal
+        isOpen={showModeBlockedModal}
+        onClose={() => setShowModeBlockedModal(false)}
+        title="Can't switch execution mode"
+      >
+        Complete or move all in-progress and verify tasks back to Todo before switching to or from worktrees mode.
+      </AlertModal>
 
     </>
   );

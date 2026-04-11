@@ -73,30 +73,6 @@ server.tool(
   },
 );
 
-server.tool(
-  "complete_task",
-  "Move the task to Verify for human review. Call this after write_report to signal that work is done.",
-  {},
-  async () => {
-    try {
-      const res = await fetch(taskUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "verify",
-          agentStatus: null,
-        }),
-      });
-      if (!res.ok) {
-        return { content: [{ type: "text", text: `Failed to complete task: ${res.status}` }], isError: true };
-      }
-      return { content: [{ type: "text", text: "Task moved to Verify." }] };
-    } catch (err) {
-      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
-    }
-  },
-);
-
 // Legacy alias — kept for backward compat with older system prompts
 server.tool(
   "update_task",

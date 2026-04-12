@@ -26,7 +26,7 @@ import type { Project } from '@/lib/types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
-  loading: () => <div className="flex-1 bg-[#1e1e1e]" />,
+  loading: () => <div className="flex-1 bg-[#f8f8fa] dark:bg-[#0c0c0e]" />,
 });
 
 interface CodeTabProps {
@@ -115,6 +115,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const [paletteQuery, setPaletteQuery] = useState('');
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [sidebarMode, setSidebarMode] = useState<'files' | 'search'>('files');
+  const [isDark, setIsDark] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,6 +128,15 @@ export function CodeTab({ project }: CodeTabProps) {
   // Keep refs in sync
   tabsRef.current = openTabs;
   activeTabPathRef.current = activeTabPath;
+
+  // Track dark/light theme for Monaco
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   const activeTab = useMemo(
     () => openTabs.find((t) => t.path === activeTabPath) ?? null,
@@ -744,21 +754,47 @@ export function CodeTab({ project }: CodeTabProps) {
     }
   }, [project.path]);
 
-  // Define custom Monaco theme before mount to avoid vs-dark flash
+  // Define custom Monaco themes before mount and disable diagnostics
   const handleEditorWillMount = useCallback((monacoInstance: typeof import('monaco-editor')) => {
     monacoInstance.editor.defineTheme('proq-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [],
       colors: {
-        'editor.background': '#0c0c0e',              // surface-inset — deepest content
-        'editor.lineHighlightBackground': '#111115',   // subtle line highlight
-        'editorGutter.background': '#0c0c0e',         // match editor bg
+        'editor.background': '#0c0c0e',
+        'editor.lineHighlightBackground': '#111115',
+        'editorGutter.background': '#0c0c0e',
         'minimap.background': '#0c0c0e',
         'editorOverviewRuler.background': '#0c0c0e',
         'scrollbarSlider.background': '#1a1a1e80',
         'scrollbarSlider.hoverBackground': '#2a2a2ea0',
       },
+    });
+    monacoInstance.editor.defineTheme('proq-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#f8f8fa',
+        'editor.lineHighlightBackground': '#f0f0f4',
+        'editorGutter.background': '#f8f8fa',
+        'minimap.background': '#f8f8fa',
+        'editorOverviewRuler.background': '#f8f8fa',
+        'scrollbarSlider.background': '#c0c0c880',
+        'scrollbarSlider.hoverBackground': '#a0a0a8a0',
+      },
+    });
+
+    // Disable all diagnostics — this is a simple editor without project context
+    monacoInstance.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: true,
+      noSuggestionDiagnostics: true,
+    });
+    monacoInstance.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: true,
+      noSuggestionDiagnostics: true,
     });
   }, []);
 
@@ -1166,7 +1202,7 @@ export function CodeTab({ project }: CodeTabProps) {
               height="100%"
               language={fileLanguage}
               defaultValue=""
-              theme="proq-dark"
+              theme={isDark ? 'proq-dark' : 'proq-light'}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
               options={{

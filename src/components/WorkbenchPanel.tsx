@@ -9,7 +9,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, PencilIcon, Trash2Icon, EraserIcon, PanelBottom, PanelRight } from 'lucide-react';
+import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon, EraserIcon } from 'lucide-react';
 import { v7 as uuidv7 } from 'uuid';
 import {
   DndContext,
@@ -36,7 +36,6 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
 import type { Agent } from '@/lib/types';
@@ -63,8 +62,6 @@ interface AddTabOptions {
   agentId?: string;
 }
 
-export type WorkbenchOrientation = 'bottom' | 'right';
-
 export interface WorkbenchPanelHandle {
   addShellTab: (opts?: AddTabOptions) => Promise<void>;
   addAgentTab: (opts?: AddTabOptions) => void;
@@ -77,7 +74,6 @@ interface WorkbenchPanelProps {
   projectPath?: string;
   agentMap?: Map<string, Agent>;
   defaultAgentId?: string;
-  onOrientationChange?: (orientation: WorkbenchOrientation) => void;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -149,7 +145,7 @@ function tabReducer(state: TabState, action: TabAction): TabState {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Sortable tab item (bottom mode)                                           */
+/*  Sortable tab item                                                         */
 /* -------------------------------------------------------------------------- */
 
 interface SortableTabProps {
@@ -252,98 +248,24 @@ function SortableTab({
 }
 
 /* -------------------------------------------------------------------------- */
-/*  New tab dropdown (shared between both headers)                            */
-/* -------------------------------------------------------------------------- */
-
-interface NewTabDropdownProps {
-  agentMap?: Map<string, Agent>;
-  defaultAgentId?: string;
-  collapsed: boolean;
-  expandPanel: () => void;
-  addAgentTab: (opts?: AddTabOptions) => void;
-  addShellTab: (opts?: AddTabOptions) => Promise<void>;
-}
-
-function NewTabDropdown({ agentMap, defaultAgentId, collapsed, expandPanel, addAgentTab, addShellTab }: NewTabDropdownProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className="flex items-center justify-center w-10 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-          title="New tab"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="bottom" className="w-40">
-        {agentMap && agentMap.size > 1 ? (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <SquareChevronUpIcon className="w-3.5 h-3.5" />
-              Agent
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-44">
-              {Array.from(agentMap.values()).map((agent) => (
-                <DropdownMenuItem
-                  key={agent.id}
-                  onSelect={() => {
-                    if (collapsed) expandPanel();
-                    addAgentTab({ agentId: agent.id });
-                  }}
-                >
-                  {agent.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        ) : (
-          <DropdownMenuItem
-            onSelect={() => {
-              if (collapsed) expandPanel();
-              addAgentTab(defaultAgentId ? { agentId: defaultAgentId } : undefined);
-            }}
-          >
-            <SquareChevronUpIcon className="w-3.5 h-3.5" />
-            Agent
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem
-          onSelect={() => {
-            if (collapsed) expandPanel();
-            addShellTab();
-          }}
-        >
-          <TerminalIcon className="w-3.5 h-3.5" />
-          Terminal
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
 const TAB_BAR_HEIGHT = 48; // px — matches h-12
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap, defaultAgentId, onOrientationChange }, ref) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap, defaultAgentId }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const agentMapRef = useRef(agentMap);
   agentMapRef.current = agentMap;
-
-  // --- Orientation state ---
-  const [orientation, setOrientation] = useState<WorkbenchOrientation>('bottom');
-  const isRight = orientation === 'right';
 
   // Discover parent container for resize calculations
   useEffect(() => {
     containerRef.current = panelRef.current?.parentElement as HTMLDivElement | null;
   }, []);
 
-  // --- Resize state ---
-  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number; orientation?: WorkbenchOrientation }) => {
+  // --- Resize state (internalized from page.tsx) ---
+  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
     fetch(`/api/projects/${projectId}/workbench-state`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -355,10 +277,9 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     defaultPercent: 60,
     closedPercent: 25,
     onPersist: (height) => patchWorkbenchState({ height }),
-    axis: isRight ? 'horizontal' : 'vertical',
   });
 
-  // Restore collapsed/height/orientation from server on mount
+  // Restore collapsed/height from server on mount
   useEffect(() => {
     if (!projectId) return;
     fetch(`/api/projects/${projectId}/workbench-state`)
@@ -366,10 +287,6 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       .then((data) => {
         workbench.setCollapsed(!data.open);
         if (typeof data.height === 'number') workbench.setPercent(data.height);
-        if (data.orientation) {
-          setOrientation(data.orientation);
-          onOrientationChange?.(data.orientation);
-        }
       })
       .catch(() => {});
   }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -389,15 +306,6 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     });
     workbench.setPercent((prev: number) => Math.max(prev, 40));
   }, [workbench, patchWorkbenchState]);
-
-  const toggleOrientation = useCallback(() => {
-    setOrientation((prev) => {
-      const next = prev === 'bottom' ? 'right' : 'bottom';
-      patchWorkbenchState({ orientation: next });
-      onOrientationChange?.(next);
-      return next;
-    });
-  }, [patchWorkbenchState, onOrientationChange]);
 
   // --- Tab state (internalized from WorkbenchTabsProvider) ---
   const initialTabs = defaultTabs();
@@ -483,7 +391,6 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   const { tabs, activeTabId } = tabState;
   const tabsRef = useRef(tabs);
   tabsRef.current = tabs;
-  const activeTab = tabs.find((t) => t.id === activeTabId);
 
   // --- Rename state ---
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -587,33 +494,35 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     [tabs]
   );
 
-  /* ---- Shared header props ---- */
-  const newTabProps: NewTabDropdownProps = {
-    agentMap,
-    defaultAgentId,
-    collapsed: workbench.collapsed,
-    expandPanel,
-    addAgentTab,
-    addShellTab,
-  };
-
-  /* ---- Bottom mode header ---- */
-  const renderBottomHeader = () => (
-    <div className="relative shrink-0">
-      {/* Edge resize strip — sits over the top border */}
-      {!workbench.collapsed && (
+  return (
+    <div
+      ref={panelRef}
+      className="w-full flex flex-col bg-surface-deep flex-shrink-0"
+      style={{
+        minHeight: 0,
+        ...(workbench.collapsed
+          ? { flexBasis: 'auto', flexGrow: 0 }
+          : { flexBasis: `${workbench.percent}%` }),
+      }}
+    >
+      {/* Tab Bar */}
+      <div className="relative shrink-0">
+        {/* Edge resize strip — sits over the top border */}
+        {!workbench.collapsed && (
+          <div
+            onMouseDown={(e) => workbench.onResizeStart(e)}
+            className="absolute inset-x-0 top-0 h-[5px] -translate-y-1/2 cursor-row-resize z-20 group/edge"
+          >
+            <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
+          </div>
+        )}
         <div
-          onMouseDown={(e) => workbench.onResizeStart(e)}
-          className="absolute inset-x-0 top-0 h-[5px] -translate-y-1/2 cursor-row-resize z-20 group/edge"
+          className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-t border-border-default"
         >
-          <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
-        </div>
-      )}
-      <div className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-t border-border-default">
         <button
           onClick={toggleCollapsed}
           className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-          title={workbench.collapsed ? 'Expand panel' : 'Collapse panel'}
+          title={workbench.collapsed ? 'Expand terminal' : 'Collapse terminal'}
         >
           {workbench.collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
@@ -649,154 +558,71 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           </SortableContext>
         </DndContext>
 
-        <NewTabDropdown {...newTabProps} />
+        {/* New tab button with dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center justify-center w-12 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+              title="New tab"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom" className="w-40">
+            {agentMap && agentMap.size > 1 ? (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <SquareChevronUpIcon className="w-3.5 h-3.5" />
+                  Agent
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-44">
+                  {Array.from(agentMap.values()).map((agent) => (
+                    <DropdownMenuItem
+                      key={agent.id}
+                      onSelect={() => {
+                        if (workbench.collapsed) expandPanel();
+                        addAgentTab({ agentId: agent.id });
+                      }}
+                    >
+                      {agent.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ) : (
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (workbench.collapsed) expandPanel();
+                  addAgentTab(defaultAgentId ? { agentId: defaultAgentId } : undefined);
+                }}
+              >
+                <SquareChevronUpIcon className="w-3.5 h-3.5" />
+                Agent
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onSelect={() => {
+                if (workbench.collapsed) expandPanel();
+                addShellTab();
+              }}
+            >
+              <TerminalIcon className="w-3.5 h-3.5" />
+              Terminal
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Spacer — fills remaining space, doubles as resize grab target */}
         <div
           className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           onMouseDown={(e) => workbench.onResizeStart(e)}
         />
-
-        {/* Orientation toggle */}
-        <button
-          onClick={toggleOrientation}
-          className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-          title="Move panel to right"
-        >
-          <PanelRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
-  );
-
-  /* ---- Right mode header ---- */
-  const renderRightHeader = () => {
-    const activeIcon = activeTab?.type === 'agent'
-      ? <SquareChevronUpIcon className="w-3 h-3 shrink-0" />
-      : <TerminalIcon className="w-3 h-3 shrink-0" />;
-
-    return (
-      <div className="relative shrink-0">
-        {/* Edge resize strip — sits over the left border */}
-        {!workbench.collapsed && (
-          <div
-            onMouseDown={(e) => workbench.onResizeStart(e)}
-            className="absolute inset-y-0 left-0 w-[5px] -translate-x-1/2 cursor-col-resize z-20 group/edge"
-          >
-            <div className="absolute inset-y-0 left-1/2 w-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
-          </div>
-        )}
-        <div className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-b border-border-default">
-          <button
-            onClick={toggleCollapsed}
-            className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-            title={workbench.collapsed ? 'Expand panel' : 'Collapse panel'}
-          >
-            {workbench.collapsed ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-          </button>
-
-          {/* Active tab selector — shows current tab with dropdown for switching */}
-          {!workbench.collapsed && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex-1 flex items-center gap-1.5 px-2 text-xs text-text-chrome-active hover:bg-surface-hover/30 min-w-0">
-                  {activeIcon}
-                  <span className="truncate">{activeTab?.label || 'No tab'}</span>
-                  <ChevronDown className="w-3 h-3 shrink-0 text-text-placeholder" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="bottom" className="w-52">
-                {tabs.map((tab) => {
-                  const tabIcon = tab.type === 'agent'
-                    ? <SquareChevronUpIcon className="w-3.5 h-3.5" />
-                    : <TerminalIcon className="w-3.5 h-3.5" />;
-                  return (
-                    <DropdownMenuItem
-                      key={tab.id}
-                      onSelect={() => dispatch({ type: 'activate', tabId: tab.id })}
-                      className={activeTabId === tab.id ? 'bg-surface-hover/60' : ''}
-                    >
-                      {tabIcon}
-                      <span className="truncate">{tab.label}</span>
-                    </DropdownMenuItem>
-                  );
-                })}
-                <DropdownMenuSeparator />
-                {agentMap && agentMap.size > 1 ? (
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Plus className="w-3.5 h-3.5" />
-                      New tab
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-44">
-                      {Array.from(agentMap.values()).map((agent) => (
-                        <DropdownMenuItem
-                          key={agent.id}
-                          onSelect={() => addAgentTab({ agentId: agent.id })}
-                        >
-                          <SquareChevronUpIcon className="w-3.5 h-3.5" />
-                          {agent.name}
-                        </DropdownMenuItem>
-                      ))}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => addShellTab()}>
-                        <TerminalIcon className="w-3.5 h-3.5" />
-                        Terminal
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                ) : (
-                  <>
-                    <DropdownMenuItem onSelect={() => addAgentTab(defaultAgentId ? { agentId: defaultAgentId } : undefined)}>
-                      <SquareChevronUpIcon className="w-3.5 h-3.5" />
-                      New Agent
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addShellTab()}>
-                      <TerminalIcon className="w-3.5 h-3.5" />
-                      New Terminal
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* Spacer — resize grab target */}
-          {!workbench.collapsed && (
-            <div
-              className={`flex-1 min-w-0 ${workbench.isDragging ? 'cursor-grabbing' : ''}`}
-            />
-          )}
-
-          {/* Orientation toggle */}
-          <button
-            onClick={toggleOrientation}
-            className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-            title="Move panel to bottom"
-          >
-            <PanelBottom className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
-    );
-  };
-
-  return (
-    <div
-      ref={panelRef}
-      className={`flex flex-col bg-surface-deep flex-shrink-0 ${isRight ? 'h-full border-l border-border-default' : 'w-full'}`}
-      style={{
-        ...(isRight ? { minWidth: 0 } : { minHeight: 0 }),
-        ...(workbench.collapsed
-          ? { flexBasis: 'auto', flexGrow: 0 }
-          : { flexBasis: `${workbench.percent}%` }),
-      }}
-    >
-      {isRight ? renderRightHeader() : renderBottomHeader()}
 
       {/* Panes — each manages its own lifecycle */}
       {!workbench.collapsed && (
-        <div className="flex-1 relative" style={{ minHeight: 0, minWidth: 0 }}>
+        <div className="flex-1 relative" style={{ minHeight: 0 }}>
           {tabs.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-text-placeholder text-xs">
               No open tabs
@@ -814,7 +640,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       )}
 
       {/* Full-screen overlay while dragging to prevent interaction interference */}
-      {workbench.isDragging && <div className={`fixed inset-0 z-50 ${isRight ? 'cursor-col-resize' : 'cursor-grabbing'}`} />}
+      {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
     </div>
   );
 });

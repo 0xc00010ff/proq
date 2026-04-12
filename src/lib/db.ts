@@ -725,17 +725,16 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 // WORKBENCH STATE (from project workspace)
 // ═══════════════════════════════════════════════════════════
 
-export async function getWorkbenchState(projectId: string): Promise<{ open: boolean; height: number | null; orientation: 'bottom' | 'right' }> {
+export async function getWorkbenchState(projectId: string): Promise<{ open: boolean; height: number | null }> {
   const ws = getProjectWorkspace(projectId);
-  return { open: ws.projectWorkbenchOpen ?? false, height: ws.projectWorkbenchHeight ?? null, orientation: ws.projectWorkbenchOrientation ?? 'bottom' };
+  return { open: ws.projectWorkbenchOpen ?? false, height: ws.projectWorkbenchHeight ?? null };
 }
 
-export async function setWorkbenchState(projectId: string, state: { open?: boolean; height?: number; orientation?: 'bottom' | 'right' }): Promise<void> {
+export async function setWorkbenchState(projectId: string, state: { open?: boolean; height?: number }): Promise<void> {
   return withWriteLock(`workspace:${projectId}`, async () => {
     const ws = getProjectWorkspace(projectId);
     if (state.open !== undefined) ws.projectWorkbenchOpen = state.open;
     if (state.height !== undefined) ws.projectWorkbenchHeight = state.height;
-    if (state.orientation !== undefined) ws.projectWorkbenchOrientation = state.orientation;
     writeProjectWorkspace(projectId, ws);
   });
 }

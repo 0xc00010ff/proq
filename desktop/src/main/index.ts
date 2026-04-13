@@ -401,14 +401,21 @@ function registerIpcHandlers(): void {
   ipcMain.handle('shell-update:check', () => checkForShellUpdate())
   ipcMain.handle('shell-update:install', () => installShellUpdate())
 
-  // Restart — stop everything and relaunch; splash handles updates on next boot
+  // Restart — stop everything and relaunch; splash handles updates on next boot.
+  // We do ALL cleanup here and use app.exit() instead of app.quit() because
+  // app.quit() can be silently blocked on macOS (e.g. by electron-updater's
+  // autoInstallOnAppQuit handler or async before-quit handlers).
   ipcMain.handle('app:restart', async () => {
+    isQuitting = true
+    stopHealthMonitor()
+    stopUpdateScheduler()
+    stopShellUpdateScheduler()
     const config = getConfig()
     await stopServer()
     killProcessOnPort(config.port)
     killProcessOnPort(config.wsPort)
     app.relaunch()
-    app.quit()
+    app.exit(0)
   })
 
   // App info

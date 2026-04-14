@@ -28,7 +28,7 @@ const server = new McpServer({
 
 server.tool(
   "write_report",
-  "Write a report summarizing the work done on this task. Call after completing meaningful work — restates the problem, outlines the solution and results. Updated in place on follow-ups. Always call before complete_task.",
+  "Write a report summarizing the work done on this task. Call after completing meaningful work — restates the problem, outlines the solution and results. Updated in place on follow-ups.",
   {
     title: z.string().describe("Short descriptive title for the report"),
     summary: z.string().describe("Concise summary: restate the problem, outline the solution and results"),
@@ -80,8 +80,9 @@ server.tool(
   {
     summary: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
     nextSteps: z.string().optional().describe("Suggested next steps such as testing, refinements, or follow-up work"),
+    agentId: z.string().optional().describe("Agent slug to assign this task to (uses project default if omitted)"),
   },
-  async ({ summary, nextSteps }) => {
+  async ({ summary, nextSteps, agentId }) => {
     try {
       const res = await fetch(taskUrl, {
         method: "PATCH",
@@ -91,6 +92,7 @@ server.tool(
           agentStatus: null,
           summary,
           nextSteps: nextSteps || "",
+          ...(agentId ? { agentId } : {}),
         }),
       });
       if (!res.ok) {
@@ -105,7 +107,7 @@ server.tool(
 
 server.tool(
   "read_task",
-  "Read the current task state, including any existing summary from prior work. Use this before updating to see what has already been reported, so you can write a cumulative summary.",
+  "Read the current task state, including any existing report from prior work.",
   {},
   async () => {
     try {

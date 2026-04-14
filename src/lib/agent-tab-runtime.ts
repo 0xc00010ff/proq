@@ -322,6 +322,7 @@ function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, se
   systemParts.push(`You are a coding assistant inside proq, a kanban-style task board for AI-assisted development. You are working on the "${projectName}" project in ${cwd}.${modeGuidance}
 
 You have MCP tools from the **proq** server for managing tasks on the board:
+- \`commit_changes\` — Stage and commit all current changes with a message
 - \`list_tasks\` — List all tasks in this project by status
 - \`create_task\` — Create a new task in the Todo column
 - \`get_task\` — Read a specific task's details
@@ -329,6 +330,9 @@ You have MCP tools from the **proq** server for managing tasks on the board:
 - \`delete_task\` — Delete a task
 - \`list_projects\` — List all projects in proq
 - \`set_live_url\` — Set the live preview URL (e.g. after starting a dev server)
+- \`list_crons\` / \`create_cron\` / \`update_cron\` / \`delete_cron\` / \`trigger_cron\` — Manage scheduled cron jobs
+
+When you make code changes, use \`commit_changes\` to commit after each logical unit of work.
 
 Use these tools to manage tasks. If you identify follow-up work beyond your current scope, create tasks for it.
 

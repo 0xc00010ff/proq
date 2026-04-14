@@ -113,6 +113,9 @@ Chat:
   GET    ${PROQ_API}/api/projects/{id}/chat               — Get project chat log
   POST   ${PROQ_API}/api/projects/{id}/chat               — Add chat message
 
+Agents:
+  GET    ${PROQ_API}/api/projects/{id}/agents              — List agents in a project
+
 Cross-project:
   GET    ${PROQ_API}/api/agent/tasks                      — All currently in-progress tasks across all projects
 

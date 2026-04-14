@@ -189,6 +189,7 @@ server.tool(
     description: z.string().optional().describe("New description"),
     status: z.enum(["todo", "in-progress", "verify", "done"]).optional().describe("New status"),
     priority: z.enum(["low", "medium", "high"]).optional().describe("New priority"),
+    agentId: z.string().optional().describe("Agent slug to assign this task to (uses project default if omitted)"),
   },
   async ({ projectId, taskId, ...fields }) => {
     try {
@@ -199,6 +200,7 @@ server.tool(
       if (fields.description !== undefined) body.description = fields.description;
       if (fields.status !== undefined) body.status = fields.status;
       if (fields.priority !== undefined) body.priority = fields.priority;
+      if (fields.agentId !== undefined) body.agentId = fields.agentId;
 
       const res = await fetch(`${API}/api/projects/${pid}/tasks/${taskId}`, {
         method: "PATCH",
@@ -238,6 +240,58 @@ server.tool(
       return { content: [{ type: "text", text: `Live URL set to ${url} — the human can now see it in the Live tab.` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── commit_changes ──
+
+server.tool(
+  "commit_changes",
+  "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    message: z.string().describe("Descriptive commit message summarizing the changes"),
+  },
+  async ({ projectId, message }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const projRes = await fetch(`${API}/api/projects/${pid}`);
+      if (!projRes.ok) {
+        return { content: [{ type: "text", text: `Failed to resolve project: ${projRes.status}` }], isError: true };
+      }
+      const proj = await projRes.json();
+      const workDir = proj.path?.replace(/^~/, process.env.HOME || "~");
+      if (!workDir) {
+        return { content: [{ type: "text", text: "Could not resolve working directory." }], isError: true };
+      }
+
+      const { execSync } = require("child_process");
+
+      // Check if there's anything to commit
+      const status = execSync(`git -C '${workDir}' status --porcelain`, {
+        timeout: 10_000,
+        encoding: "utf-8",
+      }).trim();
+
+      if (!status) {
+        return { content: [{ type: "text", text: "Nothing to commit — working tree is clean." }] };
+      }
+
+      // Stage all and commit
+      execSync(`git -C '${workDir}' add -A`, { timeout: 10_000 });
+      const safeMsg = message.replace(/'/g, "'\\''");
+      const result = execSync(`git -C '${workDir}' commit -m '${safeMsg}'`, {
+        timeout: 15_000,
+        encoding: "utf-8",
+      }).trim();
+
+      const hashMatch = result.match(/\[[\w/.-]+ ([a-f0-9]+)\]/);
+      const hash = hashMatch ? hashMatch[1] : "";
+
+      return { content: [{ type: "text", text: `Committed${hash ? ` (${hash})` : ""}: ${message}` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Commit failed: ${err.message}` }], isError: true };
     }
   },
 );

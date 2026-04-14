@@ -370,13 +370,15 @@ server.tool(
     schedule: z.string().describe("Cron schedule expression, e.g. '0 9 * * *' for daily at 9am"),
     mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task execution mode (default: auto)"),
     enabled: z.boolean().optional().describe("Whether the cron is enabled (default: true)"),
+    agentId: z.string().optional().describe("Agent UUID to assign cron tasks to (uses project default if omitted)"),
   },
-  async ({ projectId, name, prompt, schedule, mode, enabled }) => {
+  async ({ projectId, name, prompt, schedule, mode, enabled, agentId }) => {
     try {
       const pid = resolveProjectId(projectId);
       const body = { name, prompt, schedule };
       if (mode !== undefined) body.mode = mode;
       if (enabled !== undefined) body.enabled = enabled;
+      if (agentId !== undefined) body.agentId = agentId;
       const res = await fetch(`${API}/api/projects/${pid}/crons`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -398,7 +400,7 @@ server.tool(
 
 server.tool(
   "update_cron",
-  "Update a cron job's fields such as name, prompt, schedule, mode, or enabled state.",
+  "Update a cron job's fields such as name, prompt, schedule, mode, agentId, or enabled state.",
   {
     projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
     cronId: z.string().describe("Cron job ID"),
@@ -407,6 +409,7 @@ server.tool(
     schedule: z.string().optional().describe("New cron schedule expression"),
     mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("New execution mode"),
     enabled: z.boolean().optional().describe("Enable or disable the cron"),
+    agentId: z.string().optional().describe("Agent UUID to assign cron tasks to (uses project default if omitted)"),
   },
   async ({ projectId, cronId, ...fields }) => {
     try {
@@ -417,6 +420,7 @@ server.tool(
       if (fields.schedule !== undefined) body.schedule = fields.schedule;
       if (fields.mode !== undefined) body.mode = fields.mode;
       if (fields.enabled !== undefined) body.enabled = fields.enabled;
+      if (fields.agentId !== undefined) body.agentId = fields.agentId;
       const res = await fetch(`${API}/api/projects/${pid}/crons/${cronId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

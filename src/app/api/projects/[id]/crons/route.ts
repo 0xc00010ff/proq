@@ -26,13 +26,13 @@ export async function POST(request: Request, { params }: Params) {
   const body = await safeParseBody(request);
   if (body instanceof NextResponse) return body;
 
-  const { name, prompt, schedule, mode, enabled } = body;
+  const { name, prompt, schedule, mode, enabled, agentId } = body;
   if (!name || !prompt || !schedule) {
     return NextResponse.json({ error: "name, prompt, and schedule are required" }, { status: 400 });
   }
 
   const nextRunAt = computeNextRun(schedule);
-  const job = await createCronJob(id, { name, prompt, schedule, mode, enabled });
+  const job = await createCronJob(id, { name, prompt, schedule, mode, enabled, agentId });
   if (nextRunAt) {
     const { updateCronJob } = await import("@/lib/db");
     await updateCronJob(id, job.id, { nextRunAt });

@@ -125,10 +125,9 @@ echo ""
 echo "Creating GitHub release..."
 
 FENCE='```'
+DMG_URL="https://github.com/$REPO/releases/download/v$NEXT/proq.dmg"
 
-if $DESKTOP; then
-  # Desktop: edit the draft release created by electron-builder
-  RELEASE_BODY="## [Download proq.dmg](https://github.com/$REPO/releases/download/v$NEXT/proq.dmg)
+RELEASE_BODY="## [Download proq.dmg]($DMG_URL)
 
 Or run from source:
 ${FENCE}bash
@@ -138,22 +137,11 @@ npm run dev
 ${FENCE}
 
 See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT)."
+
+if $DESKTOP; then
+  # Desktop: edit the draft release created by electron-builder
   gh release edit "v$NEXT" --draft=false --title "v$NEXT" --notes "$RELEASE_BODY"
 else
-  # Web-only: create a new release
-  RELEASE_BODY="Update your local install:
-${FENCE}bash
-cd proq && git pull
-${FENCE}
-
-Or get started:
-${FENCE}bash
-git clone https://github.com/$REPO.git && cd proq
-npm run setup
-npm run dev
-${FENCE}
-
-See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT)."
   gh release create "v$NEXT" --title "v$NEXT" --notes "$RELEASE_BODY"
 fi
 

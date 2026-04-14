@@ -134,15 +134,26 @@ export function stopServer(): Promise<void> {
     }
 
     const child = serverProcess
-    const timeout = setTimeout(() => {
-      child.kill('SIGKILL')
-    }, 5000)
-
-    child.on('close', () => {
+    let resolved = false
+    const done = (): void => {
+      if (resolved) return
+      resolved = true
       clearTimeout(timeout)
       serverProcess = null
       resolve()
-    })
+    }
+
+    const timeout = setTimeout(() => {
+      child.kill('SIGKILL')
+      // If SIGKILL doesn't trigger close (e.g. grandchild holds pipes open),
+      // resolve after a short grace period so callers aren't stuck forever.
+      setTimeout(done, 500)
+    }, 5000)
+
+    // Use 'exit' instead of 'close' — 'close' waits for stdio streams to end,
+    // which can hang if a grandchild process (e.g. `next start` spawned by npm)
+    // inherits the pipes and stays alive after npm is killed.
+    child.on('exit', done)
 
     child.kill('SIGTERM')
   })

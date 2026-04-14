@@ -532,13 +532,6 @@ export async function createTask(
   data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"]; mode?: Task["mode"]; agentId?: string }
 ): Promise<Task> {
   return withWriteLock(`workspace:${projectId}`, async () => {
-    // Resolve agentId slug → UUID if needed
-    let resolvedAgentId = data.agentId;
-    if (resolvedAgentId) {
-      const agent = await resolveAgent(projectId, resolvedAgentId);
-      if (agent) resolvedAgentId = agent.id;
-    }
-
     const now = new Date().toISOString();
     const task: Task = {
       id: uuidv7(),
@@ -547,7 +540,7 @@ export async function createTask(
       status: "todo",
       priority: data.priority,
       mode: data.mode,
-      agentId: resolvedAgentId,
+      agentId: data.agentId,
       createdAt: now,
       updatedAt: now,
     };
@@ -605,12 +598,6 @@ export async function updateTask(
   return withWriteLock(`task:${taskId}`, async () => {
     const task = readTaskFile(projectId, taskId);
     if (!task) return null;
-
-    // Resolve agentId slug → UUID if needed
-    if (data.agentId) {
-      const agent = await resolveAgent(projectId, data.agentId);
-      if (agent) data = { ...data, agentId: agent.id };
-    }
 
     const currentStatus = task.status;
 
@@ -1098,29 +1085,13 @@ function agentsDir(projectId: string): string {
   return path.join(projectDir(projectId), "agents");
 }
 
-function agentFileBySlug(projectId: string, slug: string): string {
-  return path.join(agentsDir(projectId), `${slug}.json`);
-}
-
-/** Migrate an agent file that lacks a slug field (pre-slug era, UUID filenames). */
-function migrateAgentFile(projectId: string, filename: string, agent: Agent): Agent {
-  if (agent.slug) return agent;
-  agent.slug = slugify(agent.name);
-  // Rename file from UUID-based name to slug-based name
-  const oldPath = path.join(agentsDir(projectId), filename);
-  const newPath = agentFileBySlug(projectId, agent.slug);
-  if (oldPath !== newPath && fsExists(oldPath)) {
-    writeJSON(newPath, agent);
-    try { unlinkSync(oldPath); } catch { /* best effort */ }
-  } else {
-    writeJSON(oldPath, agent);
-  }
-  return agent;
+function agentFileById(projectId: string, id: string): string {
+  return path.join(agentsDir(projectId), `${id}.json`);
 }
 
 function writeAgentFile(projectId: string, agent: Agent): void {
   ensureProjectDir(projectId);
-  writeJSON(agentFileBySlug(projectId, agent.slug), agent);
+  writeJSON(agentFileById(projectId, agent.id), agent);
 }
 
 export async function getAllAgents(projectId: string): Promise<Agent[]> {
@@ -1137,30 +1108,18 @@ export async function getAllAgents(projectId: string): Promise<Agent[]> {
     const fp = path.join(dir, f);
     const raw = readJSON<Agent | null>(fp, null);
     if (!raw) continue;
-    agents.push(migrateAgentFile(projectId, f, raw));
+    agents.push(raw);
   }
   agents.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   return agents;
-}
-
-/** Look up an agent by UUID or slug. */
-export async function resolveAgent(
-  projectId: string,
-  idOrSlug: string
-): Promise<Agent | null> {
-  // Try slug first (direct file read — fast path)
-  const bySlug = readJSON<Agent | null>(agentFileBySlug(projectId, idOrSlug), null);
-  if (bySlug) return migrateAgentFile(projectId, `${idOrSlug}.json`, bySlug);
-  // Fall back to scanning for UUID match
-  const all = await getAllAgents(projectId);
-  return all.find((a) => a.id === idOrSlug) ?? null;
 }
 
 export async function getAgent(
   projectId: string,
   agentId: string
 ): Promise<Agent | null> {
-  return resolveAgent(projectId, agentId);
+  ensureProjectDir(projectId);
+  return readJSON<Agent | null>(agentFileById(projectId, agentId), null);
 }
 
 /** Get or auto-create the Default agent for a project. */
@@ -1173,7 +1132,6 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
   const now = new Date().toISOString();
   const agent: Agent = {
     id: uuidv7(),
-    slug: "claude",
     name: "Claude",
     role: "General-purpose agent",
     systemPrompt: config.systemPrompt || "",
@@ -1190,12 +1148,9 @@ export async function createAgent(
   projectId: string,
   data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent> {
-  const existing = await getAllAgents(projectId);
-  const existingSlugs = existing.map((a) => a.slug);
   const now = new Date().toISOString();
   const agent: Agent = {
     id: uuidv7(),
-    slug: uniqueSlug(slugify(data.name), existingSlugs),
     name: data.name,
     role: data.role,
     systemPrompt: data.systemPrompt,
@@ -1214,26 +1169,12 @@ export async function updateAgent(
   data: Partial<Pick<Agent, "name" | "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent | null> {
   return withWriteLock(`agent:${agentId}`, async () => {
-    const agent = await resolveAgent(projectId, agentId);
+    const agent = await getAgent(projectId, agentId);
     if (!agent) return null;
-    const oldSlug = agent.slug;
 
     // Use explicit key iteration so undefined values clear fields (Object.assign skips them)
     for (const key of Object.keys(data) as (keyof typeof data)[]) {
       (agent as unknown as Record<string, unknown>)[key] = data[key];
-    }
-
-    // Recompute slug if name changed
-    if (data.name && data.name !== oldSlug) {
-      const all = await getAllAgents(projectId);
-      const otherSlugs = all.filter((a) => a.id !== agent.id).map((a) => a.slug);
-      const newSlug = uniqueSlug(slugify(data.name), otherSlugs);
-      if (newSlug !== oldSlug) {
-        agent.slug = newSlug;
-        // Remove old file
-        const oldPath = agentFileBySlug(projectId, oldSlug);
-        try { if (fsExists(oldPath)) unlinkSync(oldPath); } catch { /* best effort */ }
-      }
     }
 
     agent.updatedAt = new Date().toISOString();
@@ -1246,15 +1187,13 @@ export async function deleteAgent(
   projectId: string,
   agentId: string
 ): Promise<boolean> {
-  const agent = await resolveAgent(projectId, agentId);
-  if (!agent) return false;
-  const fp = agentFileBySlug(projectId, agent.slug);
+  const fp = agentFileById(projectId, agentId);
   try {
     if (fsExists(fp)) {
       unlinkSync(fp);
       // Clear defaultAgentId if it pointed to the deleted agent
       const ws = getProjectWorkspace(projectId);
-      if (ws.defaultAgentId === agent.id) {
+      if (ws.defaultAgentId === agentId) {
         ws.defaultAgentId = undefined;
         writeProjectWorkspace(projectId, ws);
       }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProject, resolveAgent, updateAgent, deleteAgent } from "@/lib/db";
+import { getProject, getAgent, updateAgent, deleteAgent } from "@/lib/db";
 import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string; agentId: string }> };
@@ -11,7 +11,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const agent = await resolveAgent(id, agentId);
+  const agent = await getAgent(id, agentId);
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }

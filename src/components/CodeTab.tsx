@@ -786,16 +786,13 @@ export function CodeTab({ project }: CodeTabProps) {
     });
 
     // Disable all diagnostics — this is a simple editor without project context
-    monacoInstance.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: true,
-      noSuggestionDiagnostics: true,
-    });
-    monacoInstance.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: true,
-      noSuggestionDiagnostics: true,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ts = (monacoInstance.languages as any).typescript;
+    if (ts) {
+      const diagOff = { noSemanticValidation: true, noSyntaxValidation: true, noSuggestionDiagnostics: true };
+      ts.typescriptDefaults.setDiagnosticsOptions(diagOff);
+      ts.javascriptDefaults.setDiagnosticsOptions(diagOff);
+    }
   }, []);
 
   // Monaco editor mount handler — uses refs to avoid stale closures

@@ -317,7 +317,7 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
 
 // ── Public API ──
 
-export async function startSupervisorSession(text: string): Promise<void> {
+export async function startSupervisorSession(text: string, priorBlocks?: AgentBlock[]): Promise<void> {
   const existing = getSessionRef();
   if (existing?.status === "running") {
     throw new Error("Supervisor session is already running");
@@ -325,7 +325,7 @@ export async function startSupervisorSession(text: string): Promise<void> {
 
   const session: SupervisorSession = {
     queryHandle: null,
-    blocks: [],
+    blocks: priorBlocks || [],
     clients: new Set(),
     status: "running",
   };

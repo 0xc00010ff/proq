@@ -124,47 +124,36 @@ fi
 echo ""
 echo "Creating GitHub release..."
 
-RELEASE_BODY="$(cat <<EOF
-## What's new
-
-See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT).
-EOF
-)"
+FENCE='```'
 
 if $DESKTOP; then
   # Desktop: edit the draft release created by electron-builder
-  RELEASE_BODY="$(cat <<EOF
-## [Download proq.dmg](https://github.com/$REPO/releases/download/v$NEXT/proq.dmg)
+  RELEASE_BODY="## [Download proq.dmg](https://github.com/$REPO/releases/download/v$NEXT/proq.dmg)
 
 Or run from source:
-\`\`\`bash
+${FENCE}bash
 git clone https://github.com/$REPO.git && cd proq
 npm run setup
 npm run dev
-\`\`\`
+${FENCE}
 
-See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT).
-EOF
-)"
+See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT)."
   gh release edit "v$NEXT" --draft=false --title "v$NEXT" --notes "$RELEASE_BODY"
 else
   # Web-only: create a new release
-  RELEASE_BODY="$(cat <<EOF
-Update your local install:
-\`\`\`bash
+  RELEASE_BODY="Update your local install:
+${FENCE}bash
 cd proq && git pull
-\`\`\`
+${FENCE}
 
 Or get started:
-\`\`\`bash
+${FENCE}bash
 git clone https://github.com/$REPO.git && cd proq
 npm run setup
 npm run dev
-\`\`\`
+${FENCE}
 
-See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT).
-EOF
-)"
+See [commits since last release](https://github.com/$REPO/compare/v$CURRENT...v$NEXT)."
   gh release create "v$NEXT" --title "v$NEXT" --notes "$RELEASE_BODY"
 fi
 

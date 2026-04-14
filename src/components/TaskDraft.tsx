@@ -7,6 +7,8 @@ import { XIcon, PaperclipIcon, FileIcon, PlayIcon, Loader2Icon, RefreshCwIcon, C
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useAgents } from '@/hooks/useAgents';
+import { useSkills } from '@/hooks/useSkills';
+import { SlashCommandMenu } from '@/components/SlashCommandMenu';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -38,6 +40,8 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
   const [mode, setMode] = useState<TaskMode>(task.mode || 'auto');
   const [agentId, setAgentId] = useState<string | undefined>(task.agentId);
   const { agents } = useAgents(projectId);
+  const skills = useSkills(projectId);
+  const [slashMenu, setSlashMenu] = useState<{ query: string; position: { top: number; left: number }; slashStart: number } | null>(null);
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -235,6 +239,91 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     setDescription(val);
     autosave(title, val, attachments, mode, agentId);
     if (!title) triggerAutoTitle(val);
+    checkSlashCommand(val);
+  };
+
+  const checkSlashCommand = (val: string) => {
+    const ta = descriptionRef.current;
+    if (!ta || skills.length === 0) { setSlashMenu(null); return; }
+
+    const cursorPos = ta.selectionStart;
+    // Look backward from cursor for a `/` at the start of a line or start of string
+    const before = val.slice(0, cursorPos);
+    const match = before.match(/(?:^|\n)(\/[a-zA-Z0-9_-]*)$/);
+    if (!match) { setSlashMenu(null); return; }
+
+    const query = match[1].slice(1); // strip the leading /
+    const slashStart = cursorPos - match[1].length;
+
+    // Get position relative to textarea container
+    const position = getCaretPosition(ta, slashStart);
+    setSlashMenu({ query, position, slashStart });
+  };
+
+  const handleSlashSelect = (skillName: string) => {
+    if (!slashMenu) return;
+    const ta = descriptionRef.current;
+    if (!ta) return;
+    const cursorPos = ta.selectionStart;
+    const before = description.slice(0, slashMenu.slashStart);
+    const after = description.slice(cursorPos);
+    const newVal = before + '/' + skillName + ' ' + after;
+    setDescription(newVal);
+    setSlashMenu(null);
+    autosave(title, newVal, attachments, mode, agentId);
+    // Set cursor after inserted text
+    const newCursorPos = slashMenu.slashStart + skillName.length + 2; // +2 for / and space
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(newCursorPos, newCursorPos);
+    });
+  };
+
+  /** Approximate caret coordinates within the textarea's scroll container. */
+  const getCaretPosition = (ta: HTMLTextAreaElement, charIndex: number): { top: number; left: number } => {
+    const mirror = document.createElement('div');
+    const style = window.getComputedStyle(ta);
+    const props = [
+      'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing',
+      'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom',
+      'borderTopWidth', 'borderLeftWidth', 'borderRightWidth', 'borderBottomWidth',
+      'boxSizing', 'whiteSpace', 'wordWrap', 'overflowWrap', 'tabSize', 'textIndent',
+    ] as const;
+    for (const prop of props) {
+      (mirror.style as unknown as Record<string, string>)[prop] = style.getPropertyValue(
+        prop.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
+      );
+    }
+    mirror.style.position = 'absolute';
+    mirror.style.top = '-9999px';
+    mirror.style.left = '-9999px';
+    mirror.style.width = ta.offsetWidth + 'px';
+    mirror.style.height = 'auto';
+    mirror.style.overflow = 'hidden';
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+
+    const textBefore = ta.value.slice(0, charIndex);
+    const textNode = document.createTextNode(textBefore);
+    mirror.appendChild(textNode);
+    const marker = document.createElement('span');
+    marker.textContent = '\u200b'; // zero-width space
+    mirror.appendChild(marker);
+
+    document.body.appendChild(mirror);
+    const markerRect = marker.getBoundingClientRect();
+    const mirrorRect = mirror.getBoundingClientRect();
+    document.body.removeChild(mirror);
+
+    // Position relative to the textarea's parent (the scrollable div)
+    const taRect = ta.getBoundingClientRect();
+    const scrollParent = ta.parentElement;
+    const parentRect = scrollParent?.getBoundingClientRect() ?? taRect;
+
+    return {
+      top: (markerRect.top - mirrorRect.top) - ta.scrollTop + (taRect.top - parentRect.top) + markerRect.height + 4,
+      left: (markerRect.left - mirrorRect.left) + (taRect.left - parentRect.left),
+    };
   };
 
   const MODES: TaskMode[] = ['auto', 'answer', 'plan', 'build'];
@@ -418,12 +507,17 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
         </div>
 
         {/* Description: takes remaining space, scrolls only at max height */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-2">
+        <div className="relative flex-1 min-h-0 overflow-y-auto px-6 py-2">
           <textarea
             ref={descriptionRef}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             onKeyDown={(e) => {
+              // When slash menu is open, let it handle navigation keys
+              if (slashMenu && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape')) {
+                // SlashCommandMenu captures these via document keydown
+                return;
+              }
               if (e.key === 'Tab' && e.shiftKey) {
                 e.preventDefault();
                 cycleMode();
@@ -436,10 +530,20 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
                 }
               }
             }}
+            onClick={() => checkSlashCommand(description)}
             onPaste={handlePaste}
             className="block w-full h-full bg-transparent text-sm text-text-secondary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 resize-none leading-relaxed overflow-y-auto"
             placeholder="Write something..."
           />
+          {slashMenu && (
+            <SlashCommandMenu
+              skills={skills}
+              query={slashMenu.query}
+              position={slashMenu.position}
+              onSelect={handleSlashSelect}
+              onClose={() => setSlashMenu(null)}
+            />
+          )}
         </div>
 
         {/* Attachments — pinned above toolbar */}

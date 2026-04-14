@@ -23,7 +23,6 @@ import {
   SortableContext,
   useSortable,
   horizontalListSortingStrategy,
-  verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -166,13 +165,12 @@ interface SortableTabProps {
   onRenameStart: () => void;
   onRemove: () => void;
   onClear: () => void;
-  vertical?: boolean;
 }
 
 function SortableTab({
   tab, isActive, isRenaming, renameValue, setRenameValue,
   renameInputRef, onSelect, onDoubleClick, onSubmitRename,
-  onCancelRename, onRenameStart, onRemove, onClear, vertical,
+  onCancelRename, onRenameStart, onRemove, onClear,
 }: SortableTabProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tab.id });
   const style = {
@@ -186,11 +184,11 @@ function SortableTab({
     : <TerminalIcon className="w-3 h-3 shrink-0" />;
 
   return (
-    <div ref={setNodeRef} style={style} className={`group/tab flex items-stretch shrink-0 relative ${vertical ? 'w-full' : ''}`} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className="group/tab flex items-stretch shrink-0 relative" {...attributes} {...listeners}>
       <button
         onClick={onSelect}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
-        className={`relative flex items-center gap-1.5 ${vertical ? 'px-3 py-2 w-full' : 'px-4 self-stretch'} text-xs ${vertical ? '' : 'min-w-[100px]'} ${
+        className={`relative flex items-center gap-1.5 px-4 self-stretch text-xs min-w-[100px] ${
           isActive
             ? 'bg-surface-hover/60 text-text-chrome-active'
             : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/30'
@@ -222,14 +220,14 @@ function SortableTab({
             <span
               data-clickable
               onClick={(e) => e.stopPropagation()}
-              className={`absolute ${vertical ? 'right-0 inset-y-0' : 'right-0 inset-y-0'} flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-text-tertiary hover:text-text-secondary bg-gradient-to-l from-50% to-transparent ${
+              className={`absolute right-0 inset-y-0 flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-text-tertiary hover:text-text-secondary bg-gradient-to-l from-50% to-transparent ${
                 isActive ? 'from-surface-hover/60' : 'from-surface-topbar group-hover/tab:from-surface-hover/30'
               }`}
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side={vertical ? 'right' : 'bottom'} className="w-40">
+          <DropdownMenuContent align="start" side="bottom" className="w-40">
             <DropdownMenuItem onSelect={onRenameStart}>
               <PencilIcon className="w-3.5 h-3.5" />
               Rename
@@ -511,7 +509,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
 
   // --- New tab dropdown content (shared between orientations) ---
   const newTabDropdownContent = (
-    <DropdownMenuContent align="start" side={isVertical ? 'right' : 'bottom'} className="w-40">
+    <DropdownMenuContent align="start" side="bottom" className="w-40">
       {agentMap && agentMap.size > 1 ? (
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
@@ -581,7 +579,6 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       }}
       onRemove={() => removeTab(tab.id)}
       onClear={() => clearTab(tab)}
-      vertical={isVertical}
     />
   ));
 
@@ -611,7 +608,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     return (
       <div
         ref={panelRef}
-        className="h-full flex flex-row bg-surface-deep flex-shrink-0"
+        className="h-full flex flex-col bg-surface-deep flex-shrink-0"
         style={{
           minWidth: 0,
           ...(workbench.collapsed
@@ -619,60 +616,34 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
             : { flexBasis: `${workbench.percent}%` }),
         }}
       >
-        {/* Sidebar nav bar (vertical strip on the left) */}
-        <div className="relative shrink-0 flex flex-col">
-          {/* Edge resize strip — sits over the left border */}
-          {!workbench.collapsed && (
-            <div
-              onMouseDown={(e) => workbench.onResizeStart(e)}
-              className="absolute inset-y-0 left-0 w-[5px] -translate-x-1/2 cursor-col-resize z-20 group/edge"
-            >
-              <div className="absolute inset-y-0 left-1/2 w-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
-            </div>
-          )}
-          <div className="w-12 flex flex-col items-stretch bg-surface-secondary border-l border-border-default h-full">
-            {/* Collapse/expand button — top of vertical nav */}
+        {/* Edge resize strip — sits over the left border */}
+        {!workbench.collapsed && (
+          <div
+            onMouseDown={(e) => workbench.onResizeStart(e)}
+            className="absolute inset-y-0 left-0 w-[5px] -translate-x-1/2 cursor-col-resize z-20 group/edge"
+          >
+            <div className="absolute inset-y-0 left-1/2 w-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
+          </div>
+        )}
+
+        {/* Horizontal tab bar at top */}
+        <div className="relative shrink-0">
+          <div className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-l border-border-default">
+            {/* Collapse/expand button — left side */}
             <button
               onClick={toggleCollapsed}
-              className="flex items-center justify-center h-12 w-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+              className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
               title={workbench.collapsed ? 'Expand panel' : 'Collapse panel'}
             >
               {workbench.collapsed ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
 
-            {/* Tab icons — vertical list */}
+            {/* Tabs + new tab button (hidden when collapsed) */}
             {!workbench.collapsed && (
               <>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={tabs.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                    {tabs.map((tab) => (
-                      <SortableTab
-                        key={tab.id}
-                        tab={tab}
-                        isActive={activeTabId === tab.id}
-                        isRenaming={renamingTabId === tab.id}
-                        renameValue={renameValue}
-                        setRenameValue={setRenameValue}
-                        renameInputRef={renameInputRef}
-                        onSelect={() => {
-                          dispatch({ type: 'activate', tabId: tab.id });
-                          if (workbench.collapsed) expandPanel();
-                        }}
-                        onDoubleClick={() => {
-                          setRenamingTabId(tab.id);
-                          setRenameValue(tab.label);
-                        }}
-                        onSubmitRename={submitRename}
-                        onCancelRename={() => { setRenamingTabId(null); setRenameValue(''); }}
-                        onRenameStart={() => {
-                          setRenamingTabId(tab.id);
-                          setRenameValue(tab.label);
-                        }}
-                        onRemove={() => removeTab(tab.id)}
-                        onClear={() => clearTab(tab)}
-                        vertical
-                      />
-                    ))}
+                  <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
+                    {sortableTabs}
                   </SortableContext>
                 </DndContext>
 
@@ -680,7 +651,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex items-center justify-center h-10 w-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                      className="flex items-center justify-center w-12 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
                       title="New tab"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -688,19 +659,19 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
                   </DropdownMenuTrigger>
                   {newTabDropdownContent}
                 </DropdownMenu>
+
+                {/* Spacer — doubles as resize grab target */}
+                <div
+                  className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  onMouseDown={(e) => workbench.onResizeStart(e)}
+                />
               </>
             )}
 
-            {/* Spacer */}
-            <div
-              className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-              onMouseDown={(e) => workbench.onResizeStart(e)}
-            />
-
-            {/* Orientation toggle — bottom of vertical nav */}
+            {/* Orientation toggle — right end of nav bar */}
             <button
               onClick={handleOrientationToggle}
-              className="flex items-center justify-center h-12 w-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+              className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
               title="Switch to bottom panel"
             >
               <PanelBottom className="w-3.5 h-3.5" />

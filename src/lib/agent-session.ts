@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { join } from "path";
 import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
-import { resolveProjectPath, escapePrompt } from "./utils";
+import { resolveProjectPath, escapePrompt, wrapPromptWithUnseen } from "./utils";
 import { updateTask, getTask, getProject, getSettings, setTaskSession, readTaskSessionFile } from "./db";
 import {
   notify,
@@ -593,6 +593,9 @@ export async function continueSession(
       promptText += `\n\n## Attached Files\nThe following files are attached to this message. Use your Read tool to view them:\n${otherFiles.map((f) => `- ${f}`).join("\n")}\n`;
     }
   }
+
+  // Bridge any user messages the CLI missed due to session stops
+  promptText = wrapPromptWithUnseen(promptText, session.blocks);
 
   // Build CLI args — use --resume whenever we have a sessionId.
   // Claude CLI persists sessions to disk, so --resume works even for

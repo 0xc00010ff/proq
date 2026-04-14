@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { AgentBlock } from "./types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -35,4 +36,49 @@ export function slugify(name: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     || 'project';
+}
+
+/**
+ * Find user messages the CLI never saw because the session was stopped
+ * before the agent could respond. Scans backward from the end of blocks
+ * to find the last point where the agent actually finished ("complete",
+ * "error", or "interrupted" — NOT "abort"), then returns any user
+ * messages after that point, excluding the final one (the current message).
+ */
+export function getUnseenUserMessages(blocks: AgentBlock[]): string[] {
+  let lastRespondedIdx = -1;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i];
+    if (b.type === "status" && (b.subtype === "complete" || b.subtype === "error" || b.subtype === "interrupted")) {
+      lastRespondedIdx = i;
+      break;
+    }
+  }
+
+  const userMessages: string[] = [];
+  for (let i = lastRespondedIdx + 1; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.type === "user") {
+      userMessages.push(b.text);
+    }
+  }
+
+  // Remove the last one — that's the current message being sent via -p
+  if (userMessages.length > 0) {
+    userMessages.pop();
+  }
+
+  return userMessages;
+}
+
+/**
+ * Wrap a prompt with any unseen user messages so the agent has context
+ * for messages it missed due to session interruptions.
+ */
+export function wrapPromptWithUnseen(promptText: string, blocks: AgentBlock[]): string {
+  const unseen = getUnseenUserMessages(blocks);
+  if (unseen.length === 0) return promptText;
+
+  const missed = unseen.map(m => `- "${m}"`).join("\n");
+  return `Prior messages you haven't seen (the session was interrupted before you could respond):\n${missed}\n\nCurrent message:\n${promptText}`;
 }

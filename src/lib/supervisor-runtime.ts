@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { getAllProjects, getSupervisorAgentBlocks, setSupervisorAgentBlocks, getSettings } from "./db";
 import { getClaudeBin } from "./claude-bin";
-import { escapePrompt } from "./utils";
+import { escapePrompt, wrapPromptWithUnseen } from "./utils";
 import type WebSocket from "ws";
 
 export interface SupervisorSession {
@@ -407,9 +407,12 @@ export async function continueSupervisorSession(
   const startTime = Date.now();
   const systemPrompt = await buildSupervisorSystemPrompt();
 
+  // Bridge any user messages the CLI missed due to session stops
+  const promptText = wrapPromptWithUnseen(text, session.blocks);
+
   const args: string[] = [
     "--resume", session.sessionId!,
-    "-p", escapePrompt(text),
+    "-p", escapePrompt(promptText),
     "--output-format", "stream-json",
     "--include-partial-messages",
     "--verbose",

@@ -6,7 +6,7 @@ import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
 import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject, getAgent } from "./db";
 import { getClaudeBin } from "./claude-bin";
-import { escapePrompt } from "./utils";
+import { escapePrompt, wrapPromptWithUnseen } from "./utils";
 import type WebSocket from "ws";
 
 export interface AgentTabSession {
@@ -504,6 +504,9 @@ export async function continueAgentTabSession(
   const project = await getProject(projectId);
   const projectName = project?.name || "project";
   const mcpConfigPath = writeWorkbenchMcpConfig(projectId, tabId);
+
+  // Bridge any user messages the CLI missed due to session stops
+  promptText = wrapPromptWithUnseen(promptText, session.blocks);
 
   const args: string[] = [
     "--resume", session.sessionId!,

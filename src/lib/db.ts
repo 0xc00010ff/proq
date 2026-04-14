@@ -1131,7 +1131,7 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
   const config = getProjectConfig(projectId);
   const now = new Date().toISOString();
   const agent: Agent = {
-    id: uuidv7(),
+    id: "claude",
     name: "Claude",
     role: "General-purpose agent",
     systemPrompt: config.systemPrompt || "",
@@ -1148,9 +1148,11 @@ export async function createAgent(
   projectId: string,
   data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent> {
+  const existing = await getAllAgents(projectId);
+  const existingIds = existing.map((a) => a.id);
   const now = new Date().toISOString();
   const agent: Agent = {
-    id: uuidv7(),
+    id: uniqueSlug(slugify(data.name), existingIds),
     name: data.name,
     role: data.role,
     systemPrompt: data.systemPrompt,

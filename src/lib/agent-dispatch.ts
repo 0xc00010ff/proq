@@ -90,7 +90,8 @@ You have MCP tools from the **proq** server for reporting progress. Use them ins
 - \`read_task\` — Read current task state and any existing report
 - \`write_report\` — Write a summary report of work done (problem, solution, results)
 - \`commit_changes\` — Stage and commit all current changes with a message
-- \`create_task\` — Create a follow-up task for work outside your current scope`,
+- \`create_task\` — Create a follow-up task for work outside your current scope
+- \`list_agents\` — List all agents in this project`,
   ];
 
   // Mode-specific guidance
@@ -369,7 +370,7 @@ export async function dispatchTask(
   if (settings.systemPromptAdditions) systemPromptParts.push(settings.systemPromptAdditions);
   if (project.systemPrompt) systemPromptParts.push(project.systemPrompt);
   if (agentDef) {
-    const identity = `You are **${agentDef.name}**.${agentDef.role ? ` ${agentDef.role}.` : ''}`;
+    const identity = `You are **${agentDef.name}** (\`${agentDef.id}\`).${agentDef.role ? `\nRole: ${agentDef.role}` : ''}`;
     const agentParts = [identity];
     if (agentDef.systemPrompt) agentParts.push(agentDef.systemPrompt);
     systemPromptParts.push(agentParts.join('\n\n'));

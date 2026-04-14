@@ -132,7 +132,7 @@ server.tool(
     title: z.string().describe("Task title"),
     description: z.string().describe("Task description with details about what needs to be done"),
     mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Claude Code execution mode (default: auto)"),
-    agentId: z.string().optional().describe("Agent ID to assign this task to (uses project default if omitted)"),
+    agentId: z.string().optional().describe("Agent slug to assign this task to (uses project default if omitted)"),
   },
   async ({ projectId, title, description, mode, agentId }) => {
     try {
@@ -147,6 +147,30 @@ server.tool(
       }
       const task = await res.json();
       return { content: [{ type: "text", text: `Created task "${task.title}" (${task.id})` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── list_agents ──
+
+server.tool(
+  "list_agents",
+  "List all agents in a project.",
+  {
+    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+  },
+  async ({ projectId }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const res = await fetch(`${API}/api/projects/${pid}/agents`);
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `Failed to list agents: ${res.status}` }], isError: true };
+      }
+      const agents = await res.json();
+      const lines = agents.map((a) => `- \`${a.id}\` — ${a.name}${a.role ? `. ${a.role}` : ""}`);
+      return { content: [{ type: "text", text: lines.join("\n") || "No agents found." }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
     }

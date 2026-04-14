@@ -126,15 +126,16 @@ server.tool(
 
 server.tool(
   "create_task",
-  "Create a new task in a project.",
+  "Create a new task in a project. Set start=true to immediately dispatch the task to an agent.",
   {
     projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
     title: z.string().describe("Task title"),
     description: z.string().describe("Task description with details about what needs to be done"),
     mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Claude Code execution mode (default: auto)"),
     agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+    start: z.boolean().optional().describe("Set to true to immediately start the task (move to in-progress and dispatch an agent)"),
   },
-  async ({ projectId, title, description, mode, agentId }) => {
+  async ({ projectId, title, description, mode, agentId, start }) => {
     try {
       const pid = resolveProjectId(projectId);
       const res = await fetch(`${API}/api/projects/${pid}/tasks`, {
@@ -146,6 +147,19 @@ server.tool(
         return { content: [{ type: "text", text: `Failed to create task: ${res.status}` }], isError: true };
       }
       const task = await res.json();
+
+      if (start) {
+        const startRes = await fetch(`${API}/api/projects/${pid}/tasks/${task.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "in-progress" }),
+        });
+        if (!startRes.ok) {
+          return { content: [{ type: "text", text: `Created task "${task.title}" (${task.id}) but failed to start it: ${startRes.status}` }], isError: true };
+        }
+        return { content: [{ type: "text", text: `Created and started task "${task.title}" (${task.id})` }] };
+      }
+
       return { content: [{ type: "text", text: `Created task "${task.title}" (${task.id})` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };

@@ -605,82 +605,96 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   /*  VERTICAL (right sidebar) layout                                         */
   /* ======================================================================== */
   if (isVertical) {
+    // Collapsed: show a full-height vertical strip with expand + orientation buttons
+    if (workbench.collapsed) {
+      return (
+        <div
+          ref={panelRef}
+          className="h-full flex flex-col bg-surface-secondary flex-shrink-0 border-l border-border-default"
+          style={{ flexBasis: 'auto', flexGrow: 0, minWidth: 0 }}
+        >
+          <button
+            onClick={toggleCollapsed}
+            className="flex items-center justify-center w-12 h-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+            title="Expand panel"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={handleOrientationToggle}
+            className="flex items-center justify-center w-12 h-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+            title="Switch to bottom panel"
+          >
+            <PanelBottom className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      );
+    }
+
+    // Expanded: grab bar + tab bar + content
     return (
       <div
         ref={panelRef}
-        className="h-full flex flex-col bg-surface-deep flex-shrink-0"
-        style={{
-          minWidth: 0,
-          ...(workbench.collapsed
-            ? { flexBasis: 'auto', flexGrow: 0 }
-            : { flexBasis: `${workbench.percent}%` }),
-        }}
+        className="h-full flex flex-row bg-surface-deep flex-shrink-0 relative"
+        style={{ flexBasis: `${workbench.percent}%`, minWidth: 0 }}
       >
-        {/* Edge resize strip — sits over the left border */}
-        {!workbench.collapsed && (
-          <div
-            onMouseDown={(e) => workbench.onResizeStart(e)}
-            className="absolute inset-y-0 left-0 w-[5px] -translate-x-1/2 cursor-col-resize z-20 group/edge"
-          >
-            <div className="absolute inset-y-0 left-1/2 w-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
+        {/* Visible 2px grab bar on the left edge */}
+        <div
+          onMouseDown={(e) => workbench.onResizeStart(e)}
+          className={`w-[2px] shrink-0 self-stretch bg-border-default hover:bg-bronze-800 transition-colors ${workbench.isDragging ? 'cursor-grabbing bg-bronze-800' : 'cursor-col-resize'}`}
+        />
+
+        {/* Main panel content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Horizontal tab bar at top */}
+          <div className="shrink-0">
+            <div className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-b border-border-default">
+              {/* Collapse button — left side */}
+              <button
+                onClick={toggleCollapsed}
+                className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                title="Collapse panel"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
+                  {sortableTabs}
+                </SortableContext>
+              </DndContext>
+
+              {/* New tab button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center justify-center w-12 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                    title="New tab"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                {newTabDropdownContent}
+              </DropdownMenu>
+
+              {/* Spacer */}
+              <div className="flex-1" />
+
+              {/* Orientation toggle — right end of nav bar */}
+              <button
+                onClick={handleOrientationToggle}
+                className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                title="Switch to bottom panel"
+              >
+                <PanelBottom className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* Horizontal tab bar at top */}
-        <div className="relative shrink-0">
-          <div className="h-12 flex items-stretch bg-surface-secondary overflow-visible border-l border-border-default">
-            {/* Collapse/expand button — left side */}
-            <button
-              onClick={toggleCollapsed}
-              className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-              title={workbench.collapsed ? 'Expand panel' : 'Collapse panel'}
-            >
-              {workbench.collapsed ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </button>
-
-            {/* Tabs + new tab button (hidden when collapsed) */}
-            {!workbench.collapsed && (
-              <>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
-                    {sortableTabs}
-                  </SortableContext>
-                </DndContext>
-
-                {/* New tab button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="flex items-center justify-center w-12 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-                      title="New tab"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  {newTabDropdownContent}
-                </DropdownMenu>
-
-                {/* Spacer — doubles as resize grab target */}
-                <div
-                  className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                  onMouseDown={(e) => workbench.onResizeStart(e)}
-                />
-              </>
-            )}
-
-            {/* Orientation toggle — right end of nav bar */}
-            <button
-              onClick={handleOrientationToggle}
-              className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
-              title="Switch to bottom panel"
-            >
-              <PanelBottom className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          {/* Content area */}
+          {contentPanes}
         </div>
-
-        {/* Content area */}
-        {!workbench.collapsed && contentPanes}
 
         {/* Full-screen overlay while dragging */}
         {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}

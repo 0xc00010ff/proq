@@ -195,7 +195,7 @@ async function fireCronJob(projectId: string, projectName: string, job: CronJob)
 
   // Create the task in todo
   const task = await createTask(projectId, {
-    title: `[cron] ${job.name}`,
+    title: job.name,
     description: job.prompt,
     mode: job.mode ?? "auto",
     agentId: job.agentId,

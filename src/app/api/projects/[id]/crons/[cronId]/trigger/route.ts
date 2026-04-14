@@ -22,7 +22,7 @@ export async function POST(_request: Request, { params }: Params) {
 
   // Create task in todo
   const task = await createTask(id, {
-    title: `[cron] ${job.name}`,
+    title: job.name,
     description: job.prompt,
     mode: job.mode ?? "auto",
     agentId: job.agentId,

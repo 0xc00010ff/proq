@@ -1081,24 +1081,38 @@ export async function deleteCronJob(
 // AGENTS (per-file storage in agents/)
 // ═══════════════════════════════════════════════════════════
 
-function agentFilePath(projectId: string, agentId: string): string {
-  return path.join(projectDir(projectId), "agents", `${agentId}.json`);
+function agentsDir(projectId: string): string {
+  return path.join(projectDir(projectId), "agents");
 }
 
-function readAgentFile(projectId: string, agentId: string): Agent | null {
-  const fp = agentFilePath(projectId, agentId);
-  if (!fsExists(fp)) return null;
-  return readJSON<Agent | null>(fp, null);
+function agentFileBySlug(projectId: string, slug: string): string {
+  return path.join(agentsDir(projectId), `${slug}.json`);
+}
+
+/** Migrate an agent file that lacks a slug field (pre-slug era, UUID filenames). */
+function migrateAgentFile(projectId: string, filename: string, agent: Agent): Agent {
+  if (agent.slug) return agent;
+  agent.slug = slugify(agent.name);
+  // Rename file from UUID-based name to slug-based name
+  const oldPath = path.join(agentsDir(projectId), filename);
+  const newPath = agentFileBySlug(projectId, agent.slug);
+  if (oldPath !== newPath && fsExists(oldPath)) {
+    writeJSON(newPath, agent);
+    try { unlinkSync(oldPath); } catch { /* best effort */ }
+  } else {
+    writeJSON(oldPath, agent);
+  }
+  return agent;
 }
 
 function writeAgentFile(projectId: string, agent: Agent): void {
   ensureProjectDir(projectId);
-  writeJSON(agentFilePath(projectId, agent.id), agent);
+  writeJSON(agentFileBySlug(projectId, agent.slug), agent);
 }
 
 export async function getAllAgents(projectId: string): Promise<Agent[]> {
   ensureProjectDir(projectId);
-  const dir = path.join(projectDir(projectId), "agents");
+  const dir = agentsDir(projectId);
   let files: string[];
   try {
     files = readdirSync(dir).filter((f) => f.endsWith(".json"));
@@ -1107,19 +1121,33 @@ export async function getAllAgents(projectId: string): Promise<Agent[]> {
   }
   const agents: Agent[] = [];
   for (const f of files) {
-    const id = f.replace(/\.json$/, "");
-    const agent = readAgentFile(projectId, id);
-    if (agent) agents.push(agent);
+    const fp = path.join(dir, f);
+    const raw = readJSON<Agent | null>(fp, null);
+    if (!raw) continue;
+    agents.push(migrateAgentFile(projectId, f, raw));
   }
   agents.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   return agents;
+}
+
+/** Look up an agent by UUID or slug. */
+export async function resolveAgent(
+  projectId: string,
+  idOrSlug: string
+): Promise<Agent | null> {
+  // Try slug first (direct file read — fast path)
+  const bySlug = readJSON<Agent | null>(agentFileBySlug(projectId, idOrSlug), null);
+  if (bySlug) return migrateAgentFile(projectId, `${idOrSlug}.json`, bySlug);
+  // Fall back to scanning for UUID match
+  const all = await getAllAgents(projectId);
+  return all.find((a) => a.id === idOrSlug) ?? null;
 }
 
 export async function getAgent(
   projectId: string,
   agentId: string
 ): Promise<Agent | null> {
-  return readAgentFile(projectId, agentId);
+  return resolveAgent(projectId, agentId);
 }
 
 /** Get or auto-create the Default agent for a project. */
@@ -1131,7 +1159,8 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
   const config = getProjectConfig(projectId);
   const now = new Date().toISOString();
   const agent: Agent = {
-    id: "claude",
+    id: uuidv7(),
+    slug: "claude",
     name: "Claude",
     role: "General-purpose agent",
     systemPrompt: config.systemPrompt || "",
@@ -1149,10 +1178,11 @@ export async function createAgent(
   data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent> {
   const existing = await getAllAgents(projectId);
-  const existingIds = existing.map((a) => a.id);
+  const existingSlugs = existing.map((a) => a.slug);
   const now = new Date().toISOString();
   const agent: Agent = {
-    id: uniqueSlug(slugify(data.name), existingIds),
+    id: uuidv7(),
+    slug: uniqueSlug(slugify(data.name), existingSlugs),
     name: data.name,
     role: data.role,
     systemPrompt: data.systemPrompt,
@@ -1171,12 +1201,28 @@ export async function updateAgent(
   data: Partial<Pick<Agent, "name" | "role" | "systemPrompt" | "avatar" | "position">>
 ): Promise<Agent | null> {
   return withWriteLock(`agent:${agentId}`, async () => {
-    const agent = readAgentFile(projectId, agentId);
+    const agent = await resolveAgent(projectId, agentId);
     if (!agent) return null;
+    const oldSlug = agent.slug;
+
     // Use explicit key iteration so undefined values clear fields (Object.assign skips them)
     for (const key of Object.keys(data) as (keyof typeof data)[]) {
       (agent as unknown as Record<string, unknown>)[key] = data[key];
     }
+
+    // Recompute slug if name changed
+    if (data.name && data.name !== oldSlug) {
+      const all = await getAllAgents(projectId);
+      const otherSlugs = all.filter((a) => a.id !== agent.id).map((a) => a.slug);
+      const newSlug = uniqueSlug(slugify(data.name), otherSlugs);
+      if (newSlug !== oldSlug) {
+        agent.slug = newSlug;
+        // Remove old file
+        const oldPath = agentFileBySlug(projectId, oldSlug);
+        try { if (fsExists(oldPath)) unlinkSync(oldPath); } catch { /* best effort */ }
+      }
+    }
+
     agent.updatedAt = new Date().toISOString();
     writeAgentFile(projectId, agent);
     return agent;
@@ -1187,13 +1233,15 @@ export async function deleteAgent(
   projectId: string,
   agentId: string
 ): Promise<boolean> {
-  const fp = agentFilePath(projectId, agentId);
+  const agent = await resolveAgent(projectId, agentId);
+  if (!agent) return false;
+  const fp = agentFileBySlug(projectId, agent.slug);
   try {
     if (fsExists(fp)) {
       unlinkSync(fp);
       // Clear defaultAgentId if it pointed to the deleted agent
       const ws = getProjectWorkspace(projectId);
-      if (ws.defaultAgentId === agentId) {
+      if (ws.defaultAgentId === agent.id) {
         ws.defaultAgentId = undefined;
         writeProjectWorkspace(projectId, ws);
       }

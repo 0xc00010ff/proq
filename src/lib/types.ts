@@ -234,7 +234,8 @@ export interface CronJob {
 
 // ── Agent ───────────────────────────────────────────────
 export interface Agent {
-  id: string;           // uuidv7
+  id: string;           // uuidv7 — stable, never changes
+  slug: string;         // derived from name, updated on rename
   name: string;         // "Default", "Chief Research Officer"
   role?: string;        // short purpose statement
   systemPrompt?: string;

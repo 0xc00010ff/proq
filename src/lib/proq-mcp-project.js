@@ -132,7 +132,7 @@ server.tool(
     title: z.string().describe("Task title"),
     description: z.string().describe("Task description with details about what needs to be done"),
     mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Claude Code execution mode (default: auto)"),
-    agentId: z.string().optional().describe("Agent slug to assign this task to (uses project default if omitted)"),
+    agentId: z.string().optional().describe("Agent ID or slug to assign this task to (uses project default if omitted)"),
   },
   async ({ projectId, title, description, mode, agentId }) => {
     try {
@@ -169,7 +169,7 @@ server.tool(
         return { content: [{ type: "text", text: `Failed to list agents: ${res.status}` }], isError: true };
       }
       const agents = await res.json();
-      const lines = agents.map((a) => `- \`${a.id}\` — ${a.name}${a.role ? `. ${a.role}` : ""}`);
+      const lines = agents.map((a) => `- \`${a.slug}\` — ${a.name}${a.role ? `. ${a.role}` : ""}`);
       return { content: [{ type: "text", text: lines.join("\n") || "No agents found." }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
@@ -189,7 +189,7 @@ server.tool(
     description: z.string().optional().describe("New description"),
     status: z.enum(["todo", "in-progress", "verify", "done"]).optional().describe("New status"),
     priority: z.enum(["low", "medium", "high"]).optional().describe("New priority"),
-    agentId: z.string().optional().describe("Agent slug to assign this task to (uses project default if omitted)"),
+    agentId: z.string().optional().describe("Agent ID or slug to assign this task to (uses project default if omitted)"),
   },
   async ({ projectId, taskId, ...fields }) => {
     try {

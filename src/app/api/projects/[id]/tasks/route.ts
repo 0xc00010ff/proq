@@ -27,8 +27,9 @@ export async function POST(request: Request, { params }: Params) {
   const title = body.title ?? "";
   const description = body.description ?? "";
   const mode = body.mode;
+  const agentId = body.agentId;
 
-  const task = await createTask(id, { title, description, mode });
+  const task = await createTask(id, { title, description, mode, agentId });
   emitTaskCreated(id, task as unknown as Record<string, unknown>);
   return NextResponse.json(task, { status: 201 });
 }

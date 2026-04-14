@@ -205,13 +205,14 @@ server.tool(
     title: z.string().describe("Short task title"),
     description: z.string().describe("Task description with details about what needs to be done"),
     mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task mode (default: auto)"),
+    agentId: z.string().optional().describe("Agent ID to assign this task to (uses project default if omitted)"),
   },
-  async ({ title, description, mode }) => {
+  async ({ title, description, mode, agentId }) => {
     try {
       const res = await fetch(`${API}/api/projects/${projectId}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, mode }),
+        body: JSON.stringify({ title, description, mode, agentId }),
       });
       if (!res.ok) {
         return { content: [{ type: "text", text: `Failed to create task: ${res.status}` }], isError: true };

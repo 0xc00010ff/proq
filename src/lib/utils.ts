@@ -40,35 +40,20 @@ export function slugify(name: string): string {
 
 /**
  * Find user messages the CLI never saw because the session was stopped
- * before the agent could respond. Scans backward from the end of blocks
- * to find the last point where the agent actually finished ("complete",
- * "error", or "interrupted" — NOT "abort"), then returns any user
- * messages after that point, excluding the final one (the current message).
+ * before the agent could respond. Walks backward from the end of blocks,
+ * collecting user messages until it hits actual agent content (text,
+ * thinking, tool_use, tool_result). The final user block is excluded
+ * since that's the current message being sent via -p.
  */
 export function getUnseenUserMessages(blocks: AgentBlock[]): string[] {
-  let lastRespondedIdx = -1;
+  const unseen: string[] = [];
   for (let i = blocks.length - 1; i >= 0; i--) {
     const b = blocks[i];
-    if (b.type === "status" && (b.subtype === "complete" || b.subtype === "error" || b.subtype === "interrupted")) {
-      lastRespondedIdx = i;
-      break;
-    }
+    if (b.type === "user") unseen.unshift(b.text);
+    else if (b.type === "text" || b.type === "thinking" || b.type === "tool_use" || b.type === "tool_result") break;
   }
-
-  const userMessages: string[] = [];
-  for (let i = lastRespondedIdx + 1; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (b.type === "user") {
-      userMessages.push(b.text);
-    }
-  }
-
-  // Remove the last one — that's the current message being sent via -p
-  if (userMessages.length > 0) {
-    userMessages.pop();
-  }
-
-  return userMessages;
+  if (unseen.length > 0) unseen.pop();
+  return unseen;
 }
 
 /**

@@ -25,6 +25,7 @@ export async function POST(_request: Request, { params }: Params) {
     title: `[cron] ${job.name}`,
     description: job.prompt,
     mode: job.mode ?? "auto",
+    agentId: job.agentId,
   });
   await updateTask(id, task.id, { cronJobId: job.id });
   task.cronJobId = job.id;

@@ -660,7 +660,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
               </button>
 
               {/* Scrollable tabs region */}
-              <div className="flex-1 flex items-stretch overflow-x-auto overflow-y-hidden min-w-0">
+              <div className="flex-1 flex items-stretch min-w-0 scrollbar-overlay">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
                     {sortableTabs}
@@ -740,7 +740,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         </button>
 
         {/* Scrollable tabs region */}
-        <div className="flex-1 flex items-stretch overflow-x-auto overflow-y-hidden min-w-0">
+        <div className="flex-1 flex items-stretch min-w-0 scrollbar-overlay">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
               {sortableTabs}

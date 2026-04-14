@@ -223,6 +223,45 @@
   background: rgb(var(--border-strong));
 }
 
+/* Overlay scrollbar — thin, appears on hover/scroll, overlays content */
+.scrollbar-overlay {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-overlay:hover {
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.scrollbar-overlay::-webkit-scrollbar {
+  height: 4px;
+  background: transparent;
+}
+.scrollbar-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-overlay::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  border: none;
+}
+.scrollbar-overlay:hover::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+}
+.scrollbar-overlay:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+/* Light mode overlay scrollbar */
+:root:not(.dark) .scrollbar-overlay:hover {
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+:root:not(.dark) .scrollbar-overlay:hover::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+}
+:root:not(.dark) .scrollbar-overlay:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.3);
+}
+
 /* Subtle pulse for locked/agent-working tasks */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }

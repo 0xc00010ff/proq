@@ -143,6 +143,33 @@ if $DESKTOP; then
   gh release edit "v$NEXT" --draft=false --title "v$NEXT" --notes "$RELEASE_BODY"
 else
   gh release create "v$NEXT" --title "v$NEXT" --notes "$RELEASE_BODY"
+
+  # Carry forward desktop artifacts so electron-updater can always find
+  # latest-mac.yml on the Latest release (it only checks /releases/latest).
+  echo ""
+  echo "Carrying forward desktop artifacts..."
+  DESKTOP_TAG=""
+  for tag in $(gh release list --limit 20 --json tagName --jq '.[].tagName'); do
+    if [ "$tag" = "v$NEXT" ]; then continue; fi
+    if gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null | grep -q "^latest-mac.yml$"; then
+      DESKTOP_TAG="$tag"
+      break
+    fi
+  done
+
+  if [ -n "$DESKTOP_TAG" ]; then
+    TMPDIR_ASSETS=$(mktemp -d)
+    gh release download "$DESKTOP_TAG" --dir "$TMPDIR_ASSETS" --pattern "latest-mac.yml" --pattern "*.zip" --pattern "*.dmg" --pattern "*.blockmap" --clobber 2>/dev/null || true
+    if [ -f "$TMPDIR_ASSETS/latest-mac.yml" ]; then
+      gh release upload "v$NEXT" "$TMPDIR_ASSETS"/* --clobber
+      echo "Copied desktop artifacts from $DESKTOP_TAG"
+    else
+      echo "Warning: could not download desktop artifacts from $DESKTOP_TAG"
+    fi
+    rm -rf "$TMPDIR_ASSETS"
+  else
+    echo "Warning: no previous release with desktop artifacts found"
+  fi
 fi
 
 # ── 8. Return to develop ────────────────────────────────

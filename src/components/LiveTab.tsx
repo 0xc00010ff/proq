@@ -292,7 +292,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
         ) : (
           /* ── Preview ── */
           <>
-            <div className="h-10 bg-surface-base border-b border-border-default flex items-center px-4 space-x-4 shrink-0">
+            <div className="h-10 bg-surface-secondary border-b border-border-default flex items-center px-4 space-x-4 shrink-0">
               <div className="flex space-x-1.5 group/lights">
                 <button
                   onClick={handleDisconnect}

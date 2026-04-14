@@ -254,7 +254,7 @@ function SortableTab({
 /*  Panel component                                                           */
 /* -------------------------------------------------------------------------- */
 
-const TAB_BAR_HEIGHT = 48; // px — matches h-12
+const TAB_BAR_HEIGHT = 40; // px — matches h-10
 
 const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap, defaultAgentId, orientation, onOrientationChange }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -615,7 +615,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         >
           <button
             onClick={toggleCollapsed}
-            className="flex items-center justify-center w-12 h-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+            className="flex items-center justify-center w-10 h-10 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
             title="Expand panel"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -623,7 +623,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           <div className="flex-1" />
           <button
             onClick={handleOrientationToggle}
-            className="flex items-center justify-center w-12 h-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+            className="flex items-center justify-center w-10 h-10 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
             title="Switch to bottom panel"
           >
             <PanelBottom className="w-3.5 h-3.5" />
@@ -649,11 +649,11 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         <div className="flex-1 flex flex-col min-w-0">
           {/* Horizontal tab bar at top */}
           <div className="shrink-0">
-            <div className="h-12 flex items-stretch bg-surface-secondary overflow-hidden border-b border-border-default">
+            <div className="h-10 flex items-stretch bg-surface-secondary overflow-hidden border-b border-border-default">
               {/* Collapse button — left side, pinned */}
               <button
                 onClick={toggleCollapsed}
-                className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
                 title="Collapse panel"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -671,7 +671,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex items-center justify-center w-12 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                      className="flex items-center justify-center w-10 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
                       title="New tab"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -684,7 +684,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
               {/* Orientation toggle — right end of nav bar, pinned */}
               <button
                 onClick={handleOrientationToggle}
-                className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
                 title="Switch to bottom panel"
               >
                 <PanelBottom className="w-3.5 h-3.5" />
@@ -728,12 +728,12 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           </div>
         )}
         <div
-          className="h-12 flex items-stretch bg-surface-secondary overflow-hidden border-t border-border-default"
+          className="h-10 flex items-stretch bg-surface-secondary overflow-hidden border-t border-border-default"
         >
         {/* Collapse button — pinned left */}
         <button
           onClick={toggleCollapsed}
-          className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+          className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
           title={workbench.collapsed ? 'Expand terminal' : 'Collapse terminal'}
         >
           {workbench.collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -751,7 +751,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center justify-center w-12 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                className="flex items-center justify-center w-10 self-stretch h-full text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
                 title="New tab"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -770,7 +770,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         {/* Orientation toggle — pinned right */}
         <button
           onClick={handleOrientationToggle}
-          className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+          className="flex items-center justify-center w-10 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
           title="Switch to side panel"
         >
           <PanelRight className="w-3.5 h-3.5" />

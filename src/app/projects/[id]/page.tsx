@@ -50,7 +50,12 @@ export default function ProjectPage() {
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, hasUpstream: false, ahead: 0, behind: 0, dirty: 0 });
   const workbenchRef = useRef<WorkbenchPanelHandle>(null);
-  const [workbenchOrientation, setWorkbenchOrientation] = useState<WorkbenchOrientation>('horizontal');
+  const [workbenchOrientation, setWorkbenchOrientation] = useState<WorkbenchOrientation>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(`proq:workbench-orientation:${projectId}`) as WorkbenchOrientation) || 'horizontal';
+    }
+    return 'horizontal';
+  });
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
   const [boardDragOver, setBoardDragOver] = useState(false);
@@ -166,7 +171,7 @@ export default function ProjectPage() {
       fetch(`/api/projects/${projectId}/workbench-state`)
         .then((r) => r.json())
         .then((data) => {
-          if (data.orientation) setWorkbenchOrientation(data.orientation);
+          if (data.orientation) { setWorkbenchOrientation(data.orientation); localStorage.setItem(`proq:workbench-orientation:${projectId}`, data.orientation); }
         })
         .catch(() => {});
     }
@@ -854,7 +859,7 @@ export default function ProjectPage() {
           agentMap={agentMap}
           defaultAgentId={project?.defaultAgentId}
           orientation={workbenchOrientation}
-          onOrientationChange={setWorkbenchOrientation}
+          onOrientationChange={(o) => { setWorkbenchOrientation(o); localStorage.setItem(`proq:workbench-orientation:${projectId}`, o); }}
         />
       </main>
 

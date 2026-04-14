@@ -40,14 +40,20 @@ export async function attachSupervisorWs(ws: WebSocket): Promise<void> {
             // Continue existing session
             await continueSupervisorSession(msg.text, ws, msg.attachments);
           } else {
-            // Start a new session
-            // First attach the client so it gets blocks
-            await startSupervisorSession(msg.text);
-            const newSession = getSupervisorSession();
-            if (newSession) {
-              attachSupervisorClient(ws);
-              // Replay blocks that were already emitted before client was attached
-              ws.send(JSON.stringify({ type: "replay", blocks: newSession.blocks }));
+            // No live session — try to resume from persisted session
+            const stored = await getSupervisorAgentBlocks();
+            if (stored.sessionId) {
+              // Resume previous session with context
+              await continueSupervisorSession(msg.text, ws, msg.attachments);
+            } else {
+              // No previous session — start fresh
+              await startSupervisorSession(msg.text);
+              const newSession = getSupervisorSession();
+              if (newSession) {
+                attachSupervisorClient(ws);
+                // Replay blocks that were already emitted before client was attached
+                ws.send(JSON.stringify({ type: "replay", blocks: newSession.blocks }));
+              }
             }
           }
         } catch (err) {

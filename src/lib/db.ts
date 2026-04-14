@@ -532,6 +532,13 @@ export async function createTask(
   data: Pick<Task, "description"> & { title?: string; priority?: Task["priority"]; mode?: Task["mode"]; agentId?: string }
 ): Promise<Task> {
   return withWriteLock(`workspace:${projectId}`, async () => {
+    // Resolve agentId slug → UUID if needed
+    let resolvedAgentId = data.agentId;
+    if (resolvedAgentId) {
+      const agent = await resolveAgent(projectId, resolvedAgentId);
+      if (agent) resolvedAgentId = agent.id;
+    }
+
     const now = new Date().toISOString();
     const task: Task = {
       id: uuidv7(),
@@ -540,7 +547,7 @@ export async function createTask(
       status: "todo",
       priority: data.priority,
       mode: data.mode,
-      agentId: data.agentId,
+      agentId: resolvedAgentId,
       createdAt: now,
       updatedAt: now,
     };
@@ -598,6 +605,12 @@ export async function updateTask(
   return withWriteLock(`task:${taskId}`, async () => {
     const task = readTaskFile(projectId, taskId);
     if (!task) return null;
+
+    // Resolve agentId slug → UUID if needed
+    if (data.agentId) {
+      const agent = await resolveAgent(projectId, data.agentId);
+      if (agent) data = { ...data, agentId: agent.id };
+    }
 
     const currentStatus = task.status;
 

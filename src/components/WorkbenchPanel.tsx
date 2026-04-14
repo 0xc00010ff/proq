@@ -9,7 +9,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, MoreHorizontal, PencilIcon, Trash2Icon, EraserIcon } from 'lucide-react';
+import { Plus, TerminalIcon, SquareChevronUpIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, PencilIcon, Trash2Icon, EraserIcon, PanelBottom, PanelRight } from 'lucide-react';
 import { v7 as uuidv7 } from 'uuid';
 import {
   DndContext,
@@ -23,6 +23,7 @@ import {
   SortableContext,
   useSortable,
   horizontalListSortingStrategy,
+  verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -45,6 +46,7 @@ import type { Agent } from '@/lib/types';
 /* -------------------------------------------------------------------------- */
 
 export type WorkbenchTabType = 'shell' | 'agent';
+export type WorkbenchOrientation = 'horizontal' | 'vertical';
 
 export interface WorkbenchTab {
   id: string;
@@ -74,6 +76,8 @@ interface WorkbenchPanelProps {
   projectPath?: string;
   agentMap?: Map<string, Agent>;
   defaultAgentId?: string;
+  orientation: WorkbenchOrientation;
+  onOrientationChange: (orientation: WorkbenchOrientation) => void;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -162,12 +166,13 @@ interface SortableTabProps {
   onRenameStart: () => void;
   onRemove: () => void;
   onClear: () => void;
+  vertical?: boolean;
 }
 
 function SortableTab({
   tab, isActive, isRenaming, renameValue, setRenameValue,
   renameInputRef, onSelect, onDoubleClick, onSubmitRename,
-  onCancelRename, onRenameStart, onRemove, onClear,
+  onCancelRename, onRenameStart, onRemove, onClear, vertical,
 }: SortableTabProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tab.id });
   const style = {
@@ -181,11 +186,11 @@ function SortableTab({
     : <TerminalIcon className="w-3 h-3 shrink-0" />;
 
   return (
-    <div ref={setNodeRef} style={style} className="group/tab flex items-stretch shrink-0 relative" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className={`group/tab flex items-stretch shrink-0 relative ${vertical ? 'w-full' : ''}`} {...attributes} {...listeners}>
       <button
         onClick={onSelect}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
-        className={`relative flex items-center gap-1.5 px-4 self-stretch text-xs min-w-[100px] ${
+        className={`relative flex items-center gap-1.5 ${vertical ? 'px-3 py-2 w-full' : 'px-4 self-stretch'} text-xs ${vertical ? '' : 'min-w-[100px]'} ${
           isActive
             ? 'bg-surface-hover/60 text-text-chrome-active'
             : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/30'
@@ -217,14 +222,14 @@ function SortableTab({
             <span
               data-clickable
               onClick={(e) => e.stopPropagation()}
-              className={`absolute right-0 inset-y-0 flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-text-tertiary hover:text-text-secondary bg-gradient-to-l from-50% to-transparent ${
+              className={`absolute ${vertical ? 'right-0 inset-y-0' : 'right-0 inset-y-0'} flex items-center pl-4 pr-2 opacity-0 group-hover/tab:opacity-100 transition-opacity cursor-pointer text-text-tertiary hover:text-text-secondary bg-gradient-to-l from-50% to-transparent ${
                 isActive ? 'from-surface-hover/60' : 'from-surface-topbar group-hover/tab:from-surface-hover/30'
               }`}
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="bottom" className="w-40">
+          <DropdownMenuContent align="start" side={vertical ? 'right' : 'bottom'} className="w-40">
             <DropdownMenuItem onSelect={onRenameStart}>
               <PencilIcon className="w-3.5 h-3.5" />
               Rename
@@ -253,19 +258,21 @@ function SortableTab({
 
 const TAB_BAR_HEIGHT = 48; // px — matches h-12
 
-const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap, defaultAgentId }, ref) {
+const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(function WorkbenchPanel({ projectId, projectPath, agentMap, defaultAgentId, orientation, onOrientationChange }, ref) {
   const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const agentMapRef = useRef(agentMap);
   agentMapRef.current = agentMap;
+
+  const isVertical = orientation === 'vertical';
 
   // Discover parent container for resize calculations
   useEffect(() => {
     containerRef.current = panelRef.current?.parentElement as HTMLDivElement | null;
   }, []);
 
-  // --- Resize state (internalized from page.tsx) ---
-  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number }) => {
+  // --- Resize state ---
+  const patchWorkbenchState = useCallback((data: { open?: boolean; height?: number; orientation?: 'horizontal' | 'vertical'; width?: number }) => {
     fetch(`/api/projects/${projectId}/workbench-state`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -274,22 +281,24 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   }, [projectId]);
 
   const workbench = useResizablePanel(containerRef, {
-    defaultPercent: 60,
-    closedPercent: 25,
-    onPersist: (height) => patchWorkbenchState({ height }),
+    defaultPercent: isVertical ? 35 : 60,
+    closedPercent: isVertical ? 35 : 25,
+    onPersist: (size) => patchWorkbenchState(isVertical ? { width: size } : { height: size }),
+    direction: isVertical ? 'horizontal' : 'vertical',
   });
 
-  // Restore collapsed/height from server on mount
+  // Restore collapsed/height/width from server on mount
   useEffect(() => {
     if (!projectId) return;
     fetch(`/api/projects/${projectId}/workbench-state`)
       .then((res) => res.json())
       .then((data) => {
         workbench.setCollapsed(!data.open);
-        if (typeof data.height === 'number') workbench.setPercent(data.height);
+        if (typeof data.height === 'number' && !isVertical) workbench.setPercent(data.height);
+        if (typeof data.width === 'number' && isVertical) workbench.setPercent(data.width);
       })
       .catch(() => {});
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectId, isVertical]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleCollapsed = useCallback(() => {
     workbench.setCollapsed((prev: boolean) => {
@@ -304,10 +313,16 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
       patchWorkbenchState({ open: true });
       return false;
     });
-    workbench.setPercent((prev: number) => Math.max(prev, 40));
-  }, [workbench, patchWorkbenchState]);
+    workbench.setPercent((prev: number) => Math.max(prev, isVertical ? 25 : 40));
+  }, [workbench, patchWorkbenchState, isVertical]);
 
-  // --- Tab state (internalized from WorkbenchTabsProvider) ---
+  const handleOrientationToggle = useCallback(() => {
+    const newOrientation = isVertical ? 'horizontal' : 'vertical';
+    onOrientationChange(newOrientation);
+    patchWorkbenchState({ orientation: newOrientation });
+  }, [isVertical, onOrientationChange, patchWorkbenchState]);
+
+  // --- Tab state ---
   const initialTabs = defaultTabs();
   const [tabState, dispatch] = useReducer(tabReducer, { tabs: initialTabs, activeTabId: initialTabs[0].id });
   const [hydrated, setHydrated] = useState(false);
@@ -494,6 +509,217 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
     [tabs]
   );
 
+  // --- New tab dropdown content (shared between orientations) ---
+  const newTabDropdownContent = (
+    <DropdownMenuContent align="start" side={isVertical ? 'right' : 'bottom'} className="w-40">
+      {agentMap && agentMap.size > 1 ? (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <SquareChevronUpIcon className="w-3.5 h-3.5" />
+            Agent
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-44">
+            {Array.from(agentMap.values()).map((agent) => (
+              <DropdownMenuItem
+                key={agent.id}
+                onSelect={() => {
+                  if (workbench.collapsed) expandPanel();
+                  addAgentTab({ agentId: agent.id });
+                }}
+              >
+                {agent.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      ) : (
+        <DropdownMenuItem
+          onSelect={() => {
+            if (workbench.collapsed) expandPanel();
+            addAgentTab(defaultAgentId ? { agentId: defaultAgentId } : undefined);
+          }}
+        >
+          <SquareChevronUpIcon className="w-3.5 h-3.5" />
+          Agent
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuItem
+        onSelect={() => {
+          if (workbench.collapsed) expandPanel();
+          addShellTab();
+        }}
+      >
+        <TerminalIcon className="w-3.5 h-3.5" />
+        Terminal
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+
+  // --- Sortable tabs list ---
+  const sortableTabs = tabs.map((tab) => (
+    <SortableTab
+      key={tab.id}
+      tab={tab}
+      isActive={activeTabId === tab.id}
+      isRenaming={renamingTabId === tab.id}
+      renameValue={renameValue}
+      setRenameValue={setRenameValue}
+      renameInputRef={renameInputRef}
+      onSelect={() => {
+        dispatch({ type: 'activate', tabId: tab.id });
+        if (workbench.collapsed) expandPanel();
+      }}
+      onDoubleClick={() => {
+        setRenamingTabId(tab.id);
+        setRenameValue(tab.label);
+      }}
+      onSubmitRename={submitRename}
+      onCancelRename={() => { setRenamingTabId(null); setRenameValue(''); }}
+      onRenameStart={() => {
+        setRenamingTabId(tab.id);
+        setRenameValue(tab.label);
+      }}
+      onRemove={() => removeTab(tab.id)}
+      onClear={() => clearTab(tab)}
+      vertical={isVertical}
+    />
+  ));
+
+  // --- Content panes ---
+  const contentPanes = (
+    <div className="flex-1 relative" style={{ minHeight: 0, minWidth: 0 }}>
+      {tabs.length === 0 ? (
+        <div className="absolute inset-0 flex items-center justify-center text-text-placeholder text-xs">
+          No open tabs
+        </div>
+      ) : (
+        tabs.map((tab) =>
+          tab.type === 'agent' ? (
+            <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} agentId={tab.agentId} visible={activeTabId === tab.id} />
+          ) : (
+            <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
+          )
+        )
+      )}
+    </div>
+  );
+
+  /* ======================================================================== */
+  /*  VERTICAL (right sidebar) layout                                         */
+  /* ======================================================================== */
+  if (isVertical) {
+    return (
+      <div
+        ref={panelRef}
+        className="h-full flex flex-row bg-surface-deep flex-shrink-0"
+        style={{
+          minWidth: 0,
+          ...(workbench.collapsed
+            ? { flexBasis: 'auto', flexGrow: 0 }
+            : { flexBasis: `${workbench.percent}%` }),
+        }}
+      >
+        {/* Sidebar nav bar (vertical strip on the left) */}
+        <div className="relative shrink-0 flex flex-col">
+          {/* Edge resize strip — sits over the left border */}
+          {!workbench.collapsed && (
+            <div
+              onMouseDown={(e) => workbench.onResizeStart(e)}
+              className="absolute inset-y-0 left-0 w-[5px] -translate-x-1/2 cursor-col-resize z-20 group/edge"
+            >
+              <div className="absolute inset-y-0 left-1/2 w-px bg-transparent group-hover/edge:bg-bronze-800 transition-colors" />
+            </div>
+          )}
+          <div className="w-12 flex flex-col items-stretch bg-surface-secondary border-l border-border-default h-full">
+            {/* Collapse/expand button — top of vertical nav */}
+            <button
+              onClick={toggleCollapsed}
+              className="flex items-center justify-center h-12 w-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+              title={workbench.collapsed ? 'Expand panel' : 'Collapse panel'}
+            >
+              {workbench.collapsed ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Tab icons — vertical list */}
+            {!workbench.collapsed && (
+              <>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={tabs.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                    {tabs.map((tab) => (
+                      <SortableTab
+                        key={tab.id}
+                        tab={tab}
+                        isActive={activeTabId === tab.id}
+                        isRenaming={renamingTabId === tab.id}
+                        renameValue={renameValue}
+                        setRenameValue={setRenameValue}
+                        renameInputRef={renameInputRef}
+                        onSelect={() => {
+                          dispatch({ type: 'activate', tabId: tab.id });
+                          if (workbench.collapsed) expandPanel();
+                        }}
+                        onDoubleClick={() => {
+                          setRenamingTabId(tab.id);
+                          setRenameValue(tab.label);
+                        }}
+                        onSubmitRename={submitRename}
+                        onCancelRename={() => { setRenamingTabId(null); setRenameValue(''); }}
+                        onRenameStart={() => {
+                          setRenamingTabId(tab.id);
+                          setRenameValue(tab.label);
+                        }}
+                        onRemove={() => removeTab(tab.id)}
+                        onClear={() => clearTab(tab)}
+                        vertical
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+
+                {/* New tab button */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex items-center justify-center h-10 w-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+                      title="New tab"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  {newTabDropdownContent}
+                </DropdownMenu>
+              </>
+            )}
+
+            {/* Spacer */}
+            <div
+              className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+              onMouseDown={(e) => workbench.onResizeStart(e)}
+            />
+
+            {/* Orientation toggle — bottom of vertical nav */}
+            <button
+              onClick={handleOrientationToggle}
+              className="flex items-center justify-center h-12 w-12 text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+              title="Switch to bottom panel"
+            >
+              <PanelBottom className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content area */}
+        {!workbench.collapsed && contentPanes}
+
+        {/* Full-screen overlay while dragging */}
+        {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}
+      </div>
+    );
+  }
+
+  /* ======================================================================== */
+  /*  HORIZONTAL (bottom drawer) layout — original                            */
+  /* ======================================================================== */
   return (
     <div
       ref={panelRef}
@@ -528,33 +754,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
         </button>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
-            {tabs.map((tab) => (
-              <SortableTab
-                key={tab.id}
-                tab={tab}
-                isActive={activeTabId === tab.id}
-                isRenaming={renamingTabId === tab.id}
-                renameValue={renameValue}
-                setRenameValue={setRenameValue}
-                renameInputRef={renameInputRef}
-                onSelect={() => {
-                  dispatch({ type: 'activate', tabId: tab.id });
-                  if (workbench.collapsed) expandPanel();
-                }}
-                onDoubleClick={() => {
-                  setRenamingTabId(tab.id);
-                  setRenameValue(tab.label);
-                }}
-                onSubmitRename={submitRename}
-                onCancelRename={() => { setRenamingTabId(null); setRenameValue(''); }}
-                onRenameStart={() => {
-                  setRenamingTabId(tab.id);
-                  setRenameValue(tab.label);
-                }}
-                onRemove={() => removeTab(tab.id)}
-                onClear={() => clearTab(tab)}
-              />
-            ))}
+            {sortableTabs}
           </SortableContext>
         </DndContext>
 
@@ -568,48 +768,7 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
               <Plus className="w-3.5 h-3.5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="bottom" className="w-40">
-            {agentMap && agentMap.size > 1 ? (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <SquareChevronUpIcon className="w-3.5 h-3.5" />
-                  Agent
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-44">
-                  {Array.from(agentMap.values()).map((agent) => (
-                    <DropdownMenuItem
-                      key={agent.id}
-                      onSelect={() => {
-                        if (workbench.collapsed) expandPanel();
-                        addAgentTab({ agentId: agent.id });
-                      }}
-                    >
-                      {agent.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            ) : (
-              <DropdownMenuItem
-                onSelect={() => {
-                  if (workbench.collapsed) expandPanel();
-                  addAgentTab(defaultAgentId ? { agentId: defaultAgentId } : undefined);
-                }}
-              >
-                <SquareChevronUpIcon className="w-3.5 h-3.5" />
-                Agent
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onSelect={() => {
-                if (workbench.collapsed) expandPanel();
-                addShellTab();
-              }}
-            >
-              <TerminalIcon className="w-3.5 h-3.5" />
-              Terminal
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          {newTabDropdownContent}
         </DropdownMenu>
 
         {/* Spacer — fills remaining space, doubles as resize grab target */}
@@ -617,27 +776,20 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
           className={`flex-1 ${workbench.isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           onMouseDown={(e) => workbench.onResizeStart(e)}
         />
+
+        {/* Orientation toggle — right end of horizontal nav */}
+        <button
+          onClick={handleOrientationToggle}
+          className="flex items-center justify-center w-12 self-stretch text-text-placeholder hover:text-text-secondary hover:bg-surface-hover/30 shrink-0"
+          title="Switch to side panel"
+        >
+          <PanelRight className="w-3.5 h-3.5" />
+        </button>
         </div>
       </div>
 
       {/* Panes — each manages its own lifecycle */}
-      {!workbench.collapsed && (
-        <div className="flex-1 relative" style={{ minHeight: 0 }}>
-          {tabs.length === 0 ? (
-            <div className="absolute inset-0 flex items-center justify-center text-text-placeholder text-xs">
-              No open tabs
-            </div>
-          ) : (
-            tabs.map((tab) =>
-              tab.type === 'agent' ? (
-                <AgentTabPane key={tab.id} tabId={tab.id} projectId={projectId} agentId={tab.agentId} visible={activeTabId === tab.id} />
-              ) : (
-                <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} enableDrop />
-              )
-            )
-          )}
-        </div>
-      )}
+      {!workbench.collapsed && contentPanes}
 
       {/* Full-screen overlay while dragging to prevent interaction interference */}
       {workbench.isDragging && <div className="fixed inset-0 z-50 cursor-grabbing" />}

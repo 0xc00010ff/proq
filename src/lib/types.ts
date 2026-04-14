@@ -297,6 +297,8 @@ export interface ProjectWorkspace {
   // Workbench
   projectWorkbenchOpen?: boolean;
   projectWorkbenchHeight?: number;
+  projectWorkbenchOrientation?: 'horizontal' | 'vertical';
+  projectWorkbenchWidth?: number;
   projectWorkbenchTabs?: WorkbenchTabInfo[];
   projectWorkbenchActiveTabId?: string;
   /** @deprecated Workbench sessions now stored in sessions/{tabId}.json files. Kept for migration. */

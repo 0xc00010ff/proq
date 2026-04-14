@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { GridView } from '@/components/GridView';
-import WorkbenchPanel, { type WorkbenchPanelHandle } from '@/components/WorkbenchPanel';
+import WorkbenchPanel, { type WorkbenchPanelHandle, type WorkbenchOrientation } from '@/components/WorkbenchPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { TaskDraft } from '@/components/TaskDraft';
@@ -50,6 +50,7 @@ export default function ProjectPage() {
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, hasUpstream: false, ahead: 0, behind: 0, dirty: 0 });
   const workbenchRef = useRef<WorkbenchPanelHandle>(null);
+  const [workbenchOrientation, setWorkbenchOrientation] = useState<WorkbenchOrientation>('horizontal');
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
   const [boardDragOver, setBoardDragOver] = useState(false);
@@ -155,12 +156,19 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, []);
 
-  // Fetch tasks, execution mode, and branch state on project load / switch
+  // Fetch tasks, execution mode, branch state, and workbench orientation on project load / switch
   useEffect(() => {
     if (projectId) {
       refreshTasks(projectId);
       fetchExecutionMode();
       fetchBranchState();
+      // Restore workbench orientation
+      fetch(`/api/projects/${projectId}/workbench-state`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.orientation) setWorkbenchOrientation(data.orientation);
+        })
+        .catch(() => {});
     }
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState]);
 
@@ -753,8 +761,8 @@ export default function ProjectPage() {
         showAgentsTab={enableAgentDesigner}
       />
 
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        <div className="flex-1 min-h-0 overflow-hidden relative">
+      <main className={`flex-1 flex ${workbenchOrientation === 'vertical' ? 'flex-row' : 'flex-col'} overflow-hidden relative`}>
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
           {activeTab === 'project' && (
             <div
               className="h-full overflow-hidden relative"
@@ -845,6 +853,8 @@ export default function ProjectPage() {
           projectPath={project.path}
           agentMap={agentMap}
           defaultAgentId={project?.defaultAgentId}
+          orientation={workbenchOrientation}
+          onOrientationChange={setWorkbenchOrientation}
         />
       </main>
 

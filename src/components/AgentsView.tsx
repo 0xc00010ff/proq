@@ -86,13 +86,13 @@ export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: Ag
   return (
     <div className="absolute inset-0">
       {/* Floating action button */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 left-4 z-10">
         <button
           onClick={() => {
             setEditingAgent(null);
             setShowModal(true);
           }}
-          className="btn-secondary flex items-center gap-1.5 text-xs shadow-md"
+          className="flex items-center gap-1.5 text-xs shadow-md px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-colors"
         >
           <PlusIcon className="w-3.5 h-3.5" />
           New Agent

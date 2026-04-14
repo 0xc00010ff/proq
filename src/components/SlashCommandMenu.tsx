@@ -74,6 +74,7 @@ export function SlashCommandMenu({ skills, query, position, onSelect, onClose }:
       className="absolute z-50 bg-surface-modal border border-border-default rounded-md shadow-lg py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
       style={{ top: position.top, left: position.left }}
     >
+      <div className="px-3 py-1 text-[10px] font-semibold text-text-placeholder tracking-wider uppercase">Skills</div>
       {filtered.map((skill, i) => (
         <button
           key={skill.name}

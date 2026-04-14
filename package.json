@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "setup": "bash scripts/setup.sh",
-    "deploy": "bash scripts/deploy.sh",
-    "release": "bash scripts/release.sh"
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

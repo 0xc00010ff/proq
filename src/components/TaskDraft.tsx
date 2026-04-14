@@ -249,7 +249,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     const cursorPos = ta.selectionStart;
     // Look backward from cursor for a `/` at the start of a line or start of string
     const before = val.slice(0, cursorPos);
-    const match = before.match(/(?:^|\n)(\/[a-zA-Z0-9_-]*)$/);
+    const match = before.match(/(?:^|\n| )(\/[a-zA-Z0-9_-]*)$/);
     if (!match) { setSlashMenu(null); return; }
 
     const query = match[1].slice(1); // strip the leading /

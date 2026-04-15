@@ -99,9 +99,17 @@ function writeJSON(filePath: string, data: unknown): void {
 function projectDir(projectId: string): string {
   const ws = getWorkspaceData();
   const stub = ws.projects.find(p => p.id === projectId);
-  if (stub?.workspaceInProject && stub.path) {
+  if (stub?.path) {
     const resolved = stub.path.replace(/^~/, process.env.HOME || '~');
-    return path.join(resolved, '.proq');
+    const proqDir = path.join(resolved, '.proq');
+    if (stub.workspaceInProject || fsExists(proqDir)) {
+      // Auto-detect .proq/ even if flag wasn't set on this machine
+      if (!stub.workspaceInProject) {
+        stub.workspaceInProject = true;
+        writeWorkspace(ws);
+      }
+      return proqDir;
+    }
   }
   return path.join(DATA_DIR, "projects", projectId);
 }

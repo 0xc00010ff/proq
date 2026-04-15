@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftIcon, Loader2Icon, XIcon, FileIcon, ArrowUpIcon, ArrowDownIcon, LinkIcon, ExternalLinkIcon } from 'lucide-react';
+import { ArrowLeftIcon, Loader2Icon, XIcon, FileIcon, ArrowUpIcon, ArrowDownIcon, LinkIcon, ExternalLinkIcon, RefreshCwIcon } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { FileDiffAccordion } from '@/components/FileDiffAccordion';
 import { parseDiffIntoFiles, parseCommitShow, colorDiffLine } from '@/lib/diff-parser';
@@ -22,7 +22,7 @@ type GitDetailModalProps = {
   title: string;
 } & (
   | { type: 'diff'; content: string; commits?: never; behindCommits?: never; projectId?: never; currentBranch?: never; onPush?: never; onPull?: never }
-  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; remoteUrl?: string; onSetUpstream?: (url: string) => Promise<void>; content?: never }
+  | { type: 'log'; commits: CommitInfo[]; behindCommits?: CommitInfo[]; projectId: string; currentBranch?: string; onPush?: () => Promise<void>; onPull?: () => Promise<void>; onFetch?: () => Promise<void>; onSyncDone?: () => void; hasRemote?: boolean; remoteUrl?: string; onSetUpstream?: (url: string) => Promise<void>; content?: never }
 );
 
 /** Convert a git remote URL (SSH or HTTPS) to a browser-friendly GitHub/GitLab URL */
@@ -44,8 +44,10 @@ export function GitDetailModal(props: GitDetailModalProps) {
   const [openFiles, setOpenFiles] = useState<Set<string>>(new Set());
   const [pushingInline, setPushingInline] = useState(false);
   const [pullingInline, setPullingInline] = useState(false);
+  const [fetchingInline, setFetchingInline] = useState(false);
   const [pullError, setPullError] = useState<string | null>(null);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Set upstream modal
   const [upstreamModalOpen, setUpstreamModalOpen] = useState(false);
@@ -131,6 +133,7 @@ export function GitDetailModal(props: GitDetailModalProps) {
     setHasMore(true);
     setPullError(null);
     setPushError(null);
+    setFetchError(null);
     onClose();
   }, [onClose]);
 
@@ -226,6 +229,24 @@ export function GitDetailModal(props: GitDetailModalProps) {
               : <span className="text-[10px] text-text-tertiary font-semibold leading-none uppercase tracking-wide">{title}</span>
           }
         </h3>
+        {type === 'log' && !selectedCommit && hasRemote && props.onFetch && (
+          <button
+            onClick={async () => {
+              if (fetchingInline || !props.onFetch) return;
+              setFetchingInline(true);
+              setFetchError(null);
+              try { await props.onFetch(); props.onSyncDone?.(); } catch (err) { setFetchError(err instanceof Error ? err.message : 'Fetch failed'); } finally { setFetchingInline(false); }
+            }}
+            disabled={fetchingInline}
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded border border-border-strong/50 text-text-chrome hover:bg-surface-hover hover:text-text-chrome-hover"
+          >
+            Fetch
+            {fetchingInline
+              ? <Loader2Icon className="w-3 h-3 animate-spin" />
+              : <RefreshCwIcon className="w-3 h-3" />
+            }
+          </button>
+        )}
         <button
           onClick={handleClose}
           className="text-text-chrome hover:text-text-chrome-hover p-1 rounded hover:bg-surface-hover/50"
@@ -233,6 +254,11 @@ export function GitDetailModal(props: GitDetailModalProps) {
           <XIcon className="w-4 h-4" />
         </button>
       </div>
+      {fetchError && (
+        <div className="px-4 py-1.5 text-xs text-red-700 dark:text-red-400 whitespace-pre-wrap break-words bg-surface-secondary border-b border-border-default/50">
+          {fetchError}
+        </div>
+      )}
       <div className="flex-1 overflow-auto min-h-0">
         {type === 'diff' && diffFiles.length > 0 && (
           <div className="px-5 py-3 border-b border-border-default flex items-center justify-between">

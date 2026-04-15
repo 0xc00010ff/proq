@@ -40,6 +40,7 @@ interface TopBarProps {
   gitStatus?: GitStatus;
   onPush?: () => Promise<void>;
   onPull?: () => Promise<void>;
+  onFetch?: () => Promise<void>;
   onInitGit?: () => void;
   viewType?: ViewType;
   onViewTypeChange?: (viewType: ViewType) => void;
@@ -53,7 +54,7 @@ interface TopBarProps {
   showAgentsTab?: boolean;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, onSetUpstream, sidebarCollapsed, onExpandSidebar, showAgentsTab }: TopBarProps) {
+export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onFetch, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, onSetUpstream, sidebarCollapsed, onExpandSidebar, showAgentsTab }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -558,6 +559,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 currentBranch={currentBranch}
                 onPush={onPush}
                 onPull={onPull}
+                onFetch={onFetch}
                 onSyncDone={refreshModalAfterSync}
                 hasRemote={gitStatus?.hasRemote}
                 remoteUrl={gitStatus?.remoteUrl}

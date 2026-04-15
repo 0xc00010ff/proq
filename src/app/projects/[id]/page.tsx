@@ -355,6 +355,17 @@ export default function ProjectPage() {
     setGitStatus(prev => ({ ...prev, ahead: data.ahead || 0, behind: data.behind || 0 }));
   }, [projectId]);
 
+  const handleFetch = useCallback(async () => {
+    const res = await fetch(`/api/projects/${projectId}/git`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'fetch' }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Fetch failed');
+    setGitStatus(prev => ({ ...prev, ahead: data.ahead || 0, behind: data.behind || 0 }));
+  }, [projectId]);
+
   const handleInitGit = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${projectId}/git`, {
@@ -753,6 +764,7 @@ export default function ProjectPage() {
         gitStatus={gitStatus}
         onPush={handlePush}
         onPull={handlePull}
+        onFetch={handleFetch}
         onInitGit={handleInitGit}
         viewType={project.viewType || 'kanban'}
         onViewTypeChange={handleViewTypeChange}

@@ -36,7 +36,6 @@ export default function ProjectPage() {
 
   const { agentMap } = useAgents(projectId);
 
-  const [enableAgentDesigner, setEnableAgentDesigner] = useState(false);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const [undoEntry, setUndoEntry] = useState<{ task: Task; column: TaskStatus } | null>(null);
@@ -153,13 +152,6 @@ export default function ProjectPage() {
     fetchBranchState();
     refreshDetachedHead();
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState, refreshDetachedHead]);
-
-  // Fetch settings flag once on mount
-  useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then(s => {
-      setEnableAgentDesigner(!!s.enableAgentDesigner);
-    }).catch(() => {});
-  }, []);
 
   // Fetch tasks, execution mode, branch state, and workbench orientation on project load / switch
   useEffect(() => {
@@ -704,9 +696,7 @@ export default function ProjectPage() {
   }, [projectId, setProjects, setTab]);
 
   // Cmd+Option+Left/Right to cycle tabs, Cmd+1/2/3/4 to jump directly
-  const tabOrder: TabOption[] = enableAgentDesigner
-    ? ['agents', 'project', 'live', 'code']
-    : ['project', 'live', 'code'];
+  const tabOrder: TabOption[] = ['agents', 'project', 'live', 'code'];
   useShortcut('tab-prev', useCallback(() => {
     const idx = tabOrder.indexOf(activeTab);
     handleTabChange(tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]);
@@ -775,7 +765,6 @@ export default function ProjectPage() {
         onSetUpstream={handleSetUpstream}
         sidebarCollapsed={sidebarCollapsed}
         onExpandSidebar={expandSidebar}
-        showAgentsTab={enableAgentDesigner}
       />
 
       <main className={`flex-1 flex ${workbenchOrientation === 'vertical' ? 'flex-row' : 'flex-col'} overflow-hidden relative`}>

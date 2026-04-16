@@ -1230,9 +1230,6 @@ const DEFAULT_SETTINGS: ProqSettings = {
   returnKeyNewline: false,
   useChrome: false,
 
-  // Experimental
-  enableAgentDesigner: false,
-
   // Updates
   autoUpdate: true,
 

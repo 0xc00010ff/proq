@@ -524,18 +524,6 @@ export default function SettingsPage() {
                   />
                 </Field>
               </SectionCard>
-              <h3 className="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mt-6 mb-2 px-1">Experimental</h3>
-              <SectionCard>
-                <Field
-                  label="Agent designer"
-                  hint="Show the Agents tab for designing and managing per-project agents with custom roles and system prompts."
-                >
-                  <Toggle
-                    checked={settings.enableAgentDesigner}
-                    onChange={(v) => update("enableAgentDesigner", v)}
-                  />
-                </Field>
-              </SectionCard>
             </section>
 
             {/* MCP Servers */}

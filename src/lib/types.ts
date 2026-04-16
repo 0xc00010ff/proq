@@ -161,9 +161,6 @@ export interface ProqSettings {
   returnKeyNewline: boolean;
   useChrome: boolean;
 
-  // Experimental
-  enableAgentDesigner: boolean;
-
   // Updates
   autoUpdate: boolean;
 

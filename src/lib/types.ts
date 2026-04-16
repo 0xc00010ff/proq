@@ -22,7 +22,6 @@ export interface Project extends ProjectStub {
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   liveUrl?: string;
   defaultBranch?: string;
-  systemPrompt?: string;
   defaultAgentId?: string;
 }
 
@@ -259,7 +258,6 @@ export interface WorkbenchSessionData {
 
 /** Per-project project.json — shared config, can be committed to git */
 export interface ProjectConfig {
-  systemPrompt?: string;
   defaultBranch?: string;
   cronJobs?: CronJobDefinition[];
 }

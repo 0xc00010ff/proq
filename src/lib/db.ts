@@ -273,7 +273,6 @@ function assembleProject(stub: ProjectStub): Project {
     liveViewport: ws.liveViewport,
     liveUrl: ws.liveUrl,
     defaultBranch: config.defaultBranch,
-    systemPrompt: config.systemPrompt,
     defaultAgentId: ws.defaultAgentId,
   };
 }
@@ -343,7 +342,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab" | "viewType" | "defaultBranch" | "systemPrompt" | "defaultAgentId">>
+  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab" | "viewType" | "defaultBranch" | "defaultAgentId">>
 ): Promise<Project | null> {
   return withWriteLock('workspace', async () => {
     const ws = getWorkspaceData();
@@ -378,7 +377,6 @@ export async function updateProject(
     // Update shared project config fields
     const configUpdates: Partial<ProjectConfig> = {};
     if (data.defaultBranch !== undefined) configUpdates.defaultBranch = data.defaultBranch;
-    if (data.systemPrompt !== undefined) configUpdates.systemPrompt = data.systemPrompt;
     if (Object.keys(configUpdates).length > 0) {
       const config = getProjectConfig(effectiveId);
       Object.assign(config, configUpdates);
@@ -1135,14 +1133,12 @@ export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent>
   const agents = await getAllAgents(projectId);
   if (agents.length > 0) return agents[0];
 
-  // Seed from project's current systemPrompt
-  const config = getProjectConfig(projectId);
   const now = new Date().toISOString();
   const agent: Agent = {
     id: uuidv7(),
     name: "Claude",
     role: "General-purpose agent",
-    systemPrompt: config.systemPrompt || "",
+    systemPrompt: "",
     avatar: { color: "#3b82f6" }, // blue-500
     position: { x: 250, y: 200 },
     createdAt: now,
@@ -1326,7 +1322,6 @@ function migrateSettingsToProjectConfig(projectId: string): void {
 
     // Build project.json from shared fields
     const config: ProjectConfig = {};
-    if (old.systemPrompt) config.systemPrompt = old.systemPrompt;
     if (old.defaultBranch) config.defaultBranch = old.defaultBranch;
     if (old.cronJobs?.length) {
       config.cronJobs = old.cronJobs.map((j) => ({

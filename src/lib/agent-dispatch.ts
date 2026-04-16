@@ -366,11 +366,10 @@ export async function dispatchTask(
     ? await getAgent(projectId, effectiveAgentId)
     : null;
 
-  // Build combined system prompt: global additions + project prompt + agent prompt + proq prompt
+  // Build combined system prompt: global additions + agent prompt + proq prompt
   const settings = await getSettings();
   const systemPromptParts: string[] = [];
   if (settings.systemPromptAdditions) systemPromptParts.push(settings.systemPromptAdditions);
-  if (project.systemPrompt) systemPromptParts.push(project.systemPrompt);
   if (agentDef) {
     const identity = `You are **${agentDef.name}** (\`${agentDef.id}\`).${agentDef.role ? `\nRole: ${agentDef.role}` : ''}`;
     const agentParts = [identity];

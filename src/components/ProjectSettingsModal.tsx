@@ -19,7 +19,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
   const [name, setName] = useState(project.name);
   const [defaultBranch, setDefaultBranch] = useState(project.defaultBranch || 'main');
   const [serverUrl, setServerUrl] = useState(project.serverUrl || '');
-  const [systemPrompt, setSystemPrompt] = useState(project.systemPrompt || '');
   const [defaultAgentId, setDefaultAgentId] = useState(project.defaultAgentId || '');
   const [workspaceInProject, setWorkspaceInProject] = useState(project.workspaceInProject || false);
   const [movingWorkspace, setMovingWorkspace] = useState(false);
@@ -43,7 +42,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
     setName(project.name);
     setDefaultBranch(project.defaultBranch || 'main');
     setServerUrl(project.serverUrl || '');
-    setSystemPrompt(project.systemPrompt || '');
     setDefaultAgentId(project.defaultAgentId || '');
     setWorkspaceInProject(project.workspaceInProject || false);
     didSaveRef.current = false;
@@ -97,7 +95,6 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
         name,
         defaultBranch,
         serverUrl: serverUrl || undefined,
-        systemPrompt: systemPrompt || undefined,
         defaultAgentId: defaultAgentId || undefined,
       });
       // Save remote URL if changed
@@ -106,7 +103,7 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
       }
     }
     onClose();
-  }, [name, defaultBranch, serverUrl, systemPrompt, defaultAgentId, remoteUrl, remoteUrlOriginal, saveRemoteUrl, onSave, onClose]);
+  }, [name, defaultBranch, serverUrl, defaultAgentId, remoteUrl, remoteUrlOriginal, saveRemoteUrl, onSave, onClose]);
 
   const handleMoveToProject = async () => {
     setMovingWorkspace(true);
@@ -217,23 +214,10 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
           </section>
 
           {/* Agent */}
-          <section>
-            <SectionHeading icon={<BotIcon className="w-4 h-4" />} label="Agent" />
-            <div className="rounded-lg border border-border-default bg-surface-secondary p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">System Prompt</label>
-                <p className="text-xs text-text-tertiary mb-2">
-                  Custom instructions for agents working on this project.
-                </p>
-                <textarea
-                  value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="e.g. Use the project's ESLint config. Always run tests before committing..."
-                  rows={3}
-                  className={`${inputClass} resize-y min-h-[60px]`}
-                />
-              </div>
-              {agents && agents.length > 0 && (
+          {agents && agents.length > 0 && (
+            <section>
+              <SectionHeading icon={<BotIcon className="w-4 h-4" />} label="Agent" />
+              <div className="rounded-lg border border-border-default bg-surface-secondary p-5 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Default Agent</label>
                   <p className="text-xs text-text-tertiary mb-2">
@@ -245,9 +229,9 @@ export function ProjectSettingsModal({ isOpen, project, branches, agents, onClos
                     options={agentOptions}
                   />
                 </div>
-              )}
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           {/* MCP Servers & Skills */}
           {hasAnyMcpOrSkills && (

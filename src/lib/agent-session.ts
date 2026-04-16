@@ -630,12 +630,11 @@ export async function continueSession(
     args.push("--model", settings.defaultModel);
   }
 
-  // Combine system prompts: global additions + project prompt + proq prompt
+  // Combine system prompts: global additions + proq prompt
   const systemParts: string[] = [];
   if (settings.systemPromptAdditions)
     systemParts.push(settings.systemPromptAdditions);
   const project = await getProject(projectId);
-  if (project?.systemPrompt) systemParts.push(project.systemPrompt);
   const proqSysPrompt = buildProqSystemPrompt(
     projectId,
     taskId,

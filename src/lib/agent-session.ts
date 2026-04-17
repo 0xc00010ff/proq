@@ -406,10 +406,13 @@ function processStreamEvent(
         if (b.type === "text") {
           appendBlock(session, { type: "text", text: b.text as string });
         } else if (b.type === "thinking") {
-          appendBlock(session, {
-            type: "thinking",
-            thinking: b.thinking as string,
-          });
+          // Claude 4.7 omits thinking content by default (display: "omitted"),
+          // returning an empty `thinking` string with only a `signature`.
+          // Skip empty blocks rather than rendering an expandable with no content.
+          const thinkingText = b.thinking as string | undefined;
+          if (thinkingText) {
+            appendBlock(session, { type: "thinking", thinking: thinkingText });
+          }
         } else if (b.type === "tool_use") {
           const toolBlock: AgentBlock & { type: "tool_use" } = {
             type: "tool_use",

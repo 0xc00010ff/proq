@@ -249,12 +249,12 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
   const historyTextColor = notPushed
     ? 'text-emerald'
     : isUpToDate
-      ? 'text-text-chrome'
+      ? 'text-text-tertiary dark:text-zinc-500'
       : behind > 0 && ahead === 0
         ? 'text-crimson'
         : ahead > 0 && behind === 0
           ? 'text-emerald'
-          : 'text-text-chrome';
+          : 'text-text-tertiary dark:text-zinc-500';
 
   return (
     <header className={`h-[48px] bg-surface-secondary flex items-center px-4 flex-shrink-0 border-b border-border-default relative ${isElectron ? 'electron-drag' : ''}`}>
@@ -422,7 +422,7 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
             {!isOnPreviewBranch && !gitStatus?.hasRemote && (
               <button
                 onClick={() => { fetchHistoryCommits(); openHistoryModal(); }}
-                className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover overflow-hidden"
+                className="flex items-center text-xs font-medium rounded-md border border-border-default bg-surface-secondary text-text-tertiary dark:text-zinc-500 hover:bg-surface-hover overflow-hidden"
               >
                 <span className="flex items-center gap-1.5 px-2.5 py-1.5">
                   History
@@ -573,10 +573,10 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
                 <button
                   ref={branchTriggerRef}
                   onClick={() => setBranchPopoverOpen(!branchPopoverOpen)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-md border outline-none ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md border outline-none ${
                     isOnPreviewBranch
                       ? 'border-lazuli/40 bg-surface-secondary text-lazuli shadow-[0_0_8px_rgba(91,131,176,0.1)] hover:text-lazuli-light hover:bg-surface-hover'
-                      : 'border-border-default bg-surface-secondary text-text-chrome hover:bg-surface-hover'
+                      : 'border-border-default bg-surface-secondary text-text-tertiary dark:text-zinc-500 hover:bg-surface-hover'
                   }`}
                 >
                   <GitBranchIcon className={`w-3.5 h-3.5 ${isOnPreviewBranch ? 'text-lazuli' : ''}`} />

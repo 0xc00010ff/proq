@@ -414,7 +414,7 @@ export function KanbanBoard({
                       </DropdownMenu>
                     )}
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-surface-secondary border border-border-default text-xs text-text-chrome font-mono">
+                  <span className="px-2 py-0.5 rounded-full bg-surface-secondary border border-border-default text-xs text-text-tertiary dark:text-zinc-500">
                     {colTasks.length}
                   </span>
                 </div>

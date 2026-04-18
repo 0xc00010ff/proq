@@ -17,6 +17,7 @@ import {
   PencilLine,
   Trash2,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
 import {
   ContextMenu,
@@ -345,14 +346,16 @@ function TreeNodeItem({
         <Trash2 className="w-4 h-4" />
         Delete
       </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={() => navigator.clipboard?.writeText(node.path)}>
+        <Copy className="w-4 h-4" />
+        Copy path
+      </ContextMenuItem>
       {callbacks.onReveal && (
-        <>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => callbacks.onReveal!(node.path)}>
-            <ExternalLink className="w-4 h-4" />
-            Show in Finder
-          </ContextMenuItem>
-        </>
+        <ContextMenuItem onClick={() => callbacks.onReveal!(node.path)}>
+          <ExternalLink className="w-4 h-4" />
+          Show in Finder
+        </ContextMenuItem>
       )}
     </ContextMenuContent>
   ) : null;

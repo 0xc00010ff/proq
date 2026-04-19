@@ -22,9 +22,10 @@ export async function GET(request: Request) {
           send(JSON.stringify({ type: "project_update", projectId: event.projectId, changes: event.changes }));
         } else if (event.type === "created") {
           send(JSON.stringify({ type: "created", projectId: event.projectId, task: event.task }));
-        } else {
+        } else if (event.type === "update") {
           send(JSON.stringify({ type: "update", projectId: event.projectId, taskId: event.taskId, changes: event.changes }));
         }
+        // file_change events are not forwarded on this global task stream.
       });
 
       request.signal.addEventListener("abort", () => {

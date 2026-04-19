@@ -91,6 +91,82 @@ function flattenTree(nodes: TreeNode[]): TreeNode[] {
   return result;
 }
 
+function sortNodes(nodes: TreeNode[]): TreeNode[] {
+  return [...nodes].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function insertTreeNode(
+  tree: TreeNode[],
+  projectPath: string,
+  fullPath: string,
+  type: 'file' | 'dir',
+): TreeNode[] {
+  if (!fullPath.startsWith(projectPath + '/')) return tree;
+  const rel = fullPath.slice(projectPath.length + 1);
+  const segments = rel.split('/');
+  const leafName = segments[segments.length - 1];
+
+  function insertAt(nodes: TreeNode[], segIdx: number, parentPath: string): TreeNode[] {
+    if (segIdx === segments.length - 1) {
+      if (nodes.some((n) => n.name === leafName)) return nodes;
+      const newNode: TreeNode =
+        type === 'dir'
+          ? { name: leafName, path: fullPath, type: 'dir', children: [] }
+          : { name: leafName, path: fullPath, type: 'file' };
+      return sortNodes([...nodes, newNode]);
+    }
+    const segName = segments[segIdx];
+    const segPath = parentPath + '/' + segName;
+    const idx = nodes.findIndex((n) => n.name === segName && n.type === 'dir');
+    if (idx === -1) {
+      // Missing parent dir — create it on the fly
+      const newDir: TreeNode = {
+        name: segName,
+        path: segPath,
+        type: 'dir',
+        children: insertAt([], segIdx + 1, segPath),
+      };
+      return sortNodes([...nodes, newDir]);
+    }
+    const updated = { ...nodes[idx] };
+    updated.children = insertAt(nodes[idx].children ?? [], segIdx + 1, segPath);
+    const next = [...nodes];
+    next[idx] = updated;
+    return next;
+  }
+
+  return insertAt(tree, 0, projectPath);
+}
+
+function removeTreeNode(
+  tree: TreeNode[],
+  projectPath: string,
+  fullPath: string,
+): TreeNode[] {
+  if (!fullPath.startsWith(projectPath + '/')) return tree;
+  const rel = fullPath.slice(projectPath.length + 1);
+  const segments = rel.split('/');
+
+  function removeAt(nodes: TreeNode[], segIdx: number): TreeNode[] {
+    if (segIdx === segments.length - 1) {
+      return nodes.filter((n) => n.name !== segments[segIdx]);
+    }
+    const segName = segments[segIdx];
+    const idx = nodes.findIndex((n) => n.name === segName && n.type === 'dir');
+    if (idx === -1) return nodes;
+    const updated = { ...nodes[idx] };
+    updated.children = removeAt(nodes[idx].children ?? [], segIdx + 1);
+    const next = [...nodes];
+    next[idx] = updated;
+    return next;
+  }
+
+  return removeAt(tree, 0);
+}
+
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
   const t = target.toLowerCase();
@@ -463,18 +539,99 @@ export function CodeTab({ project }: CodeTabProps) {
     }
   }, []);
 
-  // Poll active tab for external changes (e.g. agent edits) every 3s
+  // Subscribe to server-side file watcher. Handles external creates, deletes,
+  // renames, and content changes in near real-time so the tree and open tabs
+  // stay in sync without polling.
   useEffect(() => {
-    const interval = setInterval(() => {
-      const activePath = activeTabPathRef.current;
-      if (!activePath) return;
-      const tab = tabsRef.current.find((t) => t.path === activePath);
-      if (tab && !tab.dirty) {
-        refreshTabFromDisk(activePath);
+    if (!project.id || !project.path) return;
+
+    let es: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
+    let hasConnectedBefore = false;
+
+    const projectPath = project.path;
+
+    function connect() {
+      if (disposed) return;
+      es?.close();
+      es = new EventSource(`/api/projects/${project.id}/file-events`);
+
+      es.onopen = () => {
+        if (hasConnectedBefore) {
+          // Reconnected after a drop — re-fetch tree to catch missed events.
+          refreshTree();
+          const activePath = activeTabPathRef.current;
+          if (activePath) {
+            const tab = tabsRef.current.find((t) => t.path === activePath);
+            if (tab && !tab.dirty) refreshTabFromDisk(activePath);
+          }
+        }
+        hasConnectedBefore = true;
+      };
+
+      es.onmessage = (event) => {
+        if (event.data === 'heartbeat') return;
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed.type !== 'file_change' || typeof parsed.path !== 'string') return;
+          const { path: p, kind } = parsed as {
+            path: string;
+            kind: 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir';
+          };
+
+          // Reload tree wholesale when .gitignore itself changes — the set
+          // of visible files may shift.
+          if (p === `${projectPath}/.gitignore` && kind !== 'unlink') {
+            refreshTree();
+            return;
+          }
+
+          if (kind === 'change') {
+            if (tabsRef.current.some((t) => t.path === p)) {
+              refreshTabFromDisk(p);
+            }
+            return;
+          }
+
+          if (kind === 'add' || kind === 'addDir') {
+            setTree((t) =>
+              insertTreeNode(t, projectPath, p, kind === 'addDir' ? 'dir' : 'file'),
+            );
+          } else if (kind === 'unlink' || kind === 'unlinkDir') {
+            setTree((t) => removeTreeNode(t, projectPath, p));
+          }
+        } catch {
+          // ignore unparseable events
+        }
+      };
+
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (!disposed) {
+          reconnectTimer = setTimeout(connect, 3_000);
+        }
+      };
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && !disposed) {
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        connect();
       }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [refreshTabFromDisk]);
+    }
+
+    connect();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      disposed = true;
+      es?.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [project.id, project.path, refreshTree, refreshTabFromDisk]);
 
   // Refresh active tab on window/tab focus
   useEffect(() => {

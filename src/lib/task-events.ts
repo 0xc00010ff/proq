@@ -20,7 +20,16 @@ export interface ProjectUpdate {
   changes: Record<string, unknown>;
 }
 
-export type TaskEvent = TaskUpdate | TaskCreated | ProjectUpdate;
+export type FileChangeKind = 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir';
+
+export interface FileChange {
+  type: 'file_change';
+  projectId: string;
+  path: string;
+  kind: FileChangeKind;
+}
+
+export type TaskEvent = TaskUpdate | TaskCreated | ProjectUpdate | FileChange;
 
 const g = globalThis as unknown as {
   __proqTaskListeners?: Set<(event: TaskEvent) => void>;
@@ -49,6 +58,10 @@ export function emitTaskCreated(projectId: string, task: Record<string, unknown>
 
 export function emitProjectUpdate(projectId: string, changes: Record<string, unknown>) {
   emit({ type: 'project_update', projectId, changes });
+}
+
+export function emitFileChange(projectId: string, filePath: string, kind: FileChangeKind) {
+  emit({ type: 'file_change', projectId, path: filePath, kind });
 }
 
 export function onTaskEvent(fn: (event: TaskEvent) => void): () => void {

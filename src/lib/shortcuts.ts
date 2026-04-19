@@ -32,6 +32,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'tab-3',        key: '3',          meta: true,               scope: 'global', label: 'Live tab' },
   { id: 'tab-4',        key: '4',          meta: true,               scope: 'global', label: 'Code tab' },
   { id: 'toggle-workbench', key: 'j',     meta: true,               scope: 'global', label: 'Toggle workbench' },
+  { id: 'close-workbench-tab', key: 'w', meta: true,               scope: 'global', label: 'Close workbench tab' },
 
   // -- Modal --
   { id: 'close-modal',  key: 'Escape',                               scope: 'modal',  label: 'Close' },

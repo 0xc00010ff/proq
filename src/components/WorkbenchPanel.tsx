@@ -38,6 +38,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
+import { useShortcut } from '@/hooks/useShortcut';
 import type { Agent } from '@/lib/types';
 
 /* -------------------------------------------------------------------------- */
@@ -487,6 +488,29 @@ const WorkbenchPanel = forwardRef<WorkbenchPanelHandle, WorkbenchPanelProps>(fun
   const removeTab = useCallback((tabId: string) => {
     dispatch({ type: 'close', tabId });
   }, []);
+
+  // Track whether keyboard focus is inside the workbench so we only claim
+  // Cmd-W (Ctrl-W) when the user is actually working in it.
+  const [isFocused, setIsFocused] = useState(false);
+  useEffect(() => {
+    const update = () => {
+      setIsFocused(!!panelRef.current?.contains(document.activeElement));
+    };
+    document.addEventListener('focusin', update);
+    document.addEventListener('focusout', update);
+    return () => {
+      document.removeEventListener('focusin', update);
+      document.removeEventListener('focusout', update);
+    };
+  }, []);
+
+  useShortcut(
+    'close-workbench-tab',
+    useCallback(() => {
+      if (activeTabId) dispatch({ type: 'close', tabId: activeTabId });
+    }, [activeTabId]),
+    isFocused && !workbench.collapsed && tabs.length > 0,
+  );
 
   const clearTab = useCallback((tab: WorkbenchTab) => {
     window.dispatchEvent(new CustomEvent('workbench-clear-tab', { detail: { tabId: tab.id, type: tab.type } }));

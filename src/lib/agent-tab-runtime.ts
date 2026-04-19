@@ -597,13 +597,30 @@ export function detachAgentTabClient(tabId: string, ws: WebSocket): void {
 
 export async function clearAgentTabSession(tabId: string, projectId?: string): Promise<void> {
   const session = sessions.get(tabId);
+  let effectiveProjectId = projectId;
+  let preservedMode: TaskMode | undefined;
+
   if (session) {
     if (session.status === "running" && session.queryHandle) {
       session.status = "aborted";
       session.queryHandle.kill("SIGTERM");
     }
-    // Leave session file on disk as a record — just clear in-memory state
+    effectiveProjectId = session.projectId;
+    preservedMode = session.mode;
     session.clients.clear();
+    // Delete in-memory entry before persisting so the SIGTERM close handler's
+    // `sessions.get(tabId) === session` guard skips its own write.
     sessions.delete(tabId);
+  } else if (effectiveProjectId) {
+    const stored = await getWorkbenchSession(effectiveProjectId, tabId);
+    preservedMode = stored?.mode;
+  }
+
+  if (effectiveProjectId) {
+    await setWorkbenchSession(effectiveProjectId, tabId, {
+      agentBlocks: [],
+      sessionId: undefined,
+      mode: preservedMode,
+    });
   }
 }

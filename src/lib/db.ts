@@ -1128,26 +1128,6 @@ export async function getAgent(
   return readJSON<Agent | null>(agentFileById(projectId, agentId), null);
 }
 
-/** Get or auto-create the Default agent for a project. */
-export async function getOrCreateDefaultAgent(projectId: string): Promise<Agent> {
-  const agents = await getAllAgents(projectId);
-  if (agents.length > 0) return agents[0];
-
-  const now = new Date().toISOString();
-  const agent: Agent = {
-    id: uuidv7(),
-    name: "Claude",
-    role: "General-purpose agent",
-    systemPrompt: "",
-    avatar: { color: "#3b82f6" }, // blue-500
-    position: { x: 250, y: 200 },
-    createdAt: now,
-    updatedAt: now,
-  };
-  writeAgentFile(projectId, agent);
-  return agent;
-}
-
 export async function createAgent(
   projectId: string,
   data: Pick<Agent, "name"> & Partial<Pick<Agent, "role" | "systemPrompt" | "avatar" | "position">>
@@ -1164,6 +1144,13 @@ export async function createAgent(
     updatedAt: now,
   };
   writeAgentFile(projectId, agent);
+
+  const ws = getProjectWorkspace(projectId);
+  if (!ws.defaultAgentId) {
+    ws.defaultAgentId = agent.id;
+    writeProjectWorkspace(projectId, ws);
+  }
+
   return agent;
 }
 

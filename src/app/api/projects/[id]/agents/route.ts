@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProject, getAllAgents, getOrCreateDefaultAgent, createAgent } from "@/lib/db";
+import { getProject, getAllAgents, createAgent } from "@/lib/db";
 import { safeParseBody } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
@@ -11,13 +11,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // Auto-create default agent if none exist
-  let agents = await getAllAgents(id);
-  if (agents.length === 0) {
-    const defaultAgent = await getOrCreateDefaultAgent(id);
-    agents = [defaultAgent];
-  }
-
+  const agents = await getAllAgents(id);
   return NextResponse.json(agents);
 }
 

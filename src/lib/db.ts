@@ -1365,6 +1365,44 @@ function migrateAllSettingsToProjectConfig(): void {
   }
 }
 
+// Migrate legacy slug-named agent files → {id}.json
+// Before commit 902a22d4, agents were stored as {slug}.json (e.g. "claude.json").
+// The new code reads/writes {uuid}.json, so legacy files are invisible to getAgent/updateAgent.
+function migrateAgentFilenames(): void {
+  const ws = getWorkspaceData();
+  for (const stub of ws.projects) {
+    const dir = agentsDir(stub.id);
+    if (!fsExists(dir)) continue;
+    let files: string[];
+    try {
+      files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+    } catch {
+      continue;
+    }
+    for (const f of files) {
+      const fp = path.join(dir, f);
+      const raw = readJSON<(Agent & { slug?: string }) | null>(fp, null);
+      if (!raw?.id) continue;
+      const expected = `${raw.id}.json`;
+      if (f === expected && !raw.slug) continue;
+
+      // Strip legacy slug field
+      if (raw.slug !== undefined) delete raw.slug;
+
+      const target = path.join(dir, expected);
+      if (f !== expected && fsExists(target)) {
+        // Target already exists — drop the legacy file to avoid collision
+        try { unlinkSync(fp); } catch { /* best effort */ }
+        continue;
+      }
+      writeJSON(fp, raw);
+      if (f !== expected) {
+        try { renameSync(fp, target); } catch { /* best effort */ }
+      }
+    }
+  }
+}
+
 // Migrate inline workbench sessions from workspace.json → sessions/{tabId}.json
 function migrateInlineWorkbenchSessions(): void {
   const ws = getWorkspaceData();
@@ -1388,4 +1426,5 @@ function migrateInlineWorkbenchSessions(): void {
 // Run migrations on module load
 migrateLogsToSessions();
 migrateAllSettingsToProjectConfig();
+migrateAgentFilenames();
 migrateInlineWorkbenchSessions();

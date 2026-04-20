@@ -437,7 +437,7 @@ export default function ProjectPage() {
       // Apply optimistic field changes
       const optimistic: Task = { ...task, status: toColumn };
       if (toColumn === 'in-progress' && task.status === 'todo') {
-        optimistic.agentStatus = 'starting';
+        optimistic.agentStatus = 'queued';
       } else if (toColumn === 'todo') {
         optimistic.agentStatus = null;
         optimistic.summary = '';
@@ -953,7 +953,7 @@ export default function ProjectPage() {
               const todoCol = cols.todo.filter((t) => t.id !== taskId);
               const task = cols.todo.find((t) => t.id === taskId);
               if (!task) return prev;
-              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const, agentStatus: 'starting' as const };
+              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const, agentStatus: 'queued' as const };
               return {
                 ...prev,
                 [projectId]: {

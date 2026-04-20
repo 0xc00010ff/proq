@@ -142,7 +142,7 @@ export function StructuredPane({ taskId, projectId, visible, taskStatus, agentSt
   if (!visible) return null;
 
   const sessionEnded = isSessionEnded(blocks);
-  const isRunning = !sessionEnded && (active || agentStatus === 'running' || agentStatus === 'starting');
+  const isRunning = !sessionEnded && (active || agentStatus === 'running');
   const isThinking = isRunning && !streamingText && blocks.length > 0;
 
   const readOnlyMessage = taskStatus === 'done' ? (

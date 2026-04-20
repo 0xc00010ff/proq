@@ -94,7 +94,7 @@ export interface Task {
   nextSteps?: string;
   needsAttention?: boolean;
   agentLog?: string;
-  agentStatus?: "queued" | "starting" | "running" | null;
+  agentStatus?: "queued" | "running" | null;
   worktreePath?: string;
   branch?: string;
   baseBranch?: string;

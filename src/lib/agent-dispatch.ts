@@ -426,8 +426,29 @@ export async function dispatchTask(
         stdio: "ignore",
         env: { ...process.env, PROQ_API: proqApi, CLAUDECODE: undefined, PORT: undefined },
       });
-      child.unref();
       writeFileSync(pidPath, String(child.pid));
+
+      // Bridge exit = Claude CLI process finished. Clear the pid file so
+      // isSessionAlive flips to false, drop the task's "running" flag so
+      // the UI stops showing "Agent working", and advance the queue so
+      // sequential mode picks up the next task. Mirrors structured mode.
+      child.on("exit", () => {
+        void (async () => {
+          try { if (existsSync(pidPath)) unlinkSync(pidPath); } catch {}
+          try {
+            const t = await getTask(projectId, taskId);
+            if (t?.agentStatus === "running") {
+              await updateTask(projectId, taskId, { agentStatus: null });
+              emitTaskUpdate(projectId, taskId, { agentStatus: null });
+            }
+          } catch (err) {
+            console.error(`[agent-dispatch] cli exit cleanup failed for ${taskId}:`, err);
+          }
+          processQueue(projectId);
+        })();
+      });
+
+      child.unref();
       console.log(
         `[agent-dispatch] launched bridge process ${child.pid} for task ${taskId}`,
       );
@@ -546,29 +567,25 @@ export function isSessionAlive(taskId: string): boolean {
   return false;
 }
 
-/**
- * Determine the right initial agentStatus for a task moving to in-progress.
- * "starting" if it will be dispatched immediately, "queued" if it must wait.
- */
-export async function getInitialAgentStatus(
-  projectId: string,
-  excludeTaskId?: string,
-): Promise<"queued" | "starting"> {
-  const mode = await getExecutionMode(projectId);
-  if (mode === "parallel" || mode === "worktrees") return "starting";
-
-  const columns = await getAllTasks(projectId);
-  const hasActive = columns["in-progress"].some(
-    (t) =>
-      t.id !== excludeTaskId &&
-      (t.agentStatus === "starting" || t.agentStatus === "running"),
-  );
-  return hasActive ? "queued" : "starting";
-}
-
 const processingProjects = ga.__proqProcessingProjects;
 const pendingReprocess = ga.__proqPendingReprocess!;
 
+/**
+ * Dispatch queued tasks for a project. At any moment, sequential mode wants
+ * at most one live process per project; parallel/worktrees wants every
+ * queued task running.
+ *
+ * "Is a task running?" is answered by isSessionAlive() — the actual process
+ * or in-memory session — not by the agentStatus field, which is a cached
+ * view that lags DB writes and can drift across restarts or unclean exits.
+ *
+ * Invariants:
+ *   - agentStatus === "queued" + no live session  → waiting, eligible to dispatch
+ *   - live session (isSessionAlive true)          → running, never dispatched again
+ *   - agentStatus === "running" + no live session → stale; reconcile to "queued"
+ *   - agentStatus === null + no live session      → agent done, waiting on human
+ *                                                   (e.g. CLI bridge exited); skip
+ */
 export async function processQueue(projectId: string): Promise<void> {
   if (processingProjects.has(projectId)) {
     pendingReprocess.add(projectId);
@@ -582,83 +599,69 @@ export async function processQueue(projectId: string): Promise<void> {
     const columns = await getAllTasks(projectId);
     const inProgress = columns["in-progress"];
 
-    // Array order IS priority — no sort needed
-    const pending = inProgress.filter(
-      (t) => t.agentStatus === "queued" || t.agentStatus === "starting",
-    );
+    const running: typeof inProgress = [];
+    const pending: typeof inProgress = [];
 
-    const running = inProgress.filter((t) => t.agentStatus === "running");
+    for (const t of inProgress) {
+      if (isSessionAlive(t.id)) {
+        running.push(t);
+        continue;
+      }
+      if (t.agentStatus === "queued") {
+        pending.push(t);
+        continue;
+      }
+      if (t.agentStatus === "running") {
+        // Stale: DB says running but the process is gone (server restart,
+        // crash, missed exit handler). Reconcile and treat as queued so it
+        // can be re-dispatched.
+        await updateTask(projectId, t.id, { agentStatus: "queued" });
+        emitTaskUpdate(projectId, t.id, { agentStatus: "queued" });
+        pending.push({ ...t, agentStatus: "queued" });
+      }
+      // agentStatus === null: task is in-progress but the agent already
+      // finished (e.g. CLI bridge exited). The human has to move it.
+    }
 
     console.log(
       `[processQueue] ${projectId}: mode=${mode} running=${running.length} pending=${pending.length}`,
     );
 
-    if (mode !== "sequential") {
-      // parallel & worktrees: launch all pending
-      for (const task of pending) {
+    const targets =
+      mode === "sequential"
+        ? running.length === 0 && pending.length > 0
+          ? [pending[0]]
+          : []
+        : pending;
+
+    if (mode === "sequential" && targets.length === 0 && pending.length > 0) {
+      console.log(
+        `[processQueue] ${running.length} task(s) running, ${pending.length} waiting`,
+      );
+    }
+
+    for (const task of targets) {
+      console.log(
+        `[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}"${mode !== "sequential" ? ` (${mode})` : ""}`,
+      );
+      const result = await dispatchTask(
+        projectId,
+        task.id,
+        task.title,
+        task.description,
+        task.mode,
+        task.attachments,
+        task.renderMode,
+      );
+      if (result) {
+        await updateTask(projectId, task.id, { agentStatus: "running" });
+        emitTaskUpdate(projectId, task.id, { agentStatus: "running" });
+      } else {
         console.log(
-          `[processQueue] launching ${task.id.slice(0, 8)} "${task.title || task.description.slice(0, 40)}" (${mode})`,
-        );
-        if (task.agentStatus !== "starting") {
-          await updateTask(projectId, task.id, { agentStatus: "starting" });
-          emitTaskUpdate(projectId, task.id, { agentStatus: "starting" });
-        }
-        const result = await dispatchTask(
-          projectId,
-          task.id,
-          task.title,
-          task.description,
-          task.mode,
-          task.attachments,
-          task.renderMode,
-        );
-        if (result) {
-          await updateTask(projectId, task.id, { agentStatus: "running" });
-          emitTaskUpdate(projectId, task.id, { agentStatus: "running" });
-        } else {
-          console.log(
-            `[processQueue] dispatch failed for ${task.id.slice(0, 8)}, rolling back`,
-          );
-          await updateTask(projectId, task.id, { agentStatus: "queued" });
-          emitTaskUpdate(projectId, task.id, { agentStatus: "queued" });
-        }
-      }
-    } else if (mode === "sequential") {
-      if (running.length === 0 && pending.length > 0) {
-        const next = pending[0];
-        console.log(
-          `[processQueue] launching ${next.id.slice(0, 8)} "${next.title || next.description.slice(0, 40)}"`,
-        );
-        if (next.agentStatus !== "starting") {
-          await updateTask(projectId, next.id, { agentStatus: "starting" });
-          emitTaskUpdate(projectId, next.id, { agentStatus: "starting" });
-        }
-        const result = await dispatchTask(
-          projectId,
-          next.id,
-          next.title,
-          next.description,
-          next.mode,
-          next.attachments,
-          next.renderMode,
-        );
-        if (result) {
-          await updateTask(projectId, next.id, { agentStatus: "running" });
-          emitTaskUpdate(projectId, next.id, { agentStatus: "running" });
-        } else {
-          console.log(
-            `[processQueue] dispatch failed for ${next.id.slice(0, 8)}, rolling back`,
-          );
-          await updateTask(projectId, next.id, { agentStatus: "queued" });
-          emitTaskUpdate(projectId, next.id, { agentStatus: "queued" });
-        }
-      } else if (pending.length > 0) {
-        console.log(
-          `[processQueue] ${running.length} task(s) running, ${pending.length} waiting`,
+          `[processQueue] dispatch failed for ${task.id.slice(0, 8)} (left as queued)`,
         );
       }
     }
-
   } catch (err) {
     console.error(`[processQueue] error for project ${projectId}:`, err);
   } finally {

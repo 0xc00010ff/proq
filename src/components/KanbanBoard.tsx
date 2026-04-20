@@ -317,11 +317,7 @@ export function KanbanBoard({
         const srcIdx = srcCol.findIndex((t) => t.id === activeId);
         if (srcIdx === -1) return prev;
         const [removed] = srcCol.splice(srcIdx, 1);
-        const optimisticAgentStatus: 'starting' | 'queued' =
-          toColumn === 'in-progress' && executionMode === 'sequential' &&
-          prev['in-progress'].some(t => t.id !== removed.id && (t.agentStatus === 'starting' || t.agentStatus === 'running'))
-            ? 'queued' : 'starting';
-        const moved = { ...removed, status: toColumn, ...(toColumn === 'in-progress' ? { agentStatus: optimisticAgentStatus } : {}) };
+        const moved = { ...removed, status: toColumn, ...(toColumn === 'in-progress' ? { agentStatus: 'queued' as const } : {}) };
         const destCol = [...prev[toColumn]];
         destCol.splice(toIndex, 0, moved);
         return { ...prev, [fromColumn]: srcCol, [toColumn]: destCol };

@@ -6,7 +6,7 @@
  */
 import type { Task } from "./types";
 import { updateTask, getProject, getProjectDefaultBranch, deleteTaskSession, getSettings, getTask } from "./db";
-import { abortTask, getInitialAgentStatus, scheduleCleanup, cancelCleanup } from "./agent-dispatch";
+import { abortTask, scheduleCleanup, cancelCleanup } from "./agent-dispatch";
 import { clearSession } from "./agent-session";
 import { emitTaskUpdate } from "./task-events";
 import { mergeWorktree, removeWorktree, ensureNotOnTaskBranch, ensureOnMainForMerge, popAutoStash } from "./worktree";
@@ -43,7 +43,8 @@ export async function initForDispatch(
   cancelCleanup(taskId);
   if (prevStatus !== "verify" && prevStatus !== "done") {
     const settings = await getSettings();
-    const agentStatus = await getInitialAgentStatus(projectId, taskId);
+    // Always land as "queued"; processQueue decides what actually runs next.
+    const agentStatus: Task["agentStatus"] = "queued";
     const renderMode = task.renderMode || settings.agentRenderMode || "structured";
     await updateTask(projectId, taskId, { agentStatus, renderMode });
     emitTaskUpdate(projectId, taskId, { agentStatus });

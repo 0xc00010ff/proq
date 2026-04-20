@@ -19,14 +19,12 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Task is already dispatched" }, { status: 400 });
   }
 
-  await updateTask(id, taskId, { agentStatus: "starting" });
   const terminalTabId = await dispatchTask(id, taskId, task.title, task.description, task.mode);
 
   if (terminalTabId) {
     await updateTask(id, taskId, { agentStatus: "running" });
-  } else {
-    await updateTask(id, taskId, { agentStatus: "queued" });
   }
+  // else: leave as "queued"
 
   return NextResponse.json({ success: true, terminalTabId });
 }

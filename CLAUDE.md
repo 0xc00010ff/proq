@@ -141,7 +141,7 @@ Agent sessions (`agent-session.ts`) parse Claude CLI output into structured bloc
 
 **Client rendering signals:**
 - `sessionEnded`: last block is status/complete, error, or abort → agent is definitely done
-- `isRunning`: `!sessionEnded && (active || agentStatus === 'running' || agentStatus === 'starting')`
+- `isRunning`: `!sessionEnded && (active || agentStatus === 'running')`
 - `isThinking`: `isRunning && !streamingText && blocks.length > 0`
 
 ### Task Lifecycle & Dispatch
@@ -149,14 +149,14 @@ Agent sessions (`agent-session.ts`) parse Claude CLI output into structured bloc
 ```
 todo ──drag/API──→ in-progress ──agent callback──→ verify ──human──→ done
                    agentStatus: "queued"                │                │
-                   agentStatus: "starting"              │ branch stays   │ merge branch
-                   agentStatus: "running"               │ for preview    │ into default
+                   agentStatus: "running"               │ branch stays   │ merge branch
+                                                        │ for preview    │ into default
 ```
 
-- `agentStatus: "queued"` — waiting for another task or for processQueue to pick it up
-- `agentStatus: "starting"` — processQueue selected it, agent process is launching
-- `agentStatus: "running"` — agent is actively working
-- Running tasks show blue pulsing border; starting tasks show gray spinner; queued tasks show clock icon
+- `agentStatus: "queued"` — task is waiting to be (or be re-)dispatched. processQueue picks the first one when a slot opens.
+- `agentStatus: "running"` — an agent process is live for this task. `processQueue` uses `isSessionAlive(taskId)` as the source of truth for "running", not this field, so it's immune to DB-write ordering.
+- `agentStatus: null` — agent isn't active: task is in verify/done, or the CLI bridge exited and the human hasn't moved the task yet.
+- Running tasks show a bronze pulsing border; queued tasks show a clock icon
 - Dragging back to "Todo" aborts the agent (kills the process), then `processQueue()` starts the next queued task
 - All API routes follow the pattern: update state → call `processQueue()`
 - Task modes: `auto` (default), `build`, `plan`, `answer` — control agent behavior
@@ -240,7 +240,7 @@ Tasks have fields specifically for AI agent use:
 - `nextSteps` — Suggested next steps: testing, refinements, or follow-up work (newline-separated)
 - `needsAttention` — Flag for tasks requiring human attention
 - `agentLog` — Execution log from agent session
-- `agentStatus` — Enum: `"queued"` | `"starting"` | `"running"` | null (agent lifecycle)
+- `agentStatus` — Enum: `"queued"` | `"running"` | null (agent lifecycle)
 - `agentBlocks` — Structured block data from agent session
 - `sessionId` — Links to the agent session for WebSocket replay
 - `worktreePath` — Path to git worktree (worktrees mode)

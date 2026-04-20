@@ -25,8 +25,7 @@ interface TaskCardProps {
 
 export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, columnStatus, agentMap, onDelete, onClick, onUpdateTitle }: TaskCardProps) {
   const isRunning = task.agentStatus === 'running';
-  const isStarting = task.agentStatus === 'starting';
-  const isActive = isRunning || isStarting;
+  const isActive = isRunning;
   const isCron = !!task.cronJobId;
   const isCronError = isCron && task.status === 'verify' && task.summary?.startsWith('Error:');
   const showAgentNames = agentMap && agentMap.size > 1;
@@ -78,7 +77,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
           ? 'border-lazuli/50 shadow-[0_0_12px_rgba(91,131,176,0.15)]'
           : isRunning
           ? 'border-bronze-500/40 shadow-[0_0_12px_rgba(228,189,137,0.15)] animate-pulse-subtle'
-          : isQueued || isStarting
+          : isQueued
           ? 'border-zinc-500/30'
           : 'border-border-default'}
         ${flash ? 'ring-1 ring-lazuli/50 shadow-[0_0_12px_rgba(91,131,176,0.2)]' : ''}
@@ -179,13 +178,6 @@ export function TaskCard({ task, isDragOverlay, isQueued, isPreviewActive, colum
                 <Loader2Icon className="w-3 h-3 text-bronze-500 animate-spin" />
                 <span className={`text-[10px] text-bronze-500 font-medium tracking-wide truncate max-w-[160px] ${agentName ? '' : 'uppercase'}`}>
                   {agentName || 'Agent working'}
-                </span>
-              </div>
-            ) : isStarting ? (
-              <div className="flex items-center gap-1.5">
-                <Loader2Icon className="w-3 h-3 text-text-secondary animate-spin" />
-                <span className={`text-[10px] text-text-secondary font-medium tracking-wide truncate max-w-[160px] ${agentName ? '' : 'uppercase'}`}>
-                  {agentName || 'Starting...'}
                 </span>
               </div>
             ) : agentName ? (

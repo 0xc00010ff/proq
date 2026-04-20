@@ -635,9 +635,13 @@ app.whenReady().then(() => {
                 })
                 if (response === 1) {
                   resetConfig()
-                  // Relaunch the process so we start from a clean slate; on next
-                  // boot setupComplete=false will route us into the wizard.
-                  void transitionTo({ kind: 'exiting', reason: 'relaunch' })
+                  // In-process transition back to the wizard. We can't use
+                  // app.relaunch() here because in dev mode the relaunched
+                  // electron loses ELECTRON_RENDERER_URL (electron-vite sets it
+                  // only on the original spawn) and the new window loads
+                  // nothing. The state machine tears down the server and
+                  // windows in exitState/enterSetup either way.
+                  void transitionTo({ kind: 'setup' })
                 }
               }
             },

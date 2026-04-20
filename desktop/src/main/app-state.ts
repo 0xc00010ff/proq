@@ -144,11 +144,22 @@ function notifyListeners(state: AppState): void {
 }
 
 async function exitState(_prev: AppState, next: AppState): Promise<void> {
-  // When leaving for the terminal exiting state, stop everything time-driven.
-  if (next.kind === 'exiting') {
+  const d = getDeps()
+  // Stop everything time-driven when leaving running for any non-running state.
+  if (next.kind === 'exiting' || next.kind === 'setup') {
     stopHealthMonitor()
     stopUpdateScheduler()
     stopShellUpdateScheduler()
+  }
+  // Going back to the wizard (Reset path) tears down the server too — the
+  // wizard runs serverless. enterExiting handles its own stopServer with the
+  // watchdog, so don't double-stop here.
+  if (next.kind === 'setup') {
+    try {
+      await stopServer()
+    } catch (err) {
+      d.log(`exit→setup: stopServer error: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 }
 

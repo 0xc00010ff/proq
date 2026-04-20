@@ -176,9 +176,6 @@ function wireProcess(
       );
     }
 
-    // Dispatch next queued task early (critical for sequential mode)
-    processQueue(projectId);
-
     // Auto-commit any leftover uncommitted changes (synchronous/execSync)
     if (task && !endedOnQuestion && !endedOnPlanExit) {
       const effectivePath = task.worktreePath || await (async () => {
@@ -213,6 +210,11 @@ function wireProcess(
     }
 
     await Promise.all(ioTasks);
+
+    // Dispatch next queued task AFTER the DB write lands — processQueue reads
+    // agentStatus to decide whether anything is still running, so it must see
+    // this task as finished before it runs.
+    processQueue(projectId);
   });
 
   proc.on("error", async (err) => {

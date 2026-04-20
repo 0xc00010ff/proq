@@ -3,6 +3,7 @@ import { BrowserWindow } from 'electron'
 import { isDevMode } from './config'
 
 let initialized = false
+let updateDownloaded = false
 
 function sendToAll(channel: string, ...args: unknown[]): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -24,12 +25,17 @@ export function initShellUpdater(): void {
   })
 
   autoUpdater.on('update-downloaded', (info) => {
+    updateDownloaded = true
     sendToAll('shell-update:downloaded', { version: info.version })
   })
 
   autoUpdater.on('error', (err) => {
     sendToAll('shell-update:error', { error: err.message })
   })
+}
+
+export function isShellUpdateDownloaded(): boolean {
+  return updateDownloaded
 }
 
 export async function checkForShellUpdate(): Promise<{ available: boolean; version?: string; error?: string }> {
@@ -47,15 +53,6 @@ export async function checkForShellUpdate(): Promise<{ available: boolean; versi
     const message = e instanceof Error ? e.message : String(e)
     return { available: false, error: message }
   }
-}
-
-export function installShellUpdate(): void {
-  // Defer so the IPC reply completes before the process exits —
-  // calling quitAndInstall synchronously inside ipcMain.handle deadlocks.
-  // isForceRunAfter=true ensures macOS relaunches after install.
-  setImmediate(() => {
-    autoUpdater.quitAndInstall(false, true)
-  })
 }
 
 let shellCheckTimer: ReturnType<typeof setInterval> | null = null

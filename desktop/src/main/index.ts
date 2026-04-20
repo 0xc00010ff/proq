@@ -19,11 +19,21 @@ import {
   runNpmBuild,
   persistClaudePath
 } from './setup'
-import { startServer, stopServer, tryConnectToExisting, restartServer, healthCheck, onServerExit, getServerLogPath } from './server'
+import { startServer, healthCheck, getServerLogPath } from './server'
 import { parseErrorSummary } from './error-diagnostics'
-import { checkForUpdates, applyUpdate } from './updater'
-import { startUpdateScheduler, stopUpdateScheduler } from './update-scheduler'
-import { initShellUpdater, checkForShellUpdate, installShellUpdate, startShellUpdateScheduler, stopShellUpdateScheduler } from './shell-updater'
+import { checkForUpdates } from './updater'
+import { checkForShellUpdate, isShellUpdateDownloaded } from './shell-updater'
+import {
+  initAppState,
+  transitionTo,
+  getState,
+  getMainWindow,
+  setMainWindow,
+  isExiting,
+  safeSendToMain,
+  pauseRunningTimers,
+  resumeRunningTimers
+} from './app-state'
 
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
 import { ensurePath } from './shell-path'
@@ -45,14 +55,7 @@ function getIcon(): Electron.NativeImage {
   return nativeImage.createFromPath(path)
 }
 
-let mainWindow: BrowserWindow | null = null
 let findWindow: BrowserWindow | null = null
-let isResetting = false
-let isQuitting = false
-let isTransitioning = false
-let healthInterval: ReturnType<typeof setInterval> | null = null
-let consecutiveFailures = 0
-let isRecovering = false
 
 function getLogPath(): string {
   try {
@@ -65,12 +68,6 @@ function getLogPath(): string {
 function log(msg: string): void {
   const line = `[${new Date().toISOString()}] ${msg}\n`
   try { fs.appendFileSync(getLogPath(), line) } catch { /* */ }
-}
-
-function safeSend(channel: string, ...args: unknown[]): void {
-  if (!isQuitting && mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(channel, ...args)
-  }
 }
 
 function createWindow(mode: 'wizard' | 'splash' | 'app'): BrowserWindow {
@@ -302,7 +299,7 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:check-xcode', () => checkXcodeTools())
   ipcMain.handle('setup:install-xcode', () => installXcodeTools())
   ipcMain.handle('setup:install-claude', () =>
-    installClaude((line) => safeSend('setup:log', line))
+    installClaude((line) => safeSendToMain('setup:log', line))
   )
   ipcMain.handle('setup:clone', (_e, targetDir: string, overwrite?: boolean) => cloneProq(targetDir, overwrite))
   ipcMain.handle('setup:validate', (_e, dirPath: string) => validateExistingInstall(dirPath))
@@ -310,14 +307,14 @@ function registerIpcHandlers(): void {
   ipcMain.handle('setup:npm-install', async () => {
     const { proqPath } = getConfig()
     return runNpmInstall(proqPath, (line) => {
-      safeSend('setup:log', line)
+      safeSendToMain('setup:log', line)
     })
   })
 
   ipcMain.handle('setup:build', async () => {
     const { proqPath } = getConfig()
     return runNpmBuild(proqPath, (line) => {
-      safeSend('setup:log', line)
+      safeSendToMain('setup:log', line)
     })
   })
 
@@ -342,16 +339,17 @@ function registerIpcHandlers(): void {
 
   // Wizard complete — main process takes over to show splash + start server
   ipcMain.handle('wizard:complete', () => {
-    showSplashAndStartServer()
+    void transitionTo({ kind: 'launching' })
   })
 
-  // Server (used by splash Retry button)
+  // Server (used by splash Retry button — we're still in 'launching', re-run the
+  // server-start sub-step rather than re-entering the state).
   ipcMain.handle('server:start', async () => {
     const result = await startServer((line) => {
-      safeSend('server:log', line)
+      safeSendToMain('server:log', line)
     })
     if (result.ok) {
-      transitionToApp()
+      void transitionTo({ kind: 'running' })
     }
     return result
   })
@@ -359,9 +357,9 @@ function registerIpcHandlers(): void {
   // Rebuild + start (used by splash Retry when build failed)
   ipcMain.handle('server:rebuild-and-start', async () => {
     const { proqPath } = getConfig()
-    safeSend('server:log', 'Rebuilding...')
+    safeSendToMain('server:log', 'Rebuilding...')
     const buildResult = await runNpmBuild(proqPath, (line) => {
-      safeSend('server:log', line)
+      safeSendToMain('server:log', line)
     })
     if (!buildResult.ok) {
       const err = {
@@ -369,22 +367,22 @@ function registerIpcHandlers(): void {
         phase: 'build',
         logPath: getServerLogPath()
       }
-      safeSend('server:error', JSON.stringify(err))
+      safeSendToMain('server:error', JSON.stringify(err))
       return { ok: false }
     }
-    safeSend('server:log', 'Starting server...')
+    safeSendToMain('server:log', 'Starting server...')
     const result = await startServer((line) => {
-      safeSend('server:log', line)
+      safeSendToMain('server:log', line)
     })
     if (result.ok) {
-      transitionToApp()
+      void transitionTo({ kind: 'running' })
     } else {
       const err = {
         message: parseErrorSummary(result.error || '', 'server'),
         phase: 'server',
         logPath: getServerLogPath()
       }
-      safeSend('server:error', JSON.stringify(err))
+      safeSendToMain('server:error', JSON.stringify(err))
     }
     return result
   })
@@ -399,21 +397,17 @@ function registerIpcHandlers(): void {
 
   // Shell updates
   ipcMain.handle('shell-update:check', () => checkForShellUpdate())
-  ipcMain.handle('shell-update:install', () => installShellUpdate())
+  ipcMain.handle('shell-update:install', () => {
+    void transitionTo({ kind: 'exiting', reason: 'install-shell-update' })
+  })
 
-  // Restart — relaunch immediately; splash handles updates on next boot,
-  // and startServer() kills stale port processes before binding.
-  // We exit first and clean up best-effort — never await anything that
-  // could hang (stopServer's Promise can stall if a grandchild holds pipes).
+  // Restart — if a shell update has been downloaded by electron-updater,
+  // route through quitAndInstall so the new .app actually gets installed.
+  // Otherwise just relaunch the current process. Splash handles web-update
+  // pull-and-build on next boot.
   ipcMain.handle('app:restart', () => {
-    isQuitting = true
-    stopHealthMonitor()
-    stopUpdateScheduler()
-    stopShellUpdateScheduler()
-    app.relaunch()
-    app.exit(0)
-    // Fallback: if app.exit() is deferred by the event loop, force-kill.
-    setTimeout(() => process.exit(0), 500)
+    const reason = isShellUpdateDownloaded() ? 'install-shell-update' : 'relaunch'
+    void transitionTo({ kind: 'exiting', reason })
   })
 
   // App info
@@ -521,56 +515,6 @@ function showFindBar(parent: BrowserWindow): void {
   })
 }
 
-// ── Health Monitor & Recovery ─────────────────────────────────────────
-
-async function recoverServer(): Promise<void> {
-  if (isRecovering) return
-  // Don't recover if setup isn't complete (wizard is showing)
-  const config = getConfig()
-  if (!config.setupComplete) return
-  isRecovering = true
-  try {
-    const result = await restartServer()
-    if (result.ok) {
-      const url = `http://localhost:${config.port}`
-      for (const win of BrowserWindow.getAllWindows()) {
-        if (!win.isDestroyed()) win.loadURL(url)
-      }
-    }
-  } finally {
-    isRecovering = false
-    consecutiveFailures = 0
-  }
-}
-
-function startHealthMonitor(): void {
-  stopHealthMonitor()
-  consecutiveFailures = 0
-  // In dev mode, the dev server handles its own restarts via HMR.
-  // The health monitor's recovery (restartServer + loadURL) causes destructive
-  // hard reloads that kill React state and running processes.
-  if (isDevMode()) return
-  const config = getConfig()
-  healthInterval = setInterval(async () => {
-    const healthy = await healthCheck(config.port)
-    if (healthy) {
-      consecutiveFailures = 0
-    } else {
-      consecutiveFailures++
-      if (consecutiveFailures >= 3) {
-        recoverServer()
-      }
-    }
-  }, 10_000)
-}
-
-function stopHealthMonitor(): void {
-  if (healthInterval) {
-    clearInterval(healthInterval)
-    healthInterval = null
-  }
-}
-
 // ── App Lifecycle ─────────────────────────────────────────────────────
 
 function createAppWindow(): BrowserWindow {
@@ -599,126 +543,15 @@ function createAppWindow(): BrowserWindow {
   return appWindow
 }
 
-function transitionToApp(): void {
-  // Close previous window immediately — don't leave wizard/splash visible
-  isTransitioning = true
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.close()
-  }
-
-  const appWindow = createAppWindow()
-  mainWindow = appWindow
-  isTransitioning = false
-
-  appWindow.webContents.once('did-finish-load', () => {
-    startHealthMonitor()
-    startUpdateScheduler(appWindow)
-    initShellUpdater()
-    startShellUpdateScheduler()
-    onServerExit(() => recoverServer())
-  })
-}
-
-async function showSplashAndStartServer(): Promise<void> {
-  const config = getConfig()
-
-  // Check if server is already running before showing splash
-  const alreadyHealthy = await tryConnectToExisting(config.port)
-  if (alreadyHealthy) {
-    log('showSplash: existing server healthy, transitioning directly')
-    transitionToApp()
-    return
-  }
-
-  // Create splash before closing wizard so there's never zero windows
-  // (zero windows triggers app.quit via window-all-closed)
-  const previousWindow = mainWindow
-  mainWindow = createWindow('splash')
-  loadRendererPage(mainWindow, 'splash')
-  if (previousWindow && !previousWindow.isDestroyed()) {
-    previousWindow.close()
-  }
-  await new Promise<void>((resolve) => {
-    mainWindow!.webContents.once('did-finish-load', () => resolve())
-  })
-  log('showSplash: splash ready')
-
-  // Auto-update web content on launch (unless dev mode)
-  if (!isDevMode()) {
-    try {
-      safeSend('server:log', 'Checking for updates...')
-      const updateCheck = await checkForUpdates()
-      if (updateCheck.available) {
-        log(`showSplash: ${updateCheck.commits.length} update(s) available, applying`)
-        safeSend('server:log', 'Pulling updates...')
-        const sendUpdateLog = (line: string): void => {
-          const t = line.trim()
-          if (t === 'Installing dependencies...' || t === 'Building...' || t === 'Pulling updates...') {
-            safeSend('server:log', t)
-          }
-        }
-        const updateResult = await applyUpdate(sendUpdateLog)
-        if (!updateResult.ok) {
-          log(`showSplash: update failed: ${updateResult.error}`)
-          safeSend('server:error', JSON.stringify({
-            message: parseErrorSummary(updateResult.error || '', 'build'),
-            phase: 'build',
-            logPath: getServerLogPath()
-          }))
-          return
-        }
-      } else {
-        log('showSplash: already up to date')
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      log(`showSplash: update check failed (non-fatal): ${message}`)
-      // Continue — update failure shouldn't block app launch
-    }
-  }
-
-  // Start server
-  try {
-    const result = await startServer((line) => {
-      log(`server: ${line.trim()}`)
-      safeSend('server:log', line)
-    })
-
-    log(`showSplash: startServer result ok=${result.ok} error=${result.error}`)
-    if (result.ok) {
-      await new Promise((r) => setTimeout(r, 1500))
-      transitionToApp()
-    } else {
-      safeSend('server:error', JSON.stringify({
-        message: parseErrorSummary(result.error || '', 'server'),
-        phase: 'server',
-        logPath: getServerLogPath()
-      }))
-    }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    log(`showSplash: startServer exception: ${message}`)
-    safeSend('server:error', JSON.stringify({
-      message,
-      phase: 'server',
-      logPath: getServerLogPath()
-    }))
-  }
-}
-
 async function launchApp(): Promise<void> {
   const config = getConfig()
   log(`launchApp: setupComplete=${config.setupComplete} proqPath=${config.proqPath} port=${config.port} devMode=${config.devMode}`)
   log(`launchApp: PATH=${process.env.PATH}`)
 
   if (!config.setupComplete) {
-    // First run — show wizard. When wizard calls wizard:complete,
-    // the IPC handler calls showSplashAndStartServer().
-    mainWindow = createWindow('wizard')
-    loadRendererPage(mainWindow, 'wizard')
+    await transitionTo({ kind: 'setup' })
   } else {
-    // Normal launch — splash → server → app
-    await showSplashAndStartServer()
+    await transitionTo({ kind: 'launching' })
   }
 }
 
@@ -759,8 +592,9 @@ app.whenReady().then(() => {
               label: 'Check for Updates…',
               click: async (): Promise<void> => {
                 const result = await checkForUpdates()
-                if (result.available && mainWindow && !mainWindow.isDestroyed()) {
-                  mainWindow.webContents.send('updates:available', result)
+                const win = getMainWindow()
+                if (result.available && win && !win.isDestroyed()) {
+                  win.webContents.send('updates:available', result)
                 } else if (!result.available) {
                   dialog.showMessageBox({
                     type: 'info',
@@ -776,8 +610,10 @@ app.whenReady().then(() => {
             {
               label: 'Settings…',
               click: (): void => {
+                // Only navigate when the app window is actually live; otherwise
+                // loadURL races with reset/exit teardown and crashes.
+                if (getState().kind !== 'running') return
                 const config = getConfig()
-                if (!config.setupComplete) return
                 const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows().find(w => !w.isDestroyed())
                 if (win) win.loadURL(`http://localhost:${config.port}/settings`)
               }
@@ -796,19 +632,10 @@ app.whenReady().then(() => {
                   detail: `This resets the desktop app and restarts the setup wizard. Your project data at ${config.proqPath} will not be affected.\n\nUse this to switch to dev mode or change your proq installation path.`
                 })
                 if (response === 1) {
-                  isResetting = true
-                  stopHealthMonitor()
-                  stopUpdateScheduler()
-                  stopShellUpdateScheduler()
-                  await stopServer()
                   resetConfig()
-                  // Close all existing windows before relaunching
-                  for (const win of BrowserWindow.getAllWindows()) {
-                    win.destroy()
-                  }
-                  mainWindow = null
-                  await launchApp()
-                  isResetting = false
+                  // Relaunch the process so we start from a clean slate; on next
+                  // boot setupComplete=false will route us into the wizard.
+                  void transitionTo({ kind: 'exiting', reason: 'relaunch' })
                 }
               }
             },
@@ -877,63 +704,68 @@ app.whenReady().then(() => {
     )
   }
 
-  // Power monitor — handle sleep/wake
+  // Power monitor — handle sleep/wake. State machine still owns the schedulers;
+  // we just pause them on suspend and either trigger a recovery transition or
+  // refresh stale window contents on resume.
   powerMonitor.on('suspend', () => {
-    stopHealthMonitor()
-    stopUpdateScheduler()
-    stopShellUpdateScheduler()
+    pauseRunningTimers()
   })
 
   powerMonitor.on('resume', async () => {
+    if (getState().kind !== 'running') return
     const config = getConfig()
-    if (!config.setupComplete) return
     if (!isDevMode()) {
       const healthy = await healthCheck(config.port)
       if (!healthy) {
-        recoverServer()
-      } else {
-        const url = `http://localhost:${config.port}`
-        for (const win of BrowserWindow.getAllWindows()) {
-          if (win.isDestroyed()) continue
-          try {
-            const alive = await win.webContents.executeJavaScript(
-              'document.body?.children.length > 0'
-            )
-            if (!alive) win.loadURL(url)
-          } catch {
-            win.loadURL(url)
-          }
+        void transitionTo({ kind: 'recovering' })
+        return
+      }
+      const url = `http://localhost:${config.port}`
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          const alive = await win.webContents.executeJavaScript(
+            'document.body?.children.length > 0'
+          )
+          if (!alive) win.loadURL(url)
+        } catch {
+          win.loadURL(url)
         }
       }
     }
-    startHealthMonitor()
-    startShellUpdateScheduler()
-    const firstWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
-    if (firstWindow) {
-      startUpdateScheduler(firstWindow)
-    }
+    resumeRunningTimers()
   })
 
+  initAppState({ createWindow, loadRendererPage, createAppWindow, log })
   registerIpcHandlers()
   launchApp()
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin' && !isResetting && !isTransitioning) app.quit()
+  if (process.platform === 'darwin') return
+  // The state machine handles its own teardown; only short-circuit if it's
+  // already exiting, so we don't double-fire the exit path.
+  if (isExiting()) return
+  void transitionTo({ kind: 'exiting', reason: 'quit' })
 })
 
-app.on('before-quit', async () => {
-  isQuitting = true
-  stopHealthMonitor()
-  stopUpdateScheduler()
-  stopShellUpdateScheduler()
-  await stopServer()
+app.on('before-quit', (event) => {
+  // Route every quit through the state machine so server teardown, watchdog,
+  // and update-install-on-quit all happen consistently. If we're already
+  // exiting, let it through to avoid blocking.
+  if (isExiting()) return
+  event.preventDefault()
+  void transitionTo({ kind: 'exiting', reason: 'quit' })
 })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     const config = getConfig()
-    if (config.setupComplete) createAppWindow()
-    else launchApp()
+    if (config.setupComplete && getState().kind === 'running') {
+      const win = createAppWindow()
+      setMainWindow(win)
+    } else {
+      launchApp()
+    }
   }
 })

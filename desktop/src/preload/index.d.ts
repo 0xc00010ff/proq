@@ -61,6 +61,10 @@ interface ProqDesktopAPI {
   openLogFile: (logPath: string) => Promise<void>
 
   getVersion: () => Promise<string>
+
+  onAppStateChanged: (
+    cb: (e: unknown, state: { kind: string; reason?: string }) => void
+  ) => () => void
 }
 
 declare global {

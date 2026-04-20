@@ -17,6 +17,7 @@ interface ProqDesktopAPI {
   onFindShow: (cb: () => void) => () => void
   onFindResult: (cb: (result: { activeMatchOrdinal: number; matches: number }) => void) => () => void
   getVersion: () => Promise<string>
+  onAppStateChanged: (cb: (e: unknown, state: { kind: string; reason?: string }) => void) => () => void
 }
 
 interface Window {

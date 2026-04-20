@@ -102,7 +102,17 @@ const proqDesktopAPI = {
   openLogFile: (logPath: string): Promise<unknown> => ipcRenderer.invoke('app:open-log', logPath),
 
   // App
-  getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version')
+  getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version'),
+
+  // App state changes (broadcast from main on every transition)
+  onAppStateChanged: (
+    cb: (_e: unknown, state: { kind: string; reason?: string }) => void
+  ): (() => void) => {
+    ipcRenderer.on('app-state:changed', cb as (...args: unknown[]) => void)
+    return (): void => {
+      ipcRenderer.removeListener('app-state:changed', cb as (...args: unknown[]) => void)
+    }
+  }
 }
 
 if (process.contextIsolated) {

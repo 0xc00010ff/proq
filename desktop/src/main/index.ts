@@ -32,7 +32,9 @@ import {
   isExiting,
   safeSendToMain,
   pauseRunningTimers,
-  resumeRunningTimers
+  resumeRunningTimers,
+  onStateChange,
+  type AppState
 } from './app-state'
 
 // Fix PATH for macOS GUI apps (they don't inherit shell PATH)
@@ -737,6 +739,20 @@ app.whenReady().then(() => {
   })
 
   initAppState({ createWindow, loadRendererPage, createAppWindow, log })
+
+  // Broadcast every state change so the renderer can show overlays
+  // ("Restarting…" while exiting, "Reconnecting…" while recovering, etc.)
+  onStateChange((state: AppState) => {
+    const payload = state.kind === 'exiting'
+      ? { kind: state.kind, reason: state.reason }
+      : { kind: state.kind }
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('app-state:changed', payload)
+      }
+    }
+  })
+
   registerIpcHandlers()
   launchApp()
 })

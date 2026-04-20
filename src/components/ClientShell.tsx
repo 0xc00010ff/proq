@@ -8,6 +8,7 @@ import { useElectronDragSuppression } from '@/hooks/useElectronDragSuppression';
 import { Sidebar } from './Sidebar';
 import { MissingPathModal } from './MissingPathModal';
 import { ProjectCreationModal } from './ProjectCreationModal';
+import { AppStateOverlay } from './AppStateOverlay';
 import { useProjects } from './ProjectsProvider';
 import type { Project } from '@/lib/types';
 
@@ -174,6 +175,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <ProjectsProvider>
       <ShellInner>{children}</ShellInner>
+      <AppStateOverlay />
     </ProjectsProvider>
   );
 }

@@ -26,13 +26,18 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-server.tool(
+server.registerTool(
   "write_report",
-  "Write a report summarizing the work done on this task. Call after completing meaningful work — restates the problem, outlines the solution and results. Updated in place on follow-ups.",
   {
-    title: z.string().describe("Short descriptive title for the report"),
-    summary: z.string().describe("Concise summary: restate the problem, outline the solution and results"),
-    nextSteps: z.string().optional().describe("Suggested next steps: testing, refinements, or follow-up work"),
+    description:
+      "Write a report summarizing the work done on this task. Call after completing meaningful work — restates the problem, outlines the solution and results. Updated in place on follow-ups.",
+    inputSchema: z
+      .object({
+        title: z.string().describe("Short descriptive title for the report"),
+        summary: z.string().describe("Concise summary: restate the problem, outline the solution and results"),
+        nextSteps: z.string().optional().describe("Suggested next steps: testing, refinements, or follow-up work"),
+      })
+      .strict(),
   },
   async ({ title, summary, nextSteps }) => {
     try {
@@ -74,13 +79,17 @@ server.tool(
 );
 
 // Legacy alias — kept for backward compat with older system prompts
-server.tool(
+server.registerTool(
   "update_task",
-  "Update the task with a summary of work done and move it to Verify for human review.",
   {
-    summary: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
-    nextSteps: z.string().optional().describe("Suggested next steps such as testing, refinements, or follow-up work"),
-    agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+    description: "Update the task with a summary of work done and move it to Verify for human review.",
+    inputSchema: z
+      .object({
+        summary: z.string().describe("Newline-separated cumulative summary of all work done so far on this task"),
+        nextSteps: z.string().optional().describe("Suggested next steps such as testing, refinements, or follow-up work"),
+        agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+      })
+      .strict(),
   },
   async ({ summary, nextSteps, agentId }) => {
     try {
@@ -105,10 +114,12 @@ server.tool(
   },
 );
 
-server.tool(
+server.registerTool(
   "read_task",
-  "Read the current task state, including any existing report from prior work.",
-  {},
+  {
+    description: "Read the current task state, including any existing report from prior work.",
+    inputSchema: z.object({}).strict(),
+  },
   async () => {
     try {
       const res = await fetch(taskUrl);
@@ -139,11 +150,15 @@ async function resolveWorkDir() {
   return proj.path?.replace(/^~/, process.env.HOME || "~") || null;
 }
 
-server.tool(
+server.registerTool(
   "commit_changes",
-  "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
   {
-    message: z.string().describe("Descriptive commit message summarizing the changes"),
+    description: "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
+    inputSchema: z
+      .object({
+        message: z.string().describe("Descriptive commit message summarizing the changes"),
+      })
+      .strict(),
   },
   async ({ message }) => {
     try {
@@ -200,10 +215,12 @@ server.tool(
   },
 );
 
-server.tool(
+server.registerTool(
   "list_agents",
-  "List all agents in this project.",
-  {},
+  {
+    description: "List all agents in this project.",
+    inputSchema: z.object({}).strict(),
+  },
   async () => {
     try {
       const res = await fetch(`${API}/api/projects/${projectId}/agents`);
@@ -219,15 +236,23 @@ server.tool(
   },
 );
 
-server.tool(
+server.registerTool(
   "create_task",
-  "Create a follow-up task in the same project. Use this when you identify work that is outside your current scope but should be done next. Set start=true to immediately dispatch the task to an agent.",
   {
-    title: z.string().describe("Short task title"),
-    description: z.string().describe("Task description with details about what needs to be done"),
-    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task mode (default: auto)"),
-    agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
-    start: z.boolean().optional().describe("Set to true to immediately start the task (move to in-progress and dispatch an agent)"),
+    description:
+      "Create a follow-up task in the same project. Use this when you identify work that is outside your current scope but should be done next. Set start=true to immediately dispatch the task to an agent.",
+    inputSchema: z
+      .object({
+        title: z.string().describe("Short task title"),
+        description: z.string().describe("Task description with details about what needs to be done"),
+        mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task mode (default: auto)"),
+        agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+        start: z
+          .boolean()
+          .optional()
+          .describe("Set to true to immediately start the task (move to in-progress and dispatch an agent)"),
+      })
+      .strict(),
   },
   async ({ title, description, mode, agentId, start }) => {
     try {

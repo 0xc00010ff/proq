@@ -38,10 +38,12 @@ const server = new McpServer({
 
 // ── list_projects ──
 
-server.tool(
+server.registerTool(
   "list_projects",
-  "List all projects in proq with their id, name, path, and status.",
-  {},
+  {
+    description: "List all projects in proq with their id, name, path, and status.",
+    inputSchema: z.object({}).strict(),
+  },
   async () => {
     try {
       const res = await fetch(`${API}/api/projects`);
@@ -64,11 +66,15 @@ server.tool(
 
 // ── list_tasks ──
 
-server.tool(
+server.registerTool(
   "list_tasks",
-  "List all tasks for a project, grouped by status column (todo, in-progress, verify, done).",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    description: "List all tasks for a project, grouped by status column (todo, in-progress, verify, done).",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+      })
+      .strict(),
   },
   async ({ projectId }) => {
     try {
@@ -100,12 +106,16 @@ server.tool(
 
 // ── get_task ──
 
-server.tool(
+server.registerTool(
   "get_task",
-  "Get the full details of a specific task.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    taskId: z.string().describe("Task ID"),
+    description: "Get the full details of a specific task.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        taskId: z.string().describe("Task ID"),
+      })
+      .strict(),
   },
   async ({ projectId, taskId }) => {
     try {
@@ -124,16 +134,23 @@ server.tool(
 
 // ── create_task ──
 
-server.tool(
+server.registerTool(
   "create_task",
-  "Create a new task in a project. Set start=true to immediately dispatch the task to an agent.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    title: z.string().describe("Task title"),
-    description: z.string().describe("Task description with details about what needs to be done"),
-    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Claude Code execution mode (default: auto)"),
-    agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
-    start: z.boolean().optional().describe("Set to true to immediately start the task (move to in-progress and dispatch an agent)"),
+    description: "Create a new task in a project. Set start=true to immediately dispatch the task to an agent.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        title: z.string().describe("Task title"),
+        description: z.string().describe("Task description with details about what needs to be done"),
+        mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Claude Code execution mode (default: auto)"),
+        agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+        start: z
+          .boolean()
+          .optional()
+          .describe("Set to true to immediately start the task (move to in-progress and dispatch an agent)"),
+      })
+      .strict(),
   },
   async ({ projectId, title, description, mode, agentId, start }) => {
     try {
@@ -169,11 +186,15 @@ server.tool(
 
 // ── list_agents ──
 
-server.tool(
+server.registerTool(
   "list_agents",
-  "List all agents in a project.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    description: "List all agents in a project.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+      })
+      .strict(),
   },
   async ({ projectId }) => {
     try {
@@ -193,17 +214,21 @@ server.tool(
 
 // ── update_task ──
 
-server.tool(
+server.registerTool(
   "update_task",
-  "Update a task's fields such as title, description, status, or priority.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    taskId: z.string().describe("Task ID"),
-    title: z.string().optional().describe("New title"),
-    description: z.string().optional().describe("New description"),
-    status: z.enum(["todo", "in-progress", "verify", "done"]).optional().describe("New status"),
-    priority: z.enum(["low", "medium", "high"]).optional().describe("New priority"),
-    agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+    description: "Update a task's fields such as title, description, status, or priority.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        taskId: z.string().describe("Task ID"),
+        title: z.string().optional().describe("New title"),
+        description: z.string().optional().describe("New description"),
+        status: z.enum(["todo", "in-progress", "verify", "done"]).optional().describe("New status"),
+        priority: z.enum(["low", "medium", "high"]).optional().describe("New priority"),
+        agentId: z.string().optional().describe("Agent UUID to assign this task to (uses project default if omitted)"),
+      })
+      .strict(),
   },
   async ({ projectId, taskId, ...fields }) => {
     try {
@@ -233,12 +258,17 @@ server.tool(
 
 // ── set_live_url ──
 
-server.tool(
+server.registerTool(
   "set_live_url",
-  "Set the live preview URL for the project. Use this after starting a dev server so the human can see the running app in the Live tab. The Live tab will automatically refresh to show the new URL.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    url: z.string().describe("The local URL of the running dev server, e.g. http://localhost:3000"),
+    description:
+      "Set the live preview URL for the project. Use this after starting a dev server so the human can see the running app in the Live tab. The Live tab will automatically refresh to show the new URL.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        url: z.string().describe("The local URL of the running dev server, e.g. http://localhost:3000"),
+      })
+      .strict(),
   },
   async ({ projectId, url }) => {
     try {
@@ -260,12 +290,16 @@ server.tool(
 
 // ── commit_changes ──
 
-server.tool(
+server.registerTool(
   "commit_changes",
-  "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    message: z.string().describe("Descriptive commit message summarizing the changes"),
+    description: "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        message: z.string().describe("Descriptive commit message summarizing the changes"),
+      })
+      .strict(),
   },
   async ({ projectId, message }) => {
     try {
@@ -312,12 +346,16 @@ server.tool(
 
 // ── delete_task ──
 
-server.tool(
+server.registerTool(
   "delete_task",
-  "Delete a task from a project.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    taskId: z.string().describe("Task ID"),
+    description: "Delete a task from a project.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        taskId: z.string().describe("Task ID"),
+      })
+      .strict(),
   },
   async ({ projectId, taskId }) => {
     try {
@@ -337,11 +375,15 @@ server.tool(
 
 // ── list_crons ──
 
-server.tool(
+server.registerTool(
   "list_crons",
-  "List all cron jobs for a project.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+    description: "List all cron jobs for a project.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+      })
+      .strict(),
   },
   async ({ projectId }) => {
     try {
@@ -360,17 +402,21 @@ server.tool(
 
 // ── create_cron ──
 
-server.tool(
+server.registerTool(
   "create_cron",
-  "Create a cron job that automatically creates and dispatches tasks on a schedule.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    name: z.string().describe("Name for the cron job"),
-    prompt: z.string().describe("The task description/prompt that will be used when the cron creates a task"),
-    schedule: z.string().describe("Cron schedule expression, e.g. '0 9 * * *' for daily at 9am"),
-    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task execution mode (default: auto)"),
-    enabled: z.boolean().optional().describe("Whether the cron is enabled (default: true)"),
-    agentId: z.string().optional().describe("Agent UUID to assign cron tasks to (uses project default if omitted)"),
+    description: "Create a cron job that automatically creates and dispatches tasks on a schedule.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        name: z.string().describe("Name for the cron job"),
+        prompt: z.string().describe("The task description/prompt that will be used when the cron creates a task"),
+        schedule: z.string().describe("Cron schedule expression, e.g. '0 9 * * *' for daily at 9am"),
+        mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("Task execution mode (default: auto)"),
+        enabled: z.boolean().optional().describe("Whether the cron is enabled (default: true)"),
+        agentId: z.string().optional().describe("Agent UUID to assign cron tasks to (uses project default if omitted)"),
+      })
+      .strict(),
   },
   async ({ projectId, name, prompt, schedule, mode, enabled, agentId }) => {
     try {
@@ -398,18 +444,22 @@ server.tool(
 
 // ── update_cron ──
 
-server.tool(
+server.registerTool(
   "update_cron",
-  "Update a cron job's fields such as name, prompt, schedule, mode, agentId, or enabled state.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    cronId: z.string().describe("Cron job ID"),
-    name: z.string().optional().describe("New name"),
-    prompt: z.string().optional().describe("New prompt"),
-    schedule: z.string().optional().describe("New cron schedule expression"),
-    mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("New execution mode"),
-    enabled: z.boolean().optional().describe("Enable or disable the cron"),
-    agentId: z.string().optional().describe("Agent UUID to assign cron tasks to (uses project default if omitted)"),
+    description: "Update a cron job's fields such as name, prompt, schedule, mode, agentId, or enabled state.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        cronId: z.string().describe("Cron job ID"),
+        name: z.string().optional().describe("New name"),
+        prompt: z.string().optional().describe("New prompt"),
+        schedule: z.string().optional().describe("New cron schedule expression"),
+        mode: z.enum(["auto", "build", "plan", "answer"]).optional().describe("New execution mode"),
+        enabled: z.boolean().optional().describe("Enable or disable the cron"),
+        agentId: z.string().optional().describe("Agent UUID to assign cron tasks to (uses project default if omitted)"),
+      })
+      .strict(),
   },
   async ({ projectId, cronId, ...fields }) => {
     try {
@@ -438,12 +488,16 @@ server.tool(
 
 // ── delete_cron ──
 
-server.tool(
+server.registerTool(
   "delete_cron",
-  "Delete a cron job from a project.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    cronId: z.string().describe("Cron job ID"),
+    description: "Delete a cron job from a project.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        cronId: z.string().describe("Cron job ID"),
+      })
+      .strict(),
   },
   async ({ projectId, cronId }) => {
     try {
@@ -463,12 +517,16 @@ server.tool(
 
 // ── trigger_cron ──
 
-server.tool(
+server.registerTool(
   "trigger_cron",
-  "Manually trigger a cron job to create and dispatch a task immediately.",
   {
-    projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
-    cronId: z.string().describe("Cron job ID"),
+    description: "Manually trigger a cron job to create and dispatch a task immediately.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        cronId: z.string().describe("Cron job ID"),
+      })
+      .strict(),
   },
   async ({ projectId, cronId }) => {
     try {

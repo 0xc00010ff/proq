@@ -6,7 +6,7 @@ import { readFile } from "fs/promises";
 import type { AgentBlock, TaskAttachment, TaskMode } from "./types";
 import { getWorkbenchSession, setWorkbenchSession, getSettings, getProject, getAgent } from "./db";
 import { getClaudeBin } from "./claude-bin";
-import { escapePrompt, wrapPromptWithUnseen } from "./utils";
+import { escapePrompt, wrapPromptWithUnseen, childProcessEnv } from "./utils";
 import type WebSocket from "ws";
 
 export interface AgentTabSession {
@@ -443,7 +443,7 @@ export async function startAgentTabSession(
   const proc = spawn(claudeBin, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, CLAUDECODE: undefined, PORT: undefined, PROQ_API: `http://localhost:${process.env.PORT || 1337}` },
+    env: childProcessEnv(),
   });
 
   session.queryHandle = proc;
@@ -559,7 +559,7 @@ export async function continueAgentTabSession(
   const proc = spawn(claudeBin, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, CLAUDECODE: undefined, PORT: undefined, PROQ_API: `http://localhost:${process.env.PORT || 1337}` },
+    env: childProcessEnv(),
   });
 
   session.queryHandle = proc;

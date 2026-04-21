@@ -18,7 +18,7 @@ import {
   getProjectDefaultBranch,
   getAgent,
 } from "./db";
-import { stripAnsi, resolveProjectPath } from "./utils";
+import { stripAnsi, resolveProjectPath, childProcessEnv } from "./utils";
 import { emitTaskUpdate } from "./task-events";
 import { createWorktree, removeWorktree, getCurrentBranch } from "./worktree";
 import type { TaskAttachment, TaskMode, AgentRenderMode } from "./types";
@@ -416,7 +416,6 @@ export async function dispatchTask(
     const socketPath = `/tmp/proq/${sessionId}.sock`;
 
     // Launch bridge directly — detached process survives server restarts, exposes PTY over unix socket
-    const proqApi = `http://localhost:${process.env.PORT || 1337}`;
     const pidPath = `/tmp/proq/${sessionId}.pid`;
 
     try {
@@ -424,7 +423,7 @@ export async function dispatchTask(
         cwd: effectivePath,
         detached: true,
         stdio: "ignore",
-        env: { ...process.env, PROQ_API: proqApi, CLAUDECODE: undefined, PORT: undefined },
+        env: childProcessEnv(),
       });
       writeFileSync(pidPath, String(child.pid));
 

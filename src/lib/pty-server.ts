@@ -4,6 +4,7 @@ import { existsSync, writeFileSync, readFileSync, mkdirSync, unlinkSync } from "
 import { join } from "path";
 import { tmpdir, homedir } from "os";
 import type { WebSocket } from "ws";
+import { childProcessEnv } from "./utils";
 
 const SCROLLBACK_LIMIT = 50 * 1024; // 50 KB ring buffer per PTY
 
@@ -84,7 +85,7 @@ export function spawnShellSession(tabId: string, cmd?: string, cwd?: string): bo
       cwd: resolvedCwd,
       detached: true,
       stdio: "ignore",
-      env: { ...process.env, PROQ_API: `http://localhost:${process.env.PORT || 1337}` },
+      env: childProcessEnv(),
     });
     child.unref();
     writeFileSync(pid, String(child.pid));

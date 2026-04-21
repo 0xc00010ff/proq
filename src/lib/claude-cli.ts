@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { getClaudeBin } from "./claude-bin";
-import { escapePrompt } from "./utils";
+import { escapePrompt, childProcessEnv } from "./utils";
 
 /**
  * One-shot Claude CLI call. Spawns `claude -p <prompt>` and returns the text output.
@@ -16,7 +16,7 @@ export async function claudeOneShot(
   return new Promise((resolve, reject) => {
     const proc = spawn(claudeBin, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, CLAUDECODE: undefined, PORT: undefined },
+      env: childProcessEnv(),
     });
 
     let stdout = "";

@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import type { AgentBlock, TaskAttachment } from "./types";
 import { getAllProjects, getSupervisorAgentBlocks, setSupervisorAgentBlocks, getSettings } from "./db";
 import { getClaudeBin } from "./claude-bin";
-import { escapePrompt, wrapPromptWithUnseen } from "./utils";
+import { escapePrompt, wrapPromptWithUnseen, childProcessEnv } from "./utils";
 import type WebSocket from "ws";
 
 export interface SupervisorSession {
@@ -361,7 +361,7 @@ export async function startSupervisorSession(text: string, priorBlocks?: AgentBl
   const proc = spawn(claudeBin, args, {
     cwd: process.cwd(),
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, CLAUDECODE: undefined, PORT: undefined, PROQ_API: `http://localhost:${process.env.PORT || 1337}` },
+    env: childProcessEnv(),
   });
 
   session.queryHandle = proc;
@@ -433,7 +433,7 @@ export async function continueSupervisorSession(
   const proc = spawn(claudeBin, args, {
     cwd: process.cwd(),
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, CLAUDECODE: undefined, PORT: undefined, PROQ_API: `http://localhost:${process.env.PORT || 1337}` },
+    env: childProcessEnv(),
   });
 
   session.queryHandle = proc;

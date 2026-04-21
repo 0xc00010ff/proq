@@ -23,6 +23,24 @@ export function resolveProjectPath(p: string): string {
 }
 
 /**
+ * Environment for child processes (agents, shells, PTYs). Strips vars that
+ * leak from the Electron host or the Next.js server and would break dev
+ * toolchains in the child — most notably NODE_ENV, which Electron sets to
+ * "production" and which disables Fast Refresh in Vite dev servers.
+ */
+export function childProcessEnv(extras: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
+  const env: Record<string, string | undefined> = {
+    ...(process.env as Record<string, string | undefined>),
+    PROQ_API: `http://localhost:${process.env.PORT || 1337}`,
+    ...extras,
+  };
+  delete env.NODE_ENV;
+  delete env.CLAUDECODE;
+  delete env.PORT;
+  return env as unknown as NodeJS.ProcessEnv;
+}
+
+/**
  * Escape a prompt so it isn't misinterpreted as a CLI flag when passed to `-p`.
  * A leading hyphen/dash causes the argument parser to treat the value as an option.
  */

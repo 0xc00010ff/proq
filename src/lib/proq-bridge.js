@@ -34,6 +34,8 @@ fs.mkdirSync(path.dirname(socketPath), { recursive: true });
 const env = { ...process.env };
 delete env.CLAUDECODE;
 delete env.PORT;
+// Electron host runs with NODE_ENV=production; unset so tools like Vite default to dev
+delete env.NODE_ENV;
 delete env.npm_config_prefix;
 for (const key of Object.keys(env)) {
   if (key.startsWith("npm_")) delete env[key];

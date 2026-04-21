@@ -295,6 +295,19 @@ function writeWorkbenchMcpConfig(projectId: string, tabId: string): string {
   return configPath;
 }
 
+function buildAllowedTools(useChrome: boolean): string {
+  const allowedTools: string[] = [
+    "mcp__proq__*",
+    "Write(.claude/skills/**)", "Edit(.claude/skills/**)",
+    "Write(.claude/commands/**)", "Edit(.claude/commands/**)",
+    "Write(.claude/agents/**)", "Edit(.claude/agents/**)",
+  ];
+  if (useChrome) {
+    allowedTools.push("mcp__claude-in-chrome__*");
+  }
+  return allowedTools.join(",");
+}
+
 // ── Public API ──
 
 function buildSystemPrompt(projectName: string, cwd: string, mode?: TaskMode, settings?: { systemPromptAdditions?: string }, agentPrompt?: string, agentIdentity?: { name: string; role?: string }): string {
@@ -406,8 +419,12 @@ export async function startAgentTabSession(
     "--verbose",
     "--max-turns", "200",
     "--mcp-config", mcpConfigPath,
-    "--allowedTools", "mcp__proq__*,Write(.claude/skills/**),Edit(.claude/skills/**),Write(.claude/commands/**),Edit(.claude/commands/**),Write(.claude/agents/**),Edit(.claude/agents/**)",
+    "--allowedTools", buildAllowedTools(settings.useChrome),
   ];
+
+  if (settings.useChrome) {
+    args.push("--chrome");
+  }
 
   // Plan mode uses restricted permissions; all other modes skip permissions
   if (mode === "plan") {
@@ -515,8 +532,12 @@ export async function continueAgentTabSession(
     "--verbose",
     "--max-turns", "200",
     "--mcp-config", mcpConfigPath,
-    "--allowedTools", "mcp__proq__*,Write(.claude/skills/**),Edit(.claude/skills/**),Write(.claude/commands/**),Edit(.claude/commands/**),Write(.claude/agents/**),Edit(.claude/agents/**)",
+    "--allowedTools", buildAllowedTools(settings.useChrome),
   ];
+
+  if (settings.useChrome) {
+    args.push("--chrome");
+  }
 
   // After plan approval or non-plan modes: skip permissions. In plan mode: restricted.
   if (session.mode === "plan" && !options?.planApproved) {

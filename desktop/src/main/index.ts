@@ -394,6 +394,14 @@ function registerIpcHandlers(): void {
     shell.openPath(logPath)
   })
 
+  // Open external URL in the default browser. Guard against non-http(s) schemes
+  // so renderer code can't use this as a generic launcher (e.g. file://, javascript:).
+  ipcMain.handle('app:open-external', (_e, url: string) => {
+    if (typeof url !== 'string') return
+    if (!/^https?:\/\//i.test(url)) return
+    shell.openExternal(url)
+  })
+
   // Updates
   ipcMain.handle('updates:check', () => checkForUpdates())
 

@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { usePathname, useRouter } from 'next/navigation';
 import { ProjectsProvider } from './ProjectsProvider';
 import { useElectronDragSuppression } from '@/hooks/useElectronDragSuppression';
+import { useExternalLinks } from '@/hooks/useExternalLinks';
 
 import { Sidebar } from './Sidebar';
 import { MissingPathModal } from './MissingPathModal';
@@ -146,6 +147,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 export function ClientShell({ children }: { children: React.ReactNode }) {
   // Suppress electron drag regions when Radix portals (modals/dropdowns) are open
   useElectronDragSuppression();
+
+  // Route target="_blank" clicks to the OS browser via Electron shell
+  useExternalLinks();
 
   // Listen for OS theme changes when theme is set to "system"
   useEffect(() => {

@@ -101,6 +101,9 @@ const proqDesktopAPI = {
   // Open log file
   openLogFile: (logPath: string): Promise<unknown> => ipcRenderer.invoke('app:open-log', logPath),
 
+  // Open URL in default browser
+  openExternal: (url: string): Promise<unknown> => ipcRenderer.invoke('app:open-external', url),
+
   // App
   getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version'),
 

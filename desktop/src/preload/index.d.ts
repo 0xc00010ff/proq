@@ -59,6 +59,7 @@ interface ProqDesktopAPI {
 
   rebuildAndStart: () => Promise<{ ok: boolean; error?: string }>
   openLogFile: (logPath: string) => Promise<void>
+  openExternal: (url: string) => Promise<void>
 
   getVersion: () => Promise<string>
 

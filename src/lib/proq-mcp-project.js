@@ -212,6 +212,84 @@ server.registerTool(
   },
 );
 
+// ── create_agent ──
+
+server.registerTool(
+  "create_agent",
+  {
+    description: "Create a new agent in a project. Agents can be assigned to tasks or cron jobs to customize their behavior via a role and system prompt.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        name: z.string().describe("Agent name"),
+        role: z.string().optional().describe("Short role label, e.g. 'Frontend engineer'"),
+        systemPrompt: z.string().optional().describe("System prompt appended to the base prompt when this agent runs"),
+      })
+      .strict(),
+  },
+  async ({ projectId, name, role, systemPrompt }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const body = { name };
+      if (role !== undefined) body.role = role;
+      if (systemPrompt !== undefined) body.systemPrompt = systemPrompt;
+      const res = await fetch(`${API}/api/projects/${pid}/agents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { content: [{ type: "text", text: `Failed to create agent: ${res.status} ${err.error || ""}` }], isError: true };
+      }
+      const agent = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(agent, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
+// ── update_agent ──
+
+server.registerTool(
+  "update_agent",
+  {
+    description: "Update an existing agent's name, role, or system prompt. Only supplied fields are changed.",
+    inputSchema: z
+      .object({
+        projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
+        agentId: z.string().describe("Agent ID to update"),
+        name: z.string().optional().describe("New agent name"),
+        role: z.string().optional().describe("New role label"),
+        systemPrompt: z.string().optional().describe("New system prompt"),
+      })
+      .strict(),
+  },
+  async ({ projectId, agentId, ...fields }) => {
+    try {
+      const pid = resolveProjectId(projectId);
+      const body = {};
+      if (fields.name !== undefined) body.name = fields.name;
+      if (fields.role !== undefined) body.role = fields.role;
+      if (fields.systemPrompt !== undefined) body.systemPrompt = fields.systemPrompt;
+      const res = await fetch(`${API}/api/projects/${pid}/agents/${agentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { content: [{ type: "text", text: `Failed to update agent: ${res.status} ${err.error || ""}` }], isError: true };
+      }
+      const agent = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(agent, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
 // ── update_task ──
 
 server.registerTool(

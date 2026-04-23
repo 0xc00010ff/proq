@@ -186,6 +186,18 @@ export function KanbanBoard({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{ startX: number; startScrollLeft: number; moved: boolean } | null>(null);
+  const [canPan, setCanPan] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => setCanPan(el.scrollWidth > el.clientWidth);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, []);
 
   function handlePanMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     if (e.button !== 0) return;
@@ -394,7 +406,7 @@ export function KanbanBoard({
     <div
       ref={scrollRef}
       onMouseDown={handlePanMouseDown}
-      className="flex-1 h-full overflow-x-auto bg-surface-topbar"
+      className={`flex-1 h-full overflow-x-auto bg-surface-topbar ${canPan ? 'cursor-grab [&_button]:cursor-pointer [&_a]:cursor-pointer [&_input]:cursor-text' : ''}`}
     >
       <DndContext
         sensors={sensors}

@@ -145,6 +145,7 @@ function SortableTaskCard({
     <div
       ref={setNodeRef}
       style={style}
+      data-task-card
       {...listeners}
       {...attributes}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
@@ -182,6 +183,57 @@ export function KanbanBoard({
   const pendingCommitRef = useRef<boolean>(false);
   const lastOverIdRef = useRef<string | null>(null);
   const [pendingRerun, setPendingRerun] = useState<{ taskId: string; toColumn: TaskStatus; toIndex: number; taskTitle: string } | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef<{ startX: number; startScrollLeft: number; moved: boolean } | null>(null);
+
+  function handlePanMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Skip interactive elements and task cards — they have their own behavior
+    if (target.closest('[data-task-card], button, a, input, textarea, select, [role="menu"], [role="menuitem"]')) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollWidth <= el.clientWidth) return; // nothing to pan
+
+    panRef.current = { startX: e.clientX, startScrollLeft: el.scrollLeft, moved: false };
+    el.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+  }
+
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      const pan = panRef.current;
+      const el = scrollRef.current;
+      if (!pan || !el) return;
+      const dx = e.clientX - pan.startX;
+      if (Math.abs(dx) > 3) pan.moved = true;
+      el.scrollLeft = pan.startScrollLeft - dx;
+    }
+    function onUp() {
+      const pan = panRef.current;
+      if (!pan) return;
+      const el = scrollRef.current;
+      if (el) el.style.cursor = '';
+      document.body.style.userSelect = '';
+      panRef.current = null;
+      if (pan.moved) {
+        // Swallow the click that would otherwise fire after the drag
+        const swallow = (ev: MouseEvent) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+          window.removeEventListener('click', swallow, true);
+        };
+        window.addEventListener('click', swallow, true);
+      }
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
 
   // Clear localColumns once parent props reflect the committed drag result
   useEffect(() => {
@@ -339,7 +391,11 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="flex-1 h-full overflow-x-auto bg-surface-topbar">
+    <div
+      ref={scrollRef}
+      onMouseDown={handlePanMouseDown}
+      className="flex-1 h-full overflow-x-auto bg-surface-topbar"
+    >
       <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}

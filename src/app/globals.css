@@ -75,7 +75,7 @@
     --radius: 0.5rem;
 
     /* Design system — semantic tokens (light) — RGB channels for Tailwind opacity */
-    --surface-deep: 237 232 223;       /* below ground — chat, terminals #ede8df */
+    --surface-deep: 241 236 227;       /* below ground — chat, terminals #f1ece3 */
     --surface-inset: 239 234 225;      /* recessed input wells #efeae1 */
     --surface-base: 242 237 229;       /* ground floor — app shell #f2ede5 */
     --surface-topbar: 245 241 234;     /* topbar + board — slightly above base #f5f1ea */
@@ -84,7 +84,7 @@
     --surface-primary: 252 249 244;    /* elevated highlights #fcf9f4 */
     --surface-modal: 254 252 248;      /* topmost — modals #fefcf8 */
     --surface-hover: 231 225 216;      /* hover states — subtle darken #e7e1d8 */
-    --surface-selected: 237 232 223;   /* selected states — matches chat bg #ede8df */
+    --surface-selected: 241 236 227;   /* selected states — matches chat bg #f1ece3 */
     --border-default: 229 224 215;     /* subtle bronze #e5e0d7 */
     --border-hover: 210 200 184;       /* soft bronze #d2c8b8 */
     --border-subtle: 229 224 215;      /* subtle bronze (use /60 in classes) #e5e0d7 */

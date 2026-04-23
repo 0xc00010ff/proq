@@ -248,7 +248,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
           </div>
         )}
 
-        <div className="rounded-xl border border-border-strong/40 focus-within:border-border-strong bg-surface-topbar transition-colors">
+        <div className="rounded-xl border border-border-strong/40 focus-within:border-border-strong bg-surface-secondary transition-colors">
           {/* Attachment previews */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 px-3 pt-3">

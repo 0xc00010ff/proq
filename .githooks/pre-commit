@@ -1,0 +1,8 @@
+#!/bin/sh
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ "$branch" = "main" ]; then
+  echo "Error: Direct commits to 'main' are not allowed." >&2
+  echo "Work on 'develop' and merge via PR." >&2
+  echo "To bypass (not recommended): git commit --no-verify" >&2
+  exit 1
+fi

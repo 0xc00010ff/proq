@@ -208,6 +208,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
       src={loadUrl || project.serverUrl}
       className={isDevice ? 'w-full h-full border-0' : 'flex-1 w-full border-0'}
       style={{ display: 'inline-flex' }}
+      {...({ webpreferences: 'allowFileAccess=yes, allowFileAccessFromFileUrls=yes, allowUniversalAccessFromFileUrls=yes' } as Record<string, string>)}
     />
   ) : (
     <iframe
@@ -340,12 +341,18 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                       if (e.key === 'Enter') {
                         const raw = barValue.trim();
                         if (!raw) return;
-                        if (!raw.startsWith('http')) {
+                        const hasProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw);
+                        if (!hasProtocol) {
                           // Bare path — navigate within the current server
                           try {
                             const base = new URL(project.serverUrl!);
                             navigateTo(base.origin + (raw.startsWith('/') ? raw : '/' + raw));
                           } catch {}
+                          return;
+                        }
+                        if (!/^https?:/i.test(raw)) {
+                          // Non-http protocol (file://, chrome://, about:, …) — navigate as-is
+                          navigateTo(raw);
                           return;
                         }
                         try {

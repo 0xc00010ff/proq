@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileIcon, XIcon, ClipboardCopyIcon, CheckIcon } from 'lucide-react';
+import { FileIcon, XIcon, CopyIcon, CheckIcon } from 'lucide-react';
 import type { TaskAttachment } from '@/lib/types';
 import { attachmentUrl } from '@/lib/upload';
 
@@ -10,8 +10,8 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
   const [copied, setCopied] = useState(false);
 
   return (
-    <div className="group flex items-baseline gap-2 my-3">
-      <div className="relative inline-flex flex-col bg-surface-topbar rounded px-2.5 py-1.5 pr-7">
+    <div className="group flex items-center gap-1.5 my-3">
+      <div className="inline-flex flex-col bg-surface-topbar rounded px-2.5 py-1.5">
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-bold text-text-chrome shrink-0">{'❯'}</span>
           <p className="text-sm leading-relaxed text-text-primary whitespace-pre-wrap">{text}</p>
@@ -39,23 +39,23 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
             })}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-          aria-label={copied ? 'Copied' : 'Copy message'}
-          className="absolute bottom-1 right-1 p-1 rounded text-text-placeholder hover:text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          {copied ? (
-            <CheckIcon className="w-3.5 h-3.5 text-emerald" />
-          ) : (
-            <ClipboardCopyIcon className="w-3.5 h-3.5" />
-          )}
-        </button>
       </div>
+      <button
+        type="button"
+        onClick={() => {
+          navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+        aria-label={copied ? 'Copied' : 'Copy message'}
+        className="p-1 rounded text-text-placeholder hover:text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+      >
+        {copied ? (
+          <CheckIcon className="w-3.5 h-3.5 text-emerald" />
+        ) : (
+          <CopyIcon className="w-3.5 h-3.5" />
+        )}
+      </button>
 
       {previewUrl && (
         <div

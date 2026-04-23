@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ClipboardCopyIcon, CheckIcon } from 'lucide-react';
+import { CopyIcon, CheckIcon } from 'lucide-react';
 
 export function TextBlock({ text, copyable = true }: { text: string; copyable?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -50,7 +50,7 @@ export function TextBlock({ text, copyable = true }: { text: string; copyable?: 
           {copied ? (
             <CheckIcon className="w-3.5 h-3.5 text-emerald" />
           ) : (
-            <ClipboardCopyIcon className="w-3.5 h-3.5" />
+            <CopyIcon className="w-3.5 h-3.5" />
           )}
         </button>
       )}

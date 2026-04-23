@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Agent } from '@/lib/types';
 
-/** Fetch and cache the agents list for a project. */
+/** Fetch and cache the agents list for a project. Agents are returned sorted by name. */
 export function useAgents(projectId: string | null) {
   const [agents, setAgents] = useState<Agent[]>([]);
 
@@ -19,7 +19,12 @@ export function useAgents(projectId: string | null) {
     return () => { cancelled = true; };
   }, [projectId]);
 
-  const agentMap = new Map(agents.map((a) => [a.id, a]));
+  const sortedAgents = useMemo(
+    () => [...agents].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [agents],
+  );
 
-  return { agents, agentMap, setAgents };
+  const agentMap = useMemo(() => new Map(sortedAgents.map((a) => [a.id, a])), [sortedAgents]);
+
+  return { agents: sortedAgents, agentMap, setAgents };
 }

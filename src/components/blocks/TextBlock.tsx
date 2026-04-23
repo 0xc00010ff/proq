@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ClipboardCopyIcon, CheckIcon } from 'lucide-react';
 
-export function TextBlock({ text }: { text: string }) {
+export function TextBlock({ text, copyable = true }: { text: string; copyable?: boolean }) {
+  const [copied, setCopied] = useState(false);
+
   return (
-    <div className="text-sm leading-relaxed text-text-secondary py-2 px-1">
+    <div className="group relative text-sm leading-relaxed text-text-secondary py-2 px-1">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -33,6 +36,24 @@ export function TextBlock({ text }: { text: string }) {
       >
         {text}
       </ReactMarkdown>
+      {copyable && (
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+          aria-label={copied ? 'Copied' : 'Copy message'}
+          className="absolute bottom-1 right-1 p-1 rounded text-text-placeholder hover:text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          {copied ? (
+            <CheckIcon className="w-3.5 h-3.5 text-emerald" />
+          ) : (
+            <ClipboardCopyIcon className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

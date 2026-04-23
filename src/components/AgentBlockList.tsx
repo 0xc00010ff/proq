@@ -177,7 +177,7 @@ export function AgentBlockList({
         })}
 
         {/* Streaming text */}
-        {streamingText && <TextBlock text={streamingText} />}
+        {streamingText && <TextBlock text={streamingText} copyable={false} />}
 
         {/* Thinking indicator */}
         {isThinking && (

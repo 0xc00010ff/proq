@@ -256,7 +256,7 @@ export function AgentEditModal({ isOpen, projectId, agent, isDefault, onClose, o
                     ) : (
                       <button
                         onClick={onSetDefault}
-                        className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary px-2 py-1 rounded-md border border-border-default hover:border-border-hover bg-surface-secondary/50 hover:bg-surface-hover transition-colors"
+                        className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary px-2 py-1 rounded-md border border-border-default hover:border-border-strong bg-surface-secondary/50 hover:bg-surface-hover transition-colors"
                         title="Make this the default agent for tasks and workbench tabs"
                       >
                         <StarIcon className="w-3 h-3" />

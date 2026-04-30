@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { XIcon, PencilIcon, MessageSquareIcon, Trash2Icon, BotIcon, CheckIcon } from 'lucide-react';
+import { XIcon, PencilIcon, MessageSquareIcon, Trash2Icon, BotIcon, CheckIcon, StarIcon } from 'lucide-react';
 import {
   Dialog,
   DialogPortal,
@@ -15,13 +15,15 @@ interface AgentEditModalProps {
   isOpen: boolean;
   projectId: string;
   agent: Agent | null; // null = creating new
+  isDefault?: boolean;
   onClose: () => void;
   onSave: (data: Partial<Agent> & { name: string }) => void;
   onDelete?: () => void;
   onSpawnChat?: () => void;
+  onSetDefault?: () => void;
 }
 
-export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDelete, onSpawnChat }: AgentEditModalProps) {
+export function AgentEditModal({ isOpen, projectId, agent, isDefault, onClose, onSave, onDelete, onSpawnChat, onSetDefault }: AgentEditModalProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
@@ -245,6 +247,23 @@ export function AgentEditModal({ isOpen, projectId, agent, onClose, onSave, onDe
                       <div className="text-xs text-text-tertiary mt-0.5">{agent.role}</div>
                     )}
                   </div>
+                  {agent && onSetDefault && (
+                    isDefault ? (
+                      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium text-text-tertiary px-2 py-1 rounded-md border border-border-default/60 bg-surface-secondary/50">
+                        <StarIcon className="w-3 h-3" />
+                        Default
+                      </span>
+                    ) : (
+                      <button
+                        onClick={onSetDefault}
+                        className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium text-text-tertiary hover:text-text-secondary px-2 py-1 rounded-md border border-border-default hover:border-border-hover bg-surface-secondary/50 hover:bg-surface-hover transition-colors"
+                        title="Make this the default agent for tasks and workbench tabs"
+                      >
+                        <StarIcon className="w-3 h-3" />
+                        Make default
+                      </button>
+                    )
+                  )}
                 </div>
 
                 {/* System prompt */}

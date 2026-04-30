@@ -12,9 +12,10 @@ interface AgentsViewProps {
   tasks?: TaskColumns;
   defaultAgentId?: string;
   onSpawnChat?: (agentId: string) => void;
+  onSetDefaultAgent?: (agentId: string) => void;
 }
 
-export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: AgentsViewProps) {
+export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat, onSetDefaultAgent }: AgentsViewProps) {
   const { agents, setAgents } = useAgents(projectId);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -112,6 +113,7 @@ export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: Ag
         isOpen={showModal}
         projectId={projectId}
         agent={editingAgent}
+        isDefault={!!editingAgent && editingAgent.id === defaultAgentId}
         onClose={() => {
           setShowModal(false);
           setEditingAgent(null);
@@ -119,6 +121,7 @@ export function AgentsView({ projectId, tasks, defaultAgentId, onSpawnChat }: Ag
         onSave={editingAgent ? handleUpdate : handleCreate}
         onDelete={editingAgent ? handleDelete : undefined}
         onSpawnChat={editingAgent && onSpawnChat ? () => onSpawnChat(editingAgent.id) : undefined}
+        onSetDefault={editingAgent && onSetDefaultAgent ? () => onSetDefaultAgent(editingAgent.id) : undefined}
       />
     </div>
   );

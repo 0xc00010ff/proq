@@ -849,6 +849,7 @@ export default function ProjectPage() {
                 workbenchRef.current?.addAgentTab({ agentId });
                 workbenchRef.current?.expand();
               }}
+              onSetDefaultAgent={(agentId) => handleProjectSettingsSave({ defaultAgentId: agentId })}
             />
           )}
         </div>

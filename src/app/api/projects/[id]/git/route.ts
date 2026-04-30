@@ -209,17 +209,13 @@ export async function POST(request: Request, { params }: Params) {
           return NextResponse.json({ title: "", description: "" });
         }
         const { claudeOneShot } = await import("@/lib/claude-cli");
-        const prompt = `You are a commit message generator. Given the following git diff, produce a concise commit message.
-
-Respond with ONLY a JSON object with two fields:
-- "title": A single-line commit title (max 72 chars, imperative mood, no period at end)
-- "description": A brief description of what changed (1-3 sentences, or empty string if the title is sufficient)
-
-Do not include markdown formatting, code fences, or anything else. Just the JSON object.
-
-Git diff:
-${diff.slice(0, 12000)}`;
-        const raw = await claudeOneShot(prompt);
+        // Static instructions live in the system prompt so they hit the prompt
+        // cache across repeat invocations within 5 minutes.
+        const systemPrompt = `You generate git commit messages from diffs. Respond with ONLY a JSON object with two fields:
+- "title": single-line commit title (max 72 chars, imperative mood, no trailing period)
+- "description": brief description of what changed (1-3 sentences, or empty string if the title is sufficient)
+Output the raw JSON object only — no markdown, no code fences, no other text.`;
+        const raw = await claudeOneShot(`Git diff:\n${diff.slice(0, 8000)}`, { systemPrompt });
         // Parse the JSON response, handling potential markdown wrapping
         let cleaned = raw.trim();
         if (cleaned.startsWith("```")) {

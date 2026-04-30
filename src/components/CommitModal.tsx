@@ -15,6 +15,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [generatingStage, setGeneratingStage] = useState<'reading' | 'writing' | 'finishing'>('reading');
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userTouchedTitle, setUserTouchedTitle] = useState(false);
@@ -28,6 +29,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setGenerating(true);
+    setGeneratingStage('reading');
     setError(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/git`, {
@@ -54,6 +56,14 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
     const el = titleRef.current;
     if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
   }, [title]);
+
+  // Progress the loading stage so the user sees that something is happening
+  useEffect(() => {
+    if (!generating) return;
+    const t1 = setTimeout(() => setGeneratingStage('writing'), 1200);
+    const t2 = setTimeout(() => setGeneratingStage('finishing'), 4000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [generating]);
 
   // Start generation when modal opens
   useEffect(() => {
@@ -148,15 +158,20 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
             }
           }}
           className="w-full bg-transparent text-base font-semibold text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:ring-0 pr-8 resize-none overflow-hidden leading-snug"
-          placeholder={generating ? 'Generating commit message...' : 'Commit title'}
+          placeholder="Commit title"
         />
       </div>
 
       {/* Description */}
       <div className="px-6 py-4 min-h-[120px] relative">
         {generating && !userTouchedDescription && !description ? (
-          <div className="flex items-center justify-center h-[100px]">
-            <Loader2Icon className="w-5 h-5 animate-spin text-text-placeholder" />
+          <div className="flex items-center gap-2 h-[100px] text-xs text-text-tertiary">
+            <Loader2Icon className="w-3.5 h-3.5 text-bronze-500 animate-spin" />
+            <span>
+              {generatingStage === 'reading' && 'Reading diff...'}
+              {generatingStage === 'writing' && 'Generating commit message...'}
+              {generatingStage === 'finishing' && 'Almost there...'}
+            </span>
           </div>
         ) : (
           <textarea

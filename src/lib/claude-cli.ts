@@ -1,22 +1,36 @@
 import { spawn } from "child_process";
+import { tmpdir } from "os";
 import { getClaudeBin } from "./claude-bin";
 import { escapePrompt, childProcessEnv } from "./utils";
 
 /**
- * One-shot Claude CLI call. Spawns `claude -p <prompt>` and returns the text output.
- * Uses the same spawn pattern as agent-session.ts.
+ * One-shot Claude CLI call. Spawns `claude -p <prompt>` with minimization flags
+ * so we skip MCP servers, settings, plugins, slash commands, tools, and session
+ * persistence — none of which a single-shot text generation needs. This shaves
+ * ~2s off each call vs. defaults.
  */
 export async function claudeOneShot(
   prompt: string,
-  options?: { model?: string },
+  options?: { model?: string; systemPrompt?: string },
 ): Promise<string> {
   const claudeBin = await getClaudeBin();
-  const args = ["-p", escapePrompt(prompt), "--model", options?.model ?? "haiku"];
+  const args = [
+    "-p", escapePrompt(prompt),
+    "--model", options?.model ?? "haiku",
+    "--system-prompt", options?.systemPrompt ?? "You are a concise text generator. Output exactly what the user asks for, nothing else.",
+    "--tools", "",
+    "--strict-mcp-config",
+    "--mcp-config", '{"mcpServers":{}}',
+    "--setting-sources", "",
+    "--no-session-persistence",
+    "--disable-slash-commands",
+  ];
 
   return new Promise((resolve, reject) => {
     const proc = spawn(claudeBin, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env: childProcessEnv(),
+      cwd: tmpdir(),
     });
 
     let stdout = "";

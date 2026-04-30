@@ -11,7 +11,7 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
 
   return (
     <div className="group flex items-center gap-1.5 my-3">
-      <div className="inline-flex flex-col bg-surface-topbar rounded px-2.5 py-1.5">
+      <div className="inline-flex flex-col bg-surface-secondary rounded px-2.5 py-1.5">
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-bold text-text-chrome shrink-0">{'❯'}</span>
           <p className="text-sm leading-relaxed text-text-primary whitespace-pre-wrap">{text}</p>

@@ -935,6 +935,7 @@ export default function ProjectPage() {
           projectId={projectId}
           task={modalTask}
           isOpen={true}
+          defaultAgentId={project?.defaultAgentId}
           onClose={(isEmpty: boolean) => {
             const id = modalTask.id;
             closeTask();

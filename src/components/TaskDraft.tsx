@@ -20,6 +20,7 @@ interface TaskDraftProps {
   projectId: string;
   task: Task;
   isOpen: boolean;
+  defaultAgentId?: string;
   onClose: (isEmpty: boolean) => void;
   onSave: (taskId: string, updates: Partial<Task>) => void;
   onMoveToInProgress?: (taskId: string, currentData: Partial<Task>) => Promise<void>;
@@ -34,11 +35,11 @@ function formatSize(bytes: number): string {
 const MIN_MODAL_HEIGHT = 420;
 const MAX_MODAL_VH = 0.8;
 
-export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToInProgress }: TaskDraftProps) {
+export function TaskDraft({ projectId, task, isOpen, defaultAgentId, onClose, onSave, onMoveToInProgress }: TaskDraftProps) {
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description);
   const [mode, setMode] = useState<TaskMode>(task.mode || 'auto');
-  const [agentId, setAgentId] = useState<string | undefined>(task.agentId);
+  const [agentId, setAgentId] = useState<string | undefined>(task.agentId ?? defaultAgentId);
   const { agents } = useAgents(projectId);
   const skills = useSkills(projectId);
   const [slashMenu, setSlashMenu] = useState<{ query: string; position: { top: number; left: number }; slashStart: number } | null>(null);
@@ -62,7 +63,7 @@ export function TaskDraft({ projectId, task, isOpen, onClose, onSave, onMoveToIn
     setTitle(task.title || '');
     setDescription(task.description);
     setMode(task.mode || 'auto');
-    setAgentId(task.agentId);
+    setAgentId(task.agentId ?? defaultAgentId);
     setAttachments(task.attachments || []);
   }, [task.id]);
 

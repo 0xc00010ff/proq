@@ -12,8 +12,6 @@
 
 ---
 
-<!-- TODO: Add screenshot/gif of the board in action -->
-
 #### Proq is an agentic development environment for serious vibe coding.
 
 <img width="1769" height="1069" alt="Screenshot 2026-03-28 at 6 00 24 PM" src="https://github.com/user-attachments/assets/246a0a86-b701-475f-aadc-cd951cebe62d" />

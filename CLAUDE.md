@@ -74,15 +74,17 @@ src/
 │   ├── blocks/                 # Agent block renderers (TextBlock, ThinkingBlock, ToolBlock, etc.)
 │   ├── ui/                     # shadcn/ui primitives
 │   ├── Sidebar.tsx             # Project list with status indicators
-│   ├── TopBar.tsx              # Project header + tab switcher + branch selector
-│   ├── KanbanBoard.tsx         # Drag-drop board (@dnd-kit)
+│   ├── TopBar.tsx              # Project header + main view selector (Agents / Project / Live / Code) + branch selector
+│   ├── KanbanBoard.tsx         # Drag-drop board (@dnd-kit) — the "Project" view
 │   ├── TaskCard.tsx            # Task display (shows status indicators)
 │   ├── TaskModal.tsx           # Task create/edit modal
 │   ├── TaskAgentModal.tsx      # Full agent session viewer
 │   ├── StructuredPane.tsx      # Agent block stream rendering
 │   ├── ChatPanel.tsx           # Terminal-style chat interface
-│   ├── LiveTab.tsx             # Iframe dev server preview
-│   └── CodeTab.tsx             # Monaco code editor
+│   ├── LiveTab.tsx             # Iframe dev server preview — the "Live" view
+│   ├── CodeTab.tsx             # Monaco code editor — the "Code" view
+│   ├── AgentsView.tsx          # Agent editor — the "Agents" view (manage named per-project agents)
+│   └── AgentsCanvas.tsx        # Canvas surface used by AgentsView for arranging/editing agent cards
 ├── hooks/
 │   ├── useAgentSession.ts      # WebSocket hook for task agent sessions
 │   ├── useAgentTabSession.ts   # WebSocket hook for workbench agent tabs

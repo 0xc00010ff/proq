@@ -20,6 +20,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { JsonView } from 'react-json-view-lite';
 import { FileTree, type TreeNode, type FileTreeCallbacks } from './FileTree';
 import { SearchPanel } from './SearchPanel';
 import type { Project } from '@/lib/types';
@@ -79,6 +80,28 @@ function persistTabs(projectId: string, tabs: OpenTab[], activePath: string | nu
 const DEFAULT_TREE_WIDTH = 260;
 const MIN_TREE_WIDTH = 140;
 const MAX_TREE_WIDTH = 600;
+
+const proqJsonStyles = {
+  container: 'proq-json-container',
+  basicChildStyle: 'proq-json-line',
+  childFieldsContainer: 'proq-json-children',
+  label: 'proq-json-label',
+  clickableLabel: 'proq-json-label proq-json-clickable',
+  nullValue: 'proq-json-null',
+  undefinedValue: 'proq-json-null',
+  stringValue: 'proq-json-string',
+  booleanValue: 'proq-json-boolean',
+  numberValue: 'proq-json-number',
+  otherValue: 'proq-json-other',
+  punctuation: 'proq-json-punctuation',
+  collapseIcon: 'proq-json-collapse-icon',
+  expandIcon: 'proq-json-expand-icon',
+  collapsedContent: 'proq-json-collapsed',
+  noQuotesForStringValues: false,
+  quotesForFieldNames: false,
+  ariaLables: { collapseJson: 'collapse', expandJson: 'expand' },
+  stringifyStringValues: false,
+};
 
 type SaveStatus = 'idle' | 'saving' | 'saved';
 
@@ -182,7 +205,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeTabPath, setActiveTabPath] = useState<string | null>(null);
   const [fileLanguage, setFileLanguage] = useState<string>('plaintext');
-  const [mdView, setMdView] = useState<'raw' | 'pretty'>('pretty');
+  const [previewMode, setPreviewMode] = useState<'raw' | 'pretty'>('pretty');
   const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -227,7 +250,41 @@ export function CodeTab({ project }: CodeTabProps) {
     return ext === 'md' || ext === 'mdx';
   }, [activeTabPath]);
 
+  const isJson = useMemo(() => {
+    if (!activeTabPath) return false;
+    const ext = activeTabPath.split('.').pop()?.toLowerCase();
+    return ext === 'json';
+  }, [activeTabPath]);
+
   const fileContent = activeTab?.content ?? '';
+
+  // Parse JSON for the pretty tree view. Returns null on parse failure or
+  // when the result isn't an object/array (the lib only handles those).
+  const parsedJson = useMemo(() => {
+    if (!isJson || !fileContent) return null;
+    try {
+      const parsed = JSON.parse(fileContent);
+      if (parsed === null || typeof parsed !== 'object') return null;
+      return parsed as object;
+    } catch {
+      return null;
+    }
+  }, [isJson, fileContent]);
+
+  const jsonInvalid = isJson && fileContent.trim().length > 0 && parsedJson === null;
+  const showPreview = (isMarkdown || (isJson && parsedJson !== null)) && previewMode === 'pretty';
+  const showToggle = isMarkdown || isJson;
+
+  // Default expansion: keep top 2 levels open, but collapse arrays >20 items
+  // to keep large files like visibility.json snappy on initial render.
+  const jsonShouldExpandNode = useCallback(
+    (level: number, value: unknown) => {
+      if (level === 0) return true;
+      if (Array.isArray(value) && value.length > 20) return false;
+      return level < 2;
+    },
+    []
+  );
 
   // Flatten tree for Cmd+P palette
   const allFiles = useMemo(() => flattenTree(tree), [tree]);
@@ -1077,14 +1134,14 @@ export function CodeTab({ project }: CodeTabProps) {
           )}
         </div>
 
-        {/* Center: Edit / Preview toggle (markdown only) */}
-        <div className="flex items-center justify-center">
-          {isMarkdown && activeTabPath && (
+        {/* Center: Edit / Preview toggle (markdown + json) */}
+        <div className="flex items-center justify-center gap-2">
+          {showToggle && activeTabPath && (
             <div className="flex items-center bg-surface-hover rounded-md p-0.5 border border-border-strong">
               <button
-                onClick={() => setMdView('raw')}
+                onClick={() => setPreviewMode('raw')}
                 className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
-                  mdView === 'raw'
+                  previewMode === 'raw'
                     ? 'bg-border-strong text-text-primary shadow-sm'
                     : 'text-text-tertiary hover:text-text-secondary'
                 }`}
@@ -1093,9 +1150,9 @@ export function CodeTab({ project }: CodeTabProps) {
                 Edit
               </button>
               <button
-                onClick={() => setMdView('pretty')}
+                onClick={() => setPreviewMode('pretty')}
                 className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
-                  mdView === 'pretty'
+                  previewMode === 'pretty'
                     ? 'bg-border-strong text-text-primary shadow-sm'
                     : 'text-text-tertiary hover:text-text-secondary'
                 }`}
@@ -1104,6 +1161,14 @@ export function CodeTab({ project }: CodeTabProps) {
                 Preview
               </button>
             </div>
+          )}
+          {jsonInvalid && previewMode === 'pretty' && (
+            <span
+              className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-crimson/15 text-crimson border border-crimson/30"
+              title="JSON could not be parsed — falling back to editor"
+            >
+              Invalid JSON
+            </span>
           )}
         </div>
 
@@ -1340,7 +1405,7 @@ export function CodeTab({ project }: CodeTabProps) {
                 &#8984;P to go to file
               </button>
             </div>
-          ) : isMarkdown && mdView === 'pretty' ? (
+          ) : showPreview && isMarkdown ? (
             <div className="h-full overflow-y-auto p-6">
               <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-surface-hover prose-pre:text-text-primary prose-code:text-lazuli prose-headings:text-text-primary">
                 <ReactMarkdown
@@ -1350,6 +1415,15 @@ export function CodeTab({ project }: CodeTabProps) {
                   {fileContent}
                 </ReactMarkdown>
               </div>
+            </div>
+          ) : showPreview && isJson && parsedJson !== null ? (
+            <div className="h-full overflow-auto p-4 font-mono text-[12px]">
+              <JsonView
+                data={parsedJson}
+                shouldExpandNode={jsonShouldExpandNode}
+                style={proqJsonStyles}
+                clickToExpandNode
+              />
             </div>
           ) : (
             <MonacoEditor

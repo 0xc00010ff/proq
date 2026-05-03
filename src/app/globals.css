@@ -262,6 +262,61 @@
   background: rgba(0,0,0,0.3);
 }
 
+/* react-json-view-lite — proq theme overrides */
+.proq-json-container {
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.5;
+  color: rgb(var(--text-primary));
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.proq-json-line {
+  margin: 0;
+  padding: 0;
+}
+.proq-json-children {
+  margin: 0;
+  padding-left: 18px;
+  border-left: 1px dashed rgb(var(--border-default));
+}
+.proq-json-label {
+  color: rgb(var(--text-chrome));
+  font-weight: 500;
+  margin-right: 4px;
+}
+.proq-json-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+.proq-json-clickable:hover {
+  color: rgb(var(--text-chrome-hover));
+}
+.proq-json-string { color: #6ea76e; } /* emerald-ish */
+.proq-json-number { color: #c084fc; } /* purple */
+.proq-json-boolean { color: #d97757; } /* warm amber */
+.proq-json-null { color: rgb(var(--text-tertiary)); font-style: italic; }
+.proq-json-other { color: rgb(var(--text-secondary)); }
+.proq-json-punctuation { color: rgb(var(--text-tertiary) / 0.7); margin-right: 4px; }
+.proq-json-collapsed { color: rgb(var(--text-tertiary)); margin-right: 4px; }
+.proq-json-collapsed::after { content: '…'; }
+
+.proq-json-expand-icon,
+.proq-json-collapse-icon {
+  display: inline-block;
+  width: 12px;
+  margin-right: 4px;
+  color: rgb(var(--text-tertiary));
+  user-select: none;
+  cursor: pointer;
+  font-size: 10px;
+}
+.proq-json-expand-icon::after { content: '▸'; }
+.proq-json-collapse-icon::after { content: '▾'; }
+
+.dark .proq-json-string { color: #86efac; } /* emerald-300 */
+.dark .proq-json-number { color: #d8b4fe; } /* purple-300 */
+.dark .proq-json-boolean { color: #fdba74; } /* orange-300 */
+
 /* Subtle pulse for locked/agent-working tasks */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }

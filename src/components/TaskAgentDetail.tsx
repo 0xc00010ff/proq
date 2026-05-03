@@ -463,7 +463,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           <AccordionSection
             icon={<FileTextIcon className="w-3.5 h-3.5 text-text-tertiary" />}
             title="Initial Task"
-            defaultOpen={true}
+            defaultOpen={task.status !== 'verify'}
             storageKey={`task-accordion:${task.id}:task`}
           >
             {/* Title */}

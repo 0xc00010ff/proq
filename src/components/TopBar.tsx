@@ -256,7 +256,7 @@ export function TopBar({ project, panels, onTogglePanel, currentBranch, branches
 
   return (
     <header className={`h-[48px] bg-surface-secondary flex items-center px-4 flex-shrink-0 border-b border-border-default relative ${isElectron ? 'electron-drag' : ''}`}>
-      <div className="flex-1 flex items-center gap-3 min-w-0">
+      <div className="flex-1 flex items-center min-w-0">
         {sidebarCollapsed && onExpandSidebar && (
           <button
             onClick={onExpandSidebar}
@@ -314,8 +314,10 @@ export function TopBar({ project, panels, onTogglePanel, currentBranch, branches
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
 
-        <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default shrink-0">
+      <div className="flex-1 flex justify-center min-w-0">
+        <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default">
           {panelToggles.map(({ slot, label, icon: Icon }) => {
             const isOn = panels[slot].visible;
             const cannotHide = isOn && !canHideSlot(panels, slot);
@@ -342,7 +344,7 @@ export function TopBar({ project, panels, onTogglePanel, currentBranch, branches
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+      <div className="flex-1 flex items-center justify-end gap-2 whitespace-nowrap">
         {!hasGit ? (
           /* No git — show init button */
           <button

@@ -680,8 +680,8 @@ export default function ProjectPage() {
   }, [panelLayout]);
 
   useShortcut('tab-1', useCallback(() => panelLayout.setSlotVisible('upperLeft', !panelLayout.layout.upperLeft.visible), [panelLayout]));
-  useShortcut('tab-2', useCallback(() => panelLayout.setSlotVisible('upperRight', !panelLayout.layout.upperRight.visible), [panelLayout]));
-  useShortcut('tab-3', useCallback(() => panelLayout.setSlotVisible('lower', !panelLayout.layout.lower.visible), [panelLayout]));
+  useShortcut('tab-2', useCallback(() => panelLayout.setSlotVisible('lower', !panelLayout.layout.lower.visible), [panelLayout]));
+  useShortcut('tab-3', useCallback(() => panelLayout.setSlotVisible('upperRight', !panelLayout.layout.upperRight.visible), [panelLayout]));
   useShortcut('toggle-workbench', useCallback(() => {
     panelLayout.setSlotVisible('lower', !panelLayout.layout.lower.visible);
   }, [panelLayout]));

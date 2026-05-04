@@ -2,6 +2,33 @@
 export type ProjectTab = 'project' | 'live' | 'code' | 'agents';
 export type ViewType = 'kanban' | 'grid';
 
+// ── Panel layout (three-panel UI) ────────────────────────
+export type PanelKind = 'kanban' | 'live' | 'code' | 'agents-workbench' | 'agent-editor';
+export type PanelSlotId = 'upperLeft' | 'upperRight' | 'lower';
+
+export type PanelView =
+  | { kind: 'kanban'; viewType: ViewType }
+  | { kind: 'live' }
+  | { kind: 'code' }
+  | { kind: 'agents-workbench' }
+  | { kind: 'agent-editor' };
+
+export interface PanelState {
+  visible: boolean;
+  view: PanelView;
+  /** Size as a percentage. For UL/UR: percent of upper row. For Lower: percent of total height. */
+  sizePct: number;
+}
+
+export interface PanelLayout {
+  upperLeft: PanelState;
+  upperRight: PanelState;
+  lower: PanelState;
+}
+
+/** Bumped to force a one-time reset of stored layouts. */
+export const PANELS_VERSION = 1;
+
 /** Slim stub stored in root data/workspace.json */
 export interface ProjectStub {
   id: string;
@@ -17,12 +44,15 @@ export interface Project extends ProjectStub {
   status?: 'active' | 'review' | 'idle' | 'error';
   serverUrl?: string;
   pathValid?: boolean;
+  /** @deprecated Replaced by `panels` three-panel layout. Retained for migration. */
   activeTab?: ProjectTab;
+  /** @deprecated Moved into the kanban panel's view state. Retained for migration. */
   viewType?: ViewType;
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   liveUrl?: string;
   defaultBranch?: string;
   defaultAgentId?: string;
+  panels?: PanelLayout;
 }
 
 export interface WorkspaceData {
@@ -285,14 +315,23 @@ export interface ProjectWorkspace {
   recentlyDeleted?: DeletedTaskEntry[];
   // UI state
   status?: 'active' | 'review' | 'idle' | 'error';
+  /** @deprecated Replaced by `panels` three-panel layout. Retained only for migration. */
   activeTab?: ProjectTab;
+  /** @deprecated Moved into the kanban panel's view state. Retained only for migration. */
   viewType?: ViewType;
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   liveUrl?: string;
-  // Workbench
+  // Three-panel layout
+  panels?: PanelLayout;
+  panelsVersion?: number;
+  // Workbench (deprecated open/height/orientation/width — sizing now handled by PanelGrid)
+  /** @deprecated Sizing handled by PanelGrid. */
   projectWorkbenchOpen?: boolean;
+  /** @deprecated Sizing handled by PanelGrid. */
   projectWorkbenchHeight?: number;
+  /** @deprecated Sizing handled by PanelGrid. */
   projectWorkbenchOrientation?: 'horizontal' | 'vertical';
+  /** @deprecated Sizing handled by PanelGrid. */
   projectWorkbenchWidth?: number;
   projectWorkbenchTabs?: WorkbenchTabInfo[];
   projectWorkbenchActiveTabId?: string;

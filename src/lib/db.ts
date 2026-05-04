@@ -32,7 +32,10 @@ import type {
   CronJobDefinition,
   ActiveCronState,
   Agent,
+  PanelLayout,
 } from "./types";
+import { PANELS_VERSION } from "./types";
+import { resolveLayout } from "./panels";
 import { slugify } from "./utils";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -264,6 +267,13 @@ function findTaskColumn(ws: ProjectWorkspace, taskId: string): [TaskStatus, numb
 function assembleProject(stub: ProjectStub): Project {
   const config = getProjectConfig(stub.id);
   const ws = getProjectWorkspace(stub.id);
+  const { layout, version } = resolveLayout(ws.panels, ws.panelsVersion);
+  // Persist a one-time reset so future reads skip the migration check.
+  if (version !== ws.panelsVersion || !ws.panels) {
+    ws.panels = layout;
+    ws.panelsVersion = version;
+    writeProjectWorkspace(stub.id, ws);
+  }
   return {
     ...stub,
     status: ws.status,
@@ -274,6 +284,7 @@ function assembleProject(stub: ProjectStub): Project {
     liveUrl: ws.liveUrl,
     defaultBranch: config.defaultBranch,
     defaultAgentId: ws.defaultAgentId,
+    panels: layout,
   };
 }
 
@@ -758,6 +769,22 @@ export async function setWorkbenchTabs(projectId: string, tabs: import("./types"
     ws.projectWorkbenchTabs = tabs;
     ws.projectWorkbenchActiveTabId = activeTabId;
     writeProjectWorkspace(projectId, ws);
+  });
+}
+
+export async function getProjectPanels(projectId: string): Promise<PanelLayout> {
+  const ws = getProjectWorkspace(projectId);
+  const { layout } = resolveLayout(ws.panels, ws.panelsVersion);
+  return layout;
+}
+
+export async function setProjectPanels(projectId: string, panels: PanelLayout): Promise<PanelLayout> {
+  return withWriteLock(`workspace:${projectId}`, async () => {
+    const ws = getProjectWorkspace(projectId);
+    ws.panels = panels;
+    ws.panelsVersion = PANELS_VERSION;
+    writeProjectWorkspace(projectId, ws);
+    return panels;
   });
 }
 

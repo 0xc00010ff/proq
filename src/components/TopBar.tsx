@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon } from 'lucide-react';
-import type { Project, ProjectTab, ViewType } from '@/lib/types';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon, PanelsTopLeftIcon, PanelRightIcon, PanelBottomIcon } from 'lucide-react';
+import type { Project, ProjectTab, ViewType, PanelLayout, PanelSlotId } from '@/lib/types';
+import { canHideSlot } from '@/lib/panels';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,8 +30,8 @@ export interface GitStatus {
 
 interface TopBarProps {
   project: Project;
-  activeTab: TabOption;
-  onTabChange: (tab: TabOption) => void;
+  panels: PanelLayout;
+  onTogglePanel: (slot: PanelSlotId, visible: boolean) => void;
   currentBranch?: string;
   branches?: string[];
   defaultBranch?: string;
@@ -53,7 +54,7 @@ interface TopBarProps {
   onExpandSidebar?: () => void;
 }
 
-export function TopBar({ project, activeTab, onTabChange, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onFetch, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, onSetUpstream, sidebarCollapsed, onExpandSidebar }: TopBarProps) {
+export function TopBar({ project, panels, onTogglePanel, currentBranch, branches, defaultBranch, taskBranchMap, onSwitchBranch, projectId, gitStatus, onPush, onPull, onFetch, onInitGit, viewType = 'kanban', onViewTypeChange, onOpenSettings, onOpenCronJobs, onCommit, onCreateBranch, onSetUpstream, sidebarCollapsed, onExpandSidebar }: TopBarProps) {
   // Branch selector popover
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
@@ -202,11 +203,10 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
     }
   }, [branchPopoverOpen]);
 
-  const tabs: { id: TabOption; label: string }[] = [
-    { id: 'agents' as TabOption, label: 'Agents' },
-    { id: 'project', label: 'Project' },
-    { id: 'live', label: 'Live' },
-    { id: 'code', label: 'Code' },
+  const panelToggles: { slot: PanelSlotId; label: string; icon: typeof PanelsTopLeftIcon }[] = [
+    { slot: 'upperLeft',  label: 'Upper Left',  icon: PanelsTopLeftIcon },
+    { slot: 'upperRight', label: 'Upper Right', icon: PanelRightIcon },
+    { slot: 'lower',      label: 'Lower',       icon: PanelBottomIcon },
   ];
 
   const isOnPreviewBranch = currentBranch?.startsWith('proq/') ?? false;
@@ -320,24 +320,26 @@ export function TopBar({ project, activeTab, onTabChange, currentBranch, branche
 
       <div className="flex-1 flex justify-center min-w-0">
         <div className="bg-surface-hover/40 p-0.5 rounded-md flex items-center border border-border-default">
-          {tabs.map((tab, i) => {
-            const isActive = activeTab === tab.id;
+          {panelToggles.map(({ slot, label, icon: Icon }) => {
+            const isOn = panels[slot].visible;
+            const cannotHide = isOn && !canHideSlot(panels, slot);
             return (
               <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                title={`${tab.label} view \u2318${i + 1}`}
-                className={`relative px-3.5 py-1 text-xs font-medium rounded-md z-10 ${
-                  isActive ? 'text-text-chrome-active' : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
-                }`}
+                key={slot}
+                onClick={() => { if (!cannotHide) onTogglePanel(slot, !isOn); }}
+                title={cannotHide ? `${label} (at least one panel must stay visible)` : `${isOn ? 'Hide' : 'Show'} ${label} panel`}
+                disabled={cannotHide}
+                className={`relative px-2 py-1 rounded-md z-10 ${
+                  isOn ? 'text-text-chrome-active' : 'text-text-tertiary dark:text-zinc-500 hover:text-bronze-600 dark:hover:text-bronze-500'
+                } ${cannotHide ? 'cursor-default opacity-80' : ''}`}
               >
-                {isActive && (
+                {isOn && (
                   <div
                     className="absolute inset-0 bg-surface-primary rounded-md border border-border-hover/50 shadow-sm"
                     style={{ zIndex: -1 }}
                   />
                 )}
-                {tab.label}
+                <Icon className="w-3.5 h-3.5" />
               </button>
             );
           })}

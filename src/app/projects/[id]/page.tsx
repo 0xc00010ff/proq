@@ -1,32 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, type DragEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type DragEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { TopBar, type TabOption, type GitStatus } from '@/components/TopBar';
-import { KanbanBoard } from '@/components/KanbanBoard';
-import { GridView } from '@/components/GridView';
-import WorkbenchPanel, { type WorkbenchPanelHandle, type WorkbenchOrientation } from '@/components/WorkbenchPanel';
-import { LiveTab } from '@/components/LiveTab';
-import { CodeTab } from '@/components/CodeTab';
+import { TopBar, type GitStatus } from '@/components/TopBar';
 import { TaskDraft } from '@/components/TaskDraft';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { UndoModal } from '@/components/UndoModal';
 import { ExecutionModeInfoModal } from '@/components/ExecutionModeInfoModal';
 import { ProjectSettingsModal } from '@/components/ProjectSettingsModal';
 import { CronJobsModal } from '@/components/CronJobsModal';
-import { AgentsView } from '@/components/AgentsView';
 import { CommitModal } from '@/components/CommitModal';
 import { AlertModal } from '@/components/Modal';
 import { useProjects } from '@/components/ProjectsProvider';
 import { emptyTasks } from '@/components/ProjectsProvider';
 import { useShellActions } from '@/components/ClientShell';
-import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, TaskAttachment, ViewType } from '@/lib/types';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode, FollowUpDraft, ViewType, PanelKind, PanelSlotId } from '@/lib/types';
 import { uploadFiles } from '@/lib/upload';
 import { useTaskEvents, type TaskUpdateEvent, type TaskCreatedEvent, type ProjectUpdateEvent } from '@/hooks/useTaskEvents';
 
 import { useRouteState } from '@/hooks/useRouteState';
 import { useShortcut } from '@/hooks/useShortcut';
 import { useAgents } from '@/hooks/useAgents';
+import { usePanelLayout } from '@/hooks/usePanelLayout';
+import { defaultPanelLayout } from '@/lib/panels';
+import { PanelGrid } from '@/components/panels/PanelGrid';
+import { KanbanPanelView } from '@/components/panels/views/KanbanPanelView';
+import { LivePanelView } from '@/components/panels/views/LivePanelView';
+import { CodePanelView } from '@/components/panels/views/CodePanelView';
+import { WorkbenchView, type WorkbenchViewHandle } from '@/components/panels/views/WorkbenchView';
+import { AgentEditorPanelView } from '@/components/panels/views/AgentEditorPanelView';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -48,13 +50,7 @@ export default function ProjectPage() {
   const [branches, setBranches] = useState<string[]>([]);
   const [defaultBranch, setDefaultBranch] = useState<string | undefined>(undefined);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ hasGit: true, hasRemote: false, hasUpstream: false, ahead: 0, behind: 0, dirty: 0 });
-  const workbenchRef = useRef<WorkbenchPanelHandle>(null);
-  const [workbenchOrientation, setWorkbenchOrientation] = useState<WorkbenchOrientation>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem(`proq:workbench-orientation:${projectId}`) as WorkbenchOrientation) || 'horizontal';
-    }
-    return 'horizontal';
-  });
+  const workbenchRef = useRef<WorkbenchViewHandle>(null);
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
   const [boardDragOver, setBoardDragOver] = useState(false);
@@ -66,11 +62,11 @@ export default function ProjectPage() {
   const project = projects.find((p) => p.id === projectId);
   const columns: TaskColumns = tasksByProject[projectId] || emptyTasks();
 
-  // URL-driven tab and task modal state
-  const { activeTab, openTaskId, setTab, openTask: routeOpenTask, closeTask } = useRouteState(
-    projectId,
-    project?.activeTab || 'project',
-  );
+  // Three-panel layout (UL/UR/Lower) — replaces activeTab routing.
+  const panelLayout = usePanelLayout(projectId, project?.panels ?? defaultPanelLayout());
+
+  // URL-driven task modal state (panel layout drives view selection now)
+  const { openTaskId, openTask: routeOpenTask, closeTask } = useRouteState(projectId);
 
   // Clear dispatching ref once the URL has caught up (openTaskId no longer points to it)
   if (dispatchingTaskRef.current && dispatchingTaskRef.current !== openTaskId) {
@@ -153,19 +149,12 @@ export default function ProjectPage() {
     refreshDetachedHead();
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState, refreshDetachedHead]);
 
-  // Fetch tasks, execution mode, branch state, and workbench orientation on project load / switch
+  // Fetch tasks, execution mode, and branch state on project load / switch
   useEffect(() => {
     if (projectId) {
       refreshTasks(projectId);
       fetchExecutionMode();
       fetchBranchState();
-      // Restore workbench orientation
-      fetch(`/api/projects/${projectId}/workbench-state`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.orientation) { setWorkbenchOrientation(data.orientation); localStorage.setItem(`proq:workbench-orientation:${projectId}`, data.orientation); }
-        })
-        .catch(() => {});
     }
   }, [projectId, refreshTasks, fetchExecutionMode, fetchBranchState]);
 
@@ -685,42 +674,32 @@ export default function ProjectPage() {
     // SSE will pick up the new task
   }, [projectId]);
 
-  const handleTabChange = useCallback((tab: TabOption) => {
-    setTab(tab);
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, activeTab: tab } : p));
-    fetch(`/api/projects/${projectId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activeTab: tab }),
-    }).catch(() => {});
-  }, [projectId, setProjects, setTab]);
+  // Cmd+1/2/3 toggle each panel slot.
+  const togglePanel = useCallback((slot: PanelSlotId, visible: boolean) => {
+    panelLayout.setSlotVisible(slot, visible);
+  }, [panelLayout]);
 
-  // Cmd+Option+Left/Right to cycle tabs, Cmd+1/2/3/4 to jump directly
-  const tabOrder: TabOption[] = ['agents', 'project', 'live', 'code'];
-  useShortcut('tab-prev', useCallback(() => {
-    const idx = tabOrder.indexOf(activeTab);
-    handleTabChange(tabOrder[(idx - 1 + tabOrder.length) % tabOrder.length]);
-  }, [activeTab, handleTabChange, tabOrder]));
-  useShortcut('tab-next', useCallback(() => {
-    const idx = tabOrder.indexOf(activeTab);
-    handleTabChange(tabOrder[(idx + 1) % tabOrder.length]);
-  }, [activeTab, handleTabChange, tabOrder]));
-  useShortcut('tab-1', useCallback(() => handleTabChange(tabOrder[0]), [handleTabChange, tabOrder]));
-  useShortcut('tab-2', useCallback(() => handleTabChange(tabOrder[1]), [handleTabChange, tabOrder]));
-  useShortcut('tab-3', useCallback(() => { if (tabOrder[2]) handleTabChange(tabOrder[2]); }, [handleTabChange, tabOrder]));
-  useShortcut('tab-4', useCallback(() => { if (tabOrder[3]) handleTabChange(tabOrder[3]); }, [handleTabChange, tabOrder]));
+  useShortcut('tab-1', useCallback(() => panelLayout.setSlotVisible('upperLeft', !panelLayout.layout.upperLeft.visible), [panelLayout]));
+  useShortcut('tab-2', useCallback(() => panelLayout.setSlotVisible('upperRight', !panelLayout.layout.upperRight.visible), [panelLayout]));
+  useShortcut('tab-3', useCallback(() => panelLayout.setSlotVisible('lower', !panelLayout.layout.lower.visible), [panelLayout]));
   useShortcut('toggle-workbench', useCallback(() => {
-    workbenchRef.current?.toggle();
-  }, []));
+    panelLayout.setSlotVisible('lower', !panelLayout.layout.lower.visible);
+  }, [panelLayout]));
+
+  // Find the slot currently rendering the kanban (used by header view-type dropdown).
+  const kanbanSlot: PanelSlotId | undefined = useMemo(() => {
+    return (['upperLeft', 'upperRight', 'lower'] as PanelSlotId[])
+      .find(s => panelLayout.layout[s].view.kind === 'kanban' && panelLayout.layout[s].visible);
+  }, [panelLayout.layout]);
+
+  const kanbanViewType: ViewType =
+    kanbanSlot && panelLayout.layout[kanbanSlot].view.kind === 'kanban'
+      ? (panelLayout.layout[kanbanSlot].view as { kind: 'kanban'; viewType: ViewType }).viewType
+      : 'kanban';
 
   const handleViewTypeChange = useCallback((vt: ViewType) => {
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, viewType: vt } : p));
-    fetch(`/api/projects/${projectId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ viewType: vt }),
-    }).catch(() => {});
-  }, [projectId, setProjects]);
+    panelLayout.setKanbanViewType(vt);
+  }, [panelLayout]);
 
   const handleProjectSettingsSave = useCallback((data: Partial<import('@/lib/types').Project>) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...data } : p));
@@ -731,6 +710,19 @@ export default function ProjectPage() {
     }).catch(() => {});
   }, [projectId, setProjects]);
 
+  // Make sure the lower panel is visible (e.g. to surface the workbench when an agent/shell is launched).
+  const ensureLowerVisible = useCallback(() => {
+    if (!panelLayout.layout.lower.visible) panelLayout.setSlotVisible('lower', true);
+  }, [panelLayout]);
+
+  // Activate (or surface) a workbench tab. Adds the tab via the workbench ref
+  // and ensures the lower panel is visible so the user sees it.
+  const activateWorkbenchTab = useCallback((type: 'agent' | 'shell') => {
+    ensureLowerVisible();
+    if (type === 'agent') workbenchRef.current?.addAgentTab({ reuse: true });
+    else workbenchRef.current?.addShellTab({ reuse: true });
+  }, [ensureLowerVisible]);
+
   if (!project) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
@@ -739,13 +731,87 @@ export default function ProjectPage() {
     );
   }
 
+  const onClickTask = useCallback((task: Task) => {
+    if (task.needsAttention) dismissAttention(task.id);
+    routeOpenTask(task.id);
+  }, [dismissAttention, routeOpenTask]);
+
+  const onFollowUpDraftChange = useCallback((taskId: string, draft: FollowUpDraft | null) => {
+    if (draft) followUpDraftsRef.current.set(taskId, draft);
+    else followUpDraftsRef.current.delete(taskId);
+  }, []);
+
+  const renderPanel = useCallback((slot: PanelSlotId): React.ReactNode => {
+    const ps = panelLayout.layout[slot];
+    const onChangeKind = (kind: PanelKind) => panelLayout.setSlotKind(slot, kind);
+    switch (ps.view.kind) {
+      case 'kanban':
+        return (
+          <KanbanPanelView
+            projectId={projectId}
+            viewType={ps.view.viewType}
+            onChangeViewType={(vt) => panelLayout.setSlotView(slot, { kind: 'kanban', viewType: vt })}
+            onChangePanelKind={onChangeKind}
+            tasks={columns}
+            executionMode={executionMode}
+            onExecutionModeChange={handleExecutionModeChange}
+            onAddTask={handleAddTask}
+            onMoveTask={moveTask}
+            onDeleteTask={deleteTask}
+            onClickTask={onClickTask}
+            onRefreshTasks={refresh}
+            onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
+            agentMap={agentMap}
+            parallelMode={executionMode === 'worktrees'}
+            currentBranch={currentBranch}
+            onSwitchBranch={handleSwitchBranch}
+            defaultBranch={project?.defaultBranch || 'main'}
+            followUpDraftsRef={followUpDraftsRef}
+            onFollowUpDraftChange={onFollowUpDraftChange}
+          />
+        );
+      case 'live':
+        return (
+          <LivePanelView
+            project={project}
+            onActivateWorkbenchTab={activateWorkbenchTab}
+            onChangePanelKind={onChangeKind}
+          />
+        );
+      case 'code':
+        return <CodePanelView project={project} onChangePanelKind={onChangeKind} />;
+      case 'agents-workbench':
+        return (
+          <WorkbenchView
+            ref={workbenchRef}
+            projectId={projectId}
+            projectPath={project.path}
+            agentMap={agentMap}
+            defaultAgentId={project?.defaultAgentId}
+            onChangePanelKind={onChangeKind}
+          />
+        );
+      case 'agent-editor':
+        return (
+          <AgentEditorPanelView
+            projectId={projectId}
+            tasks={columns}
+            defaultAgentId={project.defaultAgentId}
+            onSpawnChat={(agentId) => { ensureLowerVisible(); workbenchRef.current?.addAgentTab({ agentId }); }}
+            onSetDefaultAgent={(agentId) => handleProjectSettingsSave({ defaultAgentId: agentId })}
+            onChangePanelKind={onChangeKind}
+          />
+        );
+    }
+  }, [panelLayout, projectId, project, columns, executionMode, handleExecutionModeChange, handleAddTask, moveTask, deleteTask, onClickTask, refresh, agentMap, currentBranch, handleSwitchBranch, followUpDraftsRef, onFollowUpDraftChange, activateWorkbenchTab, ensureLowerVisible, handleProjectSettingsSave]);
+
   return (
     <>
       <TopBar
         project={project}
         projectId={projectId}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
+        panels={panelLayout.layout}
+        onTogglePanel={togglePanel}
         currentBranch={currentBranch}
         branches={branches}
         defaultBranch={defaultBranch}
@@ -756,7 +822,7 @@ export default function ProjectPage() {
         onPull={handlePull}
         onFetch={handleFetch}
         onInitGit={handleInitGit}
-        viewType={project.viewType || 'kanban'}
+        viewType={kanbanViewType}
         onViewTypeChange={handleViewTypeChange}
         onOpenSettings={() => setShowProjectSettings(true)}
         onOpenCronJobs={() => setShowCronJobs(true)}
@@ -767,101 +833,27 @@ export default function ProjectPage() {
         onExpandSidebar={expandSidebar}
       />
 
-      <main className={`flex-1 flex ${workbenchOrientation === 'vertical' ? 'flex-row' : 'flex-col'} overflow-hidden relative`}>
-        <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
-          {activeTab === 'project' && (
-            <div
-              className="h-full overflow-hidden relative"
-              onDragEnter={handleBoardDragEnter}
-              onDragLeave={handleBoardDragLeave}
-              onDragOver={handleBoardDragOver}
-              onDrop={handleBoardDrop}
-            >
-              {boardDragOver && (
-                <div
-                  className="absolute inset-0 z-40 bg-bronze-500/10 border-2 border-dashed border-bronze-500/40 rounded-lg flex items-center justify-center cursor-pointer"
-                  onClick={() => { boardDragCounter.current = 0; setBoardDragOver(false); }}
-                >
-                  <div className="bg-zinc-900/90 border border-bronze-500/30 rounded-lg px-6 py-4 shadow-xl pointer-events-none">
-                    <p className="text-sm font-medium text-bronze-500">Drop to create new task</p>
-                  </div>
-                </div>
-              )}
-              {(project.viewType || 'kanban') === 'grid' ? (
-                <GridView
-                  tasks={columns}
-                  projectId={projectId}
-                  executionMode={executionMode}
-                  onExecutionModeChange={handleExecutionModeChange}
-                  onAddTask={handleAddTask}
-                  onClickTask={(task) => {
-                    if (task.needsAttention) dismissAttention(task.id);
-                    routeOpenTask(task.id);
-                  }}
-                  followUpDraftsRef={followUpDraftsRef}
-                  onFollowUpDraftChange={(taskId, draft) => {
-                    if (draft) followUpDraftsRef.current.set(taskId, draft);
-                    else followUpDraftsRef.current.delete(taskId);
-                  }}
-                  parallelMode={executionMode === 'worktrees'}
-                  currentBranch={currentBranch}
-                  onSwitchBranch={handleSwitchBranch}
-                  defaultBranch={project?.defaultBranch || 'main'}
-                />
-              ) : (
-                <KanbanBoard
-                  tasks={columns}
-                  onMoveTask={moveTask}
-                  onAddTask={handleAddTask}
-                  onDeleteTask={deleteTask}
-                  onClickTask={(task) => {
-                    if (task.needsAttention) dismissAttention(task.id);
-                    routeOpenTask(task.id);
-                  }}
-                  onRefreshTasks={refresh}
-                  executionMode={executionMode}
-                  onExecutionModeChange={handleExecutionModeChange}
-                  onDragActiveChange={(active) => { kanbanDraggingRef.current = active; }}
-                  activeBranch={currentBranch}
-                  agentMap={agentMap}
-                />
-              )}
+      <main
+        className="flex-1 flex flex-col overflow-hidden relative"
+        onDragEnter={handleBoardDragEnter}
+        onDragLeave={handleBoardDragLeave}
+        onDragOver={handleBoardDragOver}
+        onDrop={handleBoardDrop}
+      >
+        {boardDragOver && (
+          <div
+            className="absolute inset-0 z-40 bg-bronze-500/10 border-2 border-dashed border-bronze-500/40 rounded-lg flex items-center justify-center cursor-pointer"
+            onClick={() => { boardDragCounter.current = 0; setBoardDragOver(false); }}
+          >
+            <div className="bg-zinc-900/90 border border-bronze-500/30 rounded-lg px-6 py-4 shadow-xl pointer-events-none">
+              <p className="text-sm font-medium text-bronze-500">Drop to create new task</p>
             </div>
-          )}
-
-          {activeTab === 'live' && project && (
-            <LiveTab
-              project={project}
-              onActivateWorkbenchTab={(type) => {
-                if (type === 'agent') workbenchRef.current?.addAgentTab({ reuse: true });
-                else workbenchRef.current?.addShellTab({ reuse: true });
-                workbenchRef.current?.expand();
-              }}
-            />
-          )}
-          {activeTab === 'code' && project && <CodeTab project={project} />}
-          {activeTab === 'agents' && project && (
-            <AgentsView
-              projectId={projectId}
-              tasks={columns}
-              defaultAgentId={project.defaultAgentId}
-              onSpawnChat={(agentId) => {
-                workbenchRef.current?.addAgentTab({ agentId });
-                workbenchRef.current?.expand();
-              }}
-              onSetDefaultAgent={(agentId) => handleProjectSettingsSave({ defaultAgentId: agentId })}
-            />
-          )}
-        </div>
-
-        <WorkbenchPanel
-          ref={workbenchRef}
-          projectId={projectId}
-          projectPath={project.path}
-          agentMap={agentMap}
-          defaultAgentId={project?.defaultAgentId}
-          orientation={workbenchOrientation}
-          onOrientationChange={(o) => { setWorkbenchOrientation(o); localStorage.setItem(`proq:workbench-orientation:${projectId}`, o); }}
+          </div>
+        )}
+        <PanelGrid
+          layout={panelLayout.layout}
+          onSizesChanged={panelLayout.update}
+          renderPanel={renderPanel}
         />
       </main>
 

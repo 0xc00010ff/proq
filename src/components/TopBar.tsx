@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon, PanelsTopLeftIcon, PanelRightIcon, PanelBottomIcon } from 'lucide-react';
+import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon, PanelLeftIcon, PanelRightIcon, PanelBottomIcon } from 'lucide-react';
 import type { Project, ViewType, PanelLayout, PanelSlotId } from '@/lib/types';
 import { canHideSlot } from '@/lib/panels';
 import {
@@ -201,8 +201,8 @@ export function TopBar({ project, panels, onTogglePanel, currentBranch, branches
     }
   }, [branchPopoverOpen]);
 
-  const panelToggles: { slot: PanelSlotId; label: string; icon: typeof PanelsTopLeftIcon }[] = [
-    { slot: 'upperLeft',  label: 'Upper Left',  icon: PanelsTopLeftIcon },
+  const panelToggles: { slot: PanelSlotId; label: string; icon: typeof PanelLeftIcon }[] = [
+    { slot: 'upperLeft',  label: 'Upper Left',  icon: PanelLeftIcon },
     { slot: 'lower',      label: 'Lower',       icon: PanelBottomIcon },
     { slot: 'upperRight', label: 'Upper Right', icon: PanelRightIcon },
   ];

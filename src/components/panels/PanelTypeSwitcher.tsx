@@ -20,11 +20,11 @@ import {
 import type { PanelKind } from '@/lib/types';
 
 export const PANEL_TYPES: { kind: PanelKind; label: string; icon: LucideIcon }[] = [
-  { kind: 'kanban',           label: 'Project',  icon: Columns3Icon },
-  { kind: 'live',             label: 'Live',     icon: GlobeIcon },
-  { kind: 'code',             label: 'Code',     icon: CodeIcon },
-  { kind: 'agents-workbench', label: 'Agents',   icon: TerminalIcon },
-  { kind: 'agent-editor',     label: 'Editor',   icon: Users2Icon },
+  { kind: 'agent-editor',     label: 'Agents',    icon: Users2Icon },
+  { kind: 'agents-workbench', label: 'Workbench', icon: TerminalIcon },
+  { kind: 'kanban',           label: 'Tasks',     icon: Columns3Icon },
+  { kind: 'code',             label: 'Code',      icon: CodeIcon },
+  { kind: 'live',             label: 'Live',      icon: GlobeIcon },
 ];
 
 export function panelKindMeta(kind: PanelKind) {

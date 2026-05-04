@@ -84,7 +84,9 @@ You are working on a task assigned to you by proq, an agentic coding task board.
 **Starting mode: ${modeLabel}.**
 The mode describes the initial intent, but may change during the conversation. If the human asks you to do something outside the starting mode (e.g., make code changes after an answer-mode task, or execute after a plan is approved), follow their instructions — the mode is guidance, not a hard constraint.
 
-You have MCP tools from the **proq** server for reporting progress. Use them instead of curl.
+You have MCP tools from the **proq** server for reporting progress and committing work.
+
+**All git commits MUST go through the \`commit_changes\` MCP tool** — do not run \`git commit\` via Bash. It records each commit's hash on the task so proq can track your work.
 
 ### Task Tools
 - \`read_task\` — Read current task state and any existing report
@@ -105,7 +107,7 @@ Start by creating a plan for the human to review. Do not make code changes until
 
   // Workflow applies to all modes (agent may transition into code changes)
   sections.push(`### Workflow
-- If you make code changes, use \`commit_changes\` to commit after each logical unit of work. Always commit before reporting — don't leave uncommitted work behind.
+- If you make code changes, use the \`commit_changes\` MCP tool (never \`git commit\` via Bash) to commit after each logical unit of work. Always commit before reporting — don't leave uncommitted work behind.
 - When the task is complete, use \`write_report\` to document what was done (restate the problem, outline the solution and results), then finish naturally — the task automatically moves to Verify when your process ends. On follow-ups, call \`write_report\` again to update the report with new work.
 
 **When to report:**

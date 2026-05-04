@@ -278,8 +278,6 @@ function assembleProject(stub: ProjectStub): Project {
     ...stub,
     status: ws.status,
     serverUrl: ws.serverUrl,
-    activeTab: ws.activeTab,
-    viewType: ws.viewType,
     liveViewport: ws.liveViewport,
     liveUrl: ws.liveUrl,
     defaultBranch: config.defaultBranch,
@@ -353,7 +351,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab" | "viewType" | "defaultBranch" | "defaultAgentId">>
+  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "defaultBranch" | "defaultAgentId">>
 ): Promise<Project | null> {
   return withWriteLock('workspace', async () => {
     const ws = getWorkspaceData();
@@ -397,8 +395,6 @@ export async function updateProject(
     // Update workspace fields (UI state + per-user overrides)
     const wsUpdates: Partial<ProjectWorkspace> = {};
     if (data.status !== undefined) wsUpdates.status = data.status;
-    if (data.activeTab !== undefined) wsUpdates.activeTab = data.activeTab;
-    if (data.viewType !== undefined) wsUpdates.viewType = data.viewType;
     if (data.serverUrl !== undefined) wsUpdates.serverUrl = data.serverUrl;
     if (data.defaultAgentId !== undefined) wsUpdates.defaultAgentId = data.defaultAgentId || undefined;
     if (Object.keys(wsUpdates).length > 0) {
@@ -741,22 +737,6 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 // ═══════════════════════════════════════════════════════════
 // WORKBENCH STATE (from project workspace)
 // ═══════════════════════════════════════════════════════════
-
-export async function getWorkbenchState(projectId: string): Promise<{ open: boolean; height: number | null; orientation: 'horizontal' | 'vertical'; width: number | null }> {
-  const ws = getProjectWorkspace(projectId);
-  return { open: ws.projectWorkbenchOpen ?? false, height: ws.projectWorkbenchHeight ?? null, orientation: ws.projectWorkbenchOrientation ?? 'horizontal', width: ws.projectWorkbenchWidth ?? null };
-}
-
-export async function setWorkbenchState(projectId: string, state: { open?: boolean; height?: number; orientation?: 'horizontal' | 'vertical'; width?: number }): Promise<void> {
-  return withWriteLock(`workspace:${projectId}`, async () => {
-    const ws = getProjectWorkspace(projectId);
-    if (state.open !== undefined) ws.projectWorkbenchOpen = state.open;
-    if (state.height !== undefined) ws.projectWorkbenchHeight = state.height;
-    if (state.orientation !== undefined) ws.projectWorkbenchOrientation = state.orientation;
-    if (state.width !== undefined) ws.projectWorkbenchWidth = state.width;
-    writeProjectWorkspace(projectId, ws);
-  });
-}
 
 export async function getWorkbenchTabs(projectId: string): Promise<{ tabs: import("./types").WorkbenchTabInfo[]; activeTabId?: string }> {
   const ws = getProjectWorkspace(projectId);

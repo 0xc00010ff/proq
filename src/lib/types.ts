@@ -1,5 +1,4 @@
 // ── Project ──────────────────────────────────────────────
-export type ProjectTab = 'project' | 'live' | 'code' | 'agents';
 export type ViewType = 'kanban' | 'grid';
 
 // ── Panel layout (three-panel UI) ────────────────────────
@@ -44,10 +43,6 @@ export interface Project extends ProjectStub {
   status?: 'active' | 'review' | 'idle' | 'error';
   serverUrl?: string;
   pathValid?: boolean;
-  /** @deprecated Replaced by `panels` three-panel layout. Retained for migration. */
-  activeTab?: ProjectTab;
-  /** @deprecated Moved into the kanban panel's view state. Retained for migration. */
-  viewType?: ViewType;
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   liveUrl?: string;
   defaultBranch?: string;
@@ -315,24 +310,12 @@ export interface ProjectWorkspace {
   recentlyDeleted?: DeletedTaskEntry[];
   // UI state
   status?: 'active' | 'review' | 'idle' | 'error';
-  /** @deprecated Replaced by `panels` three-panel layout. Retained only for migration. */
-  activeTab?: ProjectTab;
-  /** @deprecated Moved into the kanban panel's view state. Retained only for migration. */
-  viewType?: ViewType;
   liveViewport?: 'desktop' | 'tablet' | 'mobile';
   liveUrl?: string;
   // Three-panel layout
   panels?: PanelLayout;
   panelsVersion?: number;
-  // Workbench (deprecated open/height/orientation/width — sizing now handled by PanelGrid)
-  /** @deprecated Sizing handled by PanelGrid. */
-  projectWorkbenchOpen?: boolean;
-  /** @deprecated Sizing handled by PanelGrid. */
-  projectWorkbenchHeight?: number;
-  /** @deprecated Sizing handled by PanelGrid. */
-  projectWorkbenchOrientation?: 'horizontal' | 'vertical';
-  /** @deprecated Sizing handled by PanelGrid. */
-  projectWorkbenchWidth?: number;
+  // Workbench
   projectWorkbenchTabs?: WorkbenchTabInfo[];
   projectWorkbenchActiveTabId?: string;
   /** @deprecated Workbench sessions now stored in sessions/{tabId}.json files. Kept for migration. */

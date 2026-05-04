@@ -55,7 +55,7 @@ src/
 │   │       │       └── trigger/ # POST trigger cron manually
 │   │       ├── git/            # GET/POST/PATCH branch state
 │   │       ├── chat/           # GET/POST chat messages
-│   │       ├── workbench-state/ # GET/PATCH workbench panel state
+│   │       ├── panels/         # GET/PUT three-panel layout (UL/UR/Lower)
 │   │       └── workbench-tabs/  # GET/POST/DELETE workbench tabs
 │   ├── api/settings/           # GET/PATCH settings
 │   │   └── detect-claude-bin/  # POST auto-detect claude binary
@@ -73,17 +73,22 @@ src/
 ├── components/
 │   ├── blocks/                 # Agent block renderers (TextBlock, ThinkingBlock, ToolBlock, etc.)
 │   ├── ui/                     # shadcn/ui primitives
+│   ├── panels/                 # Three-panel layout system
+│   │   ├── PanelGrid.tsx       # react-resizable-panels grid (UL+UR over Lower)
+│   │   ├── PanelChrome.tsx     # Per-panel sub-nav row (switcher + view-supplied controls) + body
+│   │   ├── PanelTypeSwitcher.tsx # Dropdown of the five view kinds
+│   │   └── views/              # View adapters: Kanban, Live, Code, Workbench, AgentEditor
 │   ├── Sidebar.tsx             # Project list with status indicators
-│   ├── TopBar.tsx              # Project header + main view selector (Agents / Project / Live / Code) + branch selector
-│   ├── KanbanBoard.tsx         # Drag-drop board (@dnd-kit) — the "Project" view
+│   ├── TopBar.tsx              # Project header + UL/UR/Lower toggle icons + branch selector
+│   ├── KanbanBoard.tsx         # Drag-drop board (@dnd-kit) — kanban view content
 │   ├── TaskCard.tsx            # Task display (shows status indicators)
 │   ├── TaskModal.tsx           # Task create/edit modal
 │   ├── TaskAgentModal.tsx      # Full agent session viewer
 │   ├── StructuredPane.tsx      # Agent block stream rendering
 │   ├── ChatPanel.tsx           # Terminal-style chat interface
-│   ├── LiveTab.tsx             # Iframe dev server preview — the "Live" view
-│   ├── CodeTab.tsx             # Monaco code editor — the "Code" view
-│   ├── AgentsView.tsx          # Agent editor — the "Agents" view (manage named per-project agents)
+│   ├── LiveTab.tsx             # Iframe dev server preview — live view content
+│   ├── CodeTab.tsx             # Monaco code editor — code view content
+│   ├── AgentsView.tsx          # Agent editor — manage named per-project agents
 │   └── AgentsCanvas.tsx        # Canvas surface used by AgentsView for arranging/editing agent cards
 ├── hooks/
 │   ├── useAgentSession.ts      # WebSocket hook for task agent sessions
@@ -91,6 +96,7 @@ src/
 │   ├── useSupervisorSession.ts # WebSocket hook for supervisor
 │   ├── useStreamingBuffer.ts   # RAF-based text streaming buffer
 │   ├── useTaskEvents.ts        # SSE hook for task status updates
+│   ├── usePanelLayout.ts       # Three-panel layout state + debounced persistence
 │   └── ...                     # useClickOutside, useEscapeKey, useShortcut, etc.
 └── lib/
     ├── agent-dispatch.ts       # Agent launch + abort + processQueue + system prompts + MCP config
@@ -106,6 +112,7 @@ src/
     ├── cron-scheduler.ts       # Cron job scheduling engine
     ├── worktree.ts             # Git worktree + branch operations
     ├── db.ts                   # JSON file storage with per-resource write locks
+    ├── panels.ts               # PanelLayout factory, defaults, and migration version
     ├── proq-mcp-task.js        # Task-scoped MCP server (read_task, update_task, commit_changes, create_task)
     ├── proq-mcp-project.js     # Project-scoped MCP server for workbench agents
     ├── proq-bridge.js          # PTY bridge for CLI mode (unix socket + scrollback)
@@ -114,6 +121,29 @@ src/
     ├── types.ts                # All TypeScript interfaces
     └── utils.ts                # cn() utility + path helpers
 ```
+
+### Three-panel layout
+
+The project page is split into three independently-toggleable panels:
+`upperLeft`, `upperRight` (sharing an upper row), and `lower` (full-width below).
+Layout state lives in `workspace.json` under `panels` and is bumped via
+`panelsVersion` when the default layout factory changes.
+
+- **Slots**: each holds a `PanelView` of one of five kinds — `kanban`, `live`,
+  `code`, `agents-workbench`, `agent-editor`. The same kind may appear in
+  multiple slots; no enforcement.
+- **Rendering**: `PanelGrid` (react-resizable-panels) draws two dividers (UL/UR
+  vertical, upper-row/Lower horizontal). Each visible slot is wrapped in
+  `PanelChrome`, which provides a fixed-height sub-nav row with the
+  `PanelTypeSwitcher` on the left and view-supplied controls on the right.
+- **Toggles**: `TopBar` shows three icon toggles for UL/UR/Lower. At least one
+  panel must remain visible — the last-visible toggle is disabled.
+- **Persistence**: `usePanelLayout` debounces writes to
+  `PUT /api/projects/[id]/panels` (400ms). Sizes are persisted as percentages
+  relative to the parent group (UL/UR percent of upper row, Lower percent of
+  total height).
+- **Defaults** (new project / migration): UL=Kanban (visible, 50%),
+  UR=Live (hidden, 50%), Lower=Workbench (visible, 40%).
 
 ### Agent Dispatch System (`src/lib/agent-dispatch.ts`)
 
@@ -189,14 +219,14 @@ Tasks can be created on a schedule via cron jobs. Cron definitions live in share
 - **`data/workspace.json`** — Project registry (stubs with id, name, path)
 - **`data/settings.json`** — Global settings (claude binary path, model, theme, etc.)
 - **`data/projects/{id}/project.json`** — Shared project config (systemPrompt, defaultBranch, cron definitions). Git-trackable in `.proq/` mode.
-- **`data/projects/{id}/workspace.json`** — Per-user state (tasks, chat, UI, executionMode, serverUrl, defaultAgentId, cron activations)
+- **`data/projects/{id}/workspace.json`** — Per-user state (tasks, chat, panels layout, executionMode, serverUrl, defaultAgentId, cron activations)
 - **`data/projects/{id}/agents/`** — Agent definitions (individual JSON files)
 - **`data/` is gitignored** — Each user has their own local state, auto-created on first run
 - Database: Custom JSON file storage (readFileSync/writeFileSync with per-resource write locks)
 
 ### Key Types (src/lib/types.ts)
 
-- **Project**: `{ id, name, path, status, serverUrl, order, pathValid, activeTab, viewType, liveViewport, defaultBranch, systemPrompt, createdAt }`
+- **Project**: `{ id, name, path, status, serverUrl, order, pathValid, panels, liveViewport, defaultBranch, systemPrompt, createdAt }`
 - **Task**: `{ id, title, description, status, priority, mode, summary, nextSteps, needsAttention, agentLog, agentStatus, worktreePath, branch, baseBranch, mergeConflict, startCommit, commitHashes, renderMode, agentBlocks, sessionId, attachments, cronJobId, createdAt, updatedAt }`
 - **ProjectConfig**: `{ systemPrompt, defaultBranch, cronJobs[] }` — shared project config in `project.json`
 - **CronJobDefinition**: `{ id, name, prompt, defaultSchedule, mode, agentId, createdAt }` — shared cron definition
@@ -205,7 +235,8 @@ Tasks can be created on a schedule via cron jobs. Cron definitions live in share
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Task modes: `auto` | `build` | `plan` | `answer`
 - Execution modes: `sequential` | `parallel` | `worktrees`
-- View types: `kanban` | `list` | `grid`
+- Kanban view types: `kanban` | `grid`
+- Panel kinds: `kanban` | `live` | `code` | `agents-workbench` | `agent-editor`
 
 ### Frontend Data Flow
 

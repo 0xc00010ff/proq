@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GitBranchIcon, ChevronDownIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon, HistoryIcon, DiffIcon, LayoutGridIcon, Columns3Icon, SettingsIcon, GitCommitHorizontalIcon, XIcon, SearchIcon, TimerIcon, PanelLeftOpenIcon, PanelsTopLeftIcon, PanelRightIcon, PanelBottomIcon } from 'lucide-react';
-import type { Project, ProjectTab, ViewType, PanelLayout, PanelSlotId } from '@/lib/types';
+import type { Project, ViewType, PanelLayout, PanelSlotId } from '@/lib/types';
 import { canHideSlot } from '@/lib/panels';
 import {
   DropdownMenu,
@@ -14,8 +14,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { GitDetailModal } from '@/components/GitDetailModal';
 import { isElectron } from '@/lib/utils';
-
-export type TabOption = ProjectTab;
 
 export interface GitStatus {
   hasGit: boolean;

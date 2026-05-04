@@ -5,6 +5,8 @@ import { attachWs, writeToPty, resizePty } from "./pty-server";
 import { attachAgentWsWithProject } from "./agent-session-server";
 import { attachSupervisorWs } from "./supervisor-server";
 import { attachAgentTabWs } from "./agent-tab-server";
+import { getAllProjects } from "./db";
+import { processQueue } from "./agent-dispatch";
 
 const PORT = parseInt(process.env.PROQ_WS_PORT || process.env.NEXT_PUBLIC_WS_PORT || "42069", 10);
 
@@ -102,5 +104,22 @@ export function startWsServer() {
 
   server.listen(PORT, () => {
     console.log(`> WS server on ws://localhost:${PORT}`);
+    void reconcileQueuesOnBoot();
   });
+}
+
+async function reconcileQueuesOnBoot() {
+  try {
+    const projects = await getAllProjects();
+    for (const p of projects) {
+      try {
+        await processQueue(p.id);
+      } catch (err) {
+        console.error(`[boot] processQueue failed for ${p.id}:`, err);
+      }
+    }
+    console.log(`[boot] reconciled ${projects.length} project queue(s)`);
+  } catch (err) {
+    console.error(`[boot] queue reconciliation failed:`, err);
+  }
 }

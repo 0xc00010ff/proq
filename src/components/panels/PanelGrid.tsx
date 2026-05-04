@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef } from 'react';
-import { Group, Panel, Separator, type Layout } from 'react-resizable-panels';
+import React, { useCallback, useRef } from 'react';
+import { Group, Panel, Separator, useGroupRef, type Layout } from 'react-resizable-panels';
 import type { PanelLayout, PanelSlotId } from '@/lib/types';
+import { PanelSlotProvider } from './panel-slot-context';
 
 interface PanelGridProps {
   layout: PanelLayout;
@@ -30,6 +31,39 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
   // Stash latest layout for callbacks to read without retriggering effects.
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
+
+  // Imperative handle for the outer Group so the Lower panel's sub-nav
+  // background can drag-resize the upper/lower divider directly.
+  const outerGroupRef = useGroupRef();
+  const outerGroupElRef = useRef<HTMLDivElement | null>(null);
+
+  const beginLowerResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Only react to the empty background of the sub-nav row, not its children.
+    if (e.target !== e.currentTarget) return;
+    if (e.button !== 0) return;
+    const groupEl = outerGroupElRef.current;
+    const groupApi = outerGroupRef.current;
+    if (!groupEl || !groupApi) return;
+    e.preventDefault();
+    const rect = groupEl.getBoundingClientRect();
+    const onMove = (ev: MouseEvent) => {
+      const lowerPct = ((rect.bottom - ev.clientY) / rect.height) * 100;
+      const clamped = Math.max(MIN_PCT, Math.min(100 - MIN_PCT, lowerPct));
+      groupApi.setLayout({ upper: 100 - clamped, lower: clamped });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const final = groupApi.getLayout();
+      const lowerSize = final.lower;
+      const cur = layoutRef.current;
+      if (typeof lowerSize === 'number' && Math.abs((cur.lower.sizePct ?? 0) - lowerSize) >= 0.01) {
+        onSizesChanged({ ...cur, lower: { ...cur.lower, sizePct: lowerSize } });
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [onSizesChanged, outerGroupRef]);
 
   const handleOuterLayoutChanged = useCallback(
     (next: Layout) => {
@@ -95,6 +129,8 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       className="flex-1 min-h-0 min-w-0"
       defaultLayout={outerDefaultLayout}
       onLayoutChanged={handleOuterLayoutChanged}
+      groupRef={outerGroupRef}
+      elementRef={outerGroupElRef}
     >
       {upperVisible && (
         <Panel id="upper" defaultSize={upperSizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
@@ -107,24 +143,26 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
               onLayoutChanged={handleUpperLayoutChanged}
             >
               <Panel id="upperLeft" defaultSize={ul.sizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
-                {renderPanel('upperLeft')}
+                <PanelSlotProvider slot="upperLeft">{renderPanel('upperLeft')}</PanelSlotProvider>
               </Panel>
               <PanelSeparator orientation="horizontal" />
               <Panel id="upperRight" defaultSize={ur.sizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
-                {renderPanel('upperRight')}
+                <PanelSlotProvider slot="upperRight">{renderPanel('upperRight')}</PanelSlotProvider>
               </Panel>
             </Group>
           ) : ulVisible ? (
-            renderPanel('upperLeft')
+            <PanelSlotProvider slot="upperLeft">{renderPanel('upperLeft')}</PanelSlotProvider>
           ) : (
-            renderPanel('upperRight')
+            <PanelSlotProvider slot="upperRight">{renderPanel('upperRight')}</PanelSlotProvider>
           )}
         </Panel>
       )}
       {upperVisible && lowerVisible && <PanelSeparator orientation="vertical" />}
       {lowerVisible && (
         <Panel id="lower" defaultSize={lowerSizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
-          {renderPanel('lower')}
+          <PanelSlotProvider slot="lower" beginLowerResize={upperVisible ? beginLowerResize : undefined}>
+            {renderPanel('lower')}
+          </PanelSlotProvider>
         </Panel>
       )}
     </Group>

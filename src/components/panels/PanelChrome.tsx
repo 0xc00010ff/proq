@@ -3,6 +3,7 @@
 import React from 'react';
 import type { PanelKind } from '@/lib/types';
 import { PanelTypeSwitcher } from './PanelTypeSwitcher';
+import { usePanelSlot } from './panel-slot-context';
 
 interface PanelChromeProps {
   /** The current view kind for this slot (drives the switcher icon). */
@@ -21,11 +22,16 @@ interface PanelChromeProps {
  * view's content fills the remaining height.
  */
 export function PanelChrome({ currentKind, onChangeKind, subnavContent, children }: PanelChromeProps) {
+  const slotCtx = usePanelSlot();
+  const beginResize = slotCtx?.beginLowerResize;
   return (
     <div className="h-full flex flex-col bg-surface-deep min-h-0 min-w-0">
       <div className="h-10 flex items-stretch shrink-0 bg-surface-secondary border-b border-border-default overflow-hidden">
         <PanelTypeSwitcher current={currentKind} onChange={onChangeKind} />
-        <div className="flex-1 flex items-stretch min-w-0 overflow-hidden">
+        <div
+          className={`flex-1 flex items-stretch min-w-0 overflow-hidden ${beginResize ? 'cursor-row-resize' : ''}`}
+          onMouseDown={beginResize}
+        >
           {subnavContent}
         </div>
       </div>

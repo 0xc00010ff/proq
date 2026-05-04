@@ -51,6 +51,13 @@ function broadcast(session: AgentRuntimeSession, msg: object) {
 function appendBlock(session: AgentRuntimeSession, block: AgentBlock) {
   session.blocks.push(block);
   broadcast(session, { type: "block", block, active: session.status === "running" });
+  void setTaskSession(session.projectId, session.taskId, session.blocks, session.sessionId);
+}
+
+function captureSessionId(session: AgentRuntimeSession, sessionId: string | undefined) {
+  if (!sessionId || session.sessionId === sessionId) return;
+  session.sessionId = sessionId;
+  void updateTask(session.projectId, session.taskId, { sessionId });
 }
 
 // ── Shared process wiring ──
@@ -385,7 +392,7 @@ function processStreamEvent(
   if (type === "system") {
     const subtype = event.subtype as string | undefined;
     if (subtype === "init") {
-      session.sessionId = event.session_id as string | undefined;
+      captureSessionId(session, event.session_id as string | undefined);
       const model = event.model as string | undefined;
       if (model) {
         // Update the most recent init block's model
@@ -399,7 +406,7 @@ function processStreamEvent(
       }
     }
   } else if (type === "assistant") {
-    session.sessionId = event.session_id as string | undefined;
+    captureSessionId(session, event.session_id as string | undefined);
     const message = event.message as { content?: unknown[] } | undefined;
     const content = message?.content;
     if (Array.isArray(content)) {
@@ -461,7 +468,7 @@ function processStreamEvent(
       }
     }
   } else if (type === "user") {
-    session.sessionId = event.session_id as string | undefined;
+    captureSessionId(session, event.session_id as string | undefined);
     const message = event.message as { content?: unknown[] } | undefined;
     const userContent = message?.content;
     if (Array.isArray(userContent)) {
@@ -495,7 +502,7 @@ function processStreamEvent(
       }
     }
   } else if (type === "result") {
-    session.sessionId = event.session_id as string | undefined;
+    captureSessionId(session, event.session_id as string | undefined);
     const isError = event.is_error as boolean | undefined;
     const costUsd = event.total_cost_usd as number | undefined;
     const resultText = event.result as string | undefined;

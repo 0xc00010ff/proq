@@ -38,9 +38,15 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
   const outerGroupElRef = useRef<HTMLDivElement | null>(null);
 
   const beginLowerResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Only react to the empty background of the sub-nav row, not its children.
-    if (e.target !== e.currentTarget) return;
     if (e.button !== 0) return;
+    // Only react to the empty background of the sub-nav row, not its
+    // interactive controls. Views often wrap their subnav in their own flex-1
+    // div, so we can't rely on e.target === e.currentTarget — instead, walk
+    // up from the click target and bail if we hit anything interactive
+    // before reaching this wrapper.
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest('button, a, input, textarea, select, label, [role="button"], [role="tab"], [data-no-panel-resize]')) return;
     const groupEl = outerGroupElRef.current;
     const groupApi = outerGroupRef.current;
     if (!groupEl || !groupApi) return;

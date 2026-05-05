@@ -18,6 +18,7 @@ import type { ToolGroupItem } from '@/components/blocks/ToolGroupBlock';
 import { StatusBlock } from '@/components/blocks/StatusBlock';
 import { UserBlock } from '@/components/blocks/UserBlock';
 import { AskQuestionBlock } from '@/components/blocks/AskQuestionBlock';
+import { ImagePreview } from '@/components/ImagePreview';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -36,6 +37,7 @@ export default function SupervisorPage() {
   const [inputValue, setInputValue] = useState('');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const dragCounterRef = useRef(0);
 
   // Consume any pending draft from the creation modal
@@ -410,7 +412,7 @@ export default function SupervisorPage() {
                         src={url}
                         alt={att.name}
                         className="h-16 w-auto max-w-[100px] object-cover block cursor-pointer"
-                        onClick={() => window.open(url, '_blank')}
+                        onClick={() => setPreviewUrl(url)}
                       />
                       <button
                         onClick={() => removeAttachment(att.id)}
@@ -499,6 +501,8 @@ export default function SupervisorPage() {
           />
         </div>
       </main>
+
+      {previewUrl && <ImagePreview src={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </>
   );
 }

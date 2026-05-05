@@ -664,6 +664,8 @@ export function TaskDraft({ projectId, task, isOpen, defaultAgentId, onClose, on
           />
         </div>
       </div>
+
+      {previewUrl && <ImagePreview src={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

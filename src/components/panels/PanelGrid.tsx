@@ -55,10 +55,13 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     const startY = e.clientY;
     const startLayout = groupApi.getLayout();
     const startLowerPct = typeof startLayout.lower === 'number' ? startLayout.lower : 0;
-    const prevBodyCursor = document.body.style.cursor;
     const prevBodyUserSelect = document.body.style.userSelect;
-    document.body.style.cursor = 'grabbing';
     document.body.style.userSelect = 'none';
+    // Force `grabbing` everywhere for the duration of the drag — overrides
+    // any element-level cursor (e.g. `cursor-grab` on the sub-nav itself).
+    const cursorStyleEl = document.createElement('style');
+    cursorStyleEl.textContent = '*, *::before, *::after { cursor: grabbing !important; }';
+    document.head.appendChild(cursorStyleEl);
     const onMove = (ev: MouseEvent) => {
       // Track cursor displacement, not absolute position, so the bar stays
       // pinned to the spot the user grabbed (no edge-snap jump).
@@ -70,7 +73,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      document.body.style.cursor = prevBodyCursor;
+      cursorStyleEl.remove();
       document.body.style.userSelect = prevBodyUserSelect;
       const final = groupApi.getLayout();
       const lowerSize = final.lower;

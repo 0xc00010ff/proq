@@ -457,6 +457,9 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
               {task.status}
             </span>
           )}
+          <code className="ml-auto shrink-0 text-[10px] font-mono text-text-placeholder">
+            {shortId}
+          </code>
         </div>
 
         {/* Scrollable accordion area */}

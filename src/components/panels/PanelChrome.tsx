@@ -41,7 +41,7 @@ export function PanelChrome({ currentKind, onChangeKind, subnavContent, children
           <PanelTypeSwitcher current={currentKind} onChange={onChangeKind} />
           <div
             ref={setSubnavSlotEl}
-            className={`flex-1 flex items-stretch min-w-0 overflow-hidden ${beginResize ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`flex-1 flex items-stretch min-w-0 overflow-hidden ${beginResize ? 'cursor-grab' : ''}`}
             onMouseDown={beginResize}
           >
             {subnavContent}

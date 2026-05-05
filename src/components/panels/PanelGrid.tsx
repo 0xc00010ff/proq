@@ -52,6 +52,10 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     if (!groupEl || !groupApi) return;
     e.preventDefault();
     const rect = groupEl.getBoundingClientRect();
+    const prevBodyCursor = document.body.style.cursor;
+    const prevBodyUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
     const onMove = (ev: MouseEvent) => {
       const lowerPct = ((rect.bottom - ev.clientY) / rect.height) * 100;
       const clamped = Math.max(MIN_PCT, Math.min(100 - MIN_PCT, lowerPct));
@@ -60,6 +64,8 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = prevBodyCursor;
+      document.body.style.userSelect = prevBodyUserSelect;
       const final = groupApi.getLayout();
       const lowerSize = final.lower;
       const cur = layoutRef.current;

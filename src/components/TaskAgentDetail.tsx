@@ -26,6 +26,7 @@ import { TerminalPane } from './TerminalPane';
 import { StructuredPane } from './StructuredPane';
 import { ConflictModal } from './ConflictModal';
 import { CommitDiffModal, AllCommitsDiffModal } from './CommitDiffModal';
+import { ImagePreview } from './ImagePreview';
 
 // ── Shared markdown components ──────────────────────────
 const mdComponents = {
@@ -158,6 +159,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null);
   const [selectedCommitMessage, setSelectedCommitMessage] = useState<string | undefined>(undefined);
   const [showAllCommits, setShowAllCommits] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const canEditTitle = !!onUpdateTitle;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [rightPanelPercent, setRightPanelPercent] = useState(33);
@@ -498,7 +500,7 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
                     <div
                       key={att.id}
                       className="relative group rounded-md overflow-hidden border border-border-default/50 bg-surface-hover/60 cursor-pointer"
-                      onClick={() => window.open(url, '_blank')}
+                      onClick={() => setPreviewUrl(url)}
                     >
                       <img
                         src={url}
@@ -756,6 +758,8 @@ export function TaskAgentDetail({ task, projectId, isQueued, cleanupExpiresAt, f
           onDismiss={() => setShowConflictModal(false)}
         />
       )}
+
+      {previewUrl && <ImagePreview src={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

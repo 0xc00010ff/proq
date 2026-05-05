@@ -6,6 +6,7 @@ import type { TaskAttachment, TaskMode } from '@/lib/types';
 import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { formatSize } from '@/lib/agent-blocks';
 import { SmallModal } from '@/components/Modal';
+import { ImagePreview } from '@/components/ImagePreview';
 
 export interface AgentInputBarHandle {
   setValue: (text: string) => void;
@@ -50,6 +51,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const [hasText, setHasText] = useState(!!defaultValue?.trim());
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Interrupt confirmation
   const [allowInterrupts, setAllowInterrupts] = useState(false);
@@ -264,7 +266,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
                       src={url}
                       alt={att.name}
                       className="h-16 w-auto max-w-[100px] object-cover block cursor-pointer"
-                      onClick={() => window.open(url, '_blank')}
+                      onClick={() => setPreviewUrl(url)}
                     />
                     <button
                       onClick={() => removeAttachment(att.id)}
@@ -432,6 +434,8 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
           </label>
         </SmallModal>
       )}
+
+      {previewUrl && <ImagePreview src={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </>
   );
 }));

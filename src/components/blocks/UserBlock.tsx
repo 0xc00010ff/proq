@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileIcon, XIcon, CopyIcon, CheckIcon } from 'lucide-react';
+import { FileIcon, CopyIcon, CheckIcon } from 'lucide-react';
 import type { TaskAttachment } from '@/lib/types';
 import { attachmentUrl } from '@/lib/upload';
+import { ImagePreview } from '@/components/ImagePreview';
 
 export function UserBlock({ text, attachments }: { text: string; attachments?: TaskAttachment[] }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -57,25 +58,7 @@ export function UserBlock({ text, attachments }: { text: string; attachments?: T
         )}
       </button>
 
-      {previewUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
-          onClick={() => setPreviewUrl(null)}
-        >
-          <button
-            onClick={() => setPreviewUrl(null)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-          <img
-            src={previewUrl}
-            alt="Preview"
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      {previewUrl && <ImagePreview src={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

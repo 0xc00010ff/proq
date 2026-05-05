@@ -9,6 +9,7 @@ import { uploadFiles, attachmentUrl } from '@/lib/upload';
 import { useAgents } from '@/hooks/useAgents';
 import { useSkills } from '@/hooks/useSkills';
 import { SlashCommandMenu } from '@/components/SlashCommandMenu';
+import { ImagePreview } from '@/components/ImagePreview';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -50,6 +51,7 @@ export function TaskDraft({ projectId, task, isOpen, defaultAgentId, onClose, on
   const [dispatching, setDispatching] = useState(false);
   const [modalHeight, setModalHeight] = useState(MIN_MODAL_HEIGHT);
   const [titleGenerating, setTitleGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoTitleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -556,7 +558,7 @@ export function TaskDraft({ projectId, task, isOpen, defaultAgentId, onClose, on
               <div
                 key={att.id}
                 className="relative group rounded-md overflow-hidden border border-border-strong/50 bg-surface-hover/60 cursor-pointer"
-                onClick={() => window.open(url, '_blank')}
+                onClick={() => setPreviewUrl(url)}
               >
                 <img
                   src={url}

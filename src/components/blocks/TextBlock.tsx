@@ -9,8 +9,8 @@ export function TextBlock({ text, copyable = true }: { text: string; copyable?: 
   const [copied, setCopied] = useState(false);
 
   return (
-    <div className="group flex items-start gap-1.5 py-2 px-1">
-      <div className="flex-1 min-w-0 text-sm leading-relaxed text-text-secondary">
+    <div className="group py-2 px-1">
+      <div className="text-sm leading-relaxed text-text-secondary">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -39,22 +39,24 @@ export function TextBlock({ text, copyable = true }: { text: string; copyable?: 
         </ReactMarkdown>
       </div>
       {copyable && (
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-          aria-label={copied ? 'Copied' : 'Copy message'}
-          className="p-1 rounded text-text-placeholder hover:text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        >
-          {copied ? (
-            <CheckIcon className="w-3.5 h-3.5 text-emerald" />
-          ) : (
-            <CopyIcon className="w-3.5 h-3.5" />
-          )}
-        </button>
+        <div className="flex justify-end mt-1">
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(text);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+            aria-label={copied ? 'Copied' : 'Copy message'}
+            className="p-1 rounded text-text-placeholder hover:text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          >
+            {copied ? (
+              <CheckIcon className="w-3.5 h-3.5 text-emerald" />
+            ) : (
+              <CopyIcon className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
       )}
     </div>
   );

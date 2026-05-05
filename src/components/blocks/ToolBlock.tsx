@@ -208,8 +208,26 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
           {/* Output */}
           {result && (
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-medium text-text-placeholder uppercase tracking-wide">Output</span>
+              <div className="text-[10px] font-medium text-text-placeholder uppercase tracking-wide mb-1">Output</div>
+              <pre className={`text-[11px] font-mono rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto ${
+                isError
+                  ? 'text-red-400 bg-red-500/10'
+                  : 'text-text-secondary bg-surface-deep/60'
+              }`}>
+                {visibleOutput}
+              </pre>
+              <div className="flex items-center gap-2 mt-1">
+                {isTruncated && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFullOutput(true);
+                    }}
+                    className="text-[10px] text-lazuli hover:text-lazuli/80"
+                  >
+                    Show {outputLines.length - MAX_OUTPUT_LINES} more lines
+                  </button>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -226,24 +244,6 @@ export function ToolBlock({ toolId, name, input, result, forceCollapsed }: ToolB
                   )}
                 </button>
               </div>
-              <pre className={`text-[11px] font-mono rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto ${
-                isError
-                  ? 'text-red-400 bg-red-500/10'
-                  : 'text-text-secondary bg-surface-deep/60'
-              }`}>
-                {visibleOutput}
-              </pre>
-              {isTruncated && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowFullOutput(true);
-                  }}
-                  className="text-[10px] text-lazuli hover:text-lazuli/80 mt-1"
-                >
-                  Show {outputLines.length - MAX_OUTPUT_LINES} more lines
-                </button>
-              )}
             </div>
           )}
         </div>

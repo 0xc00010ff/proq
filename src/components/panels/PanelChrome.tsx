@@ -29,7 +29,7 @@ export function PanelChrome({ currentKind, onChangeKind, subnavContent, children
       <div className="h-10 flex items-stretch shrink-0 bg-surface-secondary border-b border-border-default overflow-hidden">
         <PanelTypeSwitcher current={currentKind} onChange={onChangeKind} />
         <div
-          className={`flex-1 flex items-stretch min-w-0 overflow-hidden ${beginResize ? 'cursor-row-resize' : ''}`}
+          className={`flex-1 flex items-stretch min-w-0 overflow-hidden ${beginResize ? 'cursor-grab active:cursor-grabbing' : ''}`}
           onMouseDown={beginResize}
         >
           {subnavContent}

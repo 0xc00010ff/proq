@@ -1,23 +1,30 @@
 import type { PanelLayout, PanelSlotId, PanelView, PanelKind } from './types';
 import { PANELS_VERSION } from './types';
 
+/** Default sizes per slot — used by the layout factory and to reset sizes on snap-close. */
+export const DEFAULT_PANEL_SIZE_PCT = {
+  upperLeft: 50,
+  upperRight: 50,
+  lower: 40,
+} as const;
+
 /** Default layout for new projects: kanban (UL) + workbench (Lower), Live hidden. */
 export function defaultPanelLayout(): PanelLayout {
   return {
     upperLeft: {
       visible: true,
       view: { kind: 'kanban', viewType: 'kanban' },
-      sizePct: 50,
+      sizePct: DEFAULT_PANEL_SIZE_PCT.upperLeft,
     },
     upperRight: {
       visible: false,
       view: { kind: 'live' },
-      sizePct: 50,
+      sizePct: DEFAULT_PANEL_SIZE_PCT.upperRight,
     },
     lower: {
       visible: true,
       view: { kind: 'agents-workbench' },
-      sizePct: 40,
+      sizePct: DEFAULT_PANEL_SIZE_PCT.lower,
     },
   };
 }

@@ -3,6 +3,7 @@
 import React, { useCallback, useRef } from 'react';
 import { Group, Panel, Separator, useGroupRef, type Layout } from 'react-resizable-panels';
 import type { PanelLayout, PanelSlotId } from '@/lib/types';
+import { DEFAULT_PANEL_SIZE_PCT } from '@/lib/panels';
 import { PanelSlotProvider } from './panel-slot-context';
 
 interface PanelGridProps {
@@ -13,7 +14,11 @@ interface PanelGridProps {
   renderPanel: (slot: PanelSlotId) => React.ReactNode;
 }
 
-const MIN_PCT = 10;
+/**
+ * Pixel threshold below which a drag-released panel snaps closed. Lets the user
+ * push a panel off-screen by dragging instead of hunting for the toggle button.
+ */
+const SNAP_CLOSE_PX = 64;
 
 /**
  * Three-slot resizable layout: UL/UR share an upper row over a full-width Lower.
@@ -36,6 +41,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
   // background can drag-resize the upper/lower divider directly.
   const outerGroupRef = useGroupRef();
   const outerGroupElRef = useRef<HTMLDivElement | null>(null);
+  const innerGroupElRef = useRef<HTMLDivElement | null>(null);
 
   const beginLowerResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -67,7 +73,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       // pinned to the spot the user grabbed (no edge-snap jump).
       const dyPct = ((ev.clientY - startY) / rect.height) * 100;
       const lowerPct = startLowerPct - dyPct;
-      const clamped = Math.max(MIN_PCT, Math.min(100 - MIN_PCT, lowerPct));
+      const clamped = Math.max(0, Math.min(100, lowerPct));
       groupApi.setLayout({ upper: 100 - clamped, lower: clamped });
     };
     const onUp = () => {
@@ -78,7 +84,19 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       const final = groupApi.getLayout();
       const lowerSize = final.lower;
       const cur = layoutRef.current;
-      if (typeof lowerSize === 'number' && Math.abs((cur.lower.sizePct ?? 0) - lowerSize) >= 0.01) {
+      if (typeof lowerSize !== 'number') return;
+      const groupHeight = groupEl.getBoundingClientRect().height;
+      const lowerPx = (lowerSize / 100) * groupHeight;
+      // Below threshold: snap closed and reset sizePct so the next reopen
+      // (via TopBar toggle) lands at a usable default size.
+      if (lowerPx < SNAP_CLOSE_PX) {
+        onSizesChanged({
+          ...cur,
+          lower: { ...cur.lower, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.lower },
+        });
+        return;
+      }
+      if (Math.abs((cur.lower.sizePct ?? 0) - lowerSize) >= 0.01) {
         onSizesChanged({ ...cur, lower: { ...cur.lower, sizePct: lowerSize } });
       }
     };
@@ -89,8 +107,37 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
   const handleOuterLayoutChanged = useCallback(
     (next: Layout) => {
       const lowerSize = next.lower;
+      const upperSize = next.upper;
       if (typeof lowerSize !== 'number') return;
       const cur = layoutRef.current;
+      const groupHeight = outerGroupElRef.current?.getBoundingClientRect().height ?? 0;
+      const lowerPx = (lowerSize / 100) * groupHeight;
+      const upperPx = typeof upperSize === 'number' ? (upperSize / 100) * groupHeight : groupHeight;
+      const upperRowVisible = cur.upperLeft.visible || cur.upperRight.visible;
+
+      // Snap-close lower when both rows were visible and lower shrunk past threshold.
+      if (cur.lower.visible && upperRowVisible && lowerPx < SNAP_CLOSE_PX) {
+        onSizesChanged({
+          ...cur,
+          lower: { ...cur.lower, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.lower },
+        });
+        return;
+      }
+      // Snap-close upper row (hide whichever upper slots were visible) when
+      // user pushed it past threshold from the same divider.
+      if (cur.lower.visible && upperRowVisible && upperPx < SNAP_CLOSE_PX) {
+        onSizesChanged({
+          ...cur,
+          upperLeft: cur.upperLeft.visible
+            ? { ...cur.upperLeft, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.upperLeft }
+            : cur.upperLeft,
+          upperRight: cur.upperRight.visible
+            ? { ...cur.upperRight, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.upperRight }
+            : cur.upperRight,
+        });
+        return;
+      }
+
       if (Math.abs((cur.lower.sizePct ?? 0) - lowerSize) < 0.01) return;
       onSizesChanged({
         ...cur,
@@ -105,18 +152,41 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       const ulSize = next.upperLeft;
       const urSize = next.upperRight;
       const cur = layoutRef.current;
-      if (typeof ulSize === 'number' && typeof urSize === 'number') {
-        if (
-          Math.abs(cur.upperLeft.sizePct - ulSize) < 0.01 &&
-          Math.abs(cur.upperRight.sizePct - urSize) < 0.01
-        )
+      if (typeof ulSize !== 'number' || typeof urSize !== 'number') return;
+
+      // Snap-close UL or UR when its width drops below the threshold mid-drag.
+      // Only relevant when both upper slots are visible (the only time this
+      // divider exists).
+      if (cur.upperLeft.visible && cur.upperRight.visible) {
+        const innerWidth = innerGroupElRef.current?.getBoundingClientRect().width ?? 0;
+        const ulPx = (ulSize / 100) * innerWidth;
+        const urPx = (urSize / 100) * innerWidth;
+        if (ulPx < SNAP_CLOSE_PX) {
+          onSizesChanged({
+            ...cur,
+            upperLeft: { ...cur.upperLeft, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.upperLeft },
+          });
           return;
-        onSizesChanged({
-          ...cur,
-          upperLeft: { ...cur.upperLeft, sizePct: ulSize },
-          upperRight: { ...cur.upperRight, sizePct: urSize },
-        });
+        }
+        if (urPx < SNAP_CLOSE_PX) {
+          onSizesChanged({
+            ...cur,
+            upperRight: { ...cur.upperRight, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.upperRight },
+          });
+          return;
+        }
       }
+
+      if (
+        Math.abs(cur.upperLeft.sizePct - ulSize) < 0.01 &&
+        Math.abs(cur.upperRight.sizePct - urSize) < 0.01
+      )
+        return;
+      onSizesChanged({
+        ...cur,
+        upperLeft: { ...cur.upperLeft, sizePct: ulSize },
+        upperRight: { ...cur.upperRight, sizePct: urSize },
+      });
     },
     [onSizesChanged],
   );
@@ -130,8 +200,10 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     );
   }
 
-  const upperSizePct = lowerVisible ? Math.max(MIN_PCT, 100 - lower.sizePct) : 100;
-  const lowerSizePct = upperVisible ? Math.max(MIN_PCT, lower.sizePct) : 100;
+  // Defensive floor on initial layout sizes; mid-drag the user can pull a
+  // panel below this to trigger snap-close (handled in *LayoutChanged callbacks).
+  const upperSizePct = lowerVisible ? Math.max(5, 100 - lower.sizePct) : 100;
+  const lowerSizePct = upperVisible ? Math.max(5, lower.sizePct) : 100;
 
   // The Group component re-uses panel sizes by id, so a stable defaultLayout
   // ensures sizing survives toggling visibility.
@@ -154,7 +226,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       elementRef={outerGroupElRef}
     >
       {upperVisible && (
-        <Panel id="upper" defaultSize={upperSizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
+        <Panel id="upper" defaultSize={upperSizePct} minSize={0} className="min-h-0 min-w-0">
           {ulVisible && urVisible ? (
             <Group
               orientation="horizontal"
@@ -162,12 +234,13 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
               className="h-full w-full"
               defaultLayout={innerDefaultLayout}
               onLayoutChanged={handleUpperLayoutChanged}
+              elementRef={innerGroupElRef}
             >
-              <Panel id="upperLeft" defaultSize={ul.sizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
+              <Panel id="upperLeft" defaultSize={ul.sizePct} minSize={0} className="min-h-0 min-w-0">
                 <PanelSlotProvider slot="upperLeft">{renderPanel('upperLeft')}</PanelSlotProvider>
               </Panel>
               <PanelSeparator orientation="horizontal" />
-              <Panel id="upperRight" defaultSize={ur.sizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
+              <Panel id="upperRight" defaultSize={ur.sizePct} minSize={0} className="min-h-0 min-w-0">
                 <PanelSlotProvider slot="upperRight">{renderPanel('upperRight')}</PanelSlotProvider>
               </Panel>
             </Group>
@@ -180,7 +253,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       )}
       {upperVisible && lowerVisible && <PanelSeparator orientation="vertical" />}
       {lowerVisible && (
-        <Panel id="lower" defaultSize={lowerSizePct} minSize={MIN_PCT} className="min-h-0 min-w-0">
+        <Panel id="lower" defaultSize={lowerSizePct} minSize={0} className="min-h-0 min-w-0">
           <PanelSlotProvider slot="lower" beginLowerResize={upperVisible ? beginLowerResize : undefined}>
             {renderPanel('lower')}
           </PanelSlotProvider>

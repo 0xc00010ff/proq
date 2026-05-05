@@ -52,12 +52,18 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     if (!groupEl || !groupApi) return;
     e.preventDefault();
     const rect = groupEl.getBoundingClientRect();
+    const startY = e.clientY;
+    const startLayout = groupApi.getLayout();
+    const startLowerPct = typeof startLayout.lower === 'number' ? startLayout.lower : 0;
     const prevBodyCursor = document.body.style.cursor;
     const prevBodyUserSelect = document.body.style.userSelect;
     document.body.style.cursor = 'grabbing';
     document.body.style.userSelect = 'none';
     const onMove = (ev: MouseEvent) => {
-      const lowerPct = ((rect.bottom - ev.clientY) / rect.height) * 100;
+      // Track cursor displacement, not absolute position, so the bar stays
+      // pinned to the spot the user grabbed (no edge-snap jump).
+      const dyPct = ((ev.clientY - startY) / rect.height) * 100;
+      const lowerPct = startLowerPct - dyPct;
       const clamped = Math.max(MIN_PCT, Math.min(100 - MIN_PCT, lowerPct));
       groupApi.setLayout({ upper: 100 - clamped, lower: clamped });
     };

@@ -31,6 +31,7 @@ export interface TreeNode {
   name: string;
   path: string;
   type: 'file' | 'dir';
+  hidden?: boolean;
   children?: TreeNode[];
 }
 
@@ -267,7 +268,7 @@ function TreeNodeItem({
         isSelected
           ? 'bg-lazuli/15 text-lazuli hover:bg-lazuli/20'
           : 'text-text-secondary'
-      }`}
+      } ${node.hidden && !isSelected ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 8}px` }}
     >
       {node.type === 'dir' ? (

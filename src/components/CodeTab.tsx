@@ -8,6 +8,7 @@ import type { editor as MonacoEditorType } from 'monaco-editor';
 import {
   ExternalLink,
   Eye,
+  EyeOff,
   Pencil,
   Loader2,
   Check,
@@ -53,6 +54,26 @@ interface PersistedTab {
 
 function getStorageKey(projectId: string) {
   return `proq-code-tabs-${projectId}`;
+}
+
+function getShowHiddenKey(projectId: string) {
+  return `proq-code-show-hidden-${projectId}`;
+}
+
+function loadShowHidden(projectId: string): boolean {
+  try {
+    return localStorage.getItem(getShowHiddenKey(projectId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function persistShowHidden(projectId: string, value: boolean) {
+  try {
+    localStorage.setItem(getShowHiddenKey(projectId), value ? '1' : '0');
+  } catch {
+    // ignore
+  }
 }
 
 function loadPersistedTabs(projectId: string): { tabs: PersistedTab[]; active: string | null } | null {
@@ -214,6 +235,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const [paletteQuery, setPaletteQuery] = useState('');
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [sidebarMode, setSidebarMode] = useState<'files' | 'search'>('files');
+  const [showHidden, setShowHidden] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MonacoEditorType.IStandaloneCodeEditor | null>(null);
@@ -315,20 +337,37 @@ export function CodeTab({ project }: CodeTabProps) {
     };
   }, [isDragging]);
 
+  // Load showHidden preference on project switch
+  useEffect(() => {
+    if (!project.id) return;
+    setShowHidden(loadShowHidden(project.id));
+  }, [project.id]);
+
   // Load file tree
   const refreshTree = useCallback(() => {
     if (!project.path) return;
-    fetch(`/api/files/tree?path=${encodeURIComponent(project.path)}`)
+    const url = `/api/files/tree?path=${encodeURIComponent(project.path)}${
+      showHidden ? '&showHidden=1' : ''
+    }`;
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setTree(data);
       })
       .catch(console.error);
-  }, [project.path]);
+  }, [project.path, showHidden]);
 
   useEffect(() => {
     refreshTree();
   }, [refreshTree]);
+
+  const toggleShowHidden = useCallback(() => {
+    setShowHidden((prev) => {
+      const next = !prev;
+      if (project.id) persistShowHidden(project.id, next);
+      return next;
+    });
+  }, [project.id]);
 
   // File tree operation callbacks (rename, delete, create file/folder)
   const fileTreeCallbacks = useMemo<FileTreeCallbacks>(() => ({
@@ -1285,6 +1324,19 @@ export function CodeTab({ project }: CodeTabProps) {
             >
               <Search className="w-3.5 h-3.5" />
             </button>
+            {sidebarMode === 'files' && (
+              <button
+                onClick={toggleShowHidden}
+                className={`ml-auto p-1 rounded transition-colors ${
+                  showHidden
+                    ? 'bg-surface-hover text-text-primary'
+                    : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover/50'
+                }`}
+                title={showHidden ? 'Hide gitignored files' : 'Show gitignored files'}
+              >
+                {showHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              </button>
+            )}
           </div>
 
           {sidebarMode === 'search' ? (

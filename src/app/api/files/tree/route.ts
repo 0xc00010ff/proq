@@ -12,6 +12,7 @@ interface TreeNode {
   name: string;
   path: string;
   type: "file" | "dir";
+  hidden?: boolean;
   children?: TreeNode[];
 }
 
@@ -20,7 +21,9 @@ async function buildTree(
   projectRoot: string,
   gitignorePatterns: string[],
   depth: number,
-  maxDepth: number
+  maxDepth: number,
+  showHidden: boolean,
+  parentHidden: boolean
 ): Promise<TreeNode[]> {
   if (depth >= maxDepth) return [];
 
@@ -41,9 +44,11 @@ async function buildTree(
 
   for (const entry of sorted) {
     if (IGNORED_NAMES.has(entry.name)) continue;
-    if (matchesGitignore(entry.name, gitignorePatterns)) continue;
+    const isGitignored = matchesGitignore(entry.name, gitignorePatterns);
+    if (isGitignored && !showHidden) continue;
 
     const fullPath = path.join(dirPath, entry.name);
+    const hidden = parentHidden || isGitignored;
 
     if (entry.isDirectory()) {
       const children = await buildTree(
@@ -51,11 +56,24 @@ async function buildTree(
         projectRoot,
         gitignorePatterns,
         depth + 1,
-        maxDepth
+        maxDepth,
+        showHidden,
+        hidden
       );
-      nodes.push({ name: entry.name, path: fullPath, type: "dir", children });
+      nodes.push({
+        name: entry.name,
+        path: fullPath,
+        type: "dir",
+        children,
+        ...(hidden ? { hidden: true } : {}),
+      });
     } else {
-      nodes.push({ name: entry.name, path: fullPath, type: "file" });
+      nodes.push({
+        name: entry.name,
+        path: fullPath,
+        type: "file",
+        ...(hidden ? { hidden: true } : {}),
+      });
     }
   }
 
@@ -65,6 +83,7 @@ async function buildTree(
 export async function GET(req: NextRequest) {
   const dirPath = req.nextUrl.searchParams.get("path");
   const maxDepth = parseInt(req.nextUrl.searchParams.get("depth") || "20", 10);
+  const showHidden = req.nextUrl.searchParams.get("showHidden") === "1";
 
   if (!dirPath) {
     return NextResponse.json({ error: "path is required" }, { status: 400 });
@@ -80,7 +99,15 @@ export async function GET(req: NextRequest) {
   }
 
   const gitignorePatterns = await loadGitignorePatterns(resolved);
-  const tree = await buildTree(resolved, resolved, gitignorePatterns, 0, maxDepth);
+  const tree = await buildTree(
+    resolved,
+    resolved,
+    gitignorePatterns,
+    0,
+    maxDepth,
+    showHidden,
+    false
+  );
 
   return NextResponse.json(tree);
 }

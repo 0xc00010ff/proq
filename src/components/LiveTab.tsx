@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
+import { usePanelSubnavSlot } from '@/components/panels/PanelChrome';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -201,6 +203,118 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
 
   const isDevice = viewport !== 'desktop';
 
+  const subnavSlot = usePanelSubnavSlot();
+  const toolbar = project.serverUrl ? (
+    <div className="flex-1 flex items-center px-4 space-x-4 min-w-0">
+      <div className="flex space-x-1.5 group/lights">
+        <button
+          onClick={handleDisconnect}
+          title="Disconnect"
+          className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50 group-hover/lights:bg-crimson/60 flex items-center justify-center transition-colors"
+        >
+          <XIcon className="w-1.5 h-1.5 text-transparent group-hover/lights:text-white transition-colors" />
+        </button>
+        <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50 group-hover/lights:bg-gold/60 flex items-center justify-center transition-colors">
+          <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-gold transition-colors" />
+        </div>
+        <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50 group-hover/lights:bg-emerald/60 flex items-center justify-center transition-colors">
+          <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-emerald transition-colors" />
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center space-x-2 min-w-0">
+        <button
+          onClick={handleBack}
+          title="Back"
+          className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+        >
+          <ChevronLeftIcon className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={handleForward}
+          title="Forward"
+          className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+        >
+          <ChevronRightIcon className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={handleRefresh}
+          title="Refresh"
+          className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+        >
+          <RotateCwIcon className="w-3.5 h-3.5" />
+        </button>
+        <div className="bg-surface-deep border border-border-default rounded px-3 py-1 text-xs text-text-secondary flex items-center space-x-2 min-w-0 max-w-[420px] flex-1">
+          <GlobeIcon className="w-3 h-3 shrink-0" />
+          <input
+            type="text"
+            value={barValue}
+            onChange={(e) => setBarValue(e.target.value)}
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                const raw = barValue.trim();
+                if (!raw) return;
+                const hasProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw);
+                if (!hasProtocol) {
+                  try {
+                    const base = new URL(project.serverUrl!);
+                    navigateTo(base.origin + (raw.startsWith('/') ? raw : '/' + raw));
+                  } catch {}
+                  return;
+                }
+                if (!/^https?:/i.test(raw)) {
+                  navigateTo(raw);
+                  return;
+                }
+                try {
+                  const entered = new URL(raw);
+                  const current = new URL(project.serverUrl!);
+                  if (entered.origin === current.origin) {
+                    navigateTo(raw);
+                  } else {
+                    await fetch(`/api/projects/${project.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ serverUrl: raw }),
+                    });
+                    await refreshProjects();
+                  }
+                } catch {}
+              }
+            }}
+            className="flex-1 bg-transparent text-xs text-text-secondary focus:text-text-primary outline-none min-w-0"
+          />
+          <button
+            onClick={handleOpenInBrowser}
+            title="Open in browser"
+            className="p-0.5 rounded text-text-placeholder hover:text-text-secondary shrink-0"
+          >
+            <ExternalLinkIcon className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+      <div className="flex items-center space-x-1">
+        {([
+          { key: 'desktop' as ViewportSize, icon: MonitorIcon, label: 'Desktop' },
+          { key: 'tablet' as ViewportSize, icon: TabletSmartphoneIcon, label: 'Tablet' },
+          { key: 'mobile' as ViewportSize, icon: SmartphoneIcon, label: 'Mobile / Responsive' },
+        ]).map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            onClick={() => pickViewport(key)}
+            title={label}
+            className={`p-1.5 rounded ${
+              viewport === key
+                ? 'bg-surface-hover text-text-primary'
+                : 'text-text-placeholder hover:text-text-secondary'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   const embedElement = isElectron ? (
     <webview
       ref={webviewRef as React.Ref<HTMLElement>}
@@ -293,116 +407,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
         ) : (
           /* ── Preview ── */
           <>
-            <div className="h-10 bg-surface-secondary border-b border-border-default flex items-center px-4 space-x-4 shrink-0">
-              <div className="flex space-x-1.5 group/lights">
-                <button
-                  onClick={handleDisconnect}
-                  title="Disconnect"
-                  className="w-3 h-3 rounded-full bg-crimson/20 border border-crimson/50 group-hover/lights:bg-crimson/60 flex items-center justify-center transition-colors"
-                >
-                  <XIcon className="w-1.5 h-1.5 text-transparent group-hover/lights:text-white transition-colors" />
-                </button>
-                <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50 group-hover/lights:bg-gold/60 flex items-center justify-center transition-colors">
-                  <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-gold transition-colors" />
-                </div>
-                <div className="w-3 h-3 rounded-full bg-emerald/20 border border-emerald/50 group-hover/lights:bg-emerald/60 flex items-center justify-center transition-colors">
-                  <div className="w-1 h-1 rounded-full bg-transparent group-hover/lights:bg-emerald transition-colors" />
-                </div>
-              </div>
-              <div className="flex-1 flex items-center justify-center space-x-2">
-                <button
-                  onClick={handleBack}
-                  title="Back"
-                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
-                >
-                  <ChevronLeftIcon className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={handleForward}
-                  title="Forward"
-                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
-                >
-                  <ChevronRightIcon className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={handleRefresh}
-                  title="Refresh"
-                  className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
-                >
-                  <RotateCwIcon className="w-3.5 h-3.5" />
-                </button>
-                <div className="bg-surface-deep border border-border-default rounded px-3 py-1 text-xs text-text-secondary flex items-center space-x-2 min-w-[300px]">
-                  <GlobeIcon className="w-3 h-3 shrink-0" />
-                  <input
-                    type="text"
-                    value={barValue}
-                    onChange={(e) => setBarValue(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter') {
-                        const raw = barValue.trim();
-                        if (!raw) return;
-                        const hasProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw);
-                        if (!hasProtocol) {
-                          // Bare path — navigate within the current server
-                          try {
-                            const base = new URL(project.serverUrl!);
-                            navigateTo(base.origin + (raw.startsWith('/') ? raw : '/' + raw));
-                          } catch {}
-                          return;
-                        }
-                        if (!/^https?:/i.test(raw)) {
-                          // Non-http protocol (file://, chrome://, about:, …) — navigate as-is
-                          navigateTo(raw);
-                          return;
-                        }
-                        try {
-                          const entered = new URL(raw);
-                          const current = new URL(project.serverUrl!);
-                          if (entered.origin === current.origin) {
-                            navigateTo(raw);
-                          } else {
-                            await fetch(`/api/projects/${project.id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ serverUrl: raw }),
-                            });
-                            await refreshProjects();
-                          }
-                        } catch {}
-                      }
-                    }}
-                    className="flex-1 bg-transparent text-xs text-text-secondary focus:text-text-primary outline-none"
-                  />
-                  <button
-                    onClick={handleOpenInBrowser}
-                    title="Open in browser"
-                    className="p-0.5 rounded text-text-placeholder hover:text-text-secondary shrink-0"
-                  >
-                    <ExternalLinkIcon className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center space-x-1">
-                {([
-                  { key: 'desktop' as ViewportSize, icon: MonitorIcon, label: 'Desktop' },
-                  { key: 'tablet' as ViewportSize, icon: TabletSmartphoneIcon, label: 'Tablet' },
-                  { key: 'mobile' as ViewportSize, icon: SmartphoneIcon, label: 'Mobile / Responsive' },
-                ]).map(({ key, icon: Icon, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => pickViewport(key)}
-                    title={label}
-                    className={`p-1.5 rounded ${
-                      viewport === key
-                        ? 'bg-surface-hover text-text-primary'
-                        : 'text-text-placeholder hover:text-text-secondary'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                  </button>
-                ))}
-              </div>
-            </div>
+            {toolbar && subnavSlot && createPortal(toolbar, subnavSlot)}
 
             {isDevice ? (
               <div

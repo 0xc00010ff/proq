@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useShortcut } from '@/hooks/useShortcut';
+import { usePanelSubnavSlot } from '@/components/panels/PanelChrome';
 import 'highlight.js/styles/github-dark.css';
 import dynamic from 'next/dynamic';
 import type { editor as MonacoEditorType } from 'monaco-editor';
@@ -1137,124 +1139,128 @@ export function CodeTab({ project }: CodeTabProps) {
     [loadFilePinned]
   );
 
+  const subnavSlot = usePanelSubnavSlot();
+  const headerContent = (
+    <div className="flex-1 grid grid-cols-[1fr_auto_1fr] items-center px-4 min-w-0">
+      {/* Left: breadcrumb + save status */}
+      <div className="flex items-center gap-2 min-w-0">
+        {activeTabPath && (() => {
+          const rel = activeTabPath.replace(project.path + '/', '');
+          const parts = rel.split('/');
+          return (
+            <div className="flex items-center gap-0.5 text-xs font-mono truncate min-w-0">
+              <span className="text-lazuli font-medium shrink-0">{project.name}</span>
+              {parts.map((part, i) => (
+                <React.Fragment key={i}>
+                  <ChevronRight className="w-3 h-3 text-text-tertiary/40 shrink-0" />
+                  <span className={i === parts.length - 1 ? 'text-text-primary font-medium' : 'text-text-tertiary'}>
+                    {part}
+                  </span>
+                </React.Fragment>
+              ))}
+              {isDirty && <span className="w-2 h-2 rounded-full bg-zinc-500 ml-1.5 shrink-0" />}
+            </div>
+          );
+        })()}
+        {saveStatus === 'saving' && (
+          <span className="flex items-center text-xs text-text-tertiary">
+            <Loader2 className="w-3 h-3 animate-spin" />
+          </span>
+        )}
+        {saveStatus === 'saved' && (
+          <span className="flex items-center text-xs text-text-tertiary">
+            <Check className="w-3 h-3" />
+          </span>
+        )}
+      </div>
+
+      {/* Center: Edit / Preview toggle (markdown + json) */}
+      <div className="flex items-center justify-center gap-2">
+        {showToggle && activeTabPath && (
+          <div className="flex items-center bg-surface-hover rounded-md p-0.5 border border-border-strong">
+            <button
+              onClick={() => setPreviewMode('raw')}
+              className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
+                previewMode === 'raw'
+                  ? 'bg-border-strong text-text-primary shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+            <button
+              onClick={() => setPreviewMode('pretty')}
+              className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
+                previewMode === 'pretty'
+                  ? 'bg-border-strong text-text-primary shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              <Eye className="w-3 h-3" />
+              Preview
+            </button>
+          </div>
+        )}
+        {jsonInvalid && previewMode === 'pretty' && (
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-crimson/15 text-crimson border border-crimson/30"
+            title="JSON could not be parsed — falling back to editor"
+          >
+            Invalid JSON
+          </span>
+        )}
+      </div>
+
+      {/* Right: actions */}
+      <div className="flex items-center gap-1.5 justify-end">
+        {isDirty && (
+          <>
+            <button
+              onClick={handleDiscard}
+              className="px-3 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong transition-colors"
+              title="Discard changes"
+            >
+              Cancel changes
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-3 py-1 text-xs font-medium text-white bg-emerald/80 hover:bg-emerald rounded-md transition-colors"
+              title="Save (Cmd+S)"
+            >
+              Save changes
+            </button>
+          </>
+        )}
+
+        {activeTabPath && (
+          <button
+            onClick={handleCopyFile}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
+            title="Copy file contents"
+          >
+            {copyStatus === 'copied' ? (
+              <Check className="w-3.5 h-3.5 text-emerald" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
+
+        <button
+          onClick={handleOpenWith}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
+          title="Open in external editor"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-base">
-      {/* Sub-header bar — lightest chrome layer, 3-column layout */}
-      <div className="h-10 flex-shrink-0 grid grid-cols-[1fr_auto_1fr] items-center px-4 border-b border-border-default bg-surface-secondary">
-        {/* Left: breadcrumb + save status (px-4 aligns with TopBar project name) */}
-        <div className="flex items-center gap-2 min-w-0">
-          {activeTabPath && (() => {
-            const rel = activeTabPath.replace(project.path + '/', '');
-            const parts = rel.split('/');
-            return (
-              <div className="flex items-center gap-0.5 text-xs font-mono truncate min-w-0">
-                <span className="text-lazuli font-medium shrink-0">{project.name}</span>
-                {parts.map((part, i) => (
-                  <React.Fragment key={i}>
-                    <ChevronRight className="w-3 h-3 text-text-tertiary/40 shrink-0" />
-                    <span className={i === parts.length - 1 ? 'text-text-primary font-medium' : 'text-text-tertiary'}>
-                      {part}
-                    </span>
-                  </React.Fragment>
-                ))}
-                {isDirty && <span className="w-2 h-2 rounded-full bg-zinc-500 ml-1.5 shrink-0" />}
-              </div>
-            );
-          })()}
-          {saveStatus === 'saving' && (
-            <span className="flex items-center text-xs text-text-tertiary">
-              <Loader2 className="w-3 h-3 animate-spin" />
-            </span>
-          )}
-          {saveStatus === 'saved' && (
-            <span className="flex items-center text-xs text-text-tertiary">
-              <Check className="w-3 h-3" />
-            </span>
-          )}
-        </div>
-
-        {/* Center: Edit / Preview toggle (markdown + json) */}
-        <div className="flex items-center justify-center gap-2">
-          {showToggle && activeTabPath && (
-            <div className="flex items-center bg-surface-hover rounded-md p-0.5 border border-border-strong">
-              <button
-                onClick={() => setPreviewMode('raw')}
-                className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
-                  previewMode === 'raw'
-                    ? 'bg-border-strong text-text-primary shadow-sm'
-                    : 'text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                <Pencil className="w-3 h-3" />
-                Edit
-              </button>
-              <button
-                onClick={() => setPreviewMode('pretty')}
-                className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
-                  previewMode === 'pretty'
-                    ? 'bg-border-strong text-text-primary shadow-sm'
-                    : 'text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                <Eye className="w-3 h-3" />
-                Preview
-              </button>
-            </div>
-          )}
-          {jsonInvalid && previewMode === 'pretty' && (
-            <span
-              className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-crimson/15 text-crimson border border-crimson/30"
-              title="JSON could not be parsed — falling back to editor"
-            >
-              Invalid JSON
-            </span>
-          )}
-        </div>
-
-        {/* Right: actions */}
-        <div className="flex items-center gap-1.5 justify-end">
-          {isDirty && (
-            <>
-              <button
-                onClick={handleDiscard}
-                className="px-3 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong transition-colors"
-                title="Discard changes"
-              >
-                Cancel changes
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-3 py-1 text-xs font-medium text-white bg-emerald/80 hover:bg-emerald rounded-md transition-colors"
-                title="Save (Cmd+S)"
-              >
-                Save changes
-              </button>
-            </>
-          )}
-
-          {activeTabPath && (
-            <button
-              onClick={handleCopyFile}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
-              title="Copy file contents"
-            >
-              {copyStatus === 'copied' ? (
-                <Check className="w-3.5 h-3.5 text-emerald" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          )}
-
-          <button
-            onClick={handleOpenWith}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
-            title="Open in external editor"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      {subnavSlot && createPortal(headerContent, subnavSlot)}
 
       {/* Tab bar */}
       {openTabs.length > 0 && (

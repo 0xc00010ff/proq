@@ -341,13 +341,18 @@ export function Sidebar({ onAddProject, onMissingPath, collapsed, onToggleCollap
   const [renameValue, setRenameValue] = useState("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
-  // Listen for update notifications from Electron
+  // Listen for update notifications from Electron — both web (git-pull) and
+  // shell (.app bundle via electron-updater). Either should surface the badge.
   useEffect(() => {
-    if (!isElectron || typeof window === "undefined" || !window.proqDesktop?.onUpdateAvailable) return;
-    const cleanup = window.proqDesktop.onUpdateAvailable(() => {
-      setUpdateAvailable(true);
-    });
-    return cleanup;
+    if (!isElectron || typeof window === "undefined" || !window.proqDesktop) return;
+    const cleanups: Array<() => void> = [];
+    if (window.proqDesktop.onUpdateAvailable) {
+      cleanups.push(window.proqDesktop.onUpdateAvailable(() => setUpdateAvailable(true)));
+    }
+    if (window.proqDesktop.onShellUpdateDownloaded) {
+      cleanups.push(window.proqDesktop.onShellUpdateDownloaded(() => setUpdateAvailable(true)));
+    }
+    return () => cleanups.forEach((fn) => fn());
   }, []);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

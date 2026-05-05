@@ -22,7 +22,7 @@ import {
 import { startServer, healthCheck, getServerLogPath } from './server'
 import { parseErrorSummary } from './error-diagnostics'
 import { checkForUpdates } from './updater'
-import { checkForShellUpdate, isShellUpdateDownloaded } from './shell-updater'
+import { checkForShellUpdate, isShellUpdateDownloaded, applyPendingUpdateIfAny } from './shell-updater'
 import {
   initAppState,
   transitionTo,
@@ -49,6 +49,25 @@ app.commandLine.appendSwitch('disable-features', 'HardwareMediaKeyHandling,Media
 // Isolate dev mode: separate userData dir so dev and production don't share config/ports
 if (process.env.PROQ_DEV) {
   app.setName('proq-desktop-dev')
+}
+
+// Single-instance lock: a second .app launch (double-click, dock activation while
+// the splash is still up, etc.) must not spawn a competing process. Multiple
+// shells racing on `git pull` and `npm install` is the failure mode that
+// produces orphaned splash windows and busted working trees.
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0)
+} else {
+  app.on('second-instance', () => {
+    // Surface the existing main window instead of starting fresh.
+    const wins = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
+    const target = wins.find((w) => !w.isMinimized()) || wins[0]
+    if (target) {
+      if (target.isMinimized()) target.restore()
+      target.show()
+      target.focus()
+    }
+  })
 }
 
 function getIcon(): Electron.NativeImage {
@@ -565,7 +584,16 @@ async function launchApp(): Promise<void> {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Rescue: if a previous session downloaded a newer shell but never installed
+  // it (broken in-app restart button, hung quit, force-quit, etc.), apply it
+  // now. quitAndInstall replaces the .app and relaunches. This is the escape
+  // hatch for users stuck on a buggy shell version — relaunch once, install
+  // happens automatically. Await so we don't race with normal init.
+  if (await applyPendingUpdateIfAny(log)) {
+    return
+  }
+
   electronApp.setAppUserModelId('com.proq.desktop')
 
   // Set dock icon on macOS (in dev mode always; in prod for theme switching)

@@ -363,12 +363,17 @@ async function enterRecovering(): Promise<void> {
 async function enterExiting(reason: ExitReason): Promise<void> {
   const d = getDeps()
 
-  // Watchdog: if anything in teardown hangs, force-exit so the app actually closes.
-  const watchdog = setTimeout(() => {
-    d.log('exiting: watchdog expired, forcing process.exit(0)')
-    process.exit(0)
-  }, EXIT_WATCHDOG_MS)
-  watchdog.unref?.()
+  // Watchdog: if teardown hangs, force-exit so the app actually closes.
+  // Skip it for install-shell-update — quitAndInstall does its own work
+  // (extracting the .zip, swapping the .app bundle) that legitimately runs
+  // longer than 3 seconds, and process.exit() would abort the install.
+  if (reason !== 'install-shell-update') {
+    const watchdog = setTimeout(() => {
+      d.log('exiting: watchdog expired, forcing process.exit(0)')
+      process.exit(0)
+    }, EXIT_WATCHDOG_MS)
+    watchdog.unref?.()
+  }
 
   try {
     await stopServer()

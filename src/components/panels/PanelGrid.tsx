@@ -43,7 +43,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
   const outerGroupElRef = useRef<HTMLDivElement | null>(null);
   const innerGroupElRef = useRef<HTMLDivElement | null>(null);
 
-  const beginLowerResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const beginLowerResize = useCallback((e: MouseEvent) => {
     if (e.button !== 0) return;
     // Only react to the empty background of the sub-nav row, not its
     // interactive controls. Views often wrap their subnav in their own flex-1

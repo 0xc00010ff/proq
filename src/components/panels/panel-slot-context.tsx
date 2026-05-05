@@ -6,7 +6,7 @@ import type { PanelSlotId } from '@/lib/types';
 interface PanelSlotContextValue {
   slot: PanelSlotId;
   /** Begin a mouse-driven resize of the upper/lower divider. Only set on the lower slot. */
-  beginLowerResize?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  beginLowerResize?: (e: MouseEvent) => void;
 }
 
 const Ctx = createContext<PanelSlotContextValue | null>(null);
@@ -17,7 +17,7 @@ export function PanelSlotProvider({
   children,
 }: {
   slot: PanelSlotId;
-  beginLowerResize?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  beginLowerResize?: (e: MouseEvent) => void;
   children: React.ReactNode;
 }) {
   return <Ctx.Provider value={{ slot, beginLowerResize }}>{children}</Ctx.Provider>;

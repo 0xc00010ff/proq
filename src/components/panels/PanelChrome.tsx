@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { PanelKind } from '@/lib/types';
 import { PanelTypeSwitcher } from './PanelTypeSwitcher';
 import { usePanelSlot } from './panel-slot-context';
@@ -34,6 +34,18 @@ export function PanelChrome({ currentKind, onChangeKind, subnavContent, children
   const slotCtx = usePanelSlot();
   const beginResize = slotCtx?.beginLowerResize;
   const [subnavSlotEl, setSubnavSlotEl] = useState<HTMLElement | null>(null);
+
+  // Views like LiveTab and CodeTab portal their toolbars into subnavSlotEl.
+  // React's synthetic onMouseDown bubbles up the React tree, not the DOM tree,
+  // so it would never fire from inside a portal. Use a native DOM listener so
+  // events bubble through the actual DOM and we catch clicks on portalled toolbars.
+  useEffect(() => {
+    if (!subnavSlotEl || !beginResize) return;
+    const handler = (e: MouseEvent) => beginResize(e);
+    subnavSlotEl.addEventListener('mousedown', handler);
+    return () => subnavSlotEl.removeEventListener('mousedown', handler);
+  }, [subnavSlotEl, beginResize]);
+
   return (
     <PanelSubnavSlotCtx.Provider value={subnavSlotEl}>
       <div className="h-full flex flex-col bg-surface-deep min-h-0 min-w-0">
@@ -42,7 +54,6 @@ export function PanelChrome({ currentKind, onChangeKind, subnavContent, children
           <div
             ref={setSubnavSlotEl}
             className={`flex-1 flex items-stretch min-w-0 overflow-hidden ${beginResize ? 'cursor-grab' : ''}`}
-            onMouseDown={beginResize}
           >
             {subnavContent}
           </div>

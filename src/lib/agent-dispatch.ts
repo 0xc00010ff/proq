@@ -92,7 +92,7 @@ You have MCP tools from the **proq** server for reporting progress and committin
 ### Task Tools
 - \`read_task\` — Read current task state and any existing report
 - \`write_report\` — Write a summary report of work done (problem, solution, results)
-- \`commit_changes\` — Stage and commit all current changes with a message
+- \`commit_changes\` — Commit your changes with a message (records the commit hash on the task)
 - \`create_task\` — Create a follow-up task for work outside your current scope
 - \`list_agents\` — List all agents in this project
 - \`sleep\` — Schedule a wakeup that resumes this session after N seconds (see Waiting & monitoring below)
@@ -116,7 +116,7 @@ Start by creating a plan for the human to review. Do not make code changes until
 
   // Workflow applies to all modes (agent may transition into code changes)
   sections.push(`### Workflow
-- If you make code changes, use the \`commit_changes\` MCP tool (never \`git commit\` via Bash) to commit after each logical unit of work. Always commit before reporting — don't leave uncommitted work behind.
+- If you make code changes, make sure to commit them before completing the task using the \`commit_changes\` MCP tool.
 - When the task is complete, use \`write_report\` to document what was done (restate the problem, outline the solution and results), then finish naturally — the task automatically moves to Verify when your process ends. On follow-ups, call \`write_report\` again to update the report with new work.
 
 **When to report:**

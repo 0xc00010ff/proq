@@ -153,7 +153,7 @@ async function resolveWorkDir() {
 server.registerTool(
   "commit_changes",
   {
-    description: "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
+    description: "Stage and commit current changes with the given message. Records the commit hash on the task.",
     inputSchema: z
       .object({
         message: z.string().describe("Descriptive commit message summarizing the changes"),

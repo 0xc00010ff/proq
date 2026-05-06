@@ -226,6 +226,7 @@ function processStreamEvent(session: SupervisorSession, event: Record<string, un
       durationMs: event.duration_ms as number | undefined,
       turns: event.num_turns as number | undefined,
       error: isError ? (resultText || "Agent error") : undefined,
+      timestamp: new Date().toISOString(),
     });
 
     if (isError) {
@@ -297,6 +298,7 @@ function wireProcess(session: SupervisorSession, proc: ChildProcess, startTime: 
         type: "status",
         subtype: "complete",
         durationMs: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
       });
     }
 

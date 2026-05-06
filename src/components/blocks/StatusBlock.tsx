@@ -35,6 +35,10 @@ function formatInitTimestamp(iso: string): string {
   return `${day} ${time}`;
 }
 
+function formatShortTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+}
+
 export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error, timestamp }: StatusBlockProps) {
   if (subtype === 'init') {
     const label = model ? `Claude Code (${model})` : 'Claude Code';
@@ -61,6 +65,7 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error,
     if (durationMs != null) parts.push(formatDuration(durationMs));
     if (costUsd != null) parts.push(`$${costUsd.toFixed(4)}`);
     if (turns != null) parts.push(`${turns} turn${turns !== 1 ? 's' : ''}`);
+    if (timestamp) parts.push(formatShortTime(timestamp));
     return (
       <div className="flex items-center gap-2 py-1.5 text-[11px] text-text-placeholder font-mono">
         <div className="flex-1 border-t border-border-default" />

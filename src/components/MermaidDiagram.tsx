@@ -89,7 +89,7 @@ export function MermaidDiagram({ code }: { code: string }) {
 
   if (svg) {
     return (
-      <div className="my-2 overflow-x-auto bg-surface-base rounded-md p-3 flex justify-center">
+      <div className="my-2 overflow-x-auto bg-surface-base rounded-md p-3 [&_svg]:!max-w-full [&_svg]:w-full [&_svg]:h-auto">
         <div dangerouslySetInnerHTML={{ __html: svg }} />
       </div>
     );

@@ -136,8 +136,22 @@ export interface Task {
   attachments?: TaskAttachment[];
   cronJobId?: string;             // links task to source cron job
   agentId?: string;               // links task to assigned agent
+  pendingWait?: PendingWait;      // scheduled in-session wakeup (sleep MCP tool)
   createdAt: string;
   updatedAt: string;
+}
+
+/** Scheduled wakeup that re-enters this task's agent session via continueSession. */
+export interface PendingWait {
+  kind: "sleep";
+  /** ms-since-epoch when the wakeup should fire */
+  fireAt: number;
+  /** original sleep duration (seconds) — included in the wakeup followup */
+  seconds: number;
+  /** optional note from the agent — included in the wakeup followup */
+  message?: string;
+  /** ISO timestamp when this wait was registered */
+  scheduledAt: string;
 }
 
 export type TaskColumns = Record<TaskStatus, Task[]>;

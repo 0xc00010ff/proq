@@ -29,6 +29,7 @@ import {
   clearSession,
 } from "./agent-session";
 import { getClaudeBin } from "./claude-bin";
+import { bootstrap as bootstrapWaitScheduler, cancelWait } from "./wait-scheduler";
 
 
 /**
@@ -93,7 +94,15 @@ You have MCP tools from the **proq** server for reporting progress and committin
 - \`write_report\` — Write a summary report of work done (problem, solution, results)
 - \`commit_changes\` — Stage and commit all current changes with a message
 - \`create_task\` — Create a follow-up task for work outside your current scope
-- \`list_agents\` — List all agents in this project`,
+- \`list_agents\` — List all agents in this project
+- \`sleep\` — Schedule a wakeup that resumes this session after N seconds (see Waiting & monitoring below)
+
+### Waiting & monitoring
+When a task involves waiting for something to happen, pick the right tool:
+- **Long-running command (build, dev server, tests, deploy):** start it with \`Bash\` and \`run_in_background: true\`, then use \`Monitor\` to stream stdout. Each stdout line is a notification — stop monitoring as soon as you see what you need.
+- **Short timed wait (≤ 30s):** \`Bash sleep N\` is fine.
+- **Long timed polling with no process to monitor** (e.g. checking a remote URL every few minutes): call \`mcp__proq__sleep\` with the interval, then **end your turn**. proq will resume this exact session when the timer fires, and you'll see a wakeup followup. Re-check the condition and decide whether to sleep again or finish.
+- **Do NOT use \`ScheduleWakeup\` or \`CronCreate\` for in-session waits.** Those don't continue this conversation. \`mcp__proq__create_task\` is for scheduling a *future, separate* task — not for waking the current agent.`,
   ];
 
   // Mode-specific guidance
@@ -160,6 +169,14 @@ if (!ga.__proqProcessingProjects) ga.__proqProcessingProjects = new Set();
 if (!ga.__proqPendingReprocess) ga.__proqPendingReprocess = new Set();
 
 const cleanupTimers = ga.__proqCleanupTimers;
+
+// Re-arm any pending sleep wakeups from disk on first module load. Idempotent
+// across HMR via the wait-scheduler's globalThis-attached timer registry.
+const gWait = globalThis as unknown as { __proqWaitBootstrapped?: boolean };
+if (!gWait.__proqWaitBootstrapped) {
+  gWait.__proqWaitBootstrapped = true;
+  void bootstrapWaitScheduler();
+}
 
 export function scheduleCleanup(projectId: string, taskId: string) {
   // Cancel any existing timer for this task
@@ -496,6 +513,9 @@ export async function dispatchTask(
 
 export async function abortTask(projectId: string, taskId: string) {
   const task = await getTask(projectId, taskId);
+
+  // Cancel any pending sleep wakeup for this task — defunct session can't be resumed.
+  await cancelWait(projectId, taskId);
 
   if (task?.renderMode === "cli") {
     // CLI mode: kill bridge process

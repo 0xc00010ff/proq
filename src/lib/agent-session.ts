@@ -172,6 +172,12 @@ function wireProcess(
     const task = await getTask(projectId, taskId);
     const stillInProgress = task?.status === "in-progress";
 
+    // If the agent ended its turn by scheduling a sleep wakeup, suppress the
+    // → verify Slack notify (would spam on every poll). The task still moves
+    // to verify in the close handler below; the wait-scheduler pulls it back
+    // to in-progress when the timer fires.
+    const sleeping = !!task?.pendingWait;
+
     // Emit SSE immediately so the UI updates without waiting for disk I/O
     if (stillInProgress) {
       emitTaskUpdate(projectId, taskId, {
@@ -179,9 +185,11 @@ function wireProcess(
         agentStatus: null,
         ...questionFields,
       });
-      notify(
-        `✅ *${(task?.title || task?.description || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
-      );
+      if (!sleeping) {
+        notify(
+          `✅ *${(task?.title || task?.description || "task").slice(0, 40).replace(/"/g, '\\"')}* → verify`,
+        );
+      }
     }
 
     // Auto-commit any leftover uncommitted changes (synchronous/execSync)

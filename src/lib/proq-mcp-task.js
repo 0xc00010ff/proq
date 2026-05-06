@@ -285,6 +285,52 @@ server.registerTool(
   },
 );
 
+server.registerTool(
+  "sleep",
+  {
+    description:
+      "Schedule a wakeup after N seconds and resume this exact session. Use this for long timed polling when there is no process or output stream to attach to (otherwise prefer Bash run_in_background + Monitor). Returns immediately — you MUST end your turn after calling this; proq will resume the session automatically when the timer fires. Sleeps over ~5 minutes pay a prompt-cache miss on resume, so pick intervals deliberately. Do NOT use ScheduleWakeup or CronCreate — those don't continue this session.",
+    inputSchema: z
+      .object({
+        seconds: z
+          .number()
+          .int()
+          .min(5)
+          .max(86400)
+          .describe("Wakeup delay in seconds (5–86400, i.e. 5s to 1 day)"),
+        message: z
+          .string()
+          .optional()
+          .describe("Optional note carried into the wakeup followup so you know why you woke up"),
+      })
+      .strict(),
+  },
+  async ({ seconds, message }) => {
+    try {
+      const res = await fetch(`${taskUrl}/sleep`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds, message: message || undefined }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        return { content: [{ type: "text", text: `Failed to schedule sleep: ${res.status} ${text}` }], isError: true };
+      }
+      const fireAtIso = new Date(Date.now() + seconds * 1000).toISOString();
+      return {
+        content: [{
+          type: "text",
+          text:
+            `Sleep scheduled for ${seconds}s (will fire at ~${fireAtIso}).\n` +
+            `⚠️ End your turn now — proq will wake you up automatically when the timer fires.`,
+        }],
+      };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  },
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -4,6 +4,7 @@ import { getTask, getProject, updateTask, getTaskSession } from "./db";
 import { resolveProjectPath } from "./utils";
 import { emitTaskUpdate } from "./task-events";
 import { processQueue } from "./agent-dispatch";
+import { cancelWait } from "./wait-scheduler";
 import type { AgentWsClientMsg } from "./types";
 
 export async function attachAgentWsWithProject(
@@ -47,6 +48,8 @@ export async function attachAgentWsWithProject(
         }
       } else if (msg.type === "interrupt") {
         try {
+          // Manual user input always pre-empts a pending automated wakeup.
+          await cancelWait(projectId, taskId);
           console.log(`[agent-ws] interrupt requested for task ${taskId.slice(0, 8)}`);
           await interruptSession(taskId);
           console.log(`[agent-ws] interrupt complete, resuming task ${taskId.slice(0, 8)}`);
@@ -67,6 +70,8 @@ export async function attachAgentWsWithProject(
         }
       } else if (msg.type === "followup" || msg.type === "plan-approve") {
         try {
+          // Manual user input always pre-empts a pending automated wakeup.
+          await cancelWait(projectId, taskId);
           const task = await getTask(projectId, taskId);
           const project = await getProject(projectId);
           const projectPath = project ? resolveProjectPath(project.path) : ".";

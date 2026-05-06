@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CopyIcon, CheckIcon } from 'lucide-react';
+import { MermaidDiagram, extractMermaid } from '../MermaidDiagram';
 
 export function TextBlock({ text, copyable = true }: { text: string; copyable?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -24,7 +25,11 @@ export function TextBlock({ text, copyable = true }: { text: string; copyable?: 
               }
               return <code className="bg-surface-primary/70 text-text-secondary rounded px-1 py-0.5 text-[12px] font-mono">{children}</code>;
             },
-            pre: ({ children }) => <pre className="bg-surface-deep rounded-md overflow-x-auto my-2">{children}</pre>,
+            pre: ({ children }) => {
+              const mermaid = extractMermaid(children);
+              if (mermaid !== null) return <MermaidDiagram code={mermaid} />;
+              return <pre className="bg-surface-deep rounded-md overflow-x-auto my-2">{children}</pre>;
+            },
             ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
             ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
             li: ({ children }) => <li className="text-text-secondary">{children}</li>,

@@ -26,6 +26,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { JsonView } from 'react-json-view-lite';
 import { FileTree, type TreeNode, type FileTreeCallbacks } from './FileTree';
 import { SearchPanel } from './SearchPanel';
+import { MermaidDiagram, extractMermaid } from './MermaidDiagram';
 import type { Project } from '@/lib/types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -1490,6 +1491,13 @@ export function CodeTab({ project }: CodeTabProps) {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
+                  components={{
+                    pre: ({ children, ...props }) => {
+                      const mermaid = extractMermaid(children);
+                      if (mermaid !== null) return <MermaidDiagram code={mermaid} />;
+                      return <pre {...props}>{children}</pre>;
+                    },
+                  }}
                 >
                   {fileContent}
                 </ReactMarkdown>

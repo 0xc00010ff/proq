@@ -27,6 +27,7 @@ import { StructuredPane } from './StructuredPane';
 import { ConflictModal } from './ConflictModal';
 import { CommitDiffModal, AllCommitsDiffModal } from './CommitDiffModal';
 import { ImagePreview } from './ImagePreview';
+import { MermaidDiagram, extractMermaid } from './MermaidDiagram';
 
 // ── Shared markdown components ──────────────────────────
 const mdComponents = {
@@ -40,7 +41,11 @@ const mdComponents = {
     }
     return <code className="bg-border-default/70 text-text-secondary rounded px-1 py-0.5 text-xs font-mono">{children}</code>;
   },
-  pre: ({ children }: { children?: React.ReactNode }) => <pre className="bg-surface-base rounded-md overflow-x-auto my-2">{children}</pre>,
+  pre: ({ children }: { children?: React.ReactNode }) => {
+    const mermaid = extractMermaid(children);
+    if (mermaid !== null) return <MermaidDiagram code={mermaid} />;
+    return <pre className="bg-surface-base rounded-md overflow-x-auto my-2">{children}</pre>;
+  },
   ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
   ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
   li: ({ children }: { children?: React.ReactNode }) => <li>{children}</li>,

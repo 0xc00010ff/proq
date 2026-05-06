@@ -371,7 +371,7 @@ server.registerTool(
 server.registerTool(
   "commit_changes",
   {
-    description: "Stage and commit all current changes. Use after each logical unit of work to keep your progress saved.",
+    description: "Commit staged changes with the given message. Stage the files you changed first using `git add <files>` via Bash — this tool does not stage. Use after each logical unit of work.",
     inputSchema: z
       .object({
         projectId: z.string().optional().describe("Project ID (optional if --project was set)"),
@@ -394,18 +394,24 @@ server.registerTool(
 
       const { execSync } = require("child_process");
 
-      // Check if there's anything to commit
-      const status = execSync(`git -C '${workDir}' status --porcelain`, {
+      // Commit only what the agent has staged. Refuse if nothing is staged
+      // rather than sweeping the working tree — concurrent task agents may
+      // have dirty state we shouldn't touch.
+      const staged = execSync(`git -C '${workDir}' diff --cached --name-only`, {
         timeout: 10_000,
         encoding: "utf-8",
       }).trim();
 
-      if (!status) {
-        return { content: [{ type: "text", text: "Nothing to commit — working tree is clean." }] };
+      if (!staged) {
+        return {
+          content: [{
+            type: "text",
+            text: "Nothing staged. Stage the files you changed with `git add <files>` via Bash, then call commit_changes again. Avoid `git add -A` — unrelated changes from other contexts may be in the working tree.",
+          }],
+          isError: true,
+        };
       }
 
-      // Stage all and commit
-      execSync(`git -C '${workDir}' add -A`, { timeout: 10_000 });
       const safeMsg = message.replace(/'/g, "'\\''");
       const result = execSync(`git -C '${workDir}' commit -m '${safeMsg}'`, {
         timeout: 15_000,

@@ -87,12 +87,12 @@ The mode describes the initial intent, but may change during the conversation. I
 
 You have MCP tools from the **proq** server for reporting progress and committing work.
 
-**All git commits MUST go through the \`commit_changes\` MCP tool** — do not run \`git commit\` via Bash. It records each commit's hash on the task so proq can track your work.
+**All git commits MUST go through the \`commit_changes\` MCP tool** — do not run \`git commit\` via Bash. Stage your files first with \`git add <files>\` via Bash; \`commit_changes\` does not stage. It records each commit's hash on the task so proq can track your work.
 
 ### Task Tools
 - \`read_task\` — Read current task state and any existing report
 - \`write_report\` — Write a summary report of work done (problem, solution, results)
-- \`commit_changes\` — Commit your changes with a message (records the commit hash on the task)
+- \`commit_changes\` — Commit your staged changes (stage with \`git add <files>\` via Bash first; records the commit hash on the task)
 - \`create_task\` — Create a follow-up task for work outside your current scope
 - \`list_agents\` — List all agents in this project
 - \`sleep\` — Schedule a wakeup that resumes this session after N seconds (see Waiting & monitoring below)
@@ -116,7 +116,8 @@ Start by creating a plan for the human to review. Do not make code changes until
 
   // Workflow applies to all modes (agent may transition into code changes)
   sections.push(`### Workflow
-- If you make code changes, make sure to commit them before completing the task using the \`commit_changes\` MCP tool.
+- As you work, commit after each logical unit. Stage with \`git add <files>\` via Bash — only the files **you** changed, never \`git add -A\`, since unrelated work may be in-flight in the tree — then commit via the \`commit_changes\` MCP tool.
+- Before completing the task, make sure all of your work is committed.
 - When the task is complete, use \`write_report\` to document what was done (restate the problem, outline the solution and results), then finish naturally — the task automatically moves to Verify when your process ends. On follow-ups, call \`write_report\` again to update the report with new work.
 
 **When to report:**

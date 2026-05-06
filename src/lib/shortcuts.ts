@@ -38,8 +38,9 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'start-task',   key: 'Enter',      meta: true,               scope: 'modal',  label: 'Start task' },
 
   // -- Code tab --
-  { id: 'file-palette',  key: 'p',          meta: true,               scope: 'code',   label: 'Go to file' },
-  { id: 'global-search', key: 'f',          meta: true, shift: true,  scope: 'code',   label: 'Search in files' },
+  { id: 'file-palette',   key: 'p',          meta: true,               scope: 'code',   label: 'Go to file' },
+  { id: 'global-search',  key: 'f',          meta: true, shift: true,  scope: 'code',   label: 'Search in files' },
+  { id: 'close-code-tab', key: 'w',          meta: true,               scope: 'code',   label: 'Close file tab' },
 ];
 
 /** Lookup a shortcut definition by id */

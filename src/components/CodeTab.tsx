@@ -239,6 +239,8 @@ export function CodeTab({ project }: CodeTabProps) {
   const [sidebarMode, setSidebarMode] = useState<'files' | 'search'>('files');
   const [showHidden, setShowHidden] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [isPanelFocused, setIsPanelFocused] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -967,6 +969,25 @@ export function CodeTab({ project }: CodeTabProps) {
     [activeTabPath]
   );
 
+  // Cmd+W to close active file tab when focus is inside this code panel
+  useEffect(() => {
+    const update = () => setIsPanelFocused(!!panelRef.current?.contains(document.activeElement));
+    document.addEventListener('focusin', update);
+    document.addEventListener('focusout', update);
+    return () => {
+      document.removeEventListener('focusin', update);
+      document.removeEventListener('focusout', update);
+    };
+  }, []);
+
+  useShortcut(
+    'close-code-tab',
+    useCallback(() => {
+      if (activeTabPath) closeTab(activeTabPath);
+    }, [activeTabPath, closeTab]),
+    isPanelFocused && openTabs.length > 0,
+  );
+
   // Handle middle-click on tab
   const handleTabMouseDown = useCallback(
     (path: string, e: React.MouseEvent) => {
@@ -1259,7 +1280,7 @@ export function CodeTab({ project }: CodeTabProps) {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-base">
+    <div ref={panelRef} className="flex-1 flex flex-col h-full overflow-hidden bg-surface-base">
       {subnavSlot && createPortal(headerContent, subnavSlot)}
 
       {/* Tab bar */}

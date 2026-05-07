@@ -40,6 +40,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
   // Imperative handle for the outer Group so the Lower panel's sub-nav
   // background can drag-resize the upper/lower divider directly.
   const outerGroupRef = useGroupRef();
+  const innerGroupRef = useGroupRef();
   const outerGroupElRef = useRef<HTMLDivElement | null>(null);
   const innerGroupElRef = useRef<HTMLDivElement | null>(null);
 
@@ -88,8 +89,15 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       const groupHeight = groupEl.getBoundingClientRect().height;
       const lowerPx = (lowerSize / 100) * groupHeight;
       // Below threshold: snap closed and reset sizePct so the next reopen
-      // (via TopBar toggle) lands at a usable default size.
+      // (via TopBar toggle) lands at a usable default size. The setLayout
+      // call overwrites the library's internal layout cache for the current
+      // panel-id set; without it the cache holds the tiny drag-end size and
+      // the panel reappears invisibly small.
       if (lowerPx < SNAP_CLOSE_PX) {
+        groupApi.setLayout({
+          upper: 100 - DEFAULT_PANEL_SIZE_PCT.lower,
+          lower: DEFAULT_PANEL_SIZE_PCT.lower,
+        });
         onSizesChanged({
           ...cur,
           lower: { ...cur.lower, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.lower },
@@ -115,8 +123,15 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       const upperPx = typeof upperSize === 'number' ? (upperSize / 100) * groupHeight : groupHeight;
       const upperRowVisible = cur.upperLeft.visible || cur.upperRight.visible;
 
-      // Snap-close lower when both rows were visible and lower shrunk past threshold.
+      // Snap-close lower when both rows were visible and lower shrunk past
+      // threshold. The setLayout call resets the library's cached layout for
+      // the current panel-id set so the next reopen lands at a usable default
+      // (otherwise it remembers the tiny drag-end size).
       if (cur.lower.visible && upperRowVisible && lowerPx < SNAP_CLOSE_PX) {
+        outerGroupRef.current?.setLayout({
+          upper: 100 - DEFAULT_PANEL_SIZE_PCT.lower,
+          lower: DEFAULT_PANEL_SIZE_PCT.lower,
+        });
         onSizesChanged({
           ...cur,
           lower: { ...cur.lower, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.lower },
@@ -126,6 +141,10 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       // Snap-close upper row (hide whichever upper slots were visible) when
       // user pushed it past threshold from the same divider.
       if (cur.lower.visible && upperRowVisible && upperPx < SNAP_CLOSE_PX) {
+        outerGroupRef.current?.setLayout({
+          upper: 100 - DEFAULT_PANEL_SIZE_PCT.lower,
+          lower: DEFAULT_PANEL_SIZE_PCT.lower,
+        });
         onSizesChanged({
           ...cur,
           upperLeft: cur.upperLeft.visible
@@ -162,6 +181,10 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
         const ulPx = (ulSize / 100) * innerWidth;
         const urPx = (urSize / 100) * innerWidth;
         if (ulPx < SNAP_CLOSE_PX) {
+          innerGroupRef.current?.setLayout({
+            upperLeft: DEFAULT_PANEL_SIZE_PCT.upperLeft,
+            upperRight: DEFAULT_PANEL_SIZE_PCT.upperRight,
+          });
           onSizesChanged({
             ...cur,
             upperLeft: { ...cur.upperLeft, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.upperLeft },
@@ -169,6 +192,10 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
           return;
         }
         if (urPx < SNAP_CLOSE_PX) {
+          innerGroupRef.current?.setLayout({
+            upperLeft: DEFAULT_PANEL_SIZE_PCT.upperLeft,
+            upperRight: DEFAULT_PANEL_SIZE_PCT.upperRight,
+          });
           onSizesChanged({
             ...cur,
             upperRight: { ...cur.upperRight, visible: false, sizePct: DEFAULT_PANEL_SIZE_PCT.upperRight },
@@ -234,6 +261,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
               className="h-full w-full"
               defaultLayout={innerDefaultLayout}
               onLayoutChanged={handleUpperLayoutChanged}
+              groupRef={innerGroupRef}
               elementRef={innerGroupElRef}
             >
               <Panel id="upperLeft" defaultSize={ul.sizePct} minSize={0} className="min-h-0 min-w-0">

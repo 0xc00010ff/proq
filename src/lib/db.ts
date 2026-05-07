@@ -351,7 +351,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "defaultBranch" | "defaultAgentId">>
+  data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "defaultBranch" | "defaultAgentId" | "liveUrl" | "liveViewport">>
 ): Promise<Project | null> {
   return withWriteLock('workspace', async () => {
     const ws = getWorkspaceData();
@@ -397,6 +397,8 @@ export async function updateProject(
     if (data.status !== undefined) wsUpdates.status = data.status;
     if (data.serverUrl !== undefined) wsUpdates.serverUrl = data.serverUrl;
     if (data.defaultAgentId !== undefined) wsUpdates.defaultAgentId = data.defaultAgentId || undefined;
+    if (data.liveUrl !== undefined) wsUpdates.liveUrl = data.liveUrl || undefined;
+    if (data.liveViewport !== undefined) wsUpdates.liveViewport = data.liveViewport;
     if (Object.keys(wsUpdates).length > 0) {
       const projWs = getProjectWorkspace(effectiveId);
       Object.assign(projWs, wsUpdates);

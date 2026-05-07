@@ -56,15 +56,22 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
   const { refreshProjects } = useProjects();
   const prevServerUrl = useRef(project.serverUrl);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingLiveUrl = useRef<string | null>(null);
 
-  // Debounced persist of the current live URL
+  // Debounced persist of the current live URL. On unmount we flush whatever's
+  // pending so a fast panel-switch doesn't drop the URL.
   const persistLiveUrl = useCallback((url: string) => {
+    pendingLiveUrl.current = url;
     if (persistTimer.current) clearTimeout(persistTimer.current);
     persistTimer.current = setTimeout(() => {
+      const pending = pendingLiveUrl.current;
+      pendingLiveUrl.current = null;
+      persistTimer.current = null;
+      if (pending == null) return;
       fetch(`/api/projects/${project.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ liveUrl: url }),
+        body: JSON.stringify({ liveUrl: pending }),
       });
     }, 500);
   }, [project.id]);
@@ -82,8 +89,22 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     prevServerUrl.current = project.serverUrl;
   }, [project.serverUrl]);
 
-  // Clean up persist timer on unmount
-  useEffect(() => () => { if (persistTimer.current) clearTimeout(persistTimer.current); }, []);
+  // On unmount: flush any pending live URL persist via keepalive so we don't
+  // lose it when the user toggles the panel off mid-debounce.
+  useEffect(() => () => {
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    const pending = pendingLiveUrl.current;
+    if (pending == null) return;
+    pendingLiveUrl.current = null;
+    try {
+      fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ liveUrl: pending }),
+        keepalive: true,
+      });
+    } catch { /* best effort */ }
+  }, [project.id]);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const webviewRef = useRef<WebviewElement>(null);

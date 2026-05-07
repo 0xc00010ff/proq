@@ -17,8 +17,11 @@ interface PanelGridProps {
 /**
  * Pixel threshold below which a drag-released panel snaps closed. Lets the user
  * push a panel off-screen by dragging instead of hunting for the toggle button.
+ * The lower panel uses a larger threshold because its sub-nav row is taller,
+ * making it easy to leave a sliver of bar that looks intentional but isn't.
  */
 const SNAP_CLOSE_PX = 64;
+const LOWER_SNAP_CLOSE_PX = 88;
 
 /**
  * Three-slot resizable layout: UL/UR share an upper row over a full-width Lower.
@@ -93,7 +96,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       // call overwrites the library's internal layout cache for the current
       // panel-id set; without it the cache holds the tiny drag-end size and
       // the panel reappears invisibly small.
-      if (lowerPx < SNAP_CLOSE_PX) {
+      if (lowerPx < LOWER_SNAP_CLOSE_PX) {
         groupApi.setLayout({
           upper: 100 - DEFAULT_PANEL_SIZE_PCT.lower,
           lower: DEFAULT_PANEL_SIZE_PCT.lower,
@@ -127,7 +130,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       // threshold. The setLayout call resets the library's cached layout for
       // the current panel-id set so the next reopen lands at a usable default
       // (otherwise it remembers the tiny drag-end size).
-      if (cur.lower.visible && upperRowVisible && lowerPx < SNAP_CLOSE_PX) {
+      if (cur.lower.visible && upperRowVisible && lowerPx < LOWER_SNAP_CLOSE_PX) {
         outerGroupRef.current?.setLayout({
           upper: 100 - DEFAULT_PANEL_SIZE_PCT.lower,
           lower: DEFAULT_PANEL_SIZE_PCT.lower,

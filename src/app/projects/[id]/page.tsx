@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo, type DragEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { TopBar, type GitStatus } from '@/components/TopBar';
 import { TaskDraft } from '@/components/TaskDraft';
@@ -53,8 +53,6 @@ export default function ProjectPage() {
   const workbenchRef = useRef<WorkbenchViewHandle>(null);
 
   const followUpDraftsRef = useRef<Map<string, FollowUpDraft>>(new Map());
-  const [boardDragOver, setBoardDragOver] = useState(false);
-  const boardDragCounter = useRef(0);
   const kanbanDraggingRef = useRef(false);
   const viewingTaskIdRef = useRef<string | null>(null);
   const dispatchingTaskRef = useRef<string | null>(null);
@@ -613,37 +611,8 @@ export default function ProjectPage() {
     routeOpenTask(newTask.id);
   };
 
-  const handleBoardDragEnter = useCallback((e: DragEvent) => {
-    // Only respond to file drags, not dnd-kit task drags
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    boardDragCounter.current++;
-    setBoardDragOver(true);
-  }, []);
-
-  const handleBoardDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    boardDragCounter.current--;
-    if (boardDragCounter.current <= 0) {
-      boardDragCounter.current = 0;
-      setBoardDragOver(false);
-    }
-  }, []);
-
-  const handleBoardDragOver = useCallback((e: DragEvent) => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  }, []);
-
-  const handleBoardDrop = useCallback(async (e: DragEvent) => {
-    e.preventDefault();
-    boardDragCounter.current = 0;
-    setBoardDragOver(false);
-    if (!e.dataTransfer.files.length) return;
-
-    // Capture files synchronously — dataTransfer is invalidated after yielding
-    const files = Array.from(e.dataTransfer.files);
+  const handleFileDropCreateTask = useCallback(async (files: File[]) => {
+    if (!files.length) return;
 
     // Create a new task
     const res = await fetch(`/api/projects/${projectId}/tasks`, {
@@ -768,6 +737,7 @@ export default function ProjectPage() {
             defaultBranch={project?.defaultBranch || 'main'}
             followUpDraftsRef={followUpDraftsRef}
             onFollowUpDraftChange={onFollowUpDraftChange}
+            onFileDropCreateTask={handleFileDropCreateTask}
           />
         );
       case 'live':
@@ -803,7 +773,7 @@ export default function ProjectPage() {
           />
         );
     }
-  }, [panelLayout, projectId, project, columns, executionMode, handleExecutionModeChange, handleAddTask, moveTask, deleteTask, onClickTask, refresh, agentMap, currentBranch, handleSwitchBranch, followUpDraftsRef, onFollowUpDraftChange, activateWorkbenchTab, ensureLowerVisible, handleProjectSettingsSave]);
+  }, [panelLayout, projectId, project, columns, executionMode, handleExecutionModeChange, handleAddTask, moveTask, deleteTask, onClickTask, refresh, agentMap, currentBranch, handleSwitchBranch, followUpDraftsRef, onFollowUpDraftChange, handleFileDropCreateTask, activateWorkbenchTab, ensureLowerVisible, handleProjectSettingsSave]);
 
   return (
     <>
@@ -833,23 +803,7 @@ export default function ProjectPage() {
         onExpandSidebar={expandSidebar}
       />
 
-      <main
-        className="flex-1 flex flex-col overflow-hidden relative"
-        onDragEnter={handleBoardDragEnter}
-        onDragLeave={handleBoardDragLeave}
-        onDragOver={handleBoardDragOver}
-        onDrop={handleBoardDrop}
-      >
-        {boardDragOver && (
-          <div
-            className="absolute inset-0 z-40 bg-bronze-500/10 border-2 border-dashed border-bronze-500/40 rounded-lg flex items-center justify-center cursor-pointer"
-            onClick={() => { boardDragCounter.current = 0; setBoardDragOver(false); }}
-          >
-            <div className="bg-zinc-900/90 border border-bronze-500/30 rounded-lg px-6 py-4 shadow-xl pointer-events-none">
-              <p className="text-sm font-medium text-bronze-500">Drop to create new task</p>
-            </div>
-          </div>
-        )}
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         <PanelGrid
           layout={panelLayout.layout}
           onSizesChanged={panelLayout.update}

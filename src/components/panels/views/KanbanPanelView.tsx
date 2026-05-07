@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { LayoutGridIcon, Columns3Icon } from 'lucide-react';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { GridView } from '@/components/GridView';
@@ -38,6 +38,7 @@ interface KanbanPanelViewProps {
   defaultBranch: string;
   followUpDraftsRef: React.MutableRefObject<Map<string, FollowUpDraft>>;
   onFollowUpDraftChange: (taskId: string, draft: FollowUpDraft | null) => void;
+  onFileDropCreateTask?: (files: File[]) => void | Promise<void>;
 }
 
 /**
@@ -45,7 +46,44 @@ interface KanbanPanelViewProps {
  * inner content stays as KanbanBoard or GridView unchanged.
  */
 export function KanbanPanelView(props: KanbanPanelViewProps) {
-  const { viewType, onChangeViewType, onChangePanelKind } = props;
+  const { viewType, onChangeViewType, onChangePanelKind, onFileDropCreateTask } = props;
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    if (!onFileDropCreateTask) return;
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    dragCounterRef.current++;
+    setIsDragOver(true);
+  }, [onFileDropCreateTask]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!onFileDropCreateTask) return;
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+    }
+  }, [onFileDropCreateTask]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!onFileDropCreateTask) return;
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, [onFileDropCreateTask]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    if (!onFileDropCreateTask) return;
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    if (!e.dataTransfer.files.length) return;
+    const files = Array.from(e.dataTransfer.files);
+    void onFileDropCreateTask(files);
+  }, [onFileDropCreateTask]);
 
   const subnav = (
     <div className="flex-1 flex items-center justify-end gap-0.5 px-2">
@@ -68,7 +106,23 @@ export function KanbanPanelView(props: KanbanPanelViewProps) {
 
   return (
     <PanelChrome currentKind="kanban" onChangeKind={onChangePanelKind} subnavContent={subnav}>
-      <div className="absolute inset-0 overflow-hidden">
+      <div
+        className="absolute inset-0 overflow-hidden"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {isDragOver && (
+          <div
+            className="absolute inset-0 z-40 bg-bronze-500/10 border-2 border-dashed border-bronze-500/40 rounded-lg flex items-center justify-center cursor-pointer"
+            onClick={() => { dragCounterRef.current = 0; setIsDragOver(false); }}
+          >
+            <div className="bg-zinc-900/90 border border-bronze-500/30 rounded-lg px-6 py-4 shadow-xl pointer-events-none">
+              <p className="text-sm font-medium text-bronze-500">Drop to create new task</p>
+            </div>
+          </div>
+        )}
         {viewType === 'grid' ? (
           <GridView
             tasks={props.tasks}

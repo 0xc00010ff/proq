@@ -6,6 +6,7 @@ import { MessageCircleQuestionIcon, SendIcon } from 'lucide-react';
 interface QuestionOption {
   label: string;
   description: string;
+  preview?: string;
 }
 
 interface Question {
@@ -123,53 +124,76 @@ export function AskQuestionBlock({ questions, hasResult, resultText, isOld, onAn
               <p className="text-sm text-text-primary leading-relaxed">
                 {q.question}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {q.options.map((opt, oi) => {
-                  const isSelected = selections[qi] === oi;
+              {(() => {
+                const hasAnyPreview = q.options.some(o => o.preview);
+                const containerClass = hasAnyPreview
+                  ? 'flex flex-col gap-2'
+                  : 'flex flex-wrap gap-2';
+                return (
+                  <div className={containerClass}>
+                    {q.options.map((opt, oi) => {
+                      const isSelected = selections[qi] === oi;
+                      const widthClass = hasAnyPreview ? 'w-full' : '';
 
-                  // Single question: click immediately submits
-                  if (!hasMultipleQuestions) {
-                    return (
-                      <button
-                        key={oi}
-                        onClick={() => onAnswer(opt.label)}
-                        className="group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover text-left"
-                      >
-                        <span className="text-xs font-medium text-text-primary">
-                          {opt.label}
-                        </span>
-                        {opt.description && (
-                          <span className="text-[11px] text-text-tertiary leading-snug">
-                            {opt.description}
+                      // Single question: click immediately submits
+                      if (!hasMultipleQuestions) {
+                        return (
+                          <button
+                            key={oi}
+                            onClick={() => onAnswer(opt.label)}
+                            className={`group/opt flex flex-col items-start gap-1 px-3 py-2 rounded-md border border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover text-left ${widthClass}`}
+                          >
+                            <span className="text-xs font-medium text-text-primary">
+                              {opt.label}
+                            </span>
+                            {opt.description && (
+                              <span className="text-[11px] text-text-tertiary leading-snug">
+                                {opt.description}
+                              </span>
+                            )}
+                            {opt.preview && (
+                              <pre className="mt-1 w-full max-h-64 overflow-auto rounded border border-border-subtle/60 bg-surface-base/60 px-2 py-1.5 text-[11px] leading-snug text-text-secondary whitespace-pre-wrap font-mono">
+                                {opt.preview}
+                              </pre>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      // Multiple questions: click toggles selection
+                      return (
+                        <button
+                          key={oi}
+                          onClick={() => toggleSelection(qi, oi)}
+                          className={`group/opt flex flex-col items-start gap-1 px-3 py-2 rounded-md border text-left transition-colors ${widthClass} ${
+                            isSelected
+                              ? 'border-lazuli bg-lazuli/10'
+                              : 'border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover'
+                          }`}
+                        >
+                          <span className={`text-xs font-medium ${isSelected ? 'text-lazuli' : 'text-text-primary'}`}>
+                            {opt.label}
                           </span>
-                        )}
-                      </button>
-                    );
-                  }
-
-                  // Multiple questions: click toggles selection
-                  return (
-                    <button
-                      key={oi}
-                      onClick={() => toggleSelection(qi, oi)}
-                      className={`group/opt flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border text-left transition-colors ${
-                        isSelected
-                          ? 'border-lazuli bg-lazuli/10'
-                          : 'border-border-default bg-surface-hover/50 hover:border-border-strong hover:bg-surface-hover'
-                      }`}
-                    >
-                      <span className={`text-xs font-medium ${isSelected ? 'text-lazuli' : 'text-text-primary'}`}>
-                        {opt.label}
-                      </span>
-                      {opt.description && (
-                        <span className={`text-[11px] leading-snug ${isSelected ? 'text-lazuli/70' : 'text-text-tertiary'}`}>
-                          {opt.description}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                          {opt.description && (
+                            <span className={`text-[11px] leading-snug ${isSelected ? 'text-lazuli/70' : 'text-text-tertiary'}`}>
+                              {opt.description}
+                            </span>
+                          )}
+                          {opt.preview && (
+                            <pre className={`mt-1 w-full max-h-64 overflow-auto rounded border px-2 py-1.5 text-[11px] leading-snug whitespace-pre-wrap font-mono ${
+                              isSelected
+                                ? 'border-lazuli/40 bg-lazuli/5 text-text-primary'
+                                : 'border-border-subtle/60 bg-surface-base/60 text-text-secondary'
+                            }`}>
+                              {opt.preview}
+                            </pre>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

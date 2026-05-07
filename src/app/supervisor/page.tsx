@@ -304,7 +304,7 @@ export default function SupervisorPage() {
 
             {renderItems.map((item, ri) => {
               if (item.kind === 'ask_question') {
-                const questions = Array.isArray(item.input.questions) ? item.input.questions as { question: string; header?: string; options: { label: string; description: string }[]; multiSelect?: boolean }[] : [];
+                const questions = Array.isArray(item.input.questions) ? item.input.questions as { question: string; header?: string; options: { label: string; description: string; preview?: string }[]; multiSelect?: boolean }[] : [];
                 return (
                   <AskQuestionBlock
                     key={`ask-${item.idx}`}

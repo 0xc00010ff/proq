@@ -401,16 +401,33 @@ function processStreamEvent(
   if (type === "system") {
     const subtype = event.subtype as string | undefined;
     if (subtype === "init") {
-      captureSessionId(session, event.session_id as string | undefined);
+      const newSessionId = event.session_id as string | undefined;
+      captureSessionId(session, newSessionId);
       const model = event.model as string | undefined;
-      if (model) {
-        // Update the most recent init block's model
-        const initBlocks = session.blocks.filter(
-          (b) => b.type === "status" && b.subtype === "init",
-        );
-        const lastInit = initBlocks[initBlocks.length - 1];
-        if (lastInit && lastInit.type === "status") {
+      // Enrich the most recent init block with model + sessionId
+      const initBlocks = session.blocks.filter(
+        (b) => b.type === "status" && b.subtype === "init",
+      );
+      const lastInit = initBlocks[initBlocks.length - 1];
+      if (lastInit && lastInit.type === "status") {
+        let changed = false;
+        if (model && lastInit.model !== model) {
           lastInit.model = model;
+          changed = true;
+        }
+        if (newSessionId && lastInit.sessionId !== newSessionId) {
+          lastInit.sessionId = newSessionId;
+          changed = true;
+        }
+        if (changed) {
+          // Re-broadcast the enriched init block. Clients dedup status:init
+          // by timestamp so this replaces the existing block rather than appending.
+          broadcast(session, {
+            type: "block",
+            block: lastInit,
+            active: session.status === "running",
+          });
+          void setTaskSession(session.projectId, session.taskId, session.blocks, session.sessionId);
         }
       }
     }

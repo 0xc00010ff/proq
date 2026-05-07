@@ -150,15 +150,25 @@ function processStreamEvent(session: SupervisorSession, event: Record<string, un
   if (type === "system") {
     const subtype = event.subtype as string | undefined;
     if (subtype === "init") {
-      session.sessionId = event.session_id as string | undefined;
+      const newSessionId = event.session_id as string | undefined;
+      session.sessionId = newSessionId;
       const model = event.model as string | undefined;
-      if (model) {
-        const initBlocks = session.blocks.filter(
-          (b) => b.type === "status" && b.subtype === "init"
-        );
-        const lastInit = initBlocks[initBlocks.length - 1];
-        if (lastInit && lastInit.type === "status") {
+      const initBlocks = session.blocks.filter(
+        (b) => b.type === "status" && b.subtype === "init"
+      );
+      const lastInit = initBlocks[initBlocks.length - 1];
+      if (lastInit && lastInit.type === "status") {
+        let changed = false;
+        if (model && lastInit.model !== model) {
           lastInit.model = model;
+          changed = true;
+        }
+        if (newSessionId && lastInit.sessionId !== newSessionId) {
+          lastInit.sessionId = newSessionId;
+          changed = true;
+        }
+        if (changed) {
+          broadcast(session, { type: "block", block: lastInit });
         }
       }
     }

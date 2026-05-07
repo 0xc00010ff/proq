@@ -39,7 +39,7 @@ function formatShortTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
 }
 
-export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error, timestamp }: StatusBlockProps) {
+export function StatusBlock({ subtype, sessionId, model, costUsd, durationMs, turns, error, timestamp }: StatusBlockProps) {
   if (subtype === 'init') {
     const label = model ? `Claude Code (${model})` : 'Claude Code';
     const timeLabel = timestamp ? formatInitTimestamp(timestamp) : null;
@@ -55,6 +55,9 @@ export function StatusBlock({ subtype, model, costUsd, durationMs, turns, error,
         <div className="flex items-center gap-2 text-xs text-text-tertiary">
           <PlayIcon className="w-3.5 h-3.5 text-bronze-500" />
           <span>{label}</span>
+          {sessionId && (
+            <span className="text-text-placeholder font-mono">{sessionId}</span>
+          )}
         </div>
       </div>
     );

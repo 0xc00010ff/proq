@@ -119,6 +119,17 @@ export function useAgentSession(
                   return updated;
                 }
               }
+              // Dedup: status:init blocks are re-broadcast once enriched with sessionId — match by timestamp.
+              if (msg.block.type === 'status' && msg.block.subtype === 'init' && msg.block.timestamp) {
+                const existingIdx = prev.findIndex(
+                  (b) => b.type === 'status' && b.subtype === 'init' && (b as Extract<typeof b, { type: 'status' }>).timestamp === (msg.block as Extract<typeof msg.block, { type: 'status' }>).timestamp
+                );
+                if (existingIdx !== -1) {
+                  const updated = [...prev];
+                  updated[existingIdx] = msg.block;
+                  return updated;
+                }
+              }
               return [...prev, msg.block];
             });
             setActive(msg.active);

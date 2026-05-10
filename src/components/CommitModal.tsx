@@ -15,7 +15,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [generatingStage, setGeneratingStage] = useState<'reading' | 'writing' | 'finishing'>('reading');
+  const [generatingStage, setGeneratingStage] = useState<'reading' | 'writing'>('reading');
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userTouchedTitle, setUserTouchedTitle] = useState(false);
@@ -61,8 +61,7 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
   useEffect(() => {
     if (!generating) return;
     const t1 = setTimeout(() => setGeneratingStage('writing'), 1200);
-    const t2 = setTimeout(() => setGeneratingStage('finishing'), 4000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => { clearTimeout(t1); };
   }, [generating]);
 
   // Start generation when modal opens
@@ -170,7 +169,6 @@ export function CommitModal({ isOpen, projectId, onClose, onCommitted }: CommitM
             <span>
               {generatingStage === 'reading' && 'Reading diff...'}
               {generatingStage === 'writing' && 'Generating commit message...'}
-              {generatingStage === 'finishing' && 'Almost there...'}
             </span>
           </div>
         ) : (

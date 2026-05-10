@@ -363,14 +363,23 @@ async function enterRecovering(): Promise<void> {
 async function enterExiting(reason: ExitReason): Promise<void> {
   const d = getDeps()
 
+  // Queue the relaunch BEFORE any await. app.relaunch() just sets a flag that
+  // Electron's Shutdown reads at quit time — calling it early ensures the flag
+  // is set even if the watchdog short-circuits us. process.exit() bypasses
+  // Shutdown entirely, which is why the watchdog below uses app.exit(0).
+  if (reason === 'relaunch') {
+    app.relaunch()
+  }
+
   // Watchdog: if teardown hangs, force-exit so the app actually closes.
-  // Skip it for install-shell-update — quitAndInstall does its own work
-  // (extracting the .zip, swapping the .app bundle) that legitimately runs
-  // longer than 3 seconds, and process.exit() would abort the install.
+  // Use app.exit(0) (not process.exit) so Electron's Shutdown runs and honors
+  // app.relaunch(). Skip for install-shell-update — quitAndInstall does its
+  // own work (extracting the .zip, swapping the .app bundle) that legitimately
+  // runs longer than 3 seconds.
   if (reason !== 'install-shell-update') {
     const watchdog = setTimeout(() => {
-      d.log('exiting: watchdog expired, forcing process.exit(0)')
-      process.exit(0)
+      d.log('exiting: watchdog expired, forcing app.exit(0)')
+      app.exit(0)
     }, EXIT_WATCHDOG_MS)
     watchdog.unref?.()
   }
@@ -383,10 +392,7 @@ async function enterExiting(reason: ExitReason): Promise<void> {
 
   switch (reason) {
     case 'quit':
-      app.exit(0)
-      break
     case 'relaunch':
-      app.relaunch()
       app.exit(0)
       break
     case 'install-shell-update':

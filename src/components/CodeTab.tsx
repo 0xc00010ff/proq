@@ -65,9 +65,11 @@ function getShowHiddenKey(projectId: string) {
 
 function loadShowHidden(projectId: string): boolean {
   try {
-    return localStorage.getItem(getShowHiddenKey(projectId)) === '1';
+    const v = localStorage.getItem(getShowHiddenKey(projectId));
+    if (v === null) return true;
+    return v === '1';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -238,7 +240,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const [paletteQuery, setPaletteQuery] = useState('');
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [sidebarMode, setSidebarMode] = useState<'files' | 'search'>('files');
-  const [showHidden, setShowHidden] = useState(false);
+  const [showHidden, setShowHidden] = useState(true);
   const [isDark, setIsDark] = useState(true);
   const [isPanelFocused, setIsPanelFocused] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);

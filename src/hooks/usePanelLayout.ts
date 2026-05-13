@@ -8,7 +8,7 @@ import type {
   PanelView,
   ViewType,
 } from '@/lib/types';
-import { canHideSlot, defaultPanelLayout, defaultViewForKind } from '@/lib/panels';
+import { DEFAULT_PANEL_SIZE_PCT, canHideSlot, defaultPanelLayout, defaultViewForKind } from '@/lib/panels';
 
 const PERSIST_DEBOUNCE_MS = 400;
 
@@ -60,7 +60,18 @@ export function usePanelLayout(projectId: string, initial: PanelLayout) {
         // Refuse to hide the last visible slot.
         if (!visible && !canHideSlot(cur, slot)) return cur;
         dirtyRef.current = true;
-        return { ...cur, [slot]: { ...cur[slot], visible } };
+        const next: PanelLayout = { ...cur, [slot]: { ...cur[slot], visible } };
+
+        // Self-heal a poisoned lower.sizePct: if the upper row was fully
+        // hidden and we're showing an upper slot, a previously-saved sizePct
+        // near 100 would render upper as a sliver and trip snap-close. Reset
+        // to default so the user sees the panel they just opened.
+        const upperWasVisible = cur.upperLeft.visible || cur.upperRight.visible;
+        const upperNowVisible = next.upperLeft.visible || next.upperRight.visible;
+        if (!upperWasVisible && upperNowVisible && next.lower.visible && next.lower.sizePct > 90) {
+          next.lower = { ...next.lower, sizePct: DEFAULT_PANEL_SIZE_PCT.lower };
+        }
+        return next;
       });
     },
     [],

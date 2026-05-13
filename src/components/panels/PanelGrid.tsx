@@ -160,6 +160,13 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
         return;
       }
 
+      // Only persist lower.sizePct when the upper row is also visible — that
+      // value represents the lower/upper split, and is meaningful only when
+      // both exist. When Lower is alone in the group, the library reports
+      // lowerSize=100; saving that poisons the share so re-opening upper
+      // computes upperSizePct = 100 - 100 = ~0 and the snap-close threshold
+      // hides it again on the next layout-changed callback.
+      if (!upperRowVisible) return;
       if (Math.abs((cur.lower.sizePct ?? 0) - lowerSize) < 0.01) return;
       onSizesChanged({
         ...cur,

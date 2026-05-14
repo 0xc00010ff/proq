@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react';
+import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon, FileIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 import { usePanelSubnavSlot } from '@/components/panels/PanelChrome';
@@ -173,16 +173,30 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     });
   };
 
-  const handleConnect = async () => {
-    const url = urlInput.trim();
-    if (!url) return;
+  const connectToUrl = useCallback(async (rawUrl: string) => {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return;
+    // Absolute filesystem paths get auto-wrapped in file:// so a pasted
+    // /Users/.../foo.html just works (matches what the file picker returns).
+    const url = trimmed.startsWith('/') ? `file://${trimmed}` : trimmed;
     await fetch(`/api/projects/${project.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ serverUrl: url }),
     });
     await refreshProjects();
-  };
+  }, [project.id, refreshProjects]);
+
+  const handleConnect = () => connectToUrl(urlInput);
+
+  const handlePickFile = useCallback(async () => {
+    try {
+      const res = await fetch('/api/file-picker', { method: 'POST' });
+      const data = await res.json();
+      if (data?.cancelled || !data?.path) return;
+      await connectToUrl(`file://${data.path}`);
+    } catch { /* ignore */ }
+  }, [connectToUrl]);
 
   const handleDisconnect = async () => {
     await fetch(`/api/projects/${project.id}`, {
@@ -276,6 +290,12 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 if (!raw) return;
                 const hasProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw);
                 if (!hasProtocol) {
+                  // For file:// serverUrls, "/foo" is a filesystem path — file URL origins
+                  // resolve to "null" and break naive base+path concatenation.
+                  if (project.serverUrl!.startsWith('file://') && raw.startsWith('/')) {
+                    navigateTo(`file://${raw}`);
+                    return;
+                  }
                   try {
                     const base = new URL(project.serverUrl!);
                     navigateTo(base.origin + (raw.startsWith('/') ? raw : '/' + raw));
@@ -368,7 +388,7 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
               Live Preview
             </h3>
             <p className="text-sm text-text-tertiary max-w-md text-center mb-8">
-              Connect to a running dev server or start one below.
+              Connect to a running server
             </p>
 
             {/* URL input */}
@@ -390,14 +410,16 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
             </div>
 
             {/* Divider */}
-            <div className="flex items-center w-full max-w-sm mb-8">
+            <div className="flex items-center w-full max-w-md mb-4">
               <div className="flex-1 h-px bg-border-default" />
-              <span className="px-3 text-xs text-text-placeholder">or start the server</span>
+              <span className="px-3 text-xs text-text-placeholder">or</span>
               <div className="flex-1 h-px bg-border-default" />
             </div>
 
+            <p className="text-xs text-text-tertiary mb-6">start the server</p>
+
             {/* Big buttons */}
-            <div className="flex gap-4 w-full max-w-sm">
+            <div className="flex gap-4 w-full max-w-md">
               <button
                 onClick={() => activateTab('agent')}
                 className="flex-1 flex flex-col items-center gap-3 p-6 rounded-xl border border-border-default bg-surface-base hover:bg-surface-hover hover:border-border-strong transition-colors group"
@@ -421,6 +443,19 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
                 <div className="text-center">
                   <div className="text-sm font-medium text-text-primary mb-0.5">Terminal</div>
                   <div className="text-xs text-text-tertiary">Run it yourself</div>
+                </div>
+              </button>
+
+              <button
+                onClick={handlePickFile}
+                className="flex-1 flex flex-col items-center gap-3 p-6 rounded-xl border border-border-default bg-surface-base hover:bg-surface-hover hover:border-border-strong transition-colors group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-surface-deep flex items-center justify-center border border-border-default group-hover:border-lazuli/40 transition-colors">
+                  <FileIcon className="w-6 h-6 text-text-tertiary group-hover:text-lazuli transition-colors" />
+                </div>
+                <div className="text-center">
+                  <div className="text-sm font-medium text-text-primary mb-0.5">File</div>
+                  <div className="text-xs text-text-tertiary">Select a file</div>
                 </div>
               </button>
             </div>

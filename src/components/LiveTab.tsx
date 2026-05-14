@@ -410,13 +410,11 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
             </div>
 
             {/* Divider */}
-            <div className="flex items-center w-full max-w-md mb-4">
+            <div className="flex items-center w-full max-w-md mb-8">
               <div className="flex-1 h-px bg-border-default" />
               <span className="px-3 text-xs text-text-placeholder">or</span>
               <div className="flex-1 h-px bg-border-default" />
             </div>
-
-            <p className="text-xs text-text-tertiary mb-6">start the server</p>
 
             {/* Big buttons */}
             <div className="flex gap-4 w-full max-w-md">

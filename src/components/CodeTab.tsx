@@ -1242,14 +1242,14 @@ export function CodeTab({ project }: CodeTabProps) {
           <>
             <button
               onClick={handleDiscard}
-              className="px-3 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong transition-colors"
+              className="px-3 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface-hover hover:bg-border-strong rounded-md border border-border-strong transition-colors whitespace-nowrap"
               title="Discard changes"
             >
               Cancel changes
             </button>
             <button
               onClick={handleSave}
-              className="px-3 py-1 text-xs font-medium text-white bg-emerald/80 hover:bg-emerald rounded-md transition-colors"
+              className="px-3 py-1 text-xs font-medium text-white bg-emerald/80 hover:bg-emerald rounded-md transition-colors whitespace-nowrap"
               title="Save (Cmd+S)"
             >
               Save changes

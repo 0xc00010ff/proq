@@ -295,32 +295,6 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
         >
           <RotateCwIcon className="w-3.5 h-3.5" />
         </button>
-        {isElectron && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                title="Clear site data"
-                className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
-              >
-                <EraserIcon className="w-3.5 h-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="bottom" className="w-48">
-              <DropdownMenuItem onSelect={() => handleClearStorage('localstorage')} className="text-xs gap-2">
-                <DatabaseIcon className="w-3.5 h-3.5" />
-                <span>Clear Local Storage</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleClearStorage('cookies')} className="text-xs gap-2">
-                <CookieIcon className="w-3.5 h-3.5" />
-                <span>Clear Cookies</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleClearStorage('everything')} className="text-xs gap-2">
-                <Trash2Icon className="w-3.5 h-3.5" />
-                <span>Clear Everything</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
         <div className="bg-surface-deep border border-border-default rounded px-3 py-1 text-xs text-text-secondary flex items-center space-x-2 min-w-0 max-w-[420px] flex-1">
           <GlobeIcon className="w-3 h-3 shrink-0" />
           <input
@@ -375,6 +349,32 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
             <ExternalLinkIcon className="w-3 h-3" />
           </button>
         </div>
+        {isElectron && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                title="Clear site data"
+                className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+              >
+                <EraserIcon className="w-3.5 h-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="bottom" className="w-48">
+              <DropdownMenuItem onSelect={() => handleClearStorage('localstorage')} className="text-xs gap-2">
+                <DatabaseIcon className="w-3.5 h-3.5" />
+                <span>Clear Local Storage</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleClearStorage('cookies')} className="text-xs gap-2">
+                <CookieIcon className="w-3.5 h-3.5" />
+                <span>Clear Cookies</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleClearStorage('everything')} className="text-xs gap-2">
+                <Trash2Icon className="w-3.5 h-3.5" />
+                <span>Clear Everything</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <div className="flex items-center space-x-1">
         {([

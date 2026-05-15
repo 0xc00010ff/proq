@@ -61,6 +61,11 @@ interface ProqDesktopAPI {
   openLogFile: (logPath: string) => Promise<void>
   openExternal: (url: string) => Promise<void>
 
+  clearWebviewStorage: (
+    webContentsId: number,
+    scope: 'localstorage' | 'cookies' | 'everything'
+  ) => Promise<{ ok: boolean; error?: string }>
+
   getVersion: () => Promise<string>
 
   onAppStateChanged: (

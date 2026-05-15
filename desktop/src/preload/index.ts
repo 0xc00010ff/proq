@@ -104,6 +104,12 @@ const proqDesktopAPI = {
   // Open URL in default browser
   openExternal: (url: string): Promise<unknown> => ipcRenderer.invoke('app:open-external', url),
 
+  // Clear site data for an embedded <webview> by its WebContents id
+  clearWebviewStorage: (
+    webContentsId: number,
+    scope: 'localstorage' | 'cookies' | 'everything'
+  ): Promise<unknown> => ipcRenderer.invoke('webview:clear-storage', webContentsId, scope),
+
   // App
   getVersion: (): Promise<unknown> => ipcRenderer.invoke('app:version'),
 

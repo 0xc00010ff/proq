@@ -2,10 +2,16 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon, FileIcon } from 'lucide-react';
+import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon, TerminalIcon, SquareChevronUpIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon, FileIcon, EraserIcon, DatabaseIcon, CookieIcon, Trash2Icon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 import { usePanelSubnavSlot } from '@/components/panels/PanelChrome';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -25,6 +31,7 @@ const isElectron = typeof window !== 'undefined' && 'proqDesktop' in window;
 // Electron's webview element provides navigation methods + events beyond standard HTMLElement.
 interface WebviewElement {
   getURL(): string;
+  getWebContentsId(): number;
   goBack(): void;
   goForward(): void;
   reload(): void;
@@ -153,6 +160,16 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
     if (barValue) window.open(barValue, '_blank');
   };
 
+  const handleClearStorage = useCallback(async (scope: 'localstorage' | 'cookies' | 'everything') => {
+    if (!isElectron || !webviewRef.current) return;
+    try {
+      const id = webviewRef.current.getWebContentsId();
+      const api = (window as unknown as { proqDesktop?: { clearWebviewStorage?: (id: number, scope: string) => Promise<unknown> } }).proqDesktop;
+      await api?.clearWebviewStorage?.(id, scope);
+      webviewRef.current.reload();
+    } catch { /* ignore */ }
+  }, []);
+
   const navigateTo = (url: string) => {
     setBarValue(url);
     persistLiveUrl(url);
@@ -278,6 +295,32 @@ export function LiveTab({ project, onActivateWorkbenchTab }: LiveTabProps) {
         >
           <RotateCwIcon className="w-3.5 h-3.5" />
         </button>
+        {isElectron && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                title="Clear site data"
+                className="p-1.5 rounded text-text-placeholder hover:text-text-secondary hover:bg-surface-hover"
+              >
+                <EraserIcon className="w-3.5 h-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="bottom" className="w-48">
+              <DropdownMenuItem onSelect={() => handleClearStorage('localstorage')} className="text-xs gap-2">
+                <DatabaseIcon className="w-3.5 h-3.5" />
+                <span>Clear Local Storage</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleClearStorage('cookies')} className="text-xs gap-2">
+                <CookieIcon className="w-3.5 h-3.5" />
+                <span>Clear Cookies</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleClearStorage('everything')} className="text-xs gap-2">
+                <Trash2Icon className="w-3.5 h-3.5" />
+                <span>Clear Everything</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <div className="bg-surface-deep border border-border-default rounded px-3 py-1 text-xs text-text-secondary flex items-center space-x-2 min-w-0 max-w-[420px] flex-1">
           <GlobeIcon className="w-3 h-3 shrink-0" />
           <input

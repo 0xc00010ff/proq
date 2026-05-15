@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, nativeImage, nativeTheme, ipcMain, dialog, shell, powerMonitor } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, nativeTheme, ipcMain, dialog, shell, powerMonitor, webContents } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import { electronApp, is } from '@electron-toolkit/utils'
@@ -455,6 +455,34 @@ function registerIpcHandlers(): void {
     const target = sender?.getParentWindow() || sender
     if (target) {
       target.webContents.stopFindInPage('clearSelection')
+    }
+  })
+
+  // Clear site data for a webview by webContents id. Scope picks which
+  // storages to wipe; we additionally clear sessionStorage via JS since
+  // Chromium doesn't persist it through clearStorageData.
+  ipcMain.handle('webview:clear-storage', async (
+    _event,
+    webContentsId: number,
+    scope: 'localstorage' | 'cookies' | 'everything'
+  ) => {
+    const wc = webContents.fromId(webContentsId)
+    if (!wc) return { ok: false, error: 'webview not found' }
+    const session = wc.session
+    try {
+      if (scope === 'localstorage') {
+        await session.clearStorageData({ storages: ['localstorage'] })
+        await wc.executeJavaScript('try{sessionStorage.clear()}catch{}')
+      } else if (scope === 'cookies') {
+        await session.clearStorageData({ storages: ['cookies'] })
+      } else {
+        // everything: omit storages to clear all data types Electron supports
+        await session.clearStorageData()
+        await wc.executeJavaScript('try{sessionStorage.clear()}catch{}')
+      }
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
     }
   })
 }

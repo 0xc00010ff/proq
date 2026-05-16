@@ -53,6 +53,9 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
   const [hasText, setHasText] = useState(!!defaultValue?.trim());
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const historyRef = useRef<string[]>([]);
+  const historyIndexRef = useRef<number | null>(null);
+
   // Interrupt confirmation
   const [allowInterrupts, setAllowInterrupts] = useState(false);
   const [returnKeyNewline, setReturnKeyNewline] = useState(false);
@@ -108,8 +111,17 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
     resizeTextarea();
     const text = getText();
     setHasText(!!text.trim());
+    historyIndexRef.current = null;
     onDraftChange?.(text);
   }, [resizeTextarea, getText, onDraftChange]);
+
+  const pushHistory = useCallback((text: string) => {
+    const t = text.trim();
+    if (!t) return;
+    const hist = historyRef.current;
+    if (hist[hist.length - 1] !== t) hist.push(t);
+    historyIndexRef.current = null;
+  }, []);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const uploaded = await uploadFiles(files, projectId);
@@ -131,9 +143,10 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
     const text = getText().trim();
     if (!text && attachments.length === 0) return;
     const atts = attachments.length > 0 ? [...attachments] : [];
+    pushHistory(text);
     clearInput();
     onSend(text, atts);
-  }, [getText, attachments, clearInput, onSend]);
+  }, [getText, attachments, pushHistory, clearInput, onSend]);
 
   const handleInterruptAttempt = useCallback(() => {
     const text = getText().trim();
@@ -141,12 +154,13 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
     if (!onInterrupt) return;
     if (allowInterrupts) {
       const atts = attachments.length > 0 ? [...attachments] : [];
+      pushHistory(text);
       clearInput();
       onInterrupt(text, atts);
     } else {
       setShowInterruptModal(true);
     }
-  }, [getText, attachments, onInterrupt, allowInterrupts, clearInput]);
+  }, [getText, attachments, onInterrupt, allowInterrupts, pushHistory, clearInput]);
 
   const confirmInterrupt = useCallback(() => {
     if (dontAskAgain) {
@@ -161,11 +175,50 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
     setDontAskAgain(false);
     const text = getText().trim();
     const atts = attachments.length > 0 ? [...attachments] : [];
+    pushHistory(text);
     clearInput();
     onInterrupt?.(text, atts);
-  }, [dontAskAgain, getText, attachments, clearInput, onInterrupt]);
+  }, [dontAskAgain, getText, attachments, pushHistory, clearInput, onInterrupt]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Up only activates history when input is empty so it doesn't hijack cursor movement
+    // mid-edit; once navigating, further Up/Down walks the history.
+    if (e.key === 'ArrowUp' && !e.shiftKey && !e.metaKey && !e.altKey && !e.ctrlKey) {
+      const hist = historyRef.current;
+      const idx = historyIndexRef.current;
+      if (idx === null) {
+        if (getText().length > 0) return;
+        if (hist.length === 0) return;
+        const newIdx = hist.length - 1;
+        historyIndexRef.current = newIdx;
+        setText(hist[newIdx]);
+        e.preventDefault();
+      } else if (idx > 0) {
+        const newIdx = idx - 1;
+        historyIndexRef.current = newIdx;
+        setText(hist[newIdx]);
+        e.preventDefault();
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown' && !e.shiftKey && !e.metaKey && !e.altKey && !e.ctrlKey) {
+      const idx = historyIndexRef.current;
+      if (idx === null) return;
+      const hist = historyRef.current;
+      if (idx < hist.length - 1) {
+        const newIdx = idx + 1;
+        historyIndexRef.current = newIdx;
+        setText(hist[newIdx]);
+      } else {
+        historyIndexRef.current = null;
+        setText('');
+      }
+      e.preventDefault();
+      return;
+    }
+
     if (e.key !== 'Enter') return;
 
     // Determine if this keypress should send
@@ -181,7 +234,7 @@ export const AgentInputBar = React.memo(React.forwardRef<AgentInputBarHandle, Ag
       }
       handleSend();
     }
-  }, [isRunning, returnKeyNewline, handleInterruptAttempt, handleSend]);
+  }, [isRunning, returnKeyNewline, handleInterruptAttempt, handleSend, getText, setText]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const imageFiles = Array.from(e.clipboardData.items)

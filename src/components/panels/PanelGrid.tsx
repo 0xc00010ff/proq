@@ -72,6 +72,12 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
     const cursorStyleEl = document.createElement('style');
     cursorStyleEl.textContent = '*, *::before, *::after { cursor: grabbing !important; }';
     document.head.appendChild(cursorStyleEl);
+    // Iframes/webviews swallow mouse events when the cursor passes over them
+    // mid-drag (no pointer capture on raw mouse handlers), making fast drags
+    // stall. Disable their pointer-events for the duration of the drag.
+    const embeds = Array.from(document.querySelectorAll<HTMLElement>('iframe, webview'));
+    const prevEmbedPE = embeds.map((el) => el.style.pointerEvents);
+    embeds.forEach((el) => { el.style.pointerEvents = 'none'; });
     const onMove = (ev: MouseEvent) => {
       // Track cursor displacement, not absolute position, so the bar stays
       // pinned to the spot the user grabbed (no edge-snap jump).
@@ -85,6 +91,7 @@ export function PanelGrid({ layout, onSizesChanged, renderPanel }: PanelGridProp
       window.removeEventListener('mouseup', onUp);
       cursorStyleEl.remove();
       document.body.style.userSelect = prevBodyUserSelect;
+      embeds.forEach((el, i) => { el.style.pointerEvents = prevEmbedPE[i]; });
       const final = groupApi.getLayout();
       const lowerSize = final.lower;
       const cur = layoutRef.current;

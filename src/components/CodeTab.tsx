@@ -27,6 +27,7 @@ import { JsonView } from 'react-json-view-lite';
 import { FileTree, type TreeNode, type FileTreeCallbacks } from './FileTree';
 import { SearchPanel } from './SearchPanel';
 import { MermaidDiagram, extractMermaid } from './MermaidDiagram';
+import { ImagePreview } from './ImagePreview';
 import type { Project } from '@/lib/types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -106,6 +107,12 @@ function persistTabs(projectId: string, tabs: OpenTab[], activePath: string | nu
 const DEFAULT_TREE_WIDTH = 260;
 const MIN_TREE_WIDTH = 140;
 const MAX_TREE_WIDTH = 600;
+
+// Binary image formats previewed as an <img>. SVG is handled separately — it's
+// text, so it keeps an Edit/Preview toggle (XML source vs. rendered image).
+const RASTER_IMAGE_EXTS = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif', 'apng',
+]);
 
 const proqJsonStyles = {
   container: 'proq-json-container',
@@ -243,6 +250,8 @@ export function CodeTab({ project }: CodeTabProps) {
   const [showHidden, setShowHidden] = useState(true);
   const [isDark, setIsDark] = useState(true);
   const [isPanelFocused, setIsPanelFocused] = useState(false);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [imageDims, setImageDims] = useState<{ w: number; h: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MonacoEditorType.IStandaloneCodeEditor | null>(null);
@@ -285,6 +294,17 @@ export function CodeTab({ project }: CodeTabProps) {
     return ext === 'json';
   }, [activeTabPath]);
 
+  const isRasterImage = useMemo(() => {
+    if (!activeTabPath) return false;
+    const ext = activeTabPath.split('.').pop()?.toLowerCase();
+    return !!ext && RASTER_IMAGE_EXTS.has(ext);
+  }, [activeTabPath]);
+
+  const isSvg = useMemo(() => {
+    if (!activeTabPath) return false;
+    return activeTabPath.split('.').pop()?.toLowerCase() === 'svg';
+  }, [activeTabPath]);
+
   const fileContent = activeTab?.content ?? '';
 
   // Parse JSON for the pretty tree view. Returns null on parse failure or
@@ -302,7 +322,14 @@ export function CodeTab({ project }: CodeTabProps) {
 
   const jsonInvalid = isJson && fileContent.trim().length > 0 && parsedJson === null;
   const showPreview = (isMarkdown || (isJson && parsedJson !== null)) && previewMode === 'pretty';
-  const showToggle = isMarkdown || isJson;
+  const showToggle = isMarkdown || isJson || isSvg;
+
+  // Raster images always render as an image; SVG renders as an image only in
+  // preview mode (its Edit mode shows the XML source in Monaco).
+  const showImagePreview = isRasterImage || (isSvg && previewMode === 'pretty');
+  const rawUrl = activeTabPath
+    ? `/api/files/raw?path=${encodeURIComponent(activeTabPath)}`
+    : '';
 
   // Default expansion: keep top 2 levels open, but collapse arrays >20 items
   // to keep large files like visibility.json snappy on initial render.
@@ -349,6 +376,11 @@ export function CodeTab({ project }: CodeTabProps) {
     if (!project.id) return;
     setShowHidden(loadShowHidden(project.id));
   }, [project.id]);
+
+  // Reset measured image dimensions when the active file changes
+  useEffect(() => {
+    setImageDims(null);
+  }, [activeTabPath]);
 
   // Load file tree
   const refreshTree = useCallback(() => {
@@ -1257,7 +1289,7 @@ export function CodeTab({ project }: CodeTabProps) {
           </>
         )}
 
-        {activeTabPath && (
+        {activeTabPath && !isRasterImage && (
           <button
             onClick={handleCopyFile}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
@@ -1487,6 +1519,27 @@ export function CodeTab({ project }: CodeTabProps) {
                 &#8984;P to go to file
               </button>
             </div>
+          ) : showImagePreview ? (
+            <div className="relative h-full overflow-auto flex items-center justify-center p-6 bg-surface-inset">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={rawUrl}
+                alt={activeTab?.name ?? 'image'}
+                onLoad={(e) =>
+                  setImageDims({
+                    w: e.currentTarget.naturalWidth,
+                    h: e.currentTarget.naturalHeight,
+                  })
+                }
+                onClick={() => setZoomImage(rawUrl)}
+                className="max-w-full max-h-full object-contain rounded shadow-lg cursor-zoom-in"
+              />
+              {imageDims && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-surface-modal/90 border border-border-default text-[10px] font-mono text-text-tertiary pointer-events-none">
+                  {imageDims.w} × {imageDims.h}
+                </div>
+              )}
+            </div>
           ) : showPreview && isMarkdown ? (
             <div className="h-full overflow-y-auto p-6">
               <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-surface-hover prose-pre:text-text-primary prose-code:text-lazuli prose-headings:text-text-primary">
@@ -1545,6 +1598,15 @@ export function CodeTab({ project }: CodeTabProps) {
         <div
           className="fixed inset-0 z-[59]"
           onClick={() => setShowPalette(false)}
+        />
+      )}
+
+      {/* Full-screen zoom/pan view for the previewed image */}
+      {zoomImage && (
+        <ImagePreview
+          src={zoomImage}
+          alt={activeTab?.name}
+          onClose={() => setZoomImage(null)}
         />
       )}
     </div>

@@ -34,6 +34,20 @@ const EXT_TO_LANGUAGE: Record<string, string> = {
   ".svg": "xml",
 };
 
+// Binary image formats we preview as an <img> rather than reading as text.
+// SVG is intentionally excluded — it's text/XML and stays editable in Monaco.
+const IMAGE_EXTS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".bmp",
+  ".ico",
+  ".avif",
+  ".apng",
+]);
+
 function getLanguage(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   if (EXT_TO_LANGUAGE[ext]) return EXT_TO_LANGUAGE[ext];
@@ -69,6 +83,19 @@ export async function GET(req: NextRequest) {
 
   try {
     const stat = await fs.stat(resolved);
+
+    // Images aren't read as text — the client previews them via /api/files/raw.
+    // Skip the read (and the text size limit) and just report the format + size.
+    const ext = path.extname(resolved).toLowerCase();
+    if (IMAGE_EXTS.has(ext)) {
+      return NextResponse.json({
+        content: "",
+        language: "image",
+        path: resolved,
+        size: stat.size,
+      });
+    }
+
     if (stat.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "file too large (max 5MB)" },
